@@ -152,3 +152,22 @@
 - **Evidence:** Actions run https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115
 - **Head at PASS:** `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef`
 - **Phase 1 CI workflow PASS recorded**
+
+### 2026-08-11 — PR #3 documentary closeout normalization
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Objective:** Documentary-only normalization of PR #3 before human review and merge; bind CI proof to current tested evidence
+- **Artifacts touched:**
+  - `proof/phase1/proof-return.yaml`
+  - `proof/phase1/workflow-proof-note.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** `python scripts/verify_phase1_deterministic.py`; `PYTHONPATH=src python -m pytest -q`; `git diff --check`; repository-local secret scan; GitHub Actions run https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31535966409 (SUCCESS) on head `69c9068ae21cf6606a3bcd9de6d82fedd611e242`
+- **Human decisions retained:**
+  - Documentary changes only; no workflow/runtime/test semantics altered
+  - Duplicate ledger ID NW-009 (CI proof) renumbered to NW-011; NW-009 not reused
+  - `proof/phase1/proof-return.yaml` now included in its own changed-files accounting
+- **Out of scope / refused:**
+  - Any workflow, runtime, test, or contract semantic change
+  - Phase 2B or any GHL write capability

@@ -26,7 +26,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-006 | TBD | MG Guide Meeting Follow-Up card experience | PLANNED | Completed + needs-review states |
 | NW-007 | TBD | Cloud Run deployment (test) | PLANNED | Requires activation authority; not part of foundation |
 | NW-008 | TBD | Acceptance tests AT-1…AT-10 + demo proof | PLANNED | Synthetic data only |
-| NW-009 | 2026-08-11 | Phase 1 deterministic CI workflow proof | DONE | Branch `chore/phase1-deterministic-ci`; Python-only deterministic verification; no secrets or runtime dependencies |
+| NW-011 | 2026-08-11 | Phase 1 deterministic CI workflow proof | DONE | Branch `chore/phase1-deterministic-ci`; Python-only deterministic verification; no secrets or runtime dependencies |
 
 ---
 
@@ -42,6 +42,9 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Authorization: MG_GUIDE_PHASE1_CI_V1
 - Branch: chore/phase1-deterministic-ci
 - PR: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/3
-- Green PR workflow run: https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115
-- Head SHA at green run: 61c01a3152a072ebfaefa2ab97b0ab3124cea5ef
+- Green PR workflow run (initial): https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115
+- Head SHA at initial green run: 61c01a3152a072ebfaefa2ab97b0ab3124cea5ef
+- Final verified head SHA: 69c9068ae21cf6606a3bcd9de6d82fedd611e242
+- Final green PR workflow run: https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31535966409 (SUCCESS)
 - Classification: competition-period new work (CI only; no product surface expansion)
+- Ledger correction: duplicate ID NW-009 (CI workflow proof) renumbered to NW-011; NW-009 remains the governance binding sync entry

@@ -2,11 +2,12 @@ proof_id: meeting-follow-up-v1-phase1-ci-20260811
 manifest_id: phase1-deterministic-ci-v1
 workflow_id: meeting_follow_up_v1
 branch: chore/phase1-deterministic-ci
-head_sha: 47deaae2820720b629eafe3ffec8c21245f4dfcb
-pr_url: ""
+head_sha: 69c9068ae21cf6606a3bcd9de6d82fedd611e242
+pr_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/3"
 files_changed:
   - .github/workflows/phase1-deterministic.yml
   - scripts/verify_phase1_deterministic.py
+  - proof/phase1/proof-return.yaml
   - proof/phase1/workflow-proof-note.md
   - competition/NEW_WORK_LEDGER.md
   - competition/AI_COLLABORATION_LOG.md
@@ -17,7 +18,12 @@ validation:
   notes: >
     Local deterministic verification passed for YAML parsing, packet schema
     validation, fixture outcomes, replay/idempotency, mutation intent bounds,
-    git diff hygiene, and repository-local secret scanning.
+    git diff hygiene, and repository-local secret scanning. GitHub Actions
+    workflow "Phase 1 Deterministic CI" run 31535966409 concluded SUCCESS on
+    PR head 69c9068ae21cf6606a3bcd9de6d82fedd611e242 (all steps green:
+    dependency install, YAML parses, packet schema, proof-return schema,
+    pytest, fixture outcomes, replay/idempotency, git diff --check,
+    secret-pattern scan).
 external_calls:
   network: NONE
   crm: NONE
@@ -30,5 +36,5 @@ residual_risks:
   - Workflow remains bounded to synthetic fixtures and local Python execution.
   - No live GHL or CRM access is exercised.
 next_action: >
-  Merge this bounded CI workflow branch after CI passes and open a public PR
-  for governance review.
+  Human review and merge of PR #3, then close MG_GUIDE_PHASE1_CI_V1 and open
+  the separate Phase 2A lane (MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1).

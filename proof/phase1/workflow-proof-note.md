@@ -83,3 +83,18 @@ This note update is documentary evidence of that pass; a subsequent tip commit m
 
 STOP condition remains MET on final tip after proof-note recording commit.
 
+## Closeout binding (documentary normalization, PR #3)
+
+| Item | Value |
+| --- | --- |
+| Closeout head SHA | `69c9068ae21cf6606a3bcd9de6d82fedd611e242` |
+| Closeout PR workflow run | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31535966409 |
+| Closeout workflow conclusion | **success / PASS** (all 14 verification steps green) |
+| Corroborating push-event run | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31535963747 (success) |
+
+This closeout commit is documentary-only: it binds `proof/phase1/proof-return.yaml`
+to tested head `69c9068ae21cf6606a3bcd9de6d82fedd611e242` and PR #3, includes
+`proof-return.yaml` in its own changed-files accounting, fixes a duplicate
+ledger ID, and completes the PR #3 CI/proof checklist. No workflow, runtime,
+or test semantics were altered.
+
