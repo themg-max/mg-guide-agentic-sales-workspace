@@ -122,3 +122,22 @@
   - Firestore / Cloud Run / IAM / secrets
   - Production data
   - Phase 2 capability discovery
+
+### 2026-08-11 — Phase 1 deterministic CI workflow
+
+- **Human owner:** Human operator / repository maintainer (Aaron Chandler)
+- **AI surfaces used:** VS Code / MG Orchestrator; GitHub Copilot CLI coding worker
+- **Objective:** Add narrow GitHub Actions CI for merged Phase 1 deterministic foundation under authorization `MG_GUIDE_PHASE1_CI_V1`
+- **Artifacts touched:**
+  - `.github/workflows/phase1-deterministic.yml`
+  - `proof/phase1/workflow-proof-note.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** workflow file review; local contract/pytest still green; PR workflow run (to be recorded in workflow-proof-note)
+- **Human decisions retained:**
+  - contents:read only
+  - no secrets
+  - no application external effects
+  - no pull_request_target
+  - no GHL/CRM/Gemini/ADK/Firestore/Cloud Run/IAM
+- **Out of scope / refused:** deployment, secret access, repository writes from workflow, broadening beyond Phase 1 deterministic tests
