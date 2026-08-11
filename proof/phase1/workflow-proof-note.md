@@ -9,7 +9,7 @@
 | Baseline merge | PR #2 → `47deaae2820720b629eafe3ffec8c21245f4dfcb` |
 | Branch | `chore/phase1-deterministic-ci` |
 | Workflow path | `.github/workflows/phase1-deterministic.yml` |
-| Recorded at (UTC) | 2026-08-11T20:10:00Z |
+| Recorded at (UTC) | 2026-08-11T20:12:00Z |
 
 ## What the workflow does
 
@@ -55,12 +55,20 @@ GHL/CRM/Gemini/ADK/Firestore/Cloud Run/IAM/Secret Manager: BLOCKED
 | Item | Status |
 | --- | --- |
 | Local workflow file present | YES |
-| PR opened | PENDING |
-| Workflow run from PR | PENDING |
-| Workflow conclusion | PENDING |
+| PR opened | YES — https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/3 |
+| Workflow run from PR | YES — https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115 |
+| PR head SHA at green run | `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef` |
+| Workflow conclusion | **success / PASS** |
+| Secret-scan false-positive fix | commit `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef` (PEM marker constructed; scanner self-skip) |
+| Push-event corroborating run | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531468581 (success) |
 
-Update this section after the PR workflow run completes.
+## Repair note
+
+Initial PR runs failed because the secret-pattern scanner matched the literal PEM begin token embedded in the workflow pattern list. Fixed by constructing the marker at runtime and skipping the scanner definition file. No secrets were present.
 
 ## STOP condition
 
 CI workflow passes from PR execution and this note records the result.
+
+**STOP CONDITION MET** for green PR workflow run `31531473115` on head `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef`.
+This note update is documentary evidence of that pass; a subsequent tip commit may re-run CI and should also pass without changing workflow semantics.

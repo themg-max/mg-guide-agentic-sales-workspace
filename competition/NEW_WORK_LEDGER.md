@@ -34,3 +34,13 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Creating this repository does **not** claim MG MCP or OL3 as new inventions.
 - Foundation contracts do **not** authorize production CRM writes.
 - UNKNOWN GHL tool identifiers are intentional; inventing them is a ledger violation.
+
+## Phase 1 deterministic CI PASS (PR #3)
+
+- Date (UTC): 2026-08-11
+- Authorization: MG_GUIDE_PHASE1_CI_V1
+- Branch: chore/phase1-deterministic-ci
+- PR: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/3
+- Green PR workflow run: https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115
+- Head SHA at green run: 61c01a3152a072ebfaefa2ab97b0ab3124cea5ef
+- Classification: competition-period new work (CI only; no product surface expansion)

@@ -141,3 +141,12 @@
   - no pull_request_target
   - no GHL/CRM/Gemini/ADK/Firestore/Cloud Run/IAM
 - **Out of scope / refused:** deployment, secret access, repository writes from workflow, broadening beyond Phase 1 deterministic tests
+
+## 2026-08-11 — Phase 1 CI green on PR #3
+
+- Human owner / operator: repository maintainer (themg-max operator)
+- Tool / AI surfaces: VS Code + MG Orchestrator (Copilot CLI runtime)
+- Action: repaired secret-scan self-match false positive; PR workflow run succeeded
+- Evidence: Actions run https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115
+- Head at PASS: `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef`
+- Phase 1 CI workflow PASS recorded
