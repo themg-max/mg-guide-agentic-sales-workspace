@@ -29,6 +29,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-011 | 2026-08-11 | Phase 1 deterministic CI workflow proof | DONE | Branch `chore/phase1-deterministic-ci`; Python-only deterministic verification; no secrets or runtime dependencies |
 | NW-012 | 2026-08-11 | Isolated GHL test-account record-read compatibility probe | NOT_PURSUIED_ENVIRONMENT_UNAVAILABLE | No isolated GHL hackathon/test location can be provided; path retired. Proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` never activated; zero record reads; zero writes |
 | NW-013 | TBD | Canonical GHL location synthetic-record read proof | PLANNED | Grant `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`; GATED_PENDING_SYNTHETIC_RECORD_BINDING; canonical location is NOT classified as a test environment; exact-ID synthetic reads only; no writes |
+| NW-014 | 2026-08-11 | Phase 2B offline GHL read adapter | DONE_PENDING_REVIEW | Auth `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1`; branch `feat/meeting-follow-up-v1-ghl-read-adapter-offline`; synthetic fixture replay only; network NONE; mutations denied |
 
 ---
 
@@ -40,8 +41,19 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - NW-003 meta-discovery does **not** claim record-level read probes occurred (`GHL_RECORD_READS=0`).
 - NW-012 is retired (no isolated GHL hackathon/test location exists); the proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` was never activated and no record probes occurred.
 - NW-013 is planned only; the canonical GHL location is **not** a test environment, and starting any live read requires explicit human authorization of `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` after synthetic-record binding.
-- Phase 2B has **not** started (`PHASE2B_STARTED=NO`).
+- Phase 2B live access has **not** started; the only Phase 2B work is the separately authorized offline adapter (`network=NONE`).
 - Gemini/ADK has **not** started (`GEMINI_ADK_STARTED=NO`).
+
+## Phase 2B offline GHL read adapter (PR pending)
+
+- Date (UTC): 2026-08-11
+- Private execution authority: `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1`
+- Public baseline: PR #5 merge commit `ea44f366f82039d3fa19168af1996a73253e6924`
+- Branch: `feat/meeting-follow-up-v1-ghl-read-adapter-offline`
+- Classification: competition-period deterministic adapter work; synthetic fixtures only
+- Scope: request envelopes, contact/opportunity/pipeline-stage/pagination/error normalization, explicit read allowlist, explicit mutation denial, fixture replay, acceptance tests, and proof return
+- Preserved posture: `network=NONE`, no live GHL/CRM access, `GHL_WRITES=0`, no Gemini/ADK, no Firestore/Cloud Run/IAM/Secret Manager
+- Live-proof gate remains inactive: `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` requires synthetic contact and opportunity records, private exact-ID allowlisting, an authorized secret path, and explicit human approval.
 
 ## Phase 1 deterministic CI PASS (PR #3)
 
