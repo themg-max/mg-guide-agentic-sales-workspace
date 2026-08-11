@@ -62,3 +62,21 @@
 2. Keep baseline vs new-work claims honest.
 3. Do not paste secrets, production data, or private infrastructure IDs into AI prompts or git.
 4. Subsequent implementation happens on bounded branches — not directly on `main` after bootstrap.
+
+### 2026-08-11 — Public sanitized governance binding sync
+
+- **Human owner:** VS Code / MG Orchestrator (directive: adoption closeout + phase1 preparation)
+- **AI surfaces used:** GitHub Copilot CLI / MG Orchestrator session
+- **Objective:** Publish sanitized public governance binding after private repository adoption approval; no runtime implementation
+- **Artifacts touched:**
+  - `governance/README.md`
+  - `governance/GOVERNANCE_PROFILE.yaml`
+  - `governance/EXECUTION_MANIFEST.schema.yaml`
+  - `governance/PROOF_RETURN.schema.yaml`
+  - `governance/PUBLIC_PRIVATE_BOUNDARY.md`
+  - `README.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** `git diff --check`; secret/private-identifier scan; exact path scope only
+- **Human decisions retained:** repository adoption approved in private control plane only; Phase 1 implementation still unauthorized; GHL/cloud/IAM withheld
+- **Out of scope / refused:** Gemini agents, GHL config, CRM writes, Firestore/Cloud Run provisioning, IAM/env/secrets, private `.ai` records, Phase 1 code

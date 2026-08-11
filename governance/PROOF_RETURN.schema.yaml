@@ -1,0 +1,88 @@
+# Public schema for proof-return packets after a bounded execution unit.
+schema_id: mg-guide-proof-return-schema-v1
+type: object
+required:
+  - proof_id
+  - manifest_id
+  - workflow_id
+  - branch
+  - head_sha
+  - files_changed
+  - validation
+  - external_calls
+  - authorization_posture
+additionalProperties: false
+properties:
+  proof_id:
+    type: string
+  manifest_id:
+    type: string
+  workflow_id:
+    type: string
+    const: meeting_follow_up_v1
+  branch:
+    type: string
+  head_sha:
+    type: string
+    pattern: '^[a-f0-9]{7,40}$'
+  pr_url:
+    type: string
+  files_changed:
+    type: array
+    items:
+      type: string
+  validation:
+    type: object
+    required:
+      - git_diff_check
+      - tests
+    properties:
+      git_diff_check:
+        type: string
+        enum: [PASS, FAIL, NOT_RUN]
+      tests:
+        type: string
+        enum: [PASS, FAIL, NOT_RUN, NOT_APPLICABLE]
+      contract_validation:
+        type: string
+        enum: [PASS, FAIL, NOT_RUN, NOT_APPLICABLE]
+      notes:
+        type: string
+  external_calls:
+    type: object
+    required:
+      - network
+      - crm
+      - cloud
+    properties:
+      network:
+        type: string
+        enum: [NONE, PRESENT]
+      crm:
+        type: string
+        enum: [NONE, PRESENT]
+      cloud:
+        type: string
+        enum: [NONE, PRESENT]
+  authorization_posture:
+    type: object
+    required:
+      - PHASE1_IMPLEMENTATION_AUTHORIZED
+      - GHL_WRITE_AUTHORIZED
+      - DEPLOYMENT_AUTHORIZED
+    properties:
+      PHASE1_IMPLEMENTATION_AUTHORIZED:
+        type: string
+        enum: ["YES", "NO"]
+      GHL_WRITE_AUTHORIZED:
+        type: string
+        enum: ["YES", "NO"]
+      DEPLOYMENT_AUTHORIZED:
+        type: string
+        enum: ["YES", "NO"]
+  residual_risks:
+    type: array
+    items:
+      type: string
+  next_action:
+    type: string
