@@ -77,8 +77,8 @@ This note update is documentary evidence of that pass; a subsequent tip commit m
 
 | Item | Value |
 | --- | --- |
-| Final PR tip SHA | `c8ea140a8d25bddaaa39c9363b31be4b93624559` |
-| Final PR workflow run | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531573205 |
+| Final PR tip SHA | `28a85e1539e4eb1356a01e632f875d74f2eec9f4` |
+| Final PR workflow run | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531651114 |
 | Final workflow conclusion | **success / PASS** |
 
 STOP condition remains MET on final tip after proof-note recording commit.
