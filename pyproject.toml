@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mg-guide-agentic-sales-workspace-phase1"
+version = "0.1.0"
+description = "Phase 1 deterministic foundation for meeting_follow_up_v1 (synthetic fixtures only)"
+requires-python = ">=3.9"
+dependencies = [
+  "jsonschema==4.23.0",
+  "PyYAML==6.0.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.5"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.setuptools.packages.find]
+where = ["src"]

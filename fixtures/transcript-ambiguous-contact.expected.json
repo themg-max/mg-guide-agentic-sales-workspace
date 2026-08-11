@@ -1,0 +1,72 @@
+{
+  "fixture_id": "transcript-ambiguous-contact",
+  "run_id": "run_demo_ambiguous_001",
+  "meeting": {
+    "meeting_id": "demo_meeting_002",
+    "occurred_at": "2026-08-10T16:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "2e95a46e5e329c217455cb38f28f5c983b6fbc7573da21e83720af2cee95fde6"
+  },
+  "participants": [
+    {
+      "name": "Jordan Lee",
+      "email": null,
+      "phone": null,
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "High-level conversation without unique contact identifiers.",
+    "needs": [
+      "planning options comparison"
+    ],
+    "objections": [],
+    "commitments": [],
+    "next_step": {
+      "action": "Hold CRM changes until unique contact identified",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": {
+      "recommended_stage": null,
+      "rationale": "No stage movement requested."
+    }
+  },
+  "extraction_confidence": 0.88,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_ambiguous_summary"
+    }
+  ],
+  "crm_resolution_stub": {
+    "status": "ambiguous",
+    "contact_id": null,
+    "opportunity_id": null,
+    "match_basis": "name",
+    "candidate_count": 2,
+    "current_stage": null
+  },
+  "policy_inputs": {
+    "transcript_file": "transcript-ambiguous-contact.txt",
+    "note_write_request": true,
+    "stage_write_request": false,
+    "force_note_denied": false,
+    "force_stage_denied": false
+  },
+  "expected": {
+    "terminal_state": "blocked",
+    "reason_codes": [
+      "AMBIGUOUS_CONTACT"
+    ],
+    "note_intent": 0,
+    "stage_intent": 0,
+    "external_effects": 0
+  }
+}

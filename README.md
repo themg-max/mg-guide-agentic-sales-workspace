@@ -3,7 +3,7 @@
 **Competition:** Google All Things Agentic Hackathon
 **Target track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
-**Project status:** **FOUNDATION / NOT YET FUNCTIONAL**
+**Project status:** **PHASE 1 DETERMINISTIC FOUNDATION (synthetic fixtures only)**
 
 This repository is the standalone, competition-period home for the MG Guide
 Agentic Sales Workspace. It establishes durable provenance for the
@@ -120,6 +120,9 @@ README.md
 LICENSE
 .gitignore
 .env.example
+pyproject.toml
+requirements.txt
+.python-version
 docs/
   COMPETITION_BASELINE.md
   MEETING_FOLLOW_UP_FOUNDATION.md
@@ -130,12 +133,18 @@ contracts/
   ghl_tool_manifest.yaml
   failure_codes.yaml
 fixtures/
-  transcript-success.txt
-  transcript-ambiguous-contact.txt
-  transcript-no-stage-change.txt
+  transcript-*.txt
+  transcript-*.expected.json
+src/orchestration/
+tests/
+  contracts/
+  workflow/
+  acceptance/
+proof/phase1/
 competition/
   NEW_WORK_LEDGER.md
   AI_COLLABORATION_LOG.md
+governance/
 ```
 
 ---
@@ -150,27 +159,28 @@ GCP, and GHL setup are intentionally omitted until later governed phases.
 git clone https://github.com/themg-max/mg-guide-agentic-sales-workspace.git
 cd mg-guide-agentic-sales-workspace
 
-# 2. Inspect foundation artifacts
-ls docs contracts fixtures competition
+# 2. Python Phase 1 deterministic suite (no network at runtime)
+python3 -m pip install -r requirements.txt
+PYTHONPATH=src python3 -m pytest -q
 
-# 3. Review baseline vs new-work separation
-less docs/COMPETITION_BASELINE.md
-
-# 4. Review the frozen vertical-slice foundation
-less docs/MEETING_FOLLOW_UP_FOUNDATION.md
-
-# 5. Review contracts and synthetic fixtures
-less contracts/meeting_follow_up_packet.schema.json
-less fixtures/transcript-success.txt
+# 3. Run one synthetic fixture package (intent-only; zero external effects)
+PYTHONPATH=src python3 -m orchestration fixtures/transcript-success.expected.json
 ```
+
+**Phase 1 available today:**
+
+- Contract/schema validation
+- Deterministic state machine + policy tests
+- Acceptance tests for three synthetic fixture packages
+- Local fixture runner (sidecar test doubles only)
 
 **Not yet available (do not invent):**
 
-- Dependency install / package manager lockfiles
-- Local agent runtime commands
-- GHL credential configuration
+- Gemini / ADK agent runtime
+- GHL credential configuration or live CRM calls
 - Firestore / Cloud Run provisioning
-- Live demo script against deployed services
+- Hosted demo against deployed services
+- Repository CI workflows (not authorized in Phase 1 grant)
 
 Copy [`.env.example`](.env.example) only as a **placeholder catalog**. Do not
 populate production values. Do not commit a real `.env`.
@@ -198,12 +208,13 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Item | State |
 | --- | --- |
 | Foundation docs / contracts / fixtures | Present |
+| Phase 1 deterministic engine + tests | Present (this branch) |
 | Gemini / ADK agents | Not implemented |
 | GHL MCP client | Not implemented |
 | Firestore audit writer | Not implemented |
 | Cloud Run deployment | Not provisioned |
 | Production CRM writes | Forbidden |
+| External effects (Phase 1) | Always 0 |
 
-**Next recommended implementation branch (after human authorization):**
-`feat/meeting-follow-up-v1-phase1-contracts-fixtures` — schema tests and
-deterministic state-machine scaffolding only (no AI, no GHL, no cloud).
+**Next recommended phase (separate authorization):** GHL MCP live capability
+discovery — **READ ONLY**. Do not start Phase 2 from this branch automatically.

@@ -18,7 +18,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-000 | 2026-08-11 | Public competition repository created | DONE | `themg-max/mg-guide-agentic-sales-workspace`, visibility PUBLIC |
 | NW-001 | 2026-08-11 | Foundation docs, contracts, synthetic fixtures, competition logs | DONE | Bootstrap commit; not functional runtime |
 | NW-009 | 2026-08-11 | Public sanitized governance binding sync | DONE | Branch `gov/private-adoption-binding-sync-20260811`; governance profile + schemas + boundary; no runtime |
-| NW-002 | TBD | Phase 1 schema/state-machine tests (no AI, no GHL) | PLANNED | Branch recommendation: `feat/meeting-follow-up-v1-phase1-contracts-fixtures` |
+| NW-002 | 2026-08-11 | Phase 1 deterministic contracts/fixtures/state-machine foundation (no AI, no GHL) | DONE | Branch `feat/meeting-follow-up-v1-phase1-contracts-fixtures`; synthetic sidecars; zero external effects |
 | NW-003 | TBD | GHL MCP live discovery against test account | PLANNED | Resolve all UNKNOWN tool rows or STOP |
 | NW-004 | TBD | ADK/Gemini agent implementation (Gemini 3.5+) | PLANNED | Four agents max per foundation |
 | NW-005 | TBD | Firestore audit writer | PLANNED | `workflow_runs/{run_id}` |

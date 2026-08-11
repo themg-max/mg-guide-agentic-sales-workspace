@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/meeting_follow_up_packet.schema.json",
   "title": "meeting_follow_up_packet_v1",
-  "description": "Canonical inter-agent packet for meeting_follow_up_v1. Conceptual schema freeze for competition foundation. No runtime implementation implied.",
+  "description": "Canonical inter-agent packet for meeting_follow_up_v1. Phase-valid at every workflow state. Future-phase outputs use not_attempted/pending/null rather than fabricated results.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -15,8 +15,10 @@
     "crm_resolution",
     "policy",
     "mutations",
+    "mutation_intents",
     "brief",
-    "audit"
+    "audit",
+    "external_effects"
   ],
   "properties": {
     "schema": {
@@ -26,11 +28,25 @@
     "run": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["run_id", "workflow", "created_at", "status"],
+      "required": [
+        "run_id",
+        "workflow",
+        "created_at",
+        "status"
+      ],
       "properties": {
-        "run_id": { "type": "string", "minLength": 1 },
-        "workflow": { "type": "string", "const": "meeting_follow_up_v1" },
-        "created_at": { "type": "string", "format": "date-time" },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workflow": {
+          "type": "string",
+          "const": "meeting_follow_up_v1"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
         "status": {
           "type": "string",
           "enum": [
@@ -50,17 +66,29 @@
     "meeting": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["meeting_id", "occurred_at", "source", "transcript_hash"],
+      "required": [
+        "meeting_id",
+        "occurred_at",
+        "source",
+        "transcript_hash"
+      ],
       "properties": {
-        "meeting_id": { "type": "string", "minLength": 1 },
-        "occurred_at": { "type": "string", "format": "date-time" },
+        "meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "occurred_at": {
+          "type": "string",
+          "format": "date-time"
+        },
         "source": {
           "type": "string",
-          "enum": ["synthetic_demo"]
+          "enum": [
+            "synthetic_demo"
+          ]
         },
         "transcript_hash": {
           "type": "string",
-          "description": "SHA-256 hex digest of the synthetic transcript bytes",
           "pattern": "^[a-f0-9]{64}$"
         }
       }
@@ -71,14 +99,36 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["name", "role"],
+        "required": [
+          "name",
+          "role"
+        ],
         "properties": {
-          "name": { "type": "string", "minLength": 1 },
-          "email": { "type": ["string", "null"], "format": "email" },
-          "phone": { "type": ["string", "null"] },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email"
+          },
+          "phone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "role": {
             "type": "string",
-            "enum": ["prospect", "client", "agent", "unknown"]
+            "enum": [
+              "prospect",
+              "client",
+              "agent",
+              "unknown"
+            ]
           }
         }
       }
@@ -87,6 +137,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "lifecycle",
         "summary",
         "needs",
         "objections",
@@ -95,51 +146,107 @@
         "opportunity_signal"
       ],
       "properties": {
-        "summary": { "type": "string" },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "complete",
+            "aborted"
+          ]
+        },
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "needs": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "objections": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "commitments": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["owner", "action"],
+            "required": [
+              "owner",
+              "action"
+            ],
             "properties": {
-              "owner": { "type": "string" },
-              "action": { "type": "string" },
+              "owner": {
+                "type": "string"
+              },
+              "action": {
+                "type": "string"
+              },
               "due_date": {
-                "type": ["string", "null"],
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "format": "date"
               }
             }
           }
         },
         "next_step": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
-          "required": ["action", "owner"],
+          "required": [
+            "action",
+            "owner"
+          ],
           "properties": {
-            "action": { "type": "string" },
-            "owner": { "type": "string" },
+            "action": {
+              "type": "string"
+            },
+            "owner": {
+              "type": "string"
+            },
             "target_date": {
-              "type": ["string", "null"],
+              "type": [
+                "string",
+                "null"
+              ],
               "format": "date"
             }
           }
         },
         "opportunity_signal": {
-          "type": "object",
+          "type": [
+            "object",
+            "null"
+          ],
           "additionalProperties": false,
-          "required": ["recommended_stage", "rationale"],
+          "required": [
+            "recommended_stage",
+            "rationale"
+          ],
           "properties": {
-            "recommended_stage": { "type": ["string", "null"] },
-            "rationale": { "type": ["string", "null"] }
+            "recommended_stage": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "rationale": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         }
       }
@@ -147,22 +254,35 @@
     "evidence": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["transcript_spans", "extraction_confidence"],
+      "required": [
+        "transcript_spans",
+        "extraction_confidence"
+      ],
       "properties": {
         "transcript_spans": {
           "type": "array",
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["field", "excerpt_id"],
+            "required": [
+              "field",
+              "excerpt_id"
+            ],
             "properties": {
-              "field": { "type": "string" },
-              "excerpt_id": { "type": "string" }
+              "field": {
+                "type": "string"
+              },
+              "excerpt_id": {
+                "type": "string"
+              }
             }
           }
         },
         "extraction_confidence": {
-          "type": "number",
+          "type": [
+            "number",
+            "null"
+          ],
           "minimum": 0,
           "maximum": 1
         }
@@ -172,6 +292,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "lifecycle",
         "status",
         "contact_id",
         "opportunity_id",
@@ -179,65 +300,249 @@
         "candidate_count"
       ],
       "properties": {
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "complete",
+            "failed"
+          ]
+        },
         "status": {
           "type": "string",
-          "enum": ["matched", "ambiguous", "not_found"]
+          "enum": [
+            "not_attempted",
+            "matched",
+            "ambiguous",
+            "not_found",
+            "opportunity_missing",
+            "tool_failure"
+          ]
         },
-        "contact_id": { "type": ["string", "null"] },
-        "opportunity_id": { "type": ["string", "null"] },
+        "contact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "opportunity_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "match_basis": {
           "type": "string",
-          "enum": ["email", "phone", "name", "none"]
+          "enum": [
+            "email",
+            "phone",
+            "name",
+            "none",
+            "not_attempted"
+          ]
         },
         "candidate_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "current_stage": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
     "policy": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["note_write", "stage_write", "reason_codes"],
+      "required": [
+        "lifecycle",
+        "note_write",
+        "stage_write",
+        "reason_codes"
+      ],
       "properties": {
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "complete"
+          ]
+        },
         "note_write": {
           "type": "string",
-          "enum": ["allowed", "blocked"]
+          "enum": [
+            "not_attempted",
+            "allowed",
+            "blocked"
+          ]
         },
         "stage_write": {
           "type": "string",
-          "enum": ["allowed", "approval_required", "blocked"]
+          "enum": [
+            "not_attempted",
+            "allowed",
+            "approval_required",
+            "blocked"
+          ]
         },
         "reason_codes": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "mutations": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["note", "opportunity_stage"],
+      "required": [
+        "lifecycle",
+        "note",
+        "opportunity_stage"
+      ],
       "properties": {
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "intent_only",
+            "complete"
+          ]
+        },
         "note": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["attempted", "verified", "record_id"],
+          "required": [
+            "attempted",
+            "verified",
+            "record_id"
+          ],
           "properties": {
-            "attempted": { "type": "boolean" },
-            "verified": { "type": "boolean" },
-            "record_id": { "type": ["string", "null"] }
+            "attempted": {
+              "type": "boolean"
+            },
+            "verified": {
+              "type": "boolean"
+            },
+            "record_id": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
           }
         },
         "opportunity_stage": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["attempted", "from_stage", "to_stage", "verified"],
+          "required": [
+            "attempted",
+            "from_stage",
+            "to_stage",
+            "verified"
+          ],
           "properties": {
-            "attempted": { "type": "boolean" },
-            "from_stage": { "type": ["string", "null"] },
-            "to_stage": { "type": ["string", "null"] },
-            "verified": { "type": "boolean" }
+            "attempted": {
+              "type": "boolean"
+            },
+            "from_stage": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "to_stage": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "verified": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "mutation_intents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "note",
+        "stage"
+      ],
+      "properties": {
+        "note": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "status"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "note"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "planned",
+                  "suppressed",
+                  "denied"
+                ]
+              },
+              "body_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "stage": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "status"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "stage"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "planned",
+                  "suppressed",
+                  "denied"
+                ]
+              },
+              "from_stage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "to_stage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
           }
         }
       }
@@ -246,6 +551,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "lifecycle",
         "headline",
         "meeting_summary",
         "crm_actions",
@@ -253,14 +559,43 @@
         "salesperson_attention_required"
       ],
       "properties": {
-        "headline": { "type": "string" },
-        "meeting_summary": { "type": "string" },
+        "lifecycle": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "complete"
+          ]
+        },
+        "headline": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "meeting_summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "crm_actions": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
-        "next_action": { "type": "string" },
-        "salesperson_attention_required": { "type": "boolean" }
+        "next_action": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "salesperson_attention_required": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
       }
     },
     "audit": {
@@ -275,33 +610,141 @@
         "final_disposition"
       ],
       "properties": {
-        "started_at": { "type": "string", "format": "date-time" },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
         "completed_at": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date-time"
         },
         "agents_used": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "tools_used": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "warnings": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "final_disposition": {
-          "type": "string",
-          "enum": [
-            "completed",
-            "completed_with_review",
-            "blocked",
-            "failed"
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "enum": [
+                "pending",
+                "completed",
+                "completed_with_review",
+                "blocked",
+                "failed"
+              ]
+            }
           ]
         }
       }
+    },
+    "external_effects": {
+      "type": "integer",
+      "const": 0
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "run": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "completed",
+                  "completed_with_review",
+                  "blocked",
+                  "failed"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "audit": {
+            "properties": {
+              "final_disposition": {
+                "type": "string",
+                "enum": [
+                  "completed",
+                  "completed_with_review",
+                  "blocked",
+                  "failed"
+                ]
+              }
+            },
+            "required": [
+              "final_disposition"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "run": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "received",
+                  "extracting",
+                  "resolving",
+                  "evaluating",
+                  "writing"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "audit": {
+            "properties": {
+              "final_disposition": {
+                "anyOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "const": "pending"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

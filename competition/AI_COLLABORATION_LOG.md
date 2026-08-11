@@ -80,3 +80,45 @@
 - **Validation:** `git diff --check`; secret/private-identifier scan; exact path scope only
 - **Human decisions retained:** repository adoption approved in private control plane only; Phase 1 implementation still unauthorized; GHL/cloud/IAM withheld
 - **Out of scope / refused:** Gemini agents, GHL config, CRM writes, Firestore/Cloud Run provisioning, IAM/env/secrets, private `.ai` records, Phase 1 code
+
+### 2026-08-11 — Ownership semantics correction (append-only)
+
+- **Human owner:** Human operator / repository maintainer (Aaron Chandler)
+- **AI surfaces used:** n/a (log correction only)
+- **Objective:** Correct prior entries that incorrectly listed an AI/orchestration surface as the human owner
+- **Artifacts touched:** `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** append-only correction; historical entries left in place
+- **Human decisions retained:** human owner must be a human/operator role; VS Code / MG Orchestrator is a tool/AI surface
+- **Out of scope / refused:** silent rewrite of historical entry bodies
+
+### 2026-08-11 — Phase 1 deterministic foundation implementation
+
+- **Human owner:** Human operator / repository maintainer (Aaron Chandler)
+- **AI surfaces used:** VS Code / MG Orchestrator; GitHub Copilot CLI coding worker
+- **Objective:** Implement bounded Phase 1 deterministic foundation for `meeting_follow_up_v1` using synthetic fixture sidecars only
+- **Artifacts touched:**
+  - `contracts/meeting_follow_up_packet.schema.json`
+  - `contracts/workflow_states.yaml`
+  - `contracts/failure_codes.yaml`
+  - `fixtures/*.expected.json`
+  - `src/orchestration/**`
+  - `tests/contracts/**`
+  - `tests/workflow/**`
+  - `tests/acceptance/**`
+  - `proof/phase1/proof-return.yaml`
+  - `pyproject.toml`, `requirements.txt`, `.python-version`
+  - `README.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** `python -m pytest`; schema validation; YAML parse; fixture acceptance outcomes; replay/idempotency; `git diff --check`; secret/private-identifier scan
+- **Human decisions retained:**
+  - Phase 1 only; no Gemini/ADK/GHL/CRM/Firestore/Cloud Run
+  - Free-text transcripts remain evidence fixtures; extraction facts from sidecars
+  - Zero external effects
+  - No `.github/workflows/**` edits (CI workflow authorization required if CI desired)
+- **Out of scope / refused:**
+  - Gemini / ADK agent calls
+  - Live GHL / CRM network
+  - Firestore / Cloud Run / IAM / secrets
+  - Production data
+  - Phase 2 capability discovery
