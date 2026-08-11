@@ -14,6 +14,22 @@ Agentic Sales Workspace. It establishes durable provenance for the
 
 ---
 
+## Governance binding
+
+Public sanitized governance lives under [`governance/`](governance/).
+
+- Private AI Rolodex context repo = governance / source authority
+- This public repo = implementation / test / public proof
+- Agents propose; deterministic policy authorizes
+- External mutations are separately gated
+- Synthetic data only unless later granted
+- Proof required; merged PR ≠ production activation
+
+See [`governance/README.md`](governance/README.md) and
+[`governance/PUBLIC_PRIVATE_BOUNDARY.md`](governance/PUBLIC_PRIVATE_BOUNDARY.md).
+
+---
+
 ## Project goal
 
 After a sales meeting ends, turn a meeting transcript into a **governed CRM

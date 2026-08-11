@@ -1,0 +1,52 @@
+# Public schema for bounded execution manifests (competition period).
+# Manifests declare intended work; they do not self-authorize external mutations.
+schema_id: mg-guide-execution-manifest-schema-v1
+type: object
+required:
+  - manifest_id
+  - workflow_id
+  - branch
+  - allowed_paths
+  - blocked_surfaces
+  - synthetic_data_only
+  - requires_proof_return
+additionalProperties: false
+properties:
+  manifest_id:
+    type: string
+    description: Stable identifier for this execution unit
+  workflow_id:
+    type: string
+    const: meeting_follow_up_v1
+  branch:
+    type: string
+    description: Exact topic branch name for the work
+  objective:
+    type: string
+  allowed_paths:
+    type: array
+    minItems: 1
+    items:
+      type: string
+    description: Exact repo-relative path prefixes writable for this unit
+  blocked_surfaces:
+    type: array
+    items:
+      type: string
+    description: Explicit deny list (e.g. ghl, gemini, iam, secrets, network)
+  synthetic_data_only:
+    type: boolean
+    const: true
+  external_mutations_authorized:
+    type: boolean
+    const: false
+    description: Public default is false; external mutations need separate grants
+  requires_proof_return:
+    type: boolean
+    const: true
+  definition_of_done:
+    type: array
+    items:
+      type: string
+  notes:
+    type: string
