@@ -1,100 +1,297 @@
-# GHL MCP tool manifest — competition foundation template
+# GHL MCP tool manifest — Phase 2A live discovery (READ-ONLY)
+#
+# Authorization: MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1
+# Discovery mode: tools/list + search_operations + describe_operation ONLY
+# Forbidden in this phase: CREATE/UPDATE/DELETE, note_create execution,
+# opportunity stage mutation execution, email/SMS, raw GHL REST fallback,
+# Gemini/ADK, deployment/IAM, production CRM record reads.
 #
 # IMPORTANT:
-# - Logical capability names below are contract placeholders.
-# - Exact GHL MCP tool/operation identifiers are UNKNOWN until live discovery
-#   against an authorized isolated/test account.
-# - Do NOT invent or hard-code guessed tool names in implementation.
-# - Do NOT substitute raw GoHighLevel REST without a new architecture decision.
+# - Exact identifiers below were observed via live MCP meta discovery.
+# - CRM record probes (search/fetch against real contacts/opportunities) were
+#   NOT executed because the available PIT/location binding is the canonical
+#   MG Guide location and is NOT proven to be an isolated hackathon test
+#   account (PRODUCTION CRM DATA FORBIDDEN).
+# - Do NOT implement mutation runners from this artifact alone.
 
 workflow: meeting_follow_up_v1
-schema_version: 1
-environment: hackathon_test
+schema_version: 2
+environment: hackathon_test_required
+environment_binding_status: UNVERIFIED
 production_crm_writes: forbidden
+production_crm_data_reads: forbidden
+discovery_authorization_id: MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1
+discovery_timestamp_utc: "2026-08-11T20:20:00Z"
 
 ghl_mcp:
-  connection_status: UNKNOWN
-  endpoint: UNKNOWN
-  auth_mode: UNKNOWN
-  location_id: UNKNOWN
-  discovery_required_before_implementation: true
+  connection_status: PARTIAL_PASS_META_ONLY
+  server_info:
+    name: ghl-mcp
+    version: "1.0.0"
+    protocol_version_observed: "2024-11-05"
 
-  # Logical read capabilities (exact names UNKNOWN)
+  endpoints:
+    original_mcp:
+      url: https://services.leadconnectorhq.com/mcp/
+      client_fit: any_http_mcp_client
+      coverage: limited_discrete_tools
+      tools_list_count_observed: 36
+      note_create_as_first_class_tool: false
+    anthropic_v2:
+      url: https://services.leadconnectorhq.com/mcp/anthropic/v2
+      client_fit: claude_and_compatible_http_mcp_clients
+      coverage: full_operation_catalog_via_unified_tools
+      tools_list_count_observed: 6
+      recommended_for_meeting_follow_up_v1: true
+
+  auth_mode: private_integration_token_bearer
+  auth_header: "Authorization: Bearer <PIT>"
+  auth_notes:
+    - "Bearer prefix required; raw PIT without Bearer returned invalid_token (401)."
+    - "Cloudflare may block non-browser User-Agents (observed Python urllib 403 Error 1010); use a normal browser User-Agent for HTTP clients."
+    - "Optional locationId header accepted on both endpoints."
+    - "OAuth also supported per public LeadConnector docs; not exercised in this pass."
+  location_id: UNKNOWN_TEST_LOCATION
+  location_binding_notes: >
+    A canonical MG Guide location id exists in private control configuration, but
+    Phase 2A does not authorize production CRM data use. Live record probes are
+    withheld until an isolated hackathon/test location + PIT are explicitly bound.
+
+  discovery_required_before_implementation: true
+  discovery_completed_meta: true
+  discovery_completed_record_behavior: false
+
+  unified_tools_anthropic_v2:
+    search:
+      exact_tool_or_operation: search
+      purpose: natural_language_record_find
+      write_semantics: n/a
+      used_in_phase2a: listed_only
+    fetch:
+      exact_tool_or_operation: fetch
+      purpose: fetch_records_by_id_from_search
+      write_semantics: n/a
+      used_in_phase2a: listed_only
+    search_operations:
+      exact_tool_or_operation: search_operations
+      purpose: discover_operation_catalog_by_intent
+      write_semantics: n/a
+      used_in_phase2a: exercised_read_meta
+    describe_operation:
+      exact_tool_or_operation: describe_operation
+      purpose: inspect_operation_inputs_scopes_path
+      write_semantics: n/a
+      used_in_phase2a: exercised_read_meta
+    execute_operation:
+      exact_tool_or_operation: execute_operation
+      purpose: run_catalog_operation_subject_to_scopes
+      write_semantics: depends_on_operation
+      used_in_phase2a: NOT_EXERCISED
+      notes: "Supports dryRun preview per describe_operation nextStep text; still not used in Phase 2A."
+    list_locations:
+      exact_tool_or_operation: list_locations
+      purpose: agency_multi_location_selection
+      write_semantics: n/a
+      used_in_phase2a: listed_only
+
   read_tools:
     contact_search:
       required: true
-      exact_tool_or_operation: UNKNOWN
-      input_schema: UNKNOWN
-      output_schema: UNKNOWN
-      auth_scopes: UNKNOWN
+      preferred_surface: anthropic_v2
+      exact_tool_or_operation: execute_operation:search-contacts-advanced
+      alternate_operations:
+        - execute_operation:get-duplicate-contact
+      original_mcp_first_class_tool: contacts_get-contacts
+      input_schema:
+        surface: anthropic_v2.execute_operation
+        operationId: search-contacts-advanced
+        method: POST
+        path: /contacts/search
+        body_fields:
+          pageLimit: {type: number, required: true}
+          page: {type: number, required: false}
+          query: {type: string, required: false, notes: "Free-text search (max 75 chars)"}
+          assignedTo: {type: string, required: false}
+          projection: {type: object, required: false}
+        duplicate_lookup:
+          operationId: get-duplicate-contact
+          method: GET
+          path: /contacts/search/duplicate
+          query_fields: [email, number]
+      output_schema: UNKNOWN_NOT_CAPTURED_NO_RECORD_CALL
+      auth_scopes: [contacts.readonly]
       write_semantics: n/a
-      error_behavior: UNKNOWN
-      idempotency: UNKNOWN
+      error_behavior: UNKNOWN_NOT_PROBED_NO_RECORD_CALL
+      idempotency: read
+      pagination:
+        pageLimit_required: true
+        page_optional: true
+        observed_from: describe_operation
+      ambiguous_match_behavior: UNKNOWN_NOT_PROBED
+      not_found_behavior: UNKNOWN_NOT_PROBED
 
     contact_fetch:
       required: true
-      exact_tool_or_operation: UNKNOWN
-      input_schema: UNKNOWN
-      output_schema: UNKNOWN
-      auth_scopes: UNKNOWN
+      preferred_surface: anthropic_v2
+      exact_tool_or_operation: execute_operation:get-contact
+      original_mcp_first_class_tool: contacts_get-contact
+      input_schema:
+        operationId: get-contact
+        method: GET
+        path: /contacts/{contactId}
+        path_params: [contactId]
+      output_schema: UNKNOWN_NOT_CAPTURED_NO_RECORD_CALL
+      auth_scopes: [contacts.readonly]
       write_semantics: n/a
-      error_behavior: UNKNOWN
-      idempotency: UNKNOWN
+      error_behavior: UNKNOWN_NOT_PROBED_NO_RECORD_CALL
+      idempotency: read
 
     opportunity_search:
       required: true
-      exact_tool_or_operation: UNKNOWN
-      input_schema: UNKNOWN
-      output_schema: UNKNOWN
-      auth_scopes: UNKNOWN
+      preferred_surface: anthropic_v2
+      exact_tool_or_operation: execute_operation:search-opportunity
+      alternate_operations:
+        - execute_operation:search-opportunities-advanced
+      original_mcp_first_class_tool: opportunities_search-opportunity
+      input_schema:
+        operationId: search-opportunity
+        method: GET
+        path: /opportunities/search
+        query_params_include:
+          - contactId
+          - pipelineId
+          - pipelineStageId
+          - q
+          - limit
+          - page
+          - status
+          - startAfter
+          - startAfterId
+        advanced:
+          operationId: search-opportunities-advanced
+          method: POST
+          path: /opportunities/search
+          body_fields: [query, limit, page, searchAfter, additionalDetails]
+      output_schema: UNKNOWN_NOT_CAPTURED_NO_RECORD_CALL
+      auth_scopes: [opportunities.readonly]
       write_semantics: n/a
-      error_behavior: UNKNOWN
-      idempotency: UNKNOWN
+      error_behavior: UNKNOWN_NOT_PROBED_NO_RECORD_CALL
+      idempotency: read
+      pagination:
+        supports_limit_page: true
+        supports_startAfter_startAfterId: true
+        observed_from: describe_operation
 
     pipeline_fetch:
       required: true
-      exact_tool_or_operation: UNKNOWN
-      input_schema: UNKNOWN
-      output_schema: UNKNOWN
-      auth_scopes: UNKNOWN
+      preferred_surface: anthropic_v2
+      exact_tool_or_operation: execute_operation:get-pipelines
+      original_mcp_first_class_tool: opportunities_get-pipelines
+      input_schema:
+        operationId: get-pipelines
+        method: GET
+        path: /opportunities/pipelines
+        parameters: []
+      output_schema: UNKNOWN_NOT_CAPTURED_NO_RECORD_CALL
+      auth_scopes: [opportunities.readonly]
       write_semantics: n/a
-      error_behavior: UNKNOWN
-      idempotency: UNKNOWN
+      error_behavior: UNKNOWN_NOT_PROBED_NO_RECORD_CALL
+      idempotency: read
 
     mutation_readback:
       required: true
-      exact_tool_or_operation: UNKNOWN
-      input_schema: UNKNOWN
-      output_schema: UNKNOWN
-      auth_scopes: UNKNOWN
+      preferred_surface: anthropic_v2
+      exact_tool_or_operation: execute_operation:get-note
+      alternate_operations:
+        - execute_operation:get-all-notes
+        - execute_operation:get-opportunity
+        - execute_operation:get-contact
+      notes: >
+        Note readback: get-note (by contactId+note id) or get-all-notes (by contactId).
+        Stage readback: get-opportunity (by opportunity id) and/or pipeline metadata via get-pipelines.
+      input_schema:
+        get-note:
+          method: GET
+          path: /contacts/{contactId}/notes/{id}
+          path_params: [contactId, id]
+          scopes: [contacts.readonly]
+        get-all-notes:
+          method: GET
+          path: /contacts/{contactId}/notes
+          path_params: [contactId]
+          scopes: [contacts.readonly]
+        get-opportunity:
+          method: GET
+          path: /opportunities/{id}
+          path_params: [id]
+          scopes: [opportunities.readonly]
+      output_schema: UNKNOWN_NOT_CAPTURED_NO_RECORD_CALL
+      auth_scopes: [contacts.readonly, opportunities.readonly]
       write_semantics: n/a
-      error_behavior: UNKNOWN
-      idempotency: UNKNOWN
+      error_behavior: UNKNOWN_NOT_PROBED_NO_RECORD_CALL
+      idempotency: read
 
-  # Logical write capabilities (exact names UNKNOWN)
   write_tools:
     note_create:
-      allowed: true
+      allowed_in_future_mutation_phase: true
       max_calls_per_run: 1
-      exact_tool_or_operation: UNKNOWN
-      input_schema: UNKNOWN
-      output_schema: UNKNOWN
-      auth_scopes: UNKNOWN
-      write_semantics: UNKNOWN
-      error_behavior: UNKNOWN
-      idempotency: UNKNOWN
+      discovered: true
+      executable_in_phase2a: false
+      preferred_surface: anthropic_v2
+      exact_tool_or_operation: execute_operation:create-note
+      original_mcp_first_class_tool: ABSENT
+      hard_stop_if_absent: true
+      input_schema:
+        operationId: create-note
+        method: POST
+        path: /contacts/{contactId}/notes
+        path_params: [contactId]
+        body_fields:
+          body: {type: string, required: true, description: Note content}
+          userId: {type: string, required: false, description: Author user Id}
+      output_schema: UNKNOWN_NOT_EXECUTED
+      auth_scopes: [contacts.write]
+      write_semantics: create_note_on_contact
+      error_behavior: UNKNOWN_NOT_EXECUTED
+      idempotency: required_true_per_catalog
+      requires_approval_per_catalog: true
       requires_readback_verification: true
       requires_explicit_mutation_authorization: true
 
     opportunity_stage_update:
-      allowed: true
+      allowed_in_future_mutation_phase: true
       max_calls_per_run: 1
-      exact_tool_or_operation: UNKNOWN
-      input_schema: UNKNOWN
-      output_schema: UNKNOWN
-      auth_scopes: UNKNOWN
-      write_semantics: UNKNOWN
-      error_behavior: UNKNOWN
+      discovered: true
+      executable_in_phase2a: false
+      preferred_surface: anthropic_v2
+      exact_tool_or_operation: execute_operation:update-opportunity
+      alternate_operations:
+        - execute_operation:update-opportunity-status
+      original_mcp_first_class_tool: opportunities_update-opportunity
+      hard_stop_if_absent: true
+      input_schema:
+        operationId: update-opportunity
+        method: PUT
+        path: /opportunities/{id}
+        path_params: [id]
+        body_fields:
+          pipelineId: {type: string, required: false}
+          name: {type: string, required: false}
+          pipelineStageId: {type: string, required: false, notes: "Primary stage transition field"}
+          status: {type: string, required: false}
+          monetaryValue: {type: number, required: false}
+          assignedTo: {type: string, required: false}
+          customFields: {type: array, required: false}
+        status_only_alternate:
+          operationId: update-opportunity-status
+          method: PUT
+          path: /opportunities/{id}/status
+          body_fields: [status, lostReasonId]
+          notes: "Status/lost-reason only — not a pipeline stage move."
+      output_schema: UNKNOWN_NOT_EXECUTED
+      auth_scopes: [opportunities.write]
+      write_semantics: update_opportunity_including_pipelineStageId
+      error_behavior: UNKNOWN_NOT_EXECUTED
       idempotency: UNKNOWN
       requires_readback_verification: true
       requires_explicit_mutation_authorization: true
@@ -102,7 +299,16 @@ ghl_mcp:
         - from: discovery_scheduled
           to: discovery_complete
 
-  # Capability classes that must be refused at the manifest/policy layer
+  required_scopes_minimum:
+    read_phase:
+      - contacts.readonly
+      - opportunities.readonly
+    future_mutation_phase:
+      - contacts.readonly
+      - contacts.write
+      - opportunities.readonly
+      - opportunities.write
+
   blocked_capability_classes:
     - contact_create
     - contact_delete
@@ -118,8 +324,51 @@ ghl_mcp:
     - owner_change
     - tagging_unrestricted
 
+  compatibility_findings:
+    - id: CF-01
+      severity: high
+      finding: >
+        Official original /mcp/ discrete tool surface exposed by this PIT does
+        NOT include create-note / get-note tools. Note create exists only on the
+        anthropic_v2 operation catalog via execute_operation:create-note.
+      implication: >
+        meeting_follow_up_v1 must target anthropic_v2 (or equivalent full catalog)
+        for note capability. original-only integration would hard-stop on notes.
+    - id: CF-02
+      severity: medium
+      finding: >
+        Stage movement is via update-opportunity.pipelineStageId, not
+        update-opportunity-status (status/lostReason only).
+    - id: CF-03
+      severity: medium
+      finding: >
+        Contact search free-text query max length is 75 chars
+        (search-contacts-advanced). Duplicate email/phone lookup is a separate
+        operation (get-duplicate-contact).
+    - id: CF-04
+      severity: high
+      finding: >
+        Available credential/location binding is NOT proven isolated hackathon
+        test. Record-level behavior probes intentionally withheld.
+    - id: CF-05
+      severity: low
+      finding: >
+        HTTP clients need browser-like User-Agent to avoid Cloudflare 1010 on
+        services.leadconnectorhq.com.
+
 hard_stop_rules:
   - If note_create cannot be discovered on the authorized MCP server, STOP.
   - If opportunity_stage_update cannot be discovered on the authorized MCP server, STOP.
   - Do not silently fall back to raw GHL REST APIs.
-  - Do not point this manifest at a production location.
+  - Do not point this manifest at a production location for record probes or mutations.
+  - Phase 2A discovery does not authorize any mutation execution.
+
+phase2a_verdict:
+  note_create_discovered: true
+  opportunity_stage_update_discovered: true
+  hard_stop_triggered: false
+  record_behavior_complete: false
+  overall: PASS_WITH_BLOCKERS
+  blockers:
+    - ISOLATED_HACKATHON_TEST_ACCOUNT_BINDING_REQUIRED
+    - RECORD_LEVEL_READ_BEHAVIOR_PROBES_WITHHELD

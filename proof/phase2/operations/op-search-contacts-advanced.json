@@ -1,0 +1,65 @@
+{
+  "operationId": "search-contacts-advanced",
+  "domain": "contacts",
+  "method": "POST",
+  "path": "/contacts/search",
+  "summary": "Search Contacts",
+  "description": "Primary search endpoint. Filter contacts by query, assignedTo, pagination.",
+  "requiredScopes": [
+    "contacts.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [],
+  "parameters": [],
+  "hasRequestBody": true,
+  "requestBodyFields": [
+    {
+      "name": "pageLimit",
+      "type": "number",
+      "required": true,
+      "description": "Results per page"
+    },
+    {
+      "name": "page",
+      "type": "number",
+      "required": false,
+      "description": "Page number (default 1)"
+    },
+    {
+      "name": "query",
+      "type": "string",
+      "required": false,
+      "description": "Free-text search (max 75 chars)"
+    },
+    {
+      "name": "assignedTo",
+      "type": "string",
+      "required": false,
+      "description": "Filter by assigned user ID"
+    },
+    {
+      "name": "projection",
+      "type": "object",
+      "required": false,
+      "description": "Field projection"
+    }
+  ],
+  "requestContentTypes": [
+    "application/json"
+  ],
+  "responseContentTypes": [],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {},
+      "query": {},
+      "body": {
+        "pageLimit": "example_pageLimit"
+      }
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

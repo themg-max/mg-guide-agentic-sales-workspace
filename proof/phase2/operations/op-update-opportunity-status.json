@@ -1,0 +1,66 @@
+{
+  "operationId": "update-opportunity-status",
+  "domain": "opportunities",
+  "method": "PUT",
+  "path": "/opportunities/{id}/status",
+  "summary": "Update Opportunity Status",
+  "description": "Update Opportunity Status",
+  "requiredScopes": [
+    "opportunities.write"
+  ],
+  "kind": "write",
+  "parameterNames": [
+    "id"
+  ],
+  "parameters": [
+    {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "Opportunity Id",
+      "schema": {
+        "example": "yWQobCRIhRguQtD2llvk",
+        "type": "string"
+      }
+    }
+  ],
+  "hasRequestBody": true,
+  "requestBodyFields": [
+    {
+      "name": "status",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "lostReasonId",
+      "type": "string",
+      "required": false,
+      "example": "CLu7BaljjqrEjBGKTNNe",
+      "description": "lost reason Id"
+    }
+  ],
+  "requestContentTypes": [
+    "application/json"
+  ],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": false,
+  "destructiveHint": false,
+  "idempotencyRequired": true,
+  "requiresApproval": true,
+  "payloadExample": {
+    "params": {
+      "path": {
+        "id": "example_id"
+      },
+      "query": {},
+      "body": {
+        "id": "{id}",
+        "status": "",
+        "lostReasonId": "CLu7BaljjqrEjBGKTNNe"
+      }
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

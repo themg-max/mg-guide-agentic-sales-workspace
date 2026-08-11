@@ -1,0 +1,162 @@
+{
+  "contacts": {
+    "status": 200,
+    "args": {
+      "query": "contacts"
+    },
+    "total": 10,
+    "operationIds": [
+      "create-contact",
+      "update-business",
+      "list",
+      "create",
+      "update",
+      "contacts.create-association",
+      "get-contacts-by-businessId",
+      "search-contacts-advanced",
+      "add-remove-contact-from-business",
+      "delete-contact"
+    ]
+  },
+  "contact search": {
+    "status": 200,
+    "args": {
+      "query": "contact search"
+    },
+    "total": 10,
+    "operationIds": [
+      "get-contact",
+      "get-contacts-by-businessId",
+      "search-contacts-advanced",
+      "get-appointments-for-contact",
+      "get-all-notes",
+      "get-note",
+      "get-all-tasks",
+      "get-task",
+      "get-duplicate-contact",
+      "get-association-by-object-keys"
+    ]
+  },
+  "get contact": {
+    "status": 200,
+    "args": {
+      "query": "get contact"
+    },
+    "total": 10,
+    "operationIds": [
+      "get-contact",
+      "get-contacts-by-businessId",
+      "get-appointments-for-contact",
+      "search-contacts-advanced",
+      "get-duplicate-contact",
+      "get-all-notes",
+      "get-note",
+      "get-all-tasks",
+      "get-task",
+      "get-association-by-object-keys"
+    ]
+  },
+  "create contact note": {
+    "status": 200,
+    "args": {
+      "query": "create contact note"
+    },
+    "total": 10,
+    "operationIds": [
+      "create-note",
+      "create-appointment-note",
+      "create-contact",
+      "add-contact-to-campaign",
+      "add-contact-to-workflow",
+      "add-remove-contact-from-business",
+      "update-note",
+      "add-an-inbound-message",
+      "get-all-notes",
+      "delete-note"
+    ]
+  },
+  "notes": {
+    "status": 200,
+    "args": {
+      "query": "notes"
+    },
+    "total": 9,
+    "operationIds": [
+      "get-appointment-notes",
+      "get-all-notes",
+      "create-appointment-note",
+      "delete-appointment-note",
+      "update-appointment-note",
+      "create-note",
+      "delete-note",
+      "get-note",
+      "update-note"
+    ]
+  },
+  "opportunities": {
+    "status": 200,
+    "args": {
+      "query": "opportunities"
+    },
+    "total": 10,
+    "operationIds": [
+      "create-opportunity",
+      "search-opportunities-advanced",
+      "delete-opportunity",
+      "get-opportunity",
+      "update-opportunity",
+      "remove-followers-opportunity",
+      "add-followers-opportunity",
+      "update-opportunity-status",
+      "get-lost-reason",
+      "get-pipelines"
+    ]
+  },
+  "search opportunities": {
+    "status": 200,
+    "args": {
+      "query": "search opportunities"
+    },
+    "total": 7,
+    "operationIds": [
+      "search-opportunities-advanced",
+      "get-opportunity",
+      "get-lost-reason",
+      "get-pipelines",
+      "search-opportunity",
+      "get-association-by-object-keys",
+      "get-custom-fields"
+    ]
+  },
+  "update opportunity": {
+    "status": 200,
+    "args": {
+      "query": "update opportunity"
+    },
+    "total": 4,
+    "operationIds": [
+      "update-opportunity",
+      "update-opportunity-status",
+      "Upsert-opportunity",
+      "update-custom-object"
+    ]
+  },
+  "pipelines": {
+    "status": 200,
+    "args": {
+      "query": "pipelines"
+    },
+    "total": 1,
+    "operationIds": [
+      "get-pipelines"
+    ]
+  },
+  "pipeline stages": {
+    "status": 200,
+    "args": {
+      "query": "pipeline stages"
+    },
+    "total": 0,
+    "operationIds": []
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "operationId": "get-opportunity",
+  "domain": "opportunities",
+  "method": "GET",
+  "path": "/opportunities/{id}",
+  "summary": "Get Opportunity",
+  "description": "Get Opportunity",
+  "requiredScopes": [
+    "opportunities.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [
+    "id"
+  ],
+  "parameters": [
+    {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "Opportunity Id",
+      "schema": {
+        "example": "yWQobCRIhRguQtD2llvk",
+        "type": "string"
+      }
+    }
+  ],
+  "hasRequestBody": false,
+  "requestContentTypes": [],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {
+        "id": "example_id"
+      },
+      "query": {}
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

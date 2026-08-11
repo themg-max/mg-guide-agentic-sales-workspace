@@ -33,3 +33,11 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Creating this repository does **not** claim MG MCP or OL3 as new inventions.
 - Foundation contracts do **not** authorize production CRM writes.
 - UNKNOWN GHL tool identifiers are intentional; inventing them is a ledger violation.
+
+## Phase 2A GHL MCP read discovery
+
+- Date (UTC): 2026-08-11
+- Authorization: MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1
+- Branch: feat/meeting-follow-up-v1-ghl-mcp-read-discovery
+- Classification: competition-period new work (discovery/contract only; zero CRM mutations)
+- Outcomes: manifest updated; proof/phase2 captured; hard-stop note/stage ops discovered on anthropic_v2; record behavior probes blocked pending test account binding

@@ -1,0 +1,30 @@
+{
+  "operationId": "get-pipelines",
+  "domain": "opportunities",
+  "method": "GET",
+  "path": "/opportunities/pipelines",
+  "summary": "Get Pipelines",
+  "description": "Get Pipelines",
+  "requiredScopes": [
+    "opportunities.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [],
+  "parameters": [],
+  "hasRequestBody": false,
+  "requestContentTypes": [],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {},
+      "query": {}
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

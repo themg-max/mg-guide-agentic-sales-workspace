@@ -1,0 +1,67 @@
+{
+  "operationId": "create-note",
+  "domain": "contacts",
+  "method": "POST",
+  "path": "/contacts/{contactId}/notes",
+  "summary": "Create Note",
+  "description": "Add a new note to a contact.",
+  "requiredScopes": [
+    "contacts.write"
+  ],
+  "kind": "write",
+  "parameterNames": [
+    "contactId"
+  ],
+  "parameters": [
+    {
+      "name": "contactId",
+      "in": "path",
+      "required": true,
+      "description": "Contact Id",
+      "schema": {
+        "type": "string",
+        "example": "ve9EPM428h8vShlRW1KT"
+      }
+    }
+  ],
+  "hasRequestBody": true,
+  "requestBodyFields": [
+    {
+      "name": "body",
+      "type": "string",
+      "required": true,
+      "example": "lorem ipsum",
+      "description": "Note content"
+    },
+    {
+      "name": "userId",
+      "type": "string",
+      "required": false,
+      "example": "GCs5KuzPqTls7vWclkEV",
+      "description": "Author user Id"
+    }
+  ],
+  "requestContentTypes": [
+    "application/json"
+  ],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": false,
+  "destructiveHint": false,
+  "idempotencyRequired": true,
+  "requiresApproval": true,
+  "payloadExample": {
+    "params": {
+      "path": {
+        "contactId": "example_contactId"
+      },
+      "query": {},
+      "body": {
+        "contactId": "{contactId}",
+        "body": ""
+      }
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

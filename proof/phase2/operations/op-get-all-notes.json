@@ -1,0 +1,45 @@
+{
+  "operationId": "get-all-notes",
+  "domain": "contacts",
+  "method": "GET",
+  "path": "/contacts/{contactId}/notes",
+  "summary": "Get All Notes",
+  "description": "Get all notes for a contact.",
+  "requiredScopes": [
+    "contacts.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [
+    "contactId"
+  ],
+  "parameters": [
+    {
+      "name": "contactId",
+      "in": "path",
+      "required": true,
+      "description": "Contact Id",
+      "schema": {
+        "type": "string",
+        "example": "ve9EPM428h8vShlRW1KT"
+      }
+    }
+  ],
+  "hasRequestBody": false,
+  "requestContentTypes": [],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {
+        "contactId": "example_contactId"
+      },
+      "query": {}
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

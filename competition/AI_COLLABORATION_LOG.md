@@ -122,3 +122,14 @@
   - Firestore / Cloud Run / IAM / secrets
   - Production data
   - Phase 2 capability discovery
+
+## 2026-08-11 — Phase 2A GHL MCP read discovery
+
+- Human owner / operator: repository maintainer (themg-max operator)
+- Tool / AI surfaces: VS Code + MG Orchestrator (Copilot CLI runtime)
+- Authorization: `MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1`
+- Mode: READ ONLY meta discovery (tools/list, search_operations, describe_operation)
+- Mutations executed: 0
+- CRM record reads executed: 0
+- Key finding: `create-note` present on anthropic_v2 catalog; absent as first-class tool on original `/mcp/` discrete surface for this PIT
+- Blocker: isolated hackathon test account binding required before record probes

@@ -1,0 +1,63 @@
+workflow_id: meeting_follow_up_v1
+phase: phase2a_ghl_mcp_read_discovery
+authorization_id: MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1
+branch: feat/meeting-follow-up-v1-ghl-mcp-read-discovery
+# head_sha filled after commit
+head_sha: PENDING_COMMIT
+baseline_sha: 47deaae2820720b629eafe3ffec8c21245f4dfcb
+mode: READ_ONLY_META_DISCOVERY
+timestamp_utc: "2026-08-11T20:20:00Z"
+
+changed_paths:
+  - contracts/ghl_tool_manifest.yaml
+  - proof/phase2/**
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+
+mcp:
+  server_name: ghl-mcp
+  server_version: "1.0.0"
+  protocol_version: "2024-11-05"
+  endpoints:
+    original: https://services.leadconnectorhq.com/mcp/
+    anthropic_v2: https://services.leadconnectorhq.com/mcp/anthropic/v2
+  auth_mode: bearer_pit
+  writes_executed: 0
+  record_reads_executed: 0
+  execute_operation_calls: 0
+  gemini_calls: 0
+  adk_calls: 0
+  raw_ghl_rest_calls: 0
+  external_network_calls: mcp_meta_only
+
+discovery_results:
+  tools_list_original_count: 36
+  tools_list_anthropic_v2_count: 6
+  note_create_discovered: true
+  note_create_operation_id: create-note
+  opportunity_stage_update_discovered: true
+  opportunity_stage_update_operation_id: update-opportunity
+  opportunity_stage_field: pipelineStageId
+  hard_stop_triggered: false
+
+required_scopes_observed:
+  read:
+    - contacts.readonly
+    - opportunities.readonly
+  future_write:
+    - contacts.write
+    - opportunities.write
+
+blockers:
+  - id: ISOLATED_HACKATHON_TEST_ACCOUNT_BINDING_REQUIRED
+    severity: high
+    detail: Available PIT/location is not proven isolated hackathon test; record probes withheld.
+  - id: RECORD_LEVEL_READ_BEHAVIOR_PROBES_WITHHELD
+    severity: medium
+    detail: not-found/ambiguous/pagination/rate-limit live record behaviors remain UNKNOWN.
+
+verdict: PASS_WITH_BLOCKERS
+next_action: >
+  Human review/merge this discovery PR. Separately authorize binding of an
+  isolated hackathon test GHL location/PIT and complete record-level read
+  behavior probes before any CRM mutation phase.

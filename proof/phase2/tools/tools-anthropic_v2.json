@@ -1,0 +1,243 @@
+[
+  {
+    "name": "search",
+    "description": "Use when the user wants to find specific customer/business records by name, email, phone, tag, or other criteria. Do not use to list, export, fetch all, create, update, or delete records. For list-all requests such as \"fetch all contacts\", use search_operations to find the public API operation, then execute_operation.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Natural language query or keyword search text."
+        },
+        "entityTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional entity filters such as contacts, opportunities, conversations, or locations."
+        },
+        "filters": {
+          "type": "object",
+          "description": "Optional customer/business record filters."
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum result count."
+        },
+        "cursor": {
+          "type": "string",
+          "description": "Pagination cursor from a previous search response."
+        },
+        "locationId": {
+          "type": "string",
+          "description": "Sub-account (location) to operate on. Omit if this connection is bound to a single location. Required when connected to multiple locations \u2014 call list_locations to see options."
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "annotations": {
+      "title": "Search Records",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "fetch",
+    "description": "Hydrate one or more typed resource IDs returned by search. Use fetch when details are needed for known records or resources; it supports bulk hydration for multiple IDs.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 100,
+          "description": "Typed resource IDs returned by search."
+        },
+        "entityType": {
+          "type": "string",
+          "description": "Optional entity type hint for the IDs."
+        },
+        "detailLevel": {
+          "type": "string",
+          "enum": [
+            "summary",
+            "full"
+          ],
+          "description": "Requested detail level."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional field allowlist."
+        },
+        "continuationToken": {
+          "type": "string",
+          "description": "Continuation token for large responses."
+        },
+        "locationId": {
+          "type": "string",
+          "description": "Sub-account (location) to operate on. Omit if this connection is bound to a single location. Required when connected to multiple locations \u2014 call list_locations to see options."
+        }
+      },
+      "required": [
+        "ids"
+      ]
+    },
+    "annotations": {
+      "title": "Fetch Records",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "search_operations",
+    "description": "Find an executable GHL public API operation. For requests like \"fetch all contacts\", first call search_operations, then call describe_operation for the selected operationId when hasRequestBody is true or params are unclear, then call execute_operation. Do not use for finding a specific customer record by name/email; use search for that.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Natural language operation search query."
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional operation domains to constrain search."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "read",
+            "write",
+            "delete",
+            "money_movement"
+          ],
+          "description": "Optional operation kind filter."
+        },
+        "limit": {
+          "type": "number",
+          "description": "Maximum operation result count."
+        }
+      },
+      "required": [
+        "query"
+      ]
+    },
+    "annotations": {
+      "title": "Search Operations",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "describe_operation",
+    "description": "Inspect one operationId from search_operations. Returns compact public params, requestBodyFields, one sanitized payloadExample, scopes, safety metadata, and idempotency constraints before calling execute_operation.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "description": "Operation ID returned by search_operations."
+        }
+      },
+      "required": [
+        "operationId"
+      ]
+    },
+    "annotations": {
+      "title": "Describe Operation",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "execute_operation",
+    "description": "Execute one active operation from the generated GHL public operation registry after server-side scope, permission, safety, idempotency, and tenant checks. Params may be grouped as {path, query, header, body} or provided flat; the server maps known path/query/body fields and applies Authorization and Version. Location handling depends on the connection: a single-location connection injects its bound location automatically; a multi-location connection requires locationId (call list_locations first) and authorizes it before executing. Call describe_operation first when the body or params are unclear.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "description": "Operation ID returned by search_operations."
+        },
+        "params": {
+          "type": "object",
+          "description": "Path, query, header, and body params for the operation."
+        },
+        "locationId": {
+          "type": "string",
+          "description": "Sub-account (location) to operate on. Omit if this connection is bound to a single location. Required when connected to multiple locations \u2014 call list_locations to see options."
+        },
+        "dryRun": {
+          "type": "boolean",
+          "description": "When true, preview the operation and supplied params without upstream execution or idempotencyKey. Use describe_operation for the request body contract."
+        },
+        "idempotencyKey": {
+          "type": "string",
+          "description": "Required for writes before broad rollout."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Short user-facing reason for the operation."
+        }
+      },
+      "required": [
+        "operationId"
+      ]
+    },
+    "annotations": {
+      "title": "Execute Operation",
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "list_locations",
+    "description": "List the sub-accounts (locations) this connection can operate on, so the user can pick one. When the user names a location, pass `query` with that name instead of paginating. When many locations exist and none was named, ask the user which one rather than enumerating pages. Returns location names and ids only \u2014 never credentials. On a single-location connection this returns exactly the one bound location.",
+    "inputSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Optional name search to narrow the returned locations."
+        },
+        "pageToken": {
+          "type": "string",
+          "description": "Opaque pagination token from a previous list_locations response."
+        }
+      }
+    },
+    "annotations": {
+      "title": "List Locations",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  }
+]
