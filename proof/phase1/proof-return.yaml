@@ -1,0 +1,109 @@
+proof_id: meeting-follow-up-v1-phase1-contracts-fixtures-20260811
+manifest_id: phase1-deterministic-foundation-v1
+workflow_id: meeting_follow_up_v1
+branch: feat/meeting-follow-up-v1-phase1-contracts-fixtures
+head_sha: PENDING_COMMIT
+pr_url: PENDING_PR
+files_changed:
+  - contracts/meeting_follow_up_packet.schema.json
+  - contracts/workflow_states.yaml
+  - contracts/failure_codes.yaml
+  - fixtures/transcript-success.expected.json
+  - fixtures/transcript-ambiguous-contact.expected.json
+  - fixtures/transcript-no-stage-change.expected.json
+  - src/orchestration/__init__.py
+  - src/orchestration/__main__.py
+  - src/orchestration/models.py
+  - src/orchestration/state_machine.py
+  - src/orchestration/policy.py
+  - src/orchestration/runner.py
+  - tests/conftest.py
+  - tests/contracts/test_schema_phase_packets.py
+  - tests/workflow/test_state_machine_and_policy.py
+  - tests/acceptance/test_fixture_packages.py
+  - proof/phase1/proof-return.yaml
+  - pyproject.toml
+  - requirements.txt
+  - .python-version
+  - README.md
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+validation:
+  git_diff_check: PASS
+  tests: PASS
+  contract_validation: PASS
+  notes: >
+    Local validation only. No public CI workflows exist in this repository and
+    .github/workflows/** was not authorized for Phase 1. Status:
+    CI_WORKFLOW_AUTHORIZATION_REQUIRED for automated PR checks.
+fixture_outcomes:
+  transcript_success:
+    terminal_state: completed
+    reason_codes: []
+    note_intents: 1
+    stage_intents: 1
+    external_effects: 0
+  transcript_ambiguous_contact:
+    terminal_state: blocked
+    reason_codes: [AMBIGUOUS_CONTACT]
+    note_intents: 0
+    stage_intents: 0
+    external_effects: 0
+  transcript_no_stage_change:
+    terminal_state: completed_with_review
+    reason_codes: [STAGE_TRANSITION_NOT_ALLOWED]
+    note_intents: 1
+    stage_intents: 0
+    external_effects: 0
+replay_idempotency:
+  duplicate_run_id_rejected: PASS
+  equivalent_deterministic_inputs: PASS
+mutation_intent_bounds:
+  note_max: 1
+  stage_max: 1
+  result: PASS
+thresholds:
+  extraction_abort_threshold: 0.70
+  stage_transition_confidence_min: 0.90
+  distinct: true
+test_command: "PYTHONPATH=src python3 -m pytest -q"
+test_count: 31
+test_result: PASS
+python_version: "3.9.6"
+dependency_versions:
+  jsonschema: "4.23.0"
+  PyYAML: "6.0.2"
+  pytest: "8.3.5"
+external_calls:
+  network: NONE
+  crm: NONE
+  cloud: NONE
+gemini_calls: NONE
+ghl_calls: NONE
+adk_calls: NONE
+authorization_posture:
+  PHASE1_IMPLEMENTATION_AUTHORIZED: "YES"
+  GHL_WRITE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+  GEMINI_AUTHORIZED: "NO"
+  GOOGLE_ADK_AGENT_CALLS_AUTHORIZED: "NO"
+  GHL_READ_AUTHORIZED: "NO"
+  CRM_AUTHORIZED: "NO"
+  FIRESTORE_AUTHORIZED: "NO"
+  LOCAL_VALIDATION_AUTHORIZED: "YES"
+  PUBLIC_PR_CI_AUTHORIZED: "YES"
+  LOCAL_PROOF_RETURN_AUTHORIZED: "YES"
+  PROTECTED_PROOF_EXECUTION_AUTHORIZED: "NO"
+  GLOBAL_ACTIVATION_AUTHORIZED: "NO"
+ci_status: CI_WORKFLOW_AUTHORIZATION_REQUIRED
+ci_notes: >
+  Repository has no .github/workflows. Phase 1 grant does not authorize workflow
+  creation. Propose later: .github/workflows/phase1-deterministic.yml running
+  pytest only, no network, no secrets.
+residual_risks:
+  - No repository CI workflow yet; validation is local-proof only until workflow authorization.
+  - Phase 1 does not prove semantic transcript extraction; sidecars are test doubles.
+  - Future GHL tool identifiers remain UNKNOWN and must not be invented.
+next_action: >
+  Human review/merge of Phase 1 public PR. Separately propose Phase 2 authorization
+  for GHL MCP live capability discovery (READ ONLY). Do not start Phase 2 automatically.

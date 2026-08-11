@@ -1,38 +1,52 @@
 # meeting_follow_up_v1 — deterministic OL3 workflow states
-# Foundation contract only. No runtime engine is present yet.
+# Phase 1: contracts + deterministic engine (synthetic fixtures / test doubles only).
+# No Gemini, ADK, GHL, CRM network, or cloud activation.
 
 workflow: meeting_follow_up_v1
-schema_version: 1
+schema_version: 2
 authority: ol3_deterministic_policy_gate
 model_role: agents_propose_only
+phase1_external_effects: 0
+
+# Distinct thresholds — do not reuse stage threshold as extraction abort.
+policy_thresholds:
+  extraction_abort_threshold: 0.70
+  stage_transition_confidence_min: 0.90
+  notes: >
+    extraction_abort_threshold: below this confidence the run blocks with
+    LOW_EXTRACTION_CONFIDENCE and never reaches CRM resolution.
+    stage_transition_confidence_min: below this confidence stage mutation intent
+    is denied (STAGE_TRANSITION_NOT_ALLOWED) while note intent may still be allowed.
 
 states:
   - id: received
     description: Transcript accepted; run_id assigned.
     terminal: false
   - id: extracting
-    description: transcript_extractor:v1 produces structured extraction.
+    description: Controlled extraction facts applied from fixture sidecar (not free-text NLP).
     terminal: false
   - id: resolving
-    description: crm_resolver:v1 resolves CRM identity via GHL MCP reads only.
+    description: CRM identity resolution from fixture stub only in Phase 1 (no live GHL).
     terminal: false
   - id: evaluating
-    description: followup_evaluator:v1 recommends; OL3 policy gate decides.
+    description: Deterministic policy gate decides note/stage intents.
     terminal: false
   - id: writing
-    description: crm_action:v1 performs allowlisted GHL MCP mutations with read-back.
+    description: >
+      Phase 1 records mutation intents only. Zero external CRM/network/cloud effects.
+      Future phases may perform allowlisted mutations under separate authority.
     terminal: false
   - id: completed
-    description: Run finished with verified mutations as policy permitted.
+    description: Run finished with permitted intents and no review flags.
     terminal: true
   - id: completed_with_review
-    description: Run finished with partial success (e.g., note verified, stage blocked).
+    description: Run finished with partial success (e.g., note intent, stage denied).
     terminal: true
   - id: blocked
-    description: Fail-closed stop before or instead of mutation; zero further CRM writes.
+    description: Fail-closed stop before or instead of mutation intent application.
     terminal: true
   - id: failed
-    description: Tool or verification failure; fail closed.
+    description: Tool or verification failure path; fail closed.
     terminal: true
 
 transitions:
@@ -42,10 +56,10 @@ transitions:
 
   - from: extracting
     to: resolving
-    when: extraction_confidence_gte_threshold
+    when: extraction_confidence_gte_extraction_abort_threshold
   - from: extracting
     to: blocked
-    when: extraction_confidence_lt_threshold
+    when: extraction_confidence_lt_extraction_abort_threshold
     reason_code: LOW_EXTRACTION_CONFIDENCE
 
   - from: resolving
@@ -63,20 +77,28 @@ transitions:
     to: blocked
     when: opportunity_missing
     reason_code: OPPORTUNITY_NOT_FOUND
+  - from: resolving
+    to: failed
+    when: required_crm_resolution_tool_read_failure
+    reason_code: GHL_TOOL_FAILURE
 
   - from: evaluating
     to: writing
-    when: policy_gate_ready
+    when: at_least_one_mutation_intent_permitted
     notes: >
-      Stage may be disallowed while note remains allowed.
-      STAGE_TRANSITION_NOT_ALLOWED is recorded; stage left unchanged.
+      Stage may be disallowed while note remains allowed (note-only path).
+      STAGE_TRANSITION_NOT_ALLOWED is recorded; stage intent suppressed.
+  - from: evaluating
+    to: blocked
+    when: note_policy_blocked_and_no_permitted_action_remains
+    reason_code: NOTE_WRITE_BLOCKED
 
   - from: writing
     to: completed
-    when: mutations_verified_and_no_review_flags
+    when: intents_recorded_and_no_review_flags
   - from: writing
     to: completed_with_review
-    when: note_verified_and_stage_unchanged_or_review_required
+    when: note_intent_recorded_and_stage_suppressed_or_review_required
   - from: writing
     to: failed
     when: ghl_tool_failure
@@ -91,8 +113,24 @@ invariants:
   - tool_success_is_not_completion_without_readback: true
   - max_note_writes_per_run: 1
   - max_stage_writes_per_run: 1
+  - max_note_intents_per_run: 1
+  - max_stage_intents_per_run: 1
+  - phase1_external_effects: 0
   - production_crm_writes: forbidden
   - mg_mcp_writes: forbidden
+  - terminal_states_immutable: true
+  - duplicate_run_id_cannot_advance_twice: true
+  - identical_deterministic_inputs_yield_equivalent_semantic_output: true
+  - policy_denial_is_explicit_and_auditable: true
+  - free_text_semantic_extraction_authorized: false
+
+replay_idempotency:
+  rule: >
+    Once a run_id reaches a terminal state, any subsequent attempt with the same
+    run_id must be rejected and must not advance workflow or emit additional
+    mutation intents.
+  store: in_process_run_registry
+  on_duplicate_terminal_run_id: reject
 
 stage_transition_matrix:
   demo_only:
@@ -110,13 +148,16 @@ agents:
   - id: transcript_extractor:v1
     phase: extracting
     may_call_ghl: false
+    phase1_source: fixture_sidecar_only
   - id: crm_resolver:v1
     phase: resolving
-    may_call_ghl: read_only
+    may_call_ghl: false
+    phase1_source: fixture_sidecar_stub_only
   - id: followup_evaluator:v1
     phase: evaluating
     may_call_ghl: false
     decides_mutations: false
   - id: crm_action:v1
     phase: writing
-    may_call_ghl: allowlisted_writes_only
+    may_call_ghl: false
+    phase1_behavior: record_mutation_intents_only

@@ -1,0 +1,79 @@
+{
+  "fixture_id": "transcript-no-stage-change",
+  "run_id": "run_demo_no_stage_001",
+  "meeting": {
+    "meeting_id": "demo_meeting_003",
+    "occurred_at": "2026-08-10T17:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "ca63fdc04d838aff1d5d2631f681df1ff02bc782e065d5bb7e2bb9e8354133a2"
+  },
+  "participants": [
+    {
+      "name": "Casey Nguyen",
+      "email": "casey.nguyen@example-demo.test",
+      "phone": "+1-555-0142",
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "Check-in meeting; prospect wants notes only and explicitly rejects stage movement.",
+    "needs": [
+      "education resources"
+    ],
+    "objections": [
+      "not ready for discovery_complete"
+    ],
+    "commitments": [],
+    "next_step": {
+      "action": "Provide education resources",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": {
+      "recommended_stage": "discovery_complete",
+      "rationale": "Agent considered stage move; prospect rejected."
+    }
+  },
+  "extraction_confidence": 0.82,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_nostage_summary"
+    },
+    {
+      "field": "opportunity_signal.recommended_stage",
+      "excerpt_id": "span_nostage_stage"
+    }
+  ],
+  "crm_resolution_stub": {
+    "status": "matched",
+    "contact_id": "contact_demo_casey_001",
+    "opportunity_id": "opp_demo_casey_001",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": "discovery_scheduled"
+  },
+  "policy_inputs": {
+    "transcript_file": "transcript-no-stage-change.txt",
+    "note_write_request": true,
+    "stage_write_request": true,
+    "recommended_stage": "discovery_complete",
+    "force_note_denied": false,
+    "force_stage_denied": false
+  },
+  "expected": {
+    "terminal_state": "completed_with_review",
+    "reason_codes": [
+      "STAGE_TRANSITION_NOT_ALLOWED"
+    ],
+    "note_intent_max": 1,
+    "stage_intent": 0,
+    "external_effects": 0
+  }
+}

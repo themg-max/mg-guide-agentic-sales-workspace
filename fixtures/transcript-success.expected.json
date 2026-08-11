@@ -1,0 +1,88 @@
+{
+  "fixture_id": "transcript-success",
+  "run_id": "run_demo_success_001",
+  "meeting": {
+    "meeting_id": "demo_meeting_001",
+    "occurred_at": "2026-08-10T15:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "1a1a002eb79701d436d199a63ddba0f8e532dd96d1591cc437157e90481a24aa"
+  },
+  "participants": [
+    {
+      "name": "Taylor Morgan",
+      "email": "taylor.morgan@example-demo.test",
+      "phone": "+1-555-0100",
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "Discovery call covering retirement income planning with liquidity constraints and a sixty-day timeline.",
+    "needs": [
+      "retirement income planning",
+      "liquidity flexibility"
+    ],
+    "objections": [
+      "liquidity lock-up concern"
+    ],
+    "commitments": [
+      {
+        "owner": "Alex Rivera",
+        "action": "Prepare recommendation review",
+        "due_date": "2026-08-12"
+      }
+    ],
+    "next_step": {
+      "action": "Send recommendation review follow-up",
+      "owner": "Alex Rivera",
+      "target_date": "2026-08-12"
+    },
+    "opportunity_signal": {
+      "recommended_stage": "discovery_complete",
+      "rationale": "Discovery conversation completed with clear next step."
+    }
+  },
+  "extraction_confidence": 0.95,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_success_summary"
+    },
+    {
+      "field": "needs",
+      "excerpt_id": "span_success_needs"
+    },
+    {
+      "field": "opportunity_signal.recommended_stage",
+      "excerpt_id": "span_success_stage"
+    }
+  ],
+  "crm_resolution_stub": {
+    "status": "matched",
+    "contact_id": "contact_demo_taylor_001",
+    "opportunity_id": "opp_demo_taylor_001",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": "discovery_scheduled"
+  },
+  "policy_inputs": {
+    "transcript_file": "transcript-success.txt",
+    "note_write_request": true,
+    "stage_write_request": true,
+    "recommended_stage": "discovery_complete",
+    "force_note_denied": false,
+    "force_stage_denied": false
+  },
+  "expected": {
+    "terminal_state": "completed",
+    "reason_codes": [],
+    "note_intent_max": 1,
+    "stage_intent_max": 1,
+    "external_effects": 0
+  }
+}
