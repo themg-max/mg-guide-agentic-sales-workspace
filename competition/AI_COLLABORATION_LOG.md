@@ -230,3 +230,27 @@
   - Any GHL write / CRM mutation
   - Unrestricted production reads
   - Phase 2B mutation capability
+
+### 2026-08-11 — Phase 2B offline GHL read adapter
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Private execution authority:** `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1`
+- **Objective:** Implement a deterministic, fixture-only GHL MCP read adapter after PR #5 merged, without live GHL access.
+- **Artifacts touched (authorized paths only):**
+  - `src/integrations/ghl/**`
+  - `tests/integrations/ghl/**`
+  - `fixtures/ghl/**`
+  - `proof/phase2b/**`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** `PYTHONPATH=src python3 scripts/verify_phase1_deterministic.py`; `PYTHONPATH=src python3 -m pytest -q`; `git diff --check`
+- **Human decisions retained:**
+  - Private authorization binds public PR #5 merge SHA `ea44f366f82039d3fa19168af1996a73253e6924`
+  - Read allowlist is limited to discovered contact, opportunity, and pipeline operations
+  - Synthetic fixtures are the sole response source; no adapter transport exists
+  - Canonical-location synthetic read proof remains separately gated
+- **Out of scope / refused:**
+  - Any live GHL/CRM call or credential/Secret Manager path
+  - `create-note`, `update-opportunity`, or any CRM mutation
+  - Gemini, ADK, Firestore, Cloud Run, IAM, and non-synthetic data

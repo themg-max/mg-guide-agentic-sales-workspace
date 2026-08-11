@@ -1,0 +1,128 @@
+{
+  "fixture_id": "phase2b-ghl-read-adapter-offline-v1",
+  "source": "synthetic_only",
+  "cases": [
+    {
+      "case_id": "contact-search-page-one",
+      "operation_id": "search-contacts-advanced",
+      "request": {
+        "body": {
+          "pageLimit": 2,
+          "page": 1,
+          "query": "Avery Demo"
+        }
+      },
+      "response": {
+        "status_code": 200,
+        "payload": {
+          "contacts": [
+            {
+              "id": "demo-contact-001",
+              "firstName": "Avery",
+              "lastName": "Demo",
+              "email": "avery@example-demo.test",
+              "phone": "+15550000001",
+              "companyName": "Demo Co"
+            }
+          ],
+          "meta": {
+            "page": 1,
+            "pageLimit": 2,
+            "total": 3,
+            "nextPage": "2",
+            "hasMore": true
+          }
+        }
+      }
+    },
+    {
+      "case_id": "opportunity-search",
+      "operation_id": "search-opportunity",
+      "request": {
+        "query": {
+          "contactId": "demo-contact-001",
+          "limit": 20,
+          "page": 1,
+          "status": "open"
+        }
+      },
+      "response": {
+        "status_code": 200,
+        "payload": {
+          "opportunities": [
+            {
+              "id": "demo-opportunity-001",
+              "contactId": "demo-contact-001",
+              "pipelineId": "demo-pipeline-001",
+              "pipelineStageId": "demo-stage-discovery",
+              "name": "Demo opportunity",
+              "status": "open",
+              "monetaryValue": 5000
+            }
+          ],
+          "pagination": {
+            "page": 1,
+            "limit": 20,
+            "totalCount": 1,
+            "has_more": false
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pipeline-fetch",
+      "operation_id": "get-pipelines",
+      "request": {},
+      "response": {
+        "status_code": 200,
+        "payload": {
+          "pipelines": [
+            {
+              "id": "demo-pipeline-001",
+              "name": "Demo pipeline",
+              "stages": [
+                {
+                  "id": "demo-stage-discovery",
+                  "name": "Discovery",
+                  "position": 1
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "contact-not-found",
+      "operation_id": "get-contact",
+      "request": {
+        "path": {
+          "contactId": "demo-contact-missing"
+        }
+      },
+      "response": {
+        "status_code": 404,
+        "payload": {
+          "message": "Synthetic contact not found."
+        }
+      }
+    },
+    {
+      "case_id": "advanced-opportunity-error",
+      "operation_id": "search-opportunities-advanced",
+      "request": {
+        "body": {
+          "limit": 10,
+          "page": 1
+        }
+      },
+      "response": {
+        "status_code": 429,
+        "payload": {
+          "code": "RATE_LIMITED",
+          "message": "Synthetic rate limit."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "case_id": "contact-search-page-one",
+    "status": "ok",
+    "record_id": "demo-contact-001",
+    "next_cursor": "2"
+  },
+  {
+    "case_id": "opportunity-search",
+    "status": "ok",
+    "record_id": "demo-opportunity-001",
+    "next_cursor": null
+  },
+  {
+    "case_id": "pipeline-fetch",
+    "status": "ok",
+    "record_id": "demo-pipeline-001",
+    "next_cursor": null
+  },
+  {
+    "case_id": "contact-not-found",
+    "status": "not_found",
+    "error_code": "NOT_FOUND"
+  },
+  {
+    "case_id": "advanced-opportunity-error",
+    "status": "error",
+    "error_code": "RATE_LIMITED"
+  }
+]
