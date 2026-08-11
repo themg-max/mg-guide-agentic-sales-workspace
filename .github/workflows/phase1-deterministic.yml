@@ -179,8 +179,10 @@ jobs:
           import sys
           from pathlib import Path
 
+          # Build PEM marker without embedding a false-positive literal in this file.
+          pem_begin = "-" * 5 + "BEGIN" + " "
           patterns = [
-              r"-----BEGIN ",
+              re.escape(pem_begin),
               r"api[_-]?key\s*[:=]\s*\S+",
               r"sk-[A-Za-z0-9]{20,}",
               r"AIza[0-9A-Za-z_-]{20,}",
@@ -200,6 +202,10 @@ jobs:
               Path("pyproject.toml"),
               Path("README.md"),
           ]
+          skip_names = {
+              # Scanner definitions are not secrets.
+              ".github/workflows/phase1-deterministic.yml",
+          }
           files = []
           for root in roots:
               if root.is_file():
@@ -209,10 +215,13 @@ jobs:
 
           bad = []
           for path in files:
+              rel = str(path).replace("\\", "/")
+              if rel in skip_names:
+                  continue
               text = path.read_text(encoding="utf-8", errors="ignore")
               for pat in patterns:
                   if re.search(pat, text, re.I):
-                      bad.append((str(path), pat))
+                      bad.append((rel, pat))
           if bad:
               print("SECRET_SCAN_FAIL", bad)
               sys.exit(1)
