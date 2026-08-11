@@ -1,0 +1,122 @@
+# meeting_follow_up_v1 — deterministic OL3 workflow states
+# Foundation contract only. No runtime engine is present yet.
+
+workflow: meeting_follow_up_v1
+schema_version: 1
+authority: ol3_deterministic_policy_gate
+model_role: agents_propose_only
+
+states:
+  - id: received
+    description: Transcript accepted; run_id assigned.
+    terminal: false
+  - id: extracting
+    description: transcript_extractor:v1 produces structured extraction.
+    terminal: false
+  - id: resolving
+    description: crm_resolver:v1 resolves CRM identity via GHL MCP reads only.
+    terminal: false
+  - id: evaluating
+    description: followup_evaluator:v1 recommends; OL3 policy gate decides.
+    terminal: false
+  - id: writing
+    description: crm_action:v1 performs allowlisted GHL MCP mutations with read-back.
+    terminal: false
+  - id: completed
+    description: Run finished with verified mutations as policy permitted.
+    terminal: true
+  - id: completed_with_review
+    description: Run finished with partial success (e.g., note verified, stage blocked).
+    terminal: true
+  - id: blocked
+    description: Fail-closed stop before or instead of mutation; zero further CRM writes.
+    terminal: true
+  - id: failed
+    description: Tool or verification failure; fail closed.
+    terminal: true
+
+transitions:
+  - from: received
+    to: extracting
+    when: transcript_accepted
+
+  - from: extracting
+    to: resolving
+    when: extraction_confidence_gte_threshold
+  - from: extracting
+    to: blocked
+    when: extraction_confidence_lt_threshold
+    reason_code: LOW_EXTRACTION_CONFIDENCE
+
+  - from: resolving
+    to: evaluating
+    when: contact_matched_and_opportunity_present
+  - from: resolving
+    to: blocked
+    when: contact_ambiguous
+    reason_code: AMBIGUOUS_CONTACT
+  - from: resolving
+    to: blocked
+    when: contact_not_found
+    reason_code: CONTACT_NOT_FOUND
+  - from: resolving
+    to: blocked
+    when: opportunity_missing
+    reason_code: OPPORTUNITY_NOT_FOUND
+
+  - from: evaluating
+    to: writing
+    when: policy_gate_ready
+    notes: >
+      Stage may be disallowed while note remains allowed.
+      STAGE_TRANSITION_NOT_ALLOWED is recorded; stage left unchanged.
+
+  - from: writing
+    to: completed
+    when: mutations_verified_and_no_review_flags
+  - from: writing
+    to: completed_with_review
+    when: note_verified_and_stage_unchanged_or_review_required
+  - from: writing
+    to: failed
+    when: ghl_tool_failure
+    reason_code: GHL_TOOL_FAILURE
+  - from: writing
+    to: failed
+    when: ghl_write_not_verified
+    reason_code: GHL_WRITE_NOT_VERIFIED
+
+invariants:
+  - fail_closed_on_blocked_or_failed: true
+  - tool_success_is_not_completion_without_readback: true
+  - max_note_writes_per_run: 1
+  - max_stage_writes_per_run: 1
+  - production_crm_writes: forbidden
+  - mg_mcp_writes: forbidden
+
+stage_transition_matrix:
+  demo_only:
+    - from: discovery_scheduled
+      to: discovery_complete
+      allowed_when:
+        contact_match: exact
+        match_basis_in: [email, phone]
+        meeting_completed: true
+        extraction_confidence_min: 0.90
+        evidence_present: true
+        policy_gate: allowed
+
+agents:
+  - id: transcript_extractor:v1
+    phase: extracting
+    may_call_ghl: false
+  - id: crm_resolver:v1
+    phase: resolving
+    may_call_ghl: read_only
+  - id: followup_evaluator:v1
+    phase: evaluating
+    may_call_ghl: false
+    decides_mutations: false
+  - id: crm_action:v1
+    phase: writing
+    may_call_ghl: allowlisted_writes_only

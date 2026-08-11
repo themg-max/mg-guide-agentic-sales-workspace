@@ -1,0 +1,43 @@
+# FIXTURE: transcript-ambiguous-contact
+# SYNTHETIC DATA ONLY — not a real person, meeting, or CRM record
+# Expected disposition: blocked
+# Expected reason code: AMBIGUOUS_CONTACT
+# Expected CRM writes: 0
+# Resolution setup (test CRM seed, future): two contacts share similar identity signals
+# without a single exact email/phone winner for the spoken identifiers below.
+
+MEETING_ID: demo_meeting_002
+OCCURRED_AT: 2026-08-10T16:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Jordan Lee
+  email: null
+  phone: null
+  role: prospect
+- name: Alex Rivera
+  email: alex.rivera@example-demo.test
+  phone: +1-555-0199
+  role: agent
+
+--- TRANSCRIPT ---
+
+Alex Rivera: Hi Jordan, thanks for making time. I only have your name on the invite — Jordan Lee — and no email on this calendar hold.
+
+Jordan Lee: No problem. We can talk high level. I'm comparing a couple of planning options this month.
+
+Alex Rivera: Can I confirm the best email or phone for CRM follow-up?
+
+Jordan Lee: Let's skip contact details for now. Just note that I may continue or I may pause. I'm not ready to lock a next stage.
+
+Alex Rivera: Understood. I'll hold off on CRM changes until we can uniquely identify the right contact record.
+
+Jordan Lee: Thanks.
+
+--- END ---
+
+# NOTES FOR FUTURE TEST SEEDING (synthetic only):
+# - Seed two test contacts, e.g. "Jordan Lee" at jordan.lee.a@example-demo.test
+#   and "Jordan Lee" at jordan.lee.b@example-demo.test
+# - Provide no unique email/phone in the transcript so resolver returns candidate_count >= 2
+# - Policy must fail closed with AMBIGUOUS_CONTACT and attempt zero writes

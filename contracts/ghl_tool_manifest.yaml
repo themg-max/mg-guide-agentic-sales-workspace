@@ -1,0 +1,125 @@
+# GHL MCP tool manifest — competition foundation template
+#
+# IMPORTANT:
+# - Logical capability names below are contract placeholders.
+# - Exact GHL MCP tool/operation identifiers are UNKNOWN until live discovery
+#   against an authorized isolated/test account.
+# - Do NOT invent or hard-code guessed tool names in implementation.
+# - Do NOT substitute raw GoHighLevel REST without a new architecture decision.
+
+workflow: meeting_follow_up_v1
+schema_version: 1
+environment: hackathon_test
+production_crm_writes: forbidden
+
+ghl_mcp:
+  connection_status: UNKNOWN
+  endpoint: UNKNOWN
+  auth_mode: UNKNOWN
+  location_id: UNKNOWN
+  discovery_required_before_implementation: true
+
+  # Logical read capabilities (exact names UNKNOWN)
+  read_tools:
+    contact_search:
+      required: true
+      exact_tool_or_operation: UNKNOWN
+      input_schema: UNKNOWN
+      output_schema: UNKNOWN
+      auth_scopes: UNKNOWN
+      write_semantics: n/a
+      error_behavior: UNKNOWN
+      idempotency: UNKNOWN
+
+    contact_fetch:
+      required: true
+      exact_tool_or_operation: UNKNOWN
+      input_schema: UNKNOWN
+      output_schema: UNKNOWN
+      auth_scopes: UNKNOWN
+      write_semantics: n/a
+      error_behavior: UNKNOWN
+      idempotency: UNKNOWN
+
+    opportunity_search:
+      required: true
+      exact_tool_or_operation: UNKNOWN
+      input_schema: UNKNOWN
+      output_schema: UNKNOWN
+      auth_scopes: UNKNOWN
+      write_semantics: n/a
+      error_behavior: UNKNOWN
+      idempotency: UNKNOWN
+
+    pipeline_fetch:
+      required: true
+      exact_tool_or_operation: UNKNOWN
+      input_schema: UNKNOWN
+      output_schema: UNKNOWN
+      auth_scopes: UNKNOWN
+      write_semantics: n/a
+      error_behavior: UNKNOWN
+      idempotency: UNKNOWN
+
+    mutation_readback:
+      required: true
+      exact_tool_or_operation: UNKNOWN
+      input_schema: UNKNOWN
+      output_schema: UNKNOWN
+      auth_scopes: UNKNOWN
+      write_semantics: n/a
+      error_behavior: UNKNOWN
+      idempotency: UNKNOWN
+
+  # Logical write capabilities (exact names UNKNOWN)
+  write_tools:
+    note_create:
+      allowed: true
+      max_calls_per_run: 1
+      exact_tool_or_operation: UNKNOWN
+      input_schema: UNKNOWN
+      output_schema: UNKNOWN
+      auth_scopes: UNKNOWN
+      write_semantics: UNKNOWN
+      error_behavior: UNKNOWN
+      idempotency: UNKNOWN
+      requires_readback_verification: true
+      requires_explicit_mutation_authorization: true
+
+    opportunity_stage_update:
+      allowed: true
+      max_calls_per_run: 1
+      exact_tool_or_operation: UNKNOWN
+      input_schema: UNKNOWN
+      output_schema: UNKNOWN
+      auth_scopes: UNKNOWN
+      write_semantics: UNKNOWN
+      error_behavior: UNKNOWN
+      idempotency: UNKNOWN
+      requires_readback_verification: true
+      requires_explicit_mutation_authorization: true
+      allowed_transitions:
+        - from: discovery_scheduled
+          to: discovery_complete
+
+  # Capability classes that must be refused at the manifest/policy layer
+  blocked_capability_classes:
+    - contact_create
+    - contact_delete
+    - opportunity_create
+    - opportunity_delete
+    - email_send
+    - sms_send
+    - calendar_mutate
+    - workflow_modify
+    - pipeline_modify
+    - bulk_update
+    - monetary_value_edit
+    - owner_change
+    - tagging_unrestricted
+
+hard_stop_rules:
+  - If note_create cannot be discovered on the authorized MCP server, STOP.
+  - If opportunity_stage_update cannot be discovered on the authorized MCP server, STOP.
+  - Do not silently fall back to raw GHL REST APIs.
+  - Do not point this manifest at a production location.

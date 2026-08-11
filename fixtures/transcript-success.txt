@@ -1,0 +1,39 @@
+# FIXTURE: transcript-success
+# SYNTHETIC DATA ONLY — not a real person, meeting, or CRM record
+# Expected disposition: completed
+# Expected CRM: one note verified; stage discovery_scheduled -> discovery_complete verified
+# Contact match basis: email exact
+
+MEETING_ID: demo_meeting_001
+OCCURRED_AT: 2026-08-10T15:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Taylor Morgan
+  email: taylor.morgan@example-demo.test
+  phone: +1-555-0100
+  role: prospect
+- name: Alex Rivera
+  email: alex.rivera@example-demo.test
+  phone: +1-555-0199
+  role: agent
+
+--- TRANSCRIPT ---
+
+Alex Rivera: Thanks for joining the discovery call today, Taylor. How are things going?
+
+Taylor Morgan: Good, thanks. I'm mainly focused on retirement income planning over the next sixty days. I want a clearer recommendation path.
+
+Alex Rivera: Understood. Any constraints we should keep front and center?
+
+Taylor Morgan: Liquidity is the big concern. I don't want everything locked up. If cash needs come up, I need flexibility.
+
+Alex Rivera: Got it. So primary need is retirement income planning, key concern is liquidity, timeline is about sixty days. I'll prepare a recommendation review and follow up within forty-eight hours.
+
+Taylor Morgan: That works. Please send the summary to taylor.morgan@example-demo.test.
+
+Alex Rivera: Will do. I'll mark discovery complete on our side after I document today's notes.
+
+Taylor Morgan: Perfect. Talk soon.
+
+--- END ---

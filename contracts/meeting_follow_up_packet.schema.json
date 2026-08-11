@@ -1,0 +1,307 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/meeting_follow_up_packet.schema.json",
+  "title": "meeting_follow_up_packet_v1",
+  "description": "Canonical inter-agent packet for meeting_follow_up_v1. Conceptual schema freeze for competition foundation. No runtime implementation implied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run",
+    "meeting",
+    "participants",
+    "extraction",
+    "evidence",
+    "crm_resolution",
+    "policy",
+    "mutations",
+    "brief",
+    "audit"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "meeting_follow_up_packet_v1"
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["run_id", "workflow", "created_at", "status"],
+      "properties": {
+        "run_id": { "type": "string", "minLength": 1 },
+        "workflow": { "type": "string", "const": "meeting_follow_up_v1" },
+        "created_at": { "type": "string", "format": "date-time" },
+        "status": {
+          "type": "string",
+          "enum": [
+            "received",
+            "extracting",
+            "resolving",
+            "evaluating",
+            "writing",
+            "completed",
+            "completed_with_review",
+            "blocked",
+            "failed"
+          ]
+        }
+      }
+    },
+    "meeting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["meeting_id", "occurred_at", "source", "transcript_hash"],
+      "properties": {
+        "meeting_id": { "type": "string", "minLength": 1 },
+        "occurred_at": { "type": "string", "format": "date-time" },
+        "source": {
+          "type": "string",
+          "enum": ["synthetic_demo"]
+        },
+        "transcript_hash": {
+          "type": "string",
+          "description": "SHA-256 hex digest of the synthetic transcript bytes",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "participants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "role"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "email": { "type": ["string", "null"], "format": "email" },
+          "phone": { "type": ["string", "null"] },
+          "role": {
+            "type": "string",
+            "enum": ["prospect", "client", "agent", "unknown"]
+          }
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "needs",
+        "objections",
+        "commitments",
+        "next_step",
+        "opportunity_signal"
+      ],
+      "properties": {
+        "summary": { "type": "string" },
+        "needs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "objections": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "commitments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["owner", "action"],
+            "properties": {
+              "owner": { "type": "string" },
+              "action": { "type": "string" },
+              "due_date": {
+                "type": ["string", "null"],
+                "format": "date"
+              }
+            }
+          }
+        },
+        "next_step": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "owner"],
+          "properties": {
+            "action": { "type": "string" },
+            "owner": { "type": "string" },
+            "target_date": {
+              "type": ["string", "null"],
+              "format": "date"
+            }
+          }
+        },
+        "opportunity_signal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["recommended_stage", "rationale"],
+          "properties": {
+            "recommended_stage": { "type": ["string", "null"] },
+            "rationale": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transcript_spans", "extraction_confidence"],
+      "properties": {
+        "transcript_spans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "excerpt_id"],
+            "properties": {
+              "field": { "type": "string" },
+              "excerpt_id": { "type": "string" }
+            }
+          }
+        },
+        "extraction_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "crm_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "contact_id",
+        "opportunity_id",
+        "match_basis",
+        "candidate_count"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["matched", "ambiguous", "not_found"]
+        },
+        "contact_id": { "type": ["string", "null"] },
+        "opportunity_id": { "type": ["string", "null"] },
+        "match_basis": {
+          "type": "string",
+          "enum": ["email", "phone", "name", "none"]
+        },
+        "candidate_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["note_write", "stage_write", "reason_codes"],
+      "properties": {
+        "note_write": {
+          "type": "string",
+          "enum": ["allowed", "blocked"]
+        },
+        "stage_write": {
+          "type": "string",
+          "enum": ["allowed", "approval_required", "blocked"]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "mutations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["note", "opportunity_stage"],
+      "properties": {
+        "note": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attempted", "verified", "record_id"],
+          "properties": {
+            "attempted": { "type": "boolean" },
+            "verified": { "type": "boolean" },
+            "record_id": { "type": ["string", "null"] }
+          }
+        },
+        "opportunity_stage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attempted", "from_stage", "to_stage", "verified"],
+          "properties": {
+            "attempted": { "type": "boolean" },
+            "from_stage": { "type": ["string", "null"] },
+            "to_stage": { "type": ["string", "null"] },
+            "verified": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "brief": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "meeting_summary",
+        "crm_actions",
+        "next_action",
+        "salesperson_attention_required"
+      ],
+      "properties": {
+        "headline": { "type": "string" },
+        "meeting_summary": { "type": "string" },
+        "crm_actions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "next_action": { "type": "string" },
+        "salesperson_attention_required": { "type": "boolean" }
+      }
+    },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "started_at",
+        "completed_at",
+        "agents_used",
+        "tools_used",
+        "warnings",
+        "final_disposition"
+      ],
+      "properties": {
+        "started_at": { "type": "string", "format": "date-time" },
+        "completed_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "agents_used": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tools_used": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "warnings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "final_disposition": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "completed_with_review",
+            "blocked",
+            "failed"
+          ]
+        }
+      }
+    }
+  }
+}

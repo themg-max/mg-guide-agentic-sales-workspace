@@ -1,0 +1,58 @@
+# meeting_follow_up_v1 — failure / block reason codes
+# All listed paths fail closed: no further CRM writes after the code is raised.
+
+workflow: meeting_follow_up_v1
+schema_version: 1
+default_posture: fail_closed
+
+codes:
+  AMBIGUOUS_CONTACT:
+    http_semantics: n/a
+    terminal_status: blocked
+    crm_writes_after: 0
+    description: >
+      Contact resolution returned more than one plausible candidate.
+      LLM must not pick the closest match.
+    demo_fixture: transcript-ambiguous-contact.txt
+
+  CONTACT_NOT_FOUND:
+    terminal_status: blocked
+    crm_writes_after: 0
+    description: No contact could be resolved from participant identifiers.
+
+  OPPORTUNITY_NOT_FOUND:
+    terminal_status: blocked
+    crm_writes_after: 0
+    description: Matched contact lacks the expected opportunity record for the slice.
+
+  LOW_EXTRACTION_CONFIDENCE:
+    terminal_status: blocked
+    crm_writes_after: 0
+    description: >
+      transcript_extractor:v1 confidence is below the configured threshold
+      (foundation example threshold: 0.90 for stage mutation; extraction abort
+      threshold enforced by policy).
+
+  STAGE_TRANSITION_NOT_ALLOWED:
+    terminal_status: completed_with_review
+    crm_writes_after: note_only_if_already_authorized
+    description: >
+      Note write may still proceed when allowed, but opportunity stage must remain
+      unchanged. Recorded as a first-class reason, not a silent skip.
+
+  GHL_TOOL_FAILURE:
+    terminal_status: failed
+    crm_writes_after: 0
+    description: GHL MCP tool call failed during an attempted mutation or required read.
+
+  GHL_WRITE_NOT_VERIFIED:
+    terminal_status: failed
+    crm_writes_after: 0
+    description: >
+      Mutation tool reported success but read-back verification did not confirm
+      the expected CRM state. Completion must not be declared.
+
+# Alias note for demo narration (not a separate code):
+# "BLOCKED_CONTACT_AMBIGUOUS" in spoken demo scripts maps to AMBIGUOUS_CONTACT.
+aliases:
+  BLOCKED_CONTACT_AMBIGUOUS: AMBIGUOUS_CONTACT

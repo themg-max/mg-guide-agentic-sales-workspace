@@ -1,0 +1,41 @@
+# FIXTURE: transcript-no-stage-change
+# SYNTHETIC DATA ONLY — not a real person, meeting, or CRM record
+# Expected disposition: completed_with_review
+# Expected CRM: one note verified; opportunity stage UNCHANGED
+# Expected reason code: STAGE_TRANSITION_NOT_ALLOWED
+# Contact match basis: email exact (when test CRM is seeded)
+
+MEETING_ID: demo_meeting_003
+OCCURRED_AT: 2026-08-10T17:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Casey Nguyen
+  email: casey.nguyen@example-demo.test
+  phone: +1-555-0142
+  role: prospect
+- name: Alex Rivera
+  email: alex.rivera@example-demo.test
+  phone: +1-555-0199
+  role: agent
+
+--- TRANSCRIPT ---
+
+Alex Rivera: Hi Casey — quick check-in after last week's intro chat.
+
+Casey Nguyen: Thanks for following up. I'm still early. Please capture notes, but I have not completed a full discovery yet.
+
+Alex Rivera: Understood. Any topics you want on record?
+
+Casey Nguyen: Just that I'm interested in education resources, not a stage move. Timeline is unclear and I have not agreed that discovery is complete.
+
+Alex Rivera: Perfect. I'll write a meeting note only and leave the opportunity stage where it is.
+
+Casey Nguyen: Appreciate that. Email casey.nguyen@example-demo.test is correct.
+
+--- END ---
+
+# POLICY INTENT:
+# - Note write: allowed (meeting occurred; identity exact via email)
+# - Stage write: blocked (meeting_completed/discovery_complete evidence insufficient;
+#   prospect explicitly rejects stage advancement)
