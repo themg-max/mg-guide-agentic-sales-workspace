@@ -72,3 +72,14 @@ CI workflow passes from PR execution and this note records the result.
 
 **STOP CONDITION MET** for green PR workflow run `31531473115` on head `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef`.
 This note update is documentary evidence of that pass; a subsequent tip commit may re-run CI and should also pass without changing workflow semantics.
+
+## Final tip binding (post-documentary commit)
+
+| Item | Value |
+| --- | --- |
+| Final PR tip SHA | `c8ea140a8d25bddaaa39c9363b31be4b93624559` |
+| Final PR workflow run | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531573205 |
+| Final workflow conclusion | **success / PASS** |
+
+STOP condition remains MET on final tip after proof-note recording commit.
+
