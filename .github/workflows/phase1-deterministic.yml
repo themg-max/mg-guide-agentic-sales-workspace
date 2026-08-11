@@ -37,6 +37,11 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
+      - name: Run deterministic verification script
+        env:
+          PYTHONPATH: src
+        run: python scripts/verify_phase1_deterministic.py
+
       - name: Parse workflow_states.yaml
         run: |
           python - <<'PY'

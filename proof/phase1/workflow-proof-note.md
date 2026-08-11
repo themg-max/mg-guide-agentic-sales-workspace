@@ -13,7 +13,7 @@
 
 ## What the workflow does
 
-Runs **Python-test-only** deterministic validation for the merged Phase 1 foundation:
+Runs **Python-test-only** deterministic validation for the merged Phase 1 foundation, including the repository-local verifier script for packet/schema/fixture/replay checks:
 
 1. Install pinned dependencies from `requirements.txt`
 2. Parse `contracts/workflow_states.yaml`

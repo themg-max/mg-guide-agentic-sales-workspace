@@ -123,30 +123,32 @@
   - Production data
   - Phase 2 capability discovery
 
-### 2026-08-11 — Phase 1 deterministic CI workflow
+### 2026-08-11 — Phase 1 deterministic CI workflow authorization
 
 - **Human owner:** Human operator / repository maintainer (Aaron Chandler)
 - **AI surfaces used:** VS Code / MG Orchestrator; GitHub Copilot CLI coding worker
-- **Objective:** Add narrow GitHub Actions CI for merged Phase 1 deterministic foundation under authorization `MG_GUIDE_PHASE1_CI_V1`
+- **Objective:** Create a bounded CI-only branch and add Python-only deterministic verification for `meeting_follow_up_v1` under authorization `MG_GUIDE_PHASE1_CI_V1`
 - **Artifacts touched:**
   - `.github/workflows/phase1-deterministic.yml`
+  - `scripts/verify_phase1_deterministic.py`
   - `proof/phase1/workflow-proof-note.md`
   - `competition/NEW_WORK_LEDGER.md`
   - `competition/AI_COLLABORATION_LOG.md`
-- **Validation:** workflow file review; local contract/pytest still green; PR workflow run (to be recorded in workflow-proof-note)
+- **Validation:** `python scripts/verify_phase1_deterministic.py`; `PYTHONPATH=src python3 -m pytest -q`; `git diff --check`; repository-local secret scan
 - **Human decisions retained:**
-  - contents:read only
-  - no secrets
-  - no application external effects
-  - no pull_request_target
-  - no GHL/CRM/Gemini/ADK/Firestore/Cloud Run/IAM
-- **Out of scope / refused:** deployment, secret access, repository writes from workflow, broadening beyond Phase 1 deterministic tests
+  - CI workflow is read-only and uses no repository/application secrets
+  - Workflow remains bounded to local Python execution and synthetic fixtures only
+  - No GHL/CRM/Gemini/ADK/GCP deployment runtime invoked
+- **Out of scope / refused:**
+  - Live GHL tool discovery
+  - Production CRM writes
+  - Cloud runtime deployment
 
-## 2026-08-11 — Phase 1 CI green on PR #3
+### 2026-08-11 — Phase 1 CI green on PR #3
 
-- Human owner / operator: repository maintainer (themg-max operator)
-- Tool / AI surfaces: VS Code + MG Orchestrator (Copilot CLI runtime)
-- Action: repaired secret-scan self-match false positive; PR workflow run succeeded
-- Evidence: Actions run https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115
-- Head at PASS: `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef`
-- Phase 1 CI workflow PASS recorded
+- **Human owner / operator:** repository maintainer (themg-max operator)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Action:** repaired secret-scan self-match false positive; PR workflow run succeeded
+- **Evidence:** Actions run https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31531473115
+- **Head at PASS:** `61c01a3152a072ebfaefa2ab97b0ab3124cea5ef`
+- **Phase 1 CI workflow PASS recorded**
