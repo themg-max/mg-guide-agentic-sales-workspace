@@ -206,3 +206,27 @@
   - Phase 2B
   - Gemini / ADK
   - Secret/PIT/location binding changes in the public repo
+
+### 2026-08-11 — Phase 2A closure + no-sandbox GHL strategy adoption
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Objective:** Close `MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1` against durable main after human merge of PR #4; retire the isolated-test-account path; adopt governed canonical-location synthetic-record strategy
+- **Artifacts touched (authorized paths only):**
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** `git diff --check` PASS; secret/private-identifier scan PASS; merge SHA `c00dd75c53ba91a17607d7c9f3b4f6e042173cd3` verified on `main` after `git fetch`/`pull`
+- **Human decisions retained:**
+  - NW-003 = Phase 2A GHL MCP meta-discovery / DONE (preserved, unchanged)
+  - NW-012 = NOT_PURSUIED_ENVIRONMENT_UNAVAILABLE (no isolated GHL hackathon/test location can be provided)
+  - NW-013 = Canonical GHL location synthetic-record read proof / PLANNED
+  - Canonical location is NOT classified as a test environment
+  - `GHL_RECORD_READS=0`, `GHL_WRITES=0`, `PHASE2B_STARTED=NO`, `GEMINI_ADK_STARTED=NO` preserved
+- **New proposals (NOT activated):**
+  - `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1` — offline deterministic read adapter vs Phase 2A discovered contracts; network NONE; synthetic fixtures only; live CRM reads/writes, Gemini/ADK, deployment, IAM, Secret Manager all blocked
+  - `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` — GATED_PENDING_SYNTHETIC_RECORD_BINDING; exact synthetic contact/opportunity IDs via private allowlist; redacted proof only; `GHL_WRITES=0`, `REAL_PRODUCTION_RECORD_READS=0`
+- **Out of scope / refused:**
+  - Any live GHL access until human authorizes the canonical-location synthetic-read grant
+  - Any GHL write / CRM mutation
+  - Unrestricted production reads
+  - Phase 2B mutation capability

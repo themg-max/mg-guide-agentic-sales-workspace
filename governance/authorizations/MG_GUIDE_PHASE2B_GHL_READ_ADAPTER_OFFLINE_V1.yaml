@@ -1,0 +1,33 @@
+# PROPOSED grant — NOT activated. Requires explicit human authorization before execution.
+grant_id: MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1
+status: PROPOSED_PENDING_HUMAN_AUTHORIZATION
+proposed_at_utc: "2026-08-11T22:45:00Z"
+workflow: meeting_follow_up_v1
+
+objective: >
+  Implement a deterministic GHL MCP read adapter against the exact operation
+  contracts discovered in Phase 2A (contracts/ghl_tool_manifest.yaml).
+  Fully offline: no live CRM contact of any kind.
+
+network: NONE
+data: synthetic_fixtures_only
+
+allowed:
+  - request mapping (operation -> MCP request envelope per Phase 2A manifest)
+  - response normalization
+  - pagination handling
+  - error normalization
+  - policy gates
+  - fixture replay
+  - unit/acceptance tests
+
+blocked:
+  - live CRM reads
+  - all CRM writes
+  - Gemini/ADK
+  - deployment
+  - IAM
+  - Secret Manager access
+
+activation_requires:
+  - explicit human authorization recorded for this grant id
