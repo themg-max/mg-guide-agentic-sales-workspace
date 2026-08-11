@@ -80,4 +80,3 @@
 - **Validation:** `git diff --check`; secret/private-identifier scan; exact path scope only
 - **Human decisions retained:** repository adoption approved in private control plane only; Phase 1 implementation still unauthorized; GHL/cloud/IAM withheld
 - **Out of scope / refused:** Gemini agents, GHL config, CRM writes, Firestore/Cloud Run provisioning, IAM/env/secrets, private `.ai` records, Phase 1 code
-
