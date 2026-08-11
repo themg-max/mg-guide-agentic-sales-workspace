@@ -3,12 +3,15 @@
 | Field | Value |
 | --- | --- |
 | Authorization ID | `MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1` |
-| Status | APPROVED (human, 2026-08-11) |
+| Status | APPROVED (human, 2026-08-11) — meta-discovery complete; closeout pending human PR review |
 | Mode | READ ONLY — meta discovery |
 | Workflow | `meeting_follow_up_v1` |
 | Branch | `feat/meeting-follow-up-v1-ghl-mcp-read-discovery` |
-| Baseline | Phase 1 merge `47deaae2820720b629eafe3ffec8c21245f4dfcb` |
-| Recorded at (UTC) | 2026-08-11T20:20:00Z |
+| PR | https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/4 |
+| Baseline | `main` @ `2f0742f8ac161081810db2e62963afe89d15fc42` |
+| Verified head (green CI) | `8018533ac2f12f5f6299c5325bbb9e4ad4a106a2` |
+| Discovery content SHA | `6fa1c7d301dbbf94f27474b56e525bfa39d1f99a` |
+| Recorded at (UTC) | 2026-08-11T20:20:00Z (discovery); 2026-08-11T22:15:00Z (closeout normalize) |
 
 ## Scope exercised
 
@@ -46,7 +49,7 @@
 
 ## Auth observations
 
-- Mode used: Private Integration Token via `Authorization: Bearer <PIT>`
+- Mode used: Private Integration Token via `Authorization: ******
 - Raw token without `Bearer` → `401 invalid_token`
 - Python `urllib` default UA → Cloudflare **403 Error 1010** (browser signature banned)
 - `curl` + normal browser User-Agent → PASS
@@ -63,7 +66,7 @@
 | Proven hackathon isolation | **NO** |
 | Production CRM record reads | **NOT PERFORMED** |
 
-**Blocker:** bind an explicit isolated test location + PIT before any record-level probes or later mutation phases.
+**Blocker:** `ISOLATED_HACKATHON_TEST_ACCOUNT_BINDING_REQUIRED` — bind an explicit isolated test location + PIT before any record-level probes or later mutation phases.
 
 ## Capability mapping (LIVE meta)
 
@@ -89,7 +92,7 @@
 
 ## Intentionally unknown (record behavior)
 
-Because production CRM data reads are forbidden without a proven test account:
+**No record-level probes occurred in this phase.** Because production CRM data reads are forbidden without a proven isolated test account:
 
 - not-found response shapes
 - ambiguous multi-match shapes
@@ -97,6 +100,15 @@ Because production CRM data reads are forbidden without a proven test account:
 - rate-limit headers under load
 - authorization denials for missing scopes against real ops
 - concrete output JSON examples from live records
+
+## Preserved posture (closeout)
+
+| Flag | Value |
+| --- | --- |
+| `GHL_RECORD_READS` | `0` |
+| `GHL_WRITES` | `0` |
+| `PHASE2B_STARTED` | `NO` |
+| `GEMINI_ADK_STARTED` | `NO` |
 
 ## Artifacts
 
@@ -106,8 +118,26 @@ Because production CRM data reads are forbidden without a proven test account:
 - [`proof/phase2/search-operations-by-intent.json`](./search-operations-by-intent.json)
 - [`proof/phase2/proof-return.yaml`](./proof-return.yaml)
 
+## Closeout validation (PR #4 refresh)
+
+| Check | Result |
+| --- | --- |
+| `PYTHONPATH=src python3 scripts/verify_phase1_deterministic.py` | PASS |
+| `PYTHONPATH=src python3 -m pytest -q` | PASS |
+| `git diff --check` | PASS |
+| GitHub Actions `Phase 1 deterministic validation` on `8018533` | SUCCESS ([run 31540519394](https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31540519394)) |
+
 ## Verdict
 
 `PASS_WITH_BLOCKERS`
 
-Next authorized step (separate grant): bind isolated hackathon test GHL location/PIT, complete record-level read behavior probes, then consider Phase 2B read-only vertical slice authorization.
+Next gated capability (do **not** start until gates clear): `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1`
+
+Gates required before that probe:
+
+1. PR #4 meta-discovery closeout reviewed
+2. Private OL3 bridge merged
+3. Isolated GHL test account/location binding proven
+4. Secret delivery path verified as already authorized, or a separate micro-grant approved
+
+No GHL writes. No Phase 2B. No Gemini/ADK.

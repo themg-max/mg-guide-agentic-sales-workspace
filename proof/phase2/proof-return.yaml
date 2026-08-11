@@ -2,12 +2,13 @@ workflow_id: meeting_follow_up_v1
 phase: phase2a_ghl_mcp_read_discovery
 authorization_id: MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1
 branch: feat/meeting-follow-up-v1-ghl-mcp-read-discovery
-# head_sha filled after commit
-head_sha: a03e9c7a4e8d55591af1c5e26395b6fc2ffb0d01
+pr_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/4"
+# Verified green CI head before documentary closeout normalization
+head_sha: 8018533ac2f12f5f6299c5325bbb9e4ad4a106a2
 discovery_content_sha: 6fa1c7d301dbbf94f27474b56e525bfa39d1f99a
-baseline_sha: 47deaae2820720b629eafe3ffec8c21245f4dfcb
+baseline_sha: 2f0742f8ac161081810db2e62963afe89d15fc42
 mode: READ_ONLY_META_DISCOVERY
-timestamp_utc: "2026-08-11T20:20:00Z"
+timestamp_utc: "2026-08-11T22:15:00Z"
 
 changed_paths:
   - contracts/ghl_tool_manifest.yaml
@@ -31,6 +32,13 @@ mcp:
   raw_ghl_rest_calls: 0
   external_network_calls: mcp_meta_only
 
+# Explicit posture flags (closeout preserve)
+posture_flags:
+  GHL_RECORD_READS: 0
+  GHL_WRITES: 0
+  PHASE2B_STARTED: "NO"
+  GEMINI_ADK_STARTED: "NO"
+
 discovery_results:
   tools_list_original_count: 36
   tools_list_anthropic_v2_count: 6
@@ -40,6 +48,7 @@ discovery_results:
   opportunity_stage_update_operation_id: update-opportunity
   opportunity_stage_field: pipelineStageId
   hard_stop_triggered: false
+  record_level_probes_executed: false
 
 required_scopes_observed:
   read:
@@ -57,8 +66,21 @@ blockers:
     severity: medium
     detail: not-found/ambiguous/pagination/rate-limit live record behaviors remain UNKNOWN.
 
+validation:
+  local_verify_phase1_deterministic: PASS
+  local_pytest: PASS
+  git_diff_check: PASS
+  github_actions:
+    name: Phase 1 deterministic validation
+    conclusion: SUCCESS
+    head_sha: 8018533ac2f12f5f6299c5325bbb9e4ad4a106a2
+    run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31540519394"
+
 verdict: PASS_WITH_BLOCKERS
 next_action: >
-  Human review/merge this discovery PR. Separately authorize binding of an
-  isolated hackathon test GHL location/PIT and complete record-level read
-  behavior probes before any CRM mutation phase.
+  Human review of PR #4 meta-discovery closeout. Do not start
+  MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1 until (1) this PR is
+  reviewed, (2) private OL3 bridge is merged, (3) isolated GHL test
+  account/location binding is proven, and (4) secret delivery path is
+  verified as already authorized or a separate micro-grant is approved.
+  No GHL writes. No Phase 2B. No Gemini/ADK.

@@ -182,3 +182,27 @@
 - CRM record reads executed: 0
 - Key finding: `create-note` present on anthropic_v2 catalog; absent as first-class tool on original `/mcp/` discrete surface for this PIT
 - Blocker: isolated hackathon test account binding required before record probes
+
+### 2026-08-11 — PR #4 Phase 2A meta-discovery closeout normalization
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Objective:** Documentary-only normalization of refreshed PR #4 after Phase 1 CI baseline merge; bind proof/ledger to verified green CI evidence; mark NW-003 DONE (meta-discovery only); plan NW-012 without implying record probes
+- **Artifacts touched (authorized paths only):**
+  - `proof/phase2/proof-return.yaml`
+  - `proof/phase2/discovery-report.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** `PYTHONPATH=src python3 scripts/verify_phase1_deterministic.py` PASS; `PYTHONPATH=src python3 -m pytest -q` PASS; `git diff --check` PASS; GitHub Actions run https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31540519394 (SUCCESS) on head `8018533ac2f12f5f6299c5325bbb9e4ad4a106a2`
+- **Human decisions retained:**
+  - NW-003 = Phase 2A GHL MCP meta-discovery / DONE
+  - NW-012 = isolated GHL test-account record-read compatibility probe / PLANNED (not started)
+  - Preserve `GHL_RECORD_READS=0`, `GHL_WRITES=0`, `PHASE2B_STARTED=NO`, `GEMINI_ADK_STARTED=NO`
+  - Blocker remains `ISOLATED_HACKATHON_TEST_ACCOUNT_BINDING_REQUIRED`
+  - Next gated capability `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` must not start until PR #4 reviewed, private OL3 bridge merged, isolated binding proven, and secret path authorized
+- **Out of scope / refused:**
+  - Any GHL record-level read probe
+  - Any GHL write / CRM mutation
+  - Phase 2B
+  - Gemini / ADK
+  - Secret/PIT/location binding changes in the public repo
