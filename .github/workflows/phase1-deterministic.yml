@@ -1,0 +1,234 @@
+name: Phase 1 Deterministic CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - chore/phase1-deterministic-ci
+      - feat/meeting-follow-up-v1-phase1-contracts-fixtures
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase1-deterministic-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phase1-deterministic:
+    name: Phase 1 deterministic validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+
+      - name: Install pinned Phase 1 dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Run deterministic verification script
+        env:
+          PYTHONPATH: src
+        run: python scripts/verify_phase1_deterministic.py
+
+      - name: Parse workflow_states.yaml
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+          data = yaml.safe_load(Path("contracts/workflow_states.yaml").read_text(encoding="utf-8"))
+          assert data["workflow"] == "meeting_follow_up_v1"
+          thr = data["policy_thresholds"]
+          assert thr["extraction_abort_threshold"] != thr["stage_transition_confidence_min"]
+          print("workflow_states.yaml OK")
+          PY
+
+      - name: Parse failure_codes.yaml
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import yaml
+          data = yaml.safe_load(Path("contracts/failure_codes.yaml").read_text(encoding="utf-8"))
+          required = {
+              "AMBIGUOUS_CONTACT",
+              "CONTACT_NOT_FOUND",
+              "OPPORTUNITY_NOT_FOUND",
+              "LOW_EXTRACTION_CONFIDENCE",
+              "STAGE_TRANSITION_NOT_ALLOWED",
+              "GHL_TOOL_FAILURE",
+              "GHL_WRITE_NOT_VERIFIED",
+              "NOTE_WRITE_BLOCKED",
+          }
+          assert required.issubset(set(data["codes"]))
+          print("failure_codes.yaml OK")
+          PY
+
+      - name: Validate meeting_follow_up_packet.schema.json
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          schema = json.loads(
+              Path("contracts/meeting_follow_up_packet.schema.json").read_text(encoding="utf-8")
+          )
+          Draft202012Validator.check_schema(schema)
+          print("meeting_follow_up_packet.schema.json OK")
+          PY
+
+      - name: Validate proof-return against governance schema
+        run: |
+          python - <<'PY'
+          import re
+          from pathlib import Path
+          import yaml
+
+          proof = yaml.safe_load(Path("proof/phase1/proof-return.yaml").read_text(encoding="utf-8"))
+          schema = yaml.safe_load(
+              Path("governance/PROOF_RETURN.schema.yaml").read_text(encoding="utf-8")
+          )
+          assert schema.get("schema_id") == "mg-guide-proof-return-schema-v1"
+          for key in schema["required"]:
+              assert key in proof, f"missing required proof field: {key}"
+          assert proof["workflow_id"] == "meeting_follow_up_v1"
+          assert re.match(r"^[a-f0-9]{7,40}$", str(proof["head_sha"]))
+          assert proof["external_calls"]["network"] == "NONE"
+          assert proof["external_calls"]["crm"] == "NONE"
+          assert proof["external_calls"]["cloud"] == "NONE"
+          auth = proof["authorization_posture"]
+          assert auth["PHASE1_IMPLEMENTATION_AUTHORIZED"] == "YES"
+          assert auth["GHL_WRITE_AUTHORIZED"] == "NO"
+          assert auth["DEPLOYMENT_AUTHORIZED"] == "NO"
+          print("proof-return validation OK")
+          PY
+
+      - name: Run deterministic pytest suite
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q
+
+      - name: Verify three fixture outcomes and intent bounds
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from orchestration.runner import WorkflowRunner
+
+          cases = [
+              ("transcript-success.expected.json", "completed", [], 1, 1),
+              ("transcript-ambiguous-contact.expected.json", "blocked", ["AMBIGUOUS_CONTACT"], 0, 0),
+              ("transcript-no-stage-change.expected.json", "completed_with_review", ["STAGE_TRANSITION_NOT_ALLOWED"], 1, 0),
+          ]
+          runner = WorkflowRunner()
+          for name, state, codes, note_max, stage_max in cases:
+              result = runner.run_fixture(Path("fixtures") / name)
+              assert result.validation_ok, result.error
+              assert result.external_effects == 0
+              assert result.final_state == state, (name, result.final_state)
+              for code in codes:
+                  assert code in result.reason_codes
+              if state == "completed":
+                  assert result.reason_codes == []
+              note_n = len(result.mutation_intents.get("note") or [])
+              stage_n = len(result.mutation_intents.get("stage") or [])
+              assert note_n <= note_max and note_n <= 1
+              assert stage_n <= stage_max and stage_n <= 1
+              print(name, "OK", result.final_state, result.reason_codes)
+          print("fixture outcomes OK")
+          PY
+
+      - name: Verify replay and idempotency
+        env:
+          PYTHONPATH: src
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from orchestration.runner import WorkflowRunner
+
+          path = Path("fixtures/transcript-success.expected.json")
+          runner = WorkflowRunner()
+          first = runner.run_fixture(path, created_at="2026-08-11T15:00:00Z")
+          assert first.final_state == "completed"
+          second = runner.run_fixture(path, created_at="2026-08-11T15:00:00Z")
+          assert second.rejected_duplicate is True
+          assert second.validation_ok is False
+
+          a = WorkflowRunner().run_fixture(path, created_at="2026-08-11T15:00:00Z")
+          b = WorkflowRunner().run_fixture(path, created_at="2026-08-11T15:00:00Z")
+          assert a.final_state == b.final_state
+          assert a.reason_codes == b.reason_codes
+          assert a.mutation_intents == b.mutation_intents
+          assert a.external_effects == b.external_effects == 0
+          print("replay/idempotency OK")
+          PY
+
+      - name: git diff --check
+        run: git diff --check
+
+      - name: Secret-pattern scan (authorized paths)
+        run: |
+          python - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          # Build PEM marker without embedding a false-positive literal in this file.
+          pem_begin = "-" * 5 + "BEGIN" + " "
+          patterns = [
+              re.escape(pem_begin),
+              r"api[_-]?key\s*[:=]\s*\S+",
+              r"sk-[A-Za-z0-9]{20,}",
+              r"AIza[0-9A-Za-z_-]{20,}",
+              r"client_secret\s*[:=]",
+              r"private_key\s*[:=]",
+          ]
+          roots = [
+              Path("contracts"),
+              Path("fixtures"),
+              Path("src"),
+              Path("tests"),
+              Path("proof"),
+              Path("competition"),
+              Path("governance"),
+              Path(".github"),
+              Path("requirements.txt"),
+              Path("pyproject.toml"),
+              Path("README.md"),
+          ]
+          skip_names = {
+              # Scanner definitions are not secrets.
+              ".github/workflows/phase1-deterministic.yml",
+          }
+          files = []
+          for root in roots:
+              if root.is_file():
+                  files.append(root)
+              elif root.is_dir():
+                  files.extend([p for p in root.rglob("*") if p.is_file()])
+
+          bad = []
+          for path in files:
+              rel = str(path).replace("\\", "/")
+              if rel in skip_names:
+                  continue
+              text = path.read_text(encoding="utf-8", errors="ignore")
+              for pat in patterns:
+                  if re.search(pat, text, re.I):
+                      bad.append((rel, pat))
+          if bad:
+              print("SECRET_SCAN_FAIL", bad)
+              sys.exit(1)
+          print("SECRET_SCAN_PASS")
+          PY
