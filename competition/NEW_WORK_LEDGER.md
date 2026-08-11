@@ -27,7 +27,8 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-007 | TBD | Cloud Run deployment (test) | PLANNED | Requires activation authority; not part of foundation |
 | NW-008 | TBD | Acceptance tests AT-1…AT-10 + demo proof | PLANNED | Synthetic data only |
 | NW-011 | 2026-08-11 | Phase 1 deterministic CI workflow proof | DONE | Branch `chore/phase1-deterministic-ci`; Python-only deterministic verification; no secrets or runtime dependencies |
-| NW-012 | TBD | Isolated GHL test-account record-read compatibility probe | PLANNED | Gated: `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1`; requires isolated binding + OL3 bridge + secret path; no writes; not started |
+| NW-012 | 2026-08-11 | Isolated GHL test-account record-read compatibility probe | NOT_PURSUIED_ENVIRONMENT_UNAVAILABLE | No isolated GHL hackathon/test location can be provided; path retired. Proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` never activated; zero record reads; zero writes |
+| NW-013 | TBD | Canonical GHL location synthetic-record read proof | PLANNED | Grant `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`; GATED_PENDING_SYNTHETIC_RECORD_BINDING; canonical location is NOT classified as a test environment; exact-ID synthetic reads only; no writes |
 
 ---
 
@@ -37,7 +38,8 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Foundation contracts do **not** authorize production CRM writes.
 - UNKNOWN GHL tool identifiers are intentional; inventing them is a ledger violation.
 - NW-003 meta-discovery does **not** claim record-level read probes occurred (`GHL_RECORD_READS=0`).
-- NW-012 is planned only; starting it requires a separate gated authorization after blockers clear.
+- NW-012 is retired (no isolated GHL hackathon/test location exists); the proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` was never activated and no record probes occurred.
+- NW-013 is planned only; the canonical GHL location is **not** a test environment, and starting any live read requires explicit human authorization of `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` after synthetic-record binding.
 - Phase 2B has **not** started (`PHASE2B_STARTED=NO`).
 - Gemini/ADK has **not** started (`GEMINI_ADK_STARTED=NO`).
 
@@ -70,3 +72,19 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Blocker: `ISOLATED_HACKATHON_TEST_ACCOUNT_BINDING_REQUIRED`
 - Next planned ID: NW-012 (isolated test-account record-read compatibility probe) — **not started**
 - Next gated capability (blocked): `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1`
+
+## Phase 2A closure + strategy adoption (2026-08-11)
+
+- Date (UTC): 2026-08-11
+- Authorization: human review (APPROVED, verdict READY_FOR_MERGE) + human merge of PR #4 by `Achandler21` at 2026-08-11T22:41:02Z
+- Final PR head: `4587270c85d792fb9d503bac20d29351b6f0164d`
+- Required check: Phase 1 Deterministic CI — SUCCESS (run 31541673310)
+- **Merge SHA captured (verified on `main`):** `c00dd75c53ba91a17607d7c9f3b4f6e042173cd3`
+- **Closed authorization:** `MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1` (meta-discovery only; `GHL_RECORD_READS=0`, `GHL_WRITES=0` preserved)
+- Strategy decision:
+  - NW-012 → **NOT_PURSUIED_ENVIRONMENT_UNAVAILABLE** — no isolated GHL hackathon/test location can be provided; the isolated-test-account execution path is retired.
+  - NW-013 → **PLANNED** — Canonical GHL location synthetic-record read proof. The canonical location is **not** classified as a test environment.
+- New proposals (not activated):
+  - `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1` — offline deterministic read adapter against Phase 2A discovered operation contracts; network NONE; synthetic fixtures only.
+  - `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` — `GATED_PENDING_SYNTHETIC_RECORD_BINDING`; exact-ID synthetic reads only; blocked on synthetic record binding + private allowlist + authorized secret path.
+- Historical Phase 2A claims unchanged; this section adds no claim of live CRM access.

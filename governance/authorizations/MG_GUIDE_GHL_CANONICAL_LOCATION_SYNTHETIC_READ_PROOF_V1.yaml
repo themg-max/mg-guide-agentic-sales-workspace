@@ -1,0 +1,43 @@
+# PROPOSED grant — NOT activated. Requires explicit human authorization before execution.
+grant_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1
+status: GATED_PENDING_SYNTHETIC_RECORD_BINDING
+proposed_at_utc: "2026-08-11T22:45:00Z"
+workflow: meeting_follow_up_v1
+
+environment: canonical GHL location
+
+environment_classification_note: >
+  This grant does NOT classify the production location as a test environment.
+  Only explicitly designated synthetic records, bound via a private allowlist
+  of exact record IDs, may be read.
+
+activation_requires:
+  - one explicitly designated synthetic contact
+  - one explicitly designated synthetic opportunity
+  - private allowlist of exact record IDs (never written to this public repo)
+  - secret path already authorized (no IAM or secret mutation)
+  - explicit human authorization recorded for this grant id
+
+allowed_live_operations:
+  - get-contact (exact synthetic ID only)
+  - get-opportunity (exact synthetic ID only)
+  - get-pipelines
+  - optional note readback for exact synthetic contact
+
+forbidden:
+  - search-contacts-advanced
+  - broad contact search
+  - broad opportunity search
+  - create-note
+  - update-opportunity
+  - all CRM writes
+  - email/SMS
+  - raw REST
+  - real customer/contact reads
+
+proof_requirements:
+  - redacted output only
+  - synthetic data only
+  - GHL_WRITES: 0
+  - REAL_PRODUCTION_RECORD_READS: 0
+  - no record IDs written to public repo
