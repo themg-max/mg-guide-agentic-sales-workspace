@@ -3,7 +3,8 @@ phase: phase2a_ghl_mcp_read_discovery
 authorization_id: MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1
 branch: feat/meeting-follow-up-v1-ghl-mcp-read-discovery
 # head_sha filled after commit
-head_sha: 6fa1c7d301dbbf94f27474b56e525bfa39d1f99a
+head_sha: a03e9c7a4e8d55591af1c5e26395b6fc2ffb0d01
+discovery_content_sha: 6fa1c7d301dbbf94f27474b56e525bfa39d1f99a
 baseline_sha: 47deaae2820720b629eafe3ffec8c21245f4dfcb
 mode: READ_ONLY_META_DISCOVERY
 timestamp_utc: "2026-08-11T20:20:00Z"
