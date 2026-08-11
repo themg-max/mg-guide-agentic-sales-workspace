@@ -4,6 +4,7 @@ workflow_id: meeting_follow_up_v1
 branch: feat/meeting-follow-up-v1-ghl-read-adapter-offline
 # Verified code baseline; the proof record is committed separately.
 head_sha: 302ec50d07645a92e4bf10f4d244e9bbff1c8824
+pr_url: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/6
 files_changed:
   - src/integrations/ghl/**
   - tests/integrations/ghl/**
