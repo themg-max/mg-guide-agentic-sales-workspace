@@ -3,7 +3,7 @@ manifest_id: phase1-deterministic-foundation-v1
 workflow_id: meeting_follow_up_v1
 branch: feat/meeting-follow-up-v1-phase1-contracts-fixtures
 head_sha: 486c14ab3f4e42f14ee299a34df48a5c46431aa2
-pr_url: PENDING_PR
+pr_url: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/2
 files_changed:
   - contracts/meeting_follow_up_packet.schema.json
   - contracts/workflow_states.yaml
