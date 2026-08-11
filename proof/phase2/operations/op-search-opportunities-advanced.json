@@ -1,0 +1,66 @@
+{
+  "operationId": "search-opportunities-advanced",
+  "domain": "opportunities",
+  "method": "POST",
+  "path": "/opportunities/search",
+  "summary": "Search Opportunities",
+  "description": "Search Opportunities based on combinations of advanced filters.",
+  "requiredScopes": [
+    "opportunities.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [],
+  "parameters": [],
+  "hasRequestBody": true,
+  "requestBodyFields": [
+    {
+      "name": "query",
+      "type": "string",
+      "required": true
+    },
+    {
+      "name": "limit",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "page",
+      "type": "number",
+      "required": true
+    },
+    {
+      "name": "searchAfter",
+      "type": "array",
+      "required": true
+    },
+    {
+      "name": "additionalDetails",
+      "type": "object",
+      "required": true
+    }
+  ],
+  "requestContentTypes": [
+    "application/json"
+  ],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {},
+      "query": {},
+      "body": {
+        "query": "example_query",
+        "limit": "example_limit",
+        "page": "example_page",
+        "searchAfter": "example_searchAfter",
+        "additionalDetails": "example_additionalDetails"
+      }
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

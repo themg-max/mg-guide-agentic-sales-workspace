@@ -1,0 +1,98 @@
+{
+  "operationId": "update-opportunity",
+  "domain": "opportunities",
+  "method": "PUT",
+  "path": "/opportunities/{id}",
+  "summary": "Update Opportunity",
+  "description": "Update Opportunity",
+  "requiredScopes": [
+    "opportunities.write"
+  ],
+  "kind": "write",
+  "parameterNames": [
+    "id"
+  ],
+  "parameters": [
+    {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "Opportunity Id",
+      "schema": {
+        "example": "yWQobCRIhRguQtD2llvk",
+        "type": "string"
+      }
+    }
+  ],
+  "hasRequestBody": true,
+  "requestBodyFields": [
+    {
+      "name": "pipelineId",
+      "type": "string",
+      "required": false,
+      "example": "bCkKGpDsyPP4peuKowkG",
+      "description": "pipeline Id"
+    },
+    {
+      "name": "name",
+      "type": "string",
+      "required": false,
+      "example": "First Opps"
+    },
+    {
+      "name": "pipelineStageId",
+      "type": "string",
+      "required": false,
+      "example": "7915dedc-8f18-44d5-8bc3-77c04e994a10"
+    },
+    {
+      "name": "status",
+      "type": "string",
+      "required": false
+    },
+    {
+      "name": "monetaryValue",
+      "type": "number",
+      "required": false,
+      "example": 220
+    },
+    {
+      "name": "assignedTo",
+      "type": "string",
+      "required": false,
+      "example": "082goXVW3lIExEQPOnd3"
+    },
+    {
+      "name": "customFields",
+      "type": "array",
+      "required": false,
+      "description": "Update custom fields to opportunities."
+    }
+  ],
+  "requestContentTypes": [
+    "application/json"
+  ],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": false,
+  "destructiveHint": false,
+  "idempotencyRequired": true,
+  "requiresApproval": true,
+  "payloadExample": {
+    "params": {
+      "path": {
+        "id": "example_id"
+      },
+      "query": {},
+      "body": {
+        "id": "{id}",
+        "pipelineId": "bCkKGpDsyPP4peuKowkG",
+        "name": "First Opps",
+        "pipelineStageId": "7915dedc-8f18-44d5-8bc3-77c04e994a10",
+        "status": ""
+      }
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

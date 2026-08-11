@@ -1,0 +1,250 @@
+{
+  "operationId": "search-opportunity",
+  "domain": "opportunities",
+  "method": "GET",
+  "path": "/opportunities/search",
+  "summary": "Search Opportunity",
+  "description": "Search Opportunity",
+  "requiredScopes": [
+    "opportunities.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [
+    "assignedTo",
+    "campaignId",
+    "contactId",
+    "country",
+    "date",
+    "endDate",
+    "getCalendarEvents",
+    "getNotes",
+    "getTasks",
+    "id",
+    "limit",
+    "order",
+    "page",
+    "pipelineId",
+    "pipelineStageId",
+    "q",
+    "startAfter",
+    "startAfterId",
+    "status"
+  ],
+  "parameters": [
+    {
+      "name": "assignedTo",
+      "in": "query",
+      "required": false,
+      "description": "Filter by assigned user identifier",
+      "schema": {
+        "example": "082goXVW3lIExEQPOnd3",
+        "type": "string"
+      }
+    },
+    {
+      "name": "campaignId",
+      "in": "query",
+      "required": false,
+      "description": "Campaign Id",
+      "schema": {
+        "example": "Y2I9XM7aO1hncuSOlc9L",
+        "type": "string"
+      }
+    },
+    {
+      "name": "contactId",
+      "in": "query",
+      "required": false,
+      "description": "Contact Id",
+      "schema": {
+        "example": "WFwVrSSjZ2CNHbZThQX2",
+        "type": "string"
+      }
+    },
+    {
+      "name": "country",
+      "in": "query",
+      "required": false,
+      "description": "Filter by country code (ISO 3166-1 alpha-2)",
+      "schema": {
+        "example": "US",
+        "type": "string"
+      }
+    },
+    {
+      "name": "date",
+      "in": "query",
+      "required": false,
+      "description": "Start date",
+      "schema": {
+        "example": "mm-dd-yyyy",
+        "type": "string"
+      }
+    },
+    {
+      "name": "endDate",
+      "in": "query",
+      "required": false,
+      "description": "End date",
+      "schema": {
+        "example": "mm-dd-yyyy",
+        "type": "string"
+      }
+    },
+    {
+      "name": "getCalendarEvents",
+      "in": "query",
+      "required": false,
+      "description": "get Calender event in contact",
+      "schema": {
+        "example": false,
+        "type": "boolean"
+      }
+    },
+    {
+      "name": "getNotes",
+      "in": "query",
+      "required": false,
+      "description": "get Notes in contact",
+      "schema": {
+        "example": false,
+        "type": "boolean"
+      }
+    },
+    {
+      "name": "getTasks",
+      "in": "query",
+      "required": false,
+      "description": "get Tasks in contact",
+      "schema": {
+        "example": false,
+        "type": "boolean"
+      }
+    },
+    {
+      "name": "id",
+      "in": "query",
+      "required": false,
+      "description": "Opportunity Id",
+      "schema": {
+        "example": "123akv4LFn6C9frZoy3e",
+        "type": "string"
+      }
+    },
+    {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "description": "Limit Per Page records count. will allow maximum up to 100 and default will be 20",
+      "schema": {
+        "default": 20,
+        "example": 20,
+        "type": "number"
+      }
+    },
+    {
+      "name": "order",
+      "in": "query",
+      "required": false,
+      "description": "Sort order for results (e.g. added_asc, added_desc, name_asc, name_desc)",
+      "schema": {
+        "example": "added_asc",
+        "type": "string"
+      }
+    },
+    {
+      "name": "page",
+      "in": "query",
+      "required": false,
+      "description": "Page number for pagination",
+      "schema": {
+        "default": 1,
+        "example": 1,
+        "type": "number"
+      }
+    },
+    {
+      "name": "pipelineId",
+      "in": "query",
+      "required": false,
+      "description": "Pipeline Id",
+      "schema": {
+        "example": "bCkKGpDsyPP4peuKowkG",
+        "type": "string"
+      }
+    },
+    {
+      "name": "pipelineStageId",
+      "in": "query",
+      "required": false,
+      "description": "Stage Id",
+      "schema": {
+        "example": "7915dedc-8f18-44d5-8bc3-77c04e994a10",
+        "type": "string"
+      }
+    },
+    {
+      "name": "q",
+      "in": "query",
+      "required": false,
+      "description": "Search query (max 75 characters)",
+      "schema": {
+        "example": "john@deo.com",
+        "type": "string"
+      }
+    },
+    {
+      "name": "startAfter",
+      "in": "query",
+      "required": false,
+      "description": "Start After",
+      "schema": {
+        "example": "1628008053263",
+        "type": "string"
+      }
+    },
+    {
+      "name": "startAfterId",
+      "in": "query",
+      "required": false,
+      "description": "Start After Id",
+      "schema": {
+        "example": "UIaE1WjAwWKdlyD7osQI",
+        "type": "string"
+      }
+    },
+    {
+      "name": "status",
+      "in": "query",
+      "required": false,
+      "description": "Filter by opportunity status",
+      "schema": {
+        "example": "open",
+        "enum": [
+          "open",
+          "won",
+          "lost",
+          "abandoned",
+          "all"
+        ],
+        "type": "string"
+      }
+    }
+  ],
+  "hasRequestBody": false,
+  "requestContentTypes": [],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {},
+      "query": {}
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

@@ -1,0 +1,54 @@
+{
+  "operationId": "get-duplicate-contact",
+  "domain": "contacts",
+  "method": "GET",
+  "path": "/contacts/search/duplicate",
+  "summary": "Get Duplicate Contact",
+  "description": "Find duplicate contact by email or phone based on location dedup settings.",
+  "requiredScopes": [
+    "contacts.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [
+    "email",
+    "number"
+  ],
+  "parameters": [
+    {
+      "name": "email",
+      "in": "query",
+      "required": false,
+      "description": "Email \u2014 URL-encoded. E.g. test+abc@gmail.com \u2192 test%2Babc%40gmail.com",
+      "schema": {
+        "type": "string",
+        "example": "test%2Babc%40gmail.com"
+      }
+    },
+    {
+      "name": "number",
+      "in": "query",
+      "required": false,
+      "description": "Phone Number \u2014 URL-encoded. E.g. +1423164516 \u2192 %2B1423164516",
+      "schema": {
+        "type": "string",
+        "example": "%2B1423164516"
+      }
+    }
+  ],
+  "hasRequestBody": false,
+  "requestContentTypes": [],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {},
+      "query": {}
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

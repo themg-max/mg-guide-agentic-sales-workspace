@@ -1,0 +1,45 @@
+{
+  "operationId": "get-contact",
+  "domain": "contacts",
+  "method": "GET",
+  "path": "/contacts/{contactId}",
+  "summary": "Get Contact",
+  "description": "Get a single contact by ID.",
+  "requiredScopes": [
+    "contacts.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [
+    "contactId"
+  ],
+  "parameters": [
+    {
+      "name": "contactId",
+      "in": "path",
+      "required": true,
+      "description": "Unique identifier of the contact",
+      "schema": {
+        "example": "ve9EPM428h8vShlRW1KT",
+        "type": "string"
+      }
+    }
+  ],
+  "hasRequestBody": false,
+  "requestContentTypes": [],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {
+        "contactId": "example_contactId"
+      },
+      "query": {}
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}

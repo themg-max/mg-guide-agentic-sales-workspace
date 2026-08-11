@@ -1,0 +1,57 @@
+{
+  "operationId": "get-note",
+  "domain": "contacts",
+  "method": "GET",
+  "path": "/contacts/{contactId}/notes/{id}",
+  "summary": "Get Note",
+  "description": "Get a specific note by contact and note ID.",
+  "requiredScopes": [
+    "contacts.readonly"
+  ],
+  "kind": "read",
+  "parameterNames": [
+    "contactId",
+    "id"
+  ],
+  "parameters": [
+    {
+      "name": "contactId",
+      "in": "path",
+      "required": true,
+      "description": "Contact Id",
+      "schema": {
+        "type": "string",
+        "example": "ve9EPM428h8vShlRW1KT"
+      }
+    },
+    {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "description": "Note Id",
+      "schema": {
+        "type": "string",
+        "example": "ocQHyuzHvysMo5N5VsXc"
+      }
+    }
+  ],
+  "hasRequestBody": false,
+  "requestContentTypes": [],
+  "responseContentTypes": [
+    "application/json"
+  ],
+  "readOnlyHint": true,
+  "destructiveHint": false,
+  "idempotencyRequired": false,
+  "requiresApproval": false,
+  "payloadExample": {
+    "params": {
+      "path": {
+        "contactId": "example_contactId",
+        "id": "example_id"
+      },
+      "query": {}
+    }
+  },
+  "nextStep": "Call execute_operation with this operationId and params from payloadExample; use dryRun=true only to preview the resolved request before the real call."
+}
