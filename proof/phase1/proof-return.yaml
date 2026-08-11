@@ -2,7 +2,7 @@ proof_id: meeting-follow-up-v1-phase1-contracts-fixtures-20260811
 manifest_id: phase1-deterministic-foundation-v1
 workflow_id: meeting_follow_up_v1
 branch: feat/meeting-follow-up-v1-phase1-contracts-fixtures
-head_sha: PENDING_COMMIT
+head_sha: 486c14ab3f4e42f14ee299a34df48a5c46431aa2
 pr_url: PENDING_PR
 files_changed:
   - contracts/meeting_follow_up_packet.schema.json
