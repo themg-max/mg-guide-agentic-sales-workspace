@@ -2,7 +2,7 @@ proof_id: meeting-follow-up-v1-canonical-synthetic-read-binding-v1
 manifest_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1_BINDING
 workflow_id: meeting_follow_up_v1
 branch: gov/mg-guide-ghl-canonical-synthetic-read-binding-v1
-head_sha: "381922d43f54e782765d6162d63d202f94dca881"
+head_sha: "542cd4d9c3d84f6d81a67c42980358c860cc37fb"
 pr_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/8"
 files_changed:
   - governance/authorizations/MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.yaml
@@ -17,7 +17,8 @@ validation:
   notes: >
     Documentary human-binding + activation-decision unit only. YAML parse of
     binding and execution-manifest required. No runtime/test surface changed.
-    Live GHL not invoked. head_sha is finalized after commit on this branch.
+    Live GHL not invoked. head_sha records the branch tip at binding closeout
+    push time; a subsequent SHA-only touch is intentionally avoided.
 external_calls:
   network: NONE
   crm: NONE
