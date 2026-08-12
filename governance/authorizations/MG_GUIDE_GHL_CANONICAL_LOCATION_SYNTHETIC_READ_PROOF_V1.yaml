@@ -3,6 +3,11 @@
 grant_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1
 status: AUTHORIZED_FOR_EXECUTION
 execution_status: AUTHORIZED_NOT_EXECUTED
+private_source_authority_sync: "YES"
+private_activation_pr: 2958
+private_activation_merge_sha: "e69ccf97efbc538f79289d522de2fc8e9504e5a2"
+synthetic_binding_private: COMPLETE
+private_allowlist_complete: "YES"
 proposed_at_utc: "2026-08-11T22:45:00Z"
 authorized_at_utc: "2026-08-12T02:02:01Z"
 workflow: meeting_follow_up_v1

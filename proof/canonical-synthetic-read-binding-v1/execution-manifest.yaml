@@ -33,6 +33,20 @@ external_mutations_authorized: false
 requires_proof_return: true
 
 execution_status: AUTHORIZED_NOT_EXECUTED
+private_source_authority_sync: "YES"
+private_activation_pr: 2958
+private_activation_merge_sha: "e69ccf97efbc538f79289d522de2fc8e9504e5a2"
+synthetic_binding_private: COMPLETE
+private_allowlist_complete: "YES"
+human_activation: APPROVED
+exact_ids_public: "NO"
+token_value_public: "NO"
+live_ghl_proof_executed: "NO"
+ghl_writes: 0
+l3a_runtime_status: DEFERRED_RUNTIME_NOT_PROMOTED
+next_runtime_gate: L3A_EXACT_PACKET_INGEST_AND_READBACK
+runtime_claims:
+  MG_MCP_EXACT_PACKET_FOUND: "NO"
 activation_gate: AUTHORIZED_FOR_EXECUTION
 allowlist_complete: true
 
