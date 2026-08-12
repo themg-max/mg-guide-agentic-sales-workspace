@@ -254,3 +254,27 @@
   - Any live GHL/CRM call or credential/Secret Manager path
   - `create-note`, `update-opportunity`, or any CRM mutation
   - Gemini, ADK, Firestore, Cloud Run, IAM, and non-synthetic data
+
+### 2026-08-12 — Phase 2B offline adapter closeout (PR #6 merged)
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Objective:** Close `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1` against durable public `main` after human merge of PR #6; mark NW-014 DONE; preserve NW-013 unexecuted with no live GHL claim
+- **Artifacts touched (authorized paths only):**
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+  - `proof/phase2b/**`
+- **Validation:** `PYTHONPATH=src python3 scripts/verify_phase1_deterministic.py`; `PYTHONPATH=src python3 -m pytest -q`; `git diff --check`
+- **Human decisions retained:**
+  - Source PR #6 MERGED
+  - Head SHA `075a3ea47dda02fdaffdc4390d4573f947959103`
+  - Merge SHA `2b88240e1e023150449183b03c118b91d663cabc`
+  - `network_calls=0`, `crm_reads=0`, `crm_writes=0`
+  - NW-014 = DONE / offline grant `CLOSED_SUCCESS`
+  - NW-013 remains PLANNED / unexecuted (`GATED_PENDING_SYNTHETIC_RECORD_BINDING`)
+  - No live GHL claim; canonical-location synthetic read proof remains separately gated in private OL3
+- **Out of scope / refused:**
+  - Any live GHL/CRM call
+  - Any CRM write / mutation
+  - Binding real or synthetic record IDs into the public repo
+  - Gemini / ADK / deployment / IAM / Secret Manager mutation
