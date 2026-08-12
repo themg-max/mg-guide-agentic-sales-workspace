@@ -2,14 +2,16 @@
 # No private IDs, secrets, tokens, or control-plane paths.
 grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 status: AUTHORIZED_FOR_IMPLEMENTATION
-# Unit 1 (Meeting Context Agent harness) is implemented and green; full vertical
-# slice remains open. Not AUTHORIZED_NOT_STARTED.
-execution_status: IN_PROGRESS_UNIT1_COMPLETE
+# Unit 1 MERGED on public main (PR #10). Unit 2 (ADK runtime + Relationship
+# Context Agent) is the active implementation unit. Full vertical slice remains open.
+execution_status: IN_PROGRESS_UNIT2
 workflow: meeting_follow_up_v1
 public_ledger_id: NW-004
 authorized_at_utc: "2026-08-12T14:32:13Z"
 proposed_at_utc: "2026-08-12T14:14:37Z"
 unit1_reconciled_at_utc: "2026-08-12T14:56:00Z"
+unit1_merged_at_utc: "2026-08-12T15:10:00Z"
+unit2_started_at_utc: "2026-08-12T15:15:00Z"
 
 private_source_authority_sync: "YES"
 private_phase3_authorization_pr: 2964
@@ -17,8 +19,15 @@ private_phase3_authorization_pr_url: "https://github.com/themg-max/A.I-Rolodex--
 private_phase3_authorization_merge_sha: "7c3f605504956aa26faf62ce6db0552ba9abe494"
 public_authorization_sync_pr: 9
 public_authorization_sync_merge_sha: "e924ce1d95434fc725168ddf1b044045476b04de"
+public_unit1_implementation_pr: 10
+public_unit1_implementation_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
+public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+public_unit1_status: MERGED_COMPLETE
 public_implementation_pr: 10
-public_implementation_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
+public_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+public_unit2_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+nw004_status: IN_PROGRESS
+next_phase3_unit: GOOGLE_ADK_RUNTIME_PLUS_RELATIONSHIP_CONTEXT
 
 human_activation:
   decision: AUTHORIZED_FOR_IMPLEMENTATION
@@ -71,11 +80,12 @@ first_implementation_unit:
   name: Meeting Context Agent fixture harness
   public_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
   public_implementation_pr: 10
-  status: COMPLETE_TESTS_GREEN
+  public_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+  status: MERGED_COMPLETE
   input: synthetic meeting transcript
   output: schema-valid structured meeting context for downstream packet construction
   required_proof:
-    # Precise sponsor-tech split (Unit 1 truth):
+    # Precise sponsor-tech split (Unit 1 truth — preserved):
     GEMINI_PROVIDER_STARTED: "YES"
     GOOGLE_ADK_RUNTIME_STARTED: "NO"
     ADK_INTEGRATION_STATUS: "COMPATIBLE_SURFACE_ONLY"
@@ -88,6 +98,32 @@ first_implementation_unit:
     EXTERNAL_EFFECTS: 0
   stop_after_unit: true
 
+second_implementation_unit:
+  name: Google ADK runtime + Relationship Context Agent
+  public_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+  status: IN_PROGRESS_TESTS_GREEN
+  architecture: >
+    synthetic transcript -> Meeting Context Agent -> Google ADK runtime
+    orchestration -> Relationship Context Agent -> Phase 2B offline GHL adapter
+    -> synthetic contact/opportunity context -> relationship_context_v1 -> STOP
+  input: synthetic meeting transcript + synthetic CRM fixtures
+  output: schema-valid relationship_context_v1 (no Follow-Up Planning Agent)
+  required_proof:
+    GOOGLE_ADK_RUNTIME_STARTED: "YES"
+    ADK_INTEGRATION_STATUS: "RUNTIME_INTEGRATED"
+    MEETING_CONTEXT_AGENT_REUSED: "YES"
+    RELATIONSHIP_CONTEXT_AGENT_IMPLEMENTED: "YES"
+    OFFLINE_GHL_ADAPTER_USED: "YES"
+    SYNTHETIC_CRM_CONTEXT_ONLY: "YES"
+    RELATIONSHIP_CONTEXT_OUTPUT: "VALID"
+    DETERMINISTIC_POLICY_BYPASS: "NO"
+    EXTERNAL_EFFECTS: 0
+    RELATIONSHIP_MATCH: "PASS"
+    AMBIGUOUS_CONTACT: "PASS"
+    NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT: "PASS"
+  stop_before: Follow-Up Planning Agent
+  stop_after_unit: true
+
 required_vertical_slice_outcomes:
   VALID_PACKET_OUTPUT: "YES"
   DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
@@ -98,14 +134,19 @@ required_vertical_slice_outcomes:
 
 activation_assertions:
   GEMINI_ADK_AUTHORIZED: "YES"
-  NW004_STATUS: "AUTHORIZED_FOR_IMPLEMENTATION"
-  # Unit 1 precise tech posture
+  NW004_STATUS: "IN_PROGRESS"
+  PHASE3_UNIT1_STATUS: "MERGED_COMPLETE"
+  PUBLIC_PR10_STATUS: "MERGED"
+  PUBLIC_PR10_MERGE_SHA: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+  # Unit 1 provider surface (unchanged)
   GEMINI_PROVIDER_STARTED: "YES"
-  GOOGLE_ADK_RUNTIME_STARTED: "NO"
-  ADK_INTEGRATION_STATUS: "COMPATIBLE_SURFACE_ONLY"
-  # Compatibility umbrella only — does NOT claim Google ADK runtime execution
+  # Unit 2 runtime posture
+  GOOGLE_ADK_RUNTIME_STARTED: "YES"
+  ADK_INTEGRATION_STATUS: "RUNTIME_INTEGRATED"
   GEMINI_ADK_STARTED: "YES"
   MEETING_CONTEXT_AGENT_IMPLEMENTED: "YES"
+  MEETING_CONTEXT_AGENT_REUSED: "YES"
+  RELATIONSHIP_CONTEXT_AGENT_IMPLEMENTED: "YES"
   GHL_LIVE_CALLS: 0
   GHL_WRITES: 0
   REAL_CUSTOMER_DATA: 0
@@ -116,13 +157,16 @@ activation_assertions:
 
 sponsor_tech_precision:
   google_genai_provider: implemented
-  google_adk_runtime: not_implemented
+  google_adk_runtime: runtime_integrated
   note: >
-    Unit 1 implements a google-genai-compatible provider surface and ADK-compatible
-    declaration only. Actual Google ADK runtime execution has not started.
+    Unit 1 implements a google-genai-compatible provider surface (preserved).
+    Unit 2 starts actual multi-agent Google ADK runtime orchestration
+    (local ADK-compatible backend by default; optional google-adk package bind)
+    and the Relationship Context Agent against synthetic CRM via Phase 2B offline adapter.
 
 notes:
-  - Public coding for Unit 1 is complete on PR #10; full vertical slice remains open.
-  - Do not claim Google ADK runtime execution from Unit 1 evidence.
+  - Public Unit 1 coding is MERGED on PR #10 (merge SHA 469ae3ba9962895bd77bebb9e5b2b44a8faac6e7).
+  - Unit 2 implements ADK runtime + Relationship Context Agent only; stop before Follow-Up Planning Agent.
+  - Do not claim Unit 1 alone started Google ADK runtime; Unit 2 does.
   - Private exact metadata stays out of this public repository.
   - Live GHL remains unauthorized under this grant.

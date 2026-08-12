@@ -169,20 +169,25 @@ PYTHONPATH=src python3 -m orchestration fixtures/transcript-success.expected.jso
 # 4. Phase 3 unit 1 — Meeting Context Agent fixture harness (offline by default)
 PYTHONPATH=src python3 -m agents.meeting_context --provider fixture
 PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub
+
+# 5. Phase 3 unit 2 — ADK runtime + Relationship Context Agent (offline synthetic CRM)
+PYTHONPATH=src python3 -m agents.relationship_context
+PYTHONPATH=src python3 -m agents.adk_runtime
 ```
 
 **Available today:**
 
-- Contract/schema validation (including `meeting_context_v1`)
+- Contract/schema validation (including `meeting_context_v1` and `relationship_context_v1`)
 - Deterministic state machine + policy tests
 - Acceptance tests for three synthetic fixture packages
 - Local fixture runner (sidecar test doubles only)
 - Phase 2B offline GHL read adapter (synthetic fixtures; no live CRM)
-- Phase 3 unit 1 Meeting Context Agent fixture harness (Gemini/ADK surface started; default CI offline)
+- Phase 3 unit 1 Meeting Context Agent fixture harness (Gemini provider surface; default CI offline)
+- Phase 3 unit 2 Google ADK runtime orchestration + Relationship Context Agent (synthetic CRM only; stop before Follow-Up Planning Agent)
 
 **Not yet available (do not invent):**
 
-- Full multi-agent vertical slice beyond Meeting Context Agent unit 1
+- Follow-Up Planning Agent and full multi-agent packet assembly end-to-end
 - GHL credential configuration or live CRM calls
 - Firestore / Cloud Run provisioning
 - Hosted demo against deployed services

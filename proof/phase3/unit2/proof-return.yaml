@@ -1,0 +1,111 @@
+proof_id: phase3-adk-runtime-relationship-context-unit2-v1
+manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+workflow_id: meeting_follow_up_v1
+unit: google_adk_runtime_plus_relationship_context
+branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+
+# Bind final PR tip / CI after push; not a self-referential head claim.
+proof_head_semantics: VALID_EVIDENCE_BINDING_NOT_SELF_REF
+public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+public_pr10_status: MERGED
+phase3_unit1_status: MERGED_COMPLETE
+
+authorization:
+  grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+  nw004_status: IN_PROGRESS
+  execution_status: IN_PROGRESS_UNIT2
+  gemini_adk_authorized: "YES"
+  private_phase3_authorization_pr: 2964
+  private_phase3_authorization_merge_sha: "7c3f605504956aa26faf62ce6db0552ba9abe494"
+  public_authorization_sync_pr: 9
+  public_authorization_sync_merge_sha: "e924ce1d95434fc725168ddf1b044045476b04de"
+  public_unit1_implementation_pr: 10
+  public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+
+unit_proof:
+  GOOGLE_ADK_RUNTIME_STARTED: "YES"
+  ADK_INTEGRATION_STATUS: RUNTIME_INTEGRATED
+  MEETING_CONTEXT_AGENT_REUSED: "YES"
+  RELATIONSHIP_CONTEXT_AGENT_IMPLEMENTED: "YES"
+  OFFLINE_GHL_ADAPTER_USED: "YES"
+  SYNTHETIC_CRM_CONTEXT_ONLY: "YES"
+  RELATIONSHIP_CONTEXT_OUTPUT: "VALID"
+  DETERMINISTIC_POLICY_BYPASS: "NO"
+  EXTERNAL_EFFECTS: 0
+  # Unit 1 provider surface preserved (distinct markers):
+  UNIT1_PROVIDER_GOOGLE_ADK_RUNTIME_STARTED: "NO"
+  UNIT1_PROVIDER_ADK_INTEGRATION_STATUS: COMPATIBLE_SURFACE_ONLY
+  GEMINI_PROVIDER_STARTED: "YES"
+  GEMINI_ADK_STARTED: "YES"
+
+effects:
+  GHL_LIVE_CALLS: 0
+  GHL_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  L3A_RUNTIME_STATUS: DEFERRED_RUNTIME_NOT_PROMOTED
+  L3A_RUNTIME_PROMOTED: "NO"
+  FIRESTORE_WRITES: 0
+  DEPLOYMENT: "NO"
+  NETWORK_CRM_CALLS: 0
+  external_network_calls_NONE_in_default_ci: true
+  crm_calls_NONE: true
+  cloud_calls_NONE: true
+
+scenarios:
+  - scenario_id: RELATIONSHIP_MATCH
+    transcript_fixture: transcript-success
+    expected_status: matched
+    result: PASS
+  - scenario_id: AMBIGUOUS_CONTACT
+    transcript_fixture: transcript-ambiguous-contact
+    expected_status: ambiguous
+    result: PASS
+  - scenario_id: NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT
+    transcript_fixture: transcript-no-stage-change
+    expected_status: opportunity_missing
+    result: PASS
+
+validation:
+  commands:
+    - "PYTHONPATH=src python3 -m pytest -q"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider fixture"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub"
+    - "PYTHONPATH=src python3 -m agents.relationship_context"
+    - "PYTHONPATH=src python3 -m agents.adk_runtime"
+    - "git diff --check"
+  pytest: PASS
+  unit1_fixture_harness: PASS
+  unit1_gemini_adk_stub_harness: PASS
+  unit2_relationship_harness: PASS
+
+artifacts:
+  - contracts/relationship_context.schema.json
+  - fixtures/ghl/relationship-context-crm.json
+  - src/agents/adk_runtime/**
+  - src/agents/relationship_context/**
+  - tests/agents/test_relationship_context_unit2.py
+  - proof/phase3/unit2/proof-return.yaml
+  - proof/phase3/unit2/unit2-closeout.md
+  - governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+
+authorization_posture:
+  GEMINI_ADK_AUTHORIZED: "YES"
+  GOOGLE_ADK_RUNTIME_STARTED: "YES"
+  ADK_INTEGRATION_STATUS: RUNTIME_INTEGRATED
+  DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
+  LIVE_GHL_READS_AUTHORIZED: "NO"
+  GHL_WRITES_AUTHORIZED: "NO"
+  L3A_PROMOTION_AUTHORIZED: "NO"
+  FIRESTORE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+  FOLLOW_UP_PLANNING_AGENT_AUTHORIZED_THIS_UNIT: "NO"
+
+residual_risks:
+  - Default CI uses local ADK-compatible runtime backend; optional google-adk package bind is best-effort when installed.
+  - Follow-Up Planning Agent and full meeting_follow_up_packet_v1 assembly remain subsequent units under the same grant.
+  - Live Gemini path remains optional and is not required for Unit 2 proof.
+
+next_action: STOP_BEFORE_MERGE_AWAIT_REVIEWER_DISPOSITION
+stop_code: PHASE3_UNIT2_ADK_RELATIONSHIP_CONTEXT_READY_FOR_REVIEW

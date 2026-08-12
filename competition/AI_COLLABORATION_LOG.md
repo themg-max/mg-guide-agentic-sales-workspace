@@ -401,3 +401,51 @@
   - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`
 - **Out of scope / refused:** Unit 1 feature expansion; live network Gemini; CRM; merge without reviewer disposition
 - **STOP:** `STOP_CODE=PHASE3_UNIT1_PROOF_GOVERNANCE_REPAIR_READY_FOR_REVIEW`
+
+### 2026-08-12 — Phase 3 Unit 1 merge closeout + Unit 2 ADK runtime / Relationship Context
+
+- **Human owner / operator:** VS Code / MG Orchestrator (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — no new grant
+- **Objective:** Close PR #10 as merged Unit 1 baseline; implement Unit 2 Google ADK runtime orchestration + Relationship Context Agent using synthetic/offline CRM only; stop before Follow-Up Planning Agent
+- **Branch:** `feat/meeting-follow-up-v1-adk-relationship-context-unit2` (fresh; does not reuse Unit 1 branch)
+- **Unit 1 baseline:** PR #10 **MERGED**; `PUBLIC_PR10_MERGE_SHA=469ae3ba9962895bd77bebb9e5b2b44a8faac6e7`; `PHASE3_UNIT1_STATUS=MERGED_COMPLETE`
+- **Artifacts touched (authorized paths only):**
+  - `contracts/relationship_context.schema.json`
+  - `fixtures/ghl/relationship-context-crm.json`
+  - `src/agents/adk_runtime/**`
+  - `src/agents/relationship_context/**`
+  - `tests/agents/test_relationship_context_unit2.py`
+  - `proof/phase3/unit2/**` (new; does not overwrite Unit 1 proof)
+  - `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+  - `README.md`, `pyproject.toml`, `.env.example` (bounded Unit 2 docs)
+- **Validation:** `PYTHONPATH=src python3 -m pytest -q` PASS; Unit 1 harness fixture + gemini_adk_stub PASS; Unit 2 relationship/ADK harness PASS; `git diff --check` PASS
+- **Proof:**
+  - `GOOGLE_ADK_RUNTIME_STARTED=YES`
+  - `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`
+  - `MEETING_CONTEXT_AGENT_REUSED=YES`
+  - `RELATIONSHIP_CONTEXT_AGENT_IMPLEMENTED=YES`
+  - `OFFLINE_GHL_ADAPTER_USED=YES`
+  - `SYNTHETIC_CRM_CONTEXT_ONLY=YES`
+  - `RELATIONSHIP_CONTEXT_OUTPUT=VALID`
+  - `RELATIONSHIP_MATCH=PASS`
+  - `AMBIGUOUS_CONTACT=PASS`
+  - `NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT=PASS`
+  - `DETERMINISTIC_POLICY_BYPASS=NO`
+  - `EXTERNAL_EFFECTS=0`
+  - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`
+  - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+- **Human decisions retained:**
+  - `NW004_STATUS=IN_PROGRESS`
+  - `NEXT_PHASE3_UNIT=GOOGLE_ADK_RUNTIME_PLUS_RELATIONSHIP_CONTEXT` (this unit)
+  - Unit 1 provider markers remain surface-only; Unit 2 runtime markers are separate and true
+  - Stop before Follow-Up Planning Agent and full packet assembly
+- **Out of scope / refused this unit:**
+  - Follow-Up Planning Agent
+  - Full packet assembly end-to-end
+  - Live GHL/CRM calls or writes; broad CRM search; production/customer data
+  - L3A promotion, Firestore writes, deployment, IAM/secret mutation
+  - Deterministic policy bypass; authority expansion
+- **STOP:** `STOP_CODE=PHASE3_UNIT2_ADK_RELATIONSHIP_CONTEXT_READY_FOR_REVIEW`
