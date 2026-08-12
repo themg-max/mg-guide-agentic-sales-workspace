@@ -79,7 +79,8 @@ architecture (`packet → deterministic audit projection → workflow_runs/{run_
    proof-return. The Firestore document never gets a second update merely to
    say its first write succeeded.
 2. **Fingerprint semantics normalized** — exact pinned canonicalization
-   (RFC 8785 subset, integers only) replaces "JCS-like";
+   (algorithm name `nw005_canonical_json_v1`; see §0.2 repair 7) replaces
+   "JCS-like";
    `projection_input_fingerprint` hashes the normalized mapped-input subset;
    `content_fingerprint` hashes the immutable audit body **before** the
    fingerprint fields are attached, explicitly excluding `recorded_at`,
@@ -102,6 +103,43 @@ architecture (`packet → deterministic audit projection → workflow_runs/{run_
    (create → read-back → verify → immediate delete) proves write/read
    correctness only; a separately authorized `acceptance_demo` retention
    window is required before any AT-10 record-presence claim (Decision 10).
+
+## 0.2 Final normalization repairs (PR #17 draft, second review round, applied)
+
+Four further repairs were applied without changing the core architecture:
+
+7. **Canonicalization naming fixed** — the NFC / code-point-sort serializer
+   pinned in Decision 1c is **no longer claimed to be RFC 8785 (JCS)**. It is
+   now named **`nw005_canonical_json_v1`**: an explicit, packet-local
+   canonicalization with fully specified serialization rules and
+   golden-byte tests. RFC 8785 differs (e.g. JCS mandates ES2015
+   `Number.prototype.toString` formatting for all numbers, not an
+   integer-only restriction), so calling this algorithm "RFC 8785 subset"
+   was a standards mismatch and has been removed. The alternative of
+   implementing literal RFC 8785 semantics was considered and rejected for
+   v1 because all numbers in this schema are integers and the pinned rules
+   below are simpler to implement and golden-byte-test; any future claim of
+   RFC 8785 conformance must ship a true ES2015-number JCS serializer and
+   pass the RFC 8785 test vectors.
+8. **Pure projection context made explicit** — the conceptual signature is
+   now `project_workflow_run_audit(packet, projection_context)` where
+   `projection_context` explicitly carries `recorded_at`, `fixture_id`,
+   `source_refs`, `writer_component`, `writer_component_version`, and
+   `writer_mode`. Same packet + same context must produce byte-identical
+   output (Decision 2).
+9. **Idempotency observation split** — `workflow_run_audit_v1` retains only
+   the *static* idempotency declaration (`idempotency.key`,
+   `idempotency.strategy`). The *dynamic* observations
+   (`prior_terminal_state`, `duplicate_write_rejected`) moved into the
+   `nw005_persistence_proof_v1` envelope, because an immutable
+   create-once Firestore document cannot truthfully encode later
+   retry/duplicate events (Decision 5).
+10. **Tool-count honesty** — `packet.audit.tools_used` is only an array of
+    strings; `tool_call_counts.total_tools_listed` renamed to
+    **`tools_listed_count`** with an explicit statement that this is **not**
+    an invocation count. True tool invocation counts require an explicit
+    upstream count/event contract on the packet before the relevant AT-10
+    clause can be satisfied (Decision 2 / AT-10 binding).
 
 ---
 
@@ -162,8 +200,9 @@ workflow_id: string            # const: meeting_follow_up_v1
 started_at: string             # RFC3339 from packet.audit.started_at
 completed_at: string|null      # packet.audit.completed_at
 terminal_state: string         # see Decision 4
-recorded_at: string            # writer clock when projection persisted (Stage B)
-                             # Stage A fixture may use fixed synthetic timestamp
+recorded_at: string            # from projection_context.recorded_at (explicit
+                             # context input; Stage A fixture uses fixed
+                             # synthetic timestamp — see Decision 2)
 
 # Provenance (Decision 3)
 provenance:
@@ -204,9 +243,13 @@ policy:
 # Reason codes (top-level convenience mirror for AT-10)
 reason_codes: [string]         # == policy.reason_codes (deterministic copy)
 
-# Tool call counts (derived; never invented live CRM traffic)
+# Tool counts (derived; never invented live CRM traffic)
+# NOTE: packet.audit.tools_used is ONLY an array of strings. tools_listed_count
+# is len(tools_used) — a count of LISTED tool names, NOT an invocation count.
+# True tool invocation counts require an explicit upstream count/event contract
+# on the packet before the AT-10 tool-count clause can be satisfied.
 tool_call_counts:
-  total_tools_listed: integer  # len(tools_used)
+  tools_listed_count: integer  # len(tools_used); NOT an invocation count
   ghl_mcp:
     reads: integer             # from external_effects breakdown when present; else 0
     writes: integer            # must be 0 under current grants
@@ -272,11 +315,13 @@ brief_headline: string|null    # optional short UX crumb from packet.brief.headl
                                # (not full brief body required)
 
 # Idempotency / integrity
+# NOTE: only the STATIC idempotency declaration lives here. Dynamic retry
+# observations (prior_terminal_state, duplicate_write_rejected) belong to the
+# nw005_persistence_proof_v1 envelope (Decision 1b) — an immutable create-once
+# document must not pretend to know later retry events.
 idempotency:
   key: string                  # == run_id
   strategy: string             # create_only_if_absent | reject_if_terminal_conflict
-  prior_terminal_state: string|null
-  duplicate_write_rejected: boolean
 
 integrity:
   projection_input_fingerprint: string  # sha256-hex of canonical JSON of the
@@ -303,6 +348,9 @@ run_id: string
 mode: string                        # stage_b_smoke | acceptance_demo (Decision 10)
 write_attempted: boolean
 write_verified: boolean             # true only after successful read-back compare
+idempotency_observation:            # DYNAMIC retry observations — proof artifact
+  prior_terminal_state: string|null # only; never fields on the immutable doc
+  duplicate_write_rejected: boolean
 firestore_ops:
   creates: integer                  # 0|1 per run_id under idempotency rules
   reads: integer                    # bounded read-back count
@@ -323,12 +371,17 @@ Rules:
 - `recorded_at` on the audit document is set once at projection/write time and
   is excluded from `content_fingerprint` (Decision 1c).
 - The persistence envelope is the **only** place writer-side op counts,
-  read-back comparison results, and cleanup results are recorded.
+  read-back comparison results, cleanup results, and dynamic idempotency
+  observations (`prior_terminal_state`, `duplicate_write_rejected`) are
+  recorded. The immutable Firestore document retains only the static
+  declaration (`idempotency.key`, `idempotency.strategy`); it must not
+  pretend to know later retry events.
 
 **Decision 1c — Canonicalization and fingerprint semantics (exact, non-recursive)**
 
-Canonical JSON algorithm (pinned and golden-byte-tested in Stage A; **not**
-"JCS-like"):
+Canonical JSON algorithm — name: **`nw005_canonical_json_v1`** (pinned and
+golden-byte-tested in Stage A; **not** "JCS-like", and **not** claimed to be
+RFC 8785 — see §0.2 repair 7):
 
 1. UTF-8 encoding; strings NFC-normalized before serialization.
 2. Object keys sorted by Unicode code point, recursively for nested objects.
@@ -339,9 +392,14 @@ Canonical JSON algorithm (pinned and golden-byte-tested in Stage A; **not**
    and no exponent. Booleans and null use JSON literals.
 6. Arrays preserve field-defined order.
 
-This is RFC 8785 (JCS) restricted to integer numbers; the implementation pins
-this exact serializer in the projection module and unit-tests it against
-golden byte strings.
+This is **`nw005_canonical_json_v1`**, a packet-local canonicalization
+inspired by — but **not** claiming conformance to — RFC 8785 (JCS). JCS
+mandates ES2015 `Number.prototype.toString` formatting for all numbers;
+this schema restricts all numbers to integers (rule 5) and therefore does
+not implement the full JCS number serialization. Any future RFC 8785
+conformance claim must implement true JCS number semantics and pass the
+RFC 8785 test vectors. The implementation pins this exact serializer in the
+projection module and unit-tests it against golden byte strings.
 
 - `projection_input_fingerprint` = SHA-256 (lowercase hex) of the canonical
   JSON of the **normalized mapped-input subset**: exactly the packet-derived
@@ -351,7 +409,7 @@ golden byte strings.
 - `content_fingerprint` = SHA-256 (lowercase hex) of the canonical JSON of the
   **immutable audit body** computed **before** the `integrity` fields are
   attached. The hash input explicitly excludes:
-  - `recorded_at` (writer clock),
+  - `recorded_at` (context-supplied clock input),
   - every persistence-proof field (`write_attempted`, `write_verified`,
     Firestore op counts, read-back compare, cleanup result — all of which live
     in `nw005_persistence_proof_v1`, never in this document), and
@@ -377,11 +435,28 @@ Foundation §13 example remains the narrative parent; this packet is the
 
 ### Decision 2 — Deterministic field projection
 
-Projection is a **pure function**:
+Projection is a **pure function** with an explicit context parameter:
 
 ```text
-project_workflow_run_audit(packet: meeting_follow_up_packet_v1) -> workflow_run_audit_v1
+project_workflow_run_audit(
+  packet: meeting_follow_up_packet_v1,
+  projection_context: {
+    recorded_at: string,              # explicit clock input (fixtures pin a
+                                      # fixed synthetic timestamp; Stage B
+                                      # harness supplies its own clock value)
+    fixture_id: string|null,
+    source_refs: [string],
+    writer_component: string,         # e.g. mg_guide.firestore_audit.writer
+    writer_component_version: string, # semver or git SHA short
+    writer_mode: string,              # emulator | local_fixture | firestore_test_project
+  }
+) -> workflow_run_audit_v1
 ```
+
+Purity contract: **same packet + same projection_context must produce
+byte-identical output** (including both fingerprints). The projector reads no
+clocks, env vars, randomness, or I/O on its own — every volatile input
+arrives via `projection_context`.
 
 | Output field | Source / rule |
 | --- | --- |
@@ -390,7 +465,8 @@ project_workflow_run_audit(packet: meeting_follow_up_packet_v1) -> workflow_run_
 | `started_at` | `packet.audit.started_at` |
 | `completed_at` | `packet.audit.completed_at` |
 | `terminal_state` | Decision 4 mapping from `run.status` + `audit.final_disposition` |
-| `provenance.*` | `meeting.*`, `run.status`, optional fixture ref arg, writer metadata |
+| `recorded_at` | `projection_context.recorded_at` (never an internally read clock) |
+| `provenance.*` | `meeting.*`, `run.status`, `fixture_id`/`source_refs`/writer metadata from `projection_context` |
 | `agent_steps.agents_used` | `packet.audit.agents_used` (stable order copy) |
 | `agent_steps.tools_used` | `packet.audit.tools_used` |
 | `policy.*` | direct copy of `packet.policy.*` |
@@ -402,15 +478,18 @@ project_workflow_run_audit(packet: meeting_follow_up_packet_v1) -> workflow_run_
 | `mg_guide_card.card_state` | Frozen audit-local pure map (`audit_status_mapper_v1`) over `packet.run.status`: terminal statuses → themselves; non-terminal → `in_progress`; status/disposition mismatch → projection fails closed per Decision 4 (no card state emitted). Alternatively the caller may pass an already-produced card-state value into the projection. Must **not** import `mg_guide.meeting_follow_up_card` |
 | `external_effects.packet_external_effects` | `packet.external_effects` |
 | `external_effects.counters.GHL_*` | **0** unless packet/tools explicitly encode counts; current competition packets use integer `external_effects` and empty `tools_used` → zeros |
+| `tool_call_counts.tools_listed_count` | `len(packet.audit.tools_used)` — count of **listed** tool-name strings only; **not** an invocation count. True invocation counts are unavailable until the packet gains an explicit upstream count/event contract; until then the AT-10 tool-count clause cannot be satisfied from this field alone |
 | `tool_call_counts.ghl_mcp.writes` | **must be 0** under current grants; if projection ever sees a positive write count it still **only records** it — never performs CRM writes |
 | `warnings` | `packet.audit.warnings` |
 | `errors` | `[]` unless `terminal_state=failed`, then include final_disposition + reason_codes as error crumbs (no stack traces required) |
 | `final_disposition` | `packet.audit.final_disposition` |
-| fingerprints | SHA-256 over exact canonical JSON per Decision 1c (no "JCS-like" ambiguity; non-recursive) |
+| fingerprints | SHA-256 over exact canonical JSON (`nw005_canonical_json_v1`) per Decision 1c (no "JCS-like" ambiguity, no RFC 8785 conformance claim; non-recursive) |
 
 **Forbidden in projection module**
 
 - Imports that perform I/O (except the separate writer adapter boundary).
+- Reading system clocks, environment variables, or randomness — all volatile
+  inputs arrive exclusively via `projection_context` (purity contract above).
 - Imports of `mg_guide.meeting_follow_up_card` or any UI/card renderer — the
   audit layer must not depend on the UI layer at runtime or import time.
 - Calls into `orchestration.policy.evaluate_policy`.
@@ -503,7 +582,11 @@ Minimum provenance that must appear on every stored/emitted audit record:
 > record with agents, tool counts, reason codes, disposition.
 
 NW-005 Stage A proves projection completeness offline. Stage B proves durable
-store + read-back for synthetic records only. A Stage B **smoke** run
+store + read-back for synthetic records only. Note on tool counts: the audit
+record carries `tools_listed_count` (count of listed tool-name strings), which
+is **not** an invocation count; true tool invocation counts — and therefore
+full satisfaction of the AT-10 tool-count clause — additionally require an
+explicit upstream count/event contract on the packet (§0.2 repair 10). A Stage B **smoke** run
 (create → read-back → verify → immediate delete) demonstrates write/read
 correctness only; it does **not** by itself close AT-10 record presence. AT-10
 presence evidence requires either the separately authorized `acceptance_demo`
@@ -523,13 +606,19 @@ Aligned with `contracts/workflow_states.yaml` replay rule:
 
 NW-005 audit store rules:
 
+Dynamic observations from this table (`prior_terminal_state`,
+`duplicate_write_rejected`) are recorded **only** in the
+`nw005_persistence_proof_v1` envelope (Decision 1b), never on the immutable
+Firestore document, which retains only the static `idempotency.key` /
+`idempotency.strategy` declaration (§0.2 repair 9).
+
 | Existing doc | New projection | Behavior |
 | --- | --- | --- |
-| Absent | any terminal | **Create** (Stage B: create-only); set `duplicate_write_rejected=false` |
+| Absent | any terminal | **Create** (Stage B: create-only); envelope records `duplicate_write_rejected=false` |
 | Absent | non-terminal | Default **skip cloud write** |
 | Present, same `content_fingerprint` (Decision 1c exclusion set already omits volatile fields) | same | **No-op success** (idempotent retry); do not increment logical write counters beyond first verified write; may refresh `recorded_at` only if explicitly allowed — **preferred: leave doc unchanged** |
-| Present, terminal T1 | projection terminal T1 with different non-meta fields | **Reject** with `AUDIT_IDEMPOTENCY_CONFLICT`; do not overwrite |
-| Present, terminal T1 | projection terminal T2 ≠ T1 | **Reject** with `AUDIT_TERMINAL_STATE_CONFLICT`; do not overwrite |
+| Present, terminal T1 | projection terminal T1 with different non-meta fields | **Reject** with `AUDIT_IDEMPOTENCY_CONFLICT`; do not overwrite; envelope records `duplicate_write_rejected=true`, `prior_terminal_state=T1` |
+| Present, terminal T1 | projection terminal T2 ≠ T1 | **Reject** with `AUDIT_TERMINAL_STATE_CONFLICT`; do not overwrite; envelope records `duplicate_write_rejected=true`, `prior_terminal_state=T1` |
 | Present, non_terminal | terminal | **Allow single upgrade write** only if prior doc was explicitly non-terminal and policy allows upgrade path; NW-005 v1 **prefers never writing non-terminal**, so this path should be rare/disabled by default |
 | Present | any | **Never delete** as part of normal write path |
 
@@ -913,6 +1002,10 @@ NW-005 may move beyond PLANNED only when:
 - [ ] Authority rule: audit records, does not authorize
 - [ ] All 13 decisions are acceptable or explicitly amended in review notes
 - [ ] Fingerprint definition is non-recursive with exact canonicalization (Decision 1c)
+- [ ] Canonicalization named `nw005_canonical_json_v1`; no RFC 8785 conformance claim (§0.2 repair 7)
+- [ ] Projection signature is pure with explicit `projection_context`; same packet + context → identical output (§0.2 repair 8)
+- [ ] Dynamic idempotency observations live only in `nw005_persistence_proof_v1` (§0.2 repair 9)
+- [ ] `tools_listed_count` is not claimed as an invocation count (§0.2 repair 10)
 - [ ] Persistence proof is separated from audit content (Decision 1b)
 - [ ] IAM language makes no collection-path restriction claim (Decision 9)
 - [ ] Audit writer has no UI dependency ambiguity (Decision 2)
