@@ -1,10 +1,15 @@
 # Sanitized public grant mirror — private source authority is authoritative.
 # No private IDs, secrets, tokens, or control-plane paths.
 grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+# status reflects the original historical authorization decision and is preserved
+# for provenance; execution_status below is the lifecycle truth (MERGED_COMPLETE).
 status: AUTHORIZED_FOR_IMPLEMENTATION
-# Unit 1 MERGED (PR #10). Unit 2 MERGED (PR #11). Unit 3 Follow-Up Planning
-# Agent implemented on bounded branch; awaiting PR review (not merged).
-execution_status: IN_PROGRESS_UNIT3_IMPLEMENTATION
+# Unit 1 MERGED (PR #10). Unit 2 MERGED (PR #11). Unit 3 MERGED (PR #13).
+# The NW-004 ledger item is closed as DONE / CLOSED_SUCCESS after the canonical
+# GitHub binding was reconciled for the merged PR #13 head and merge SHA.
+execution_status: MERGED_COMPLETE
+nw004_status: DONE
+nw004_closeout_status: CLOSED_SUCCESS
 workflow: meeting_follow_up_v1
 public_ledger_id: NW-004
 authorized_at_utc: "2026-08-12T14:32:13Z"
@@ -16,6 +21,17 @@ unit2_merged_at_utc: "2026-08-12T16:27:00Z"
 unit2_closeout_at_utc: "2026-08-12T16:33:00Z"
 unit3_packet_prepared_at_utc: "2026-08-12T16:33:00Z"
 unit3_started_at_utc: "2026-08-12T17:07:00Z"
+unit3_merged_at_utc: "2026-08-12T17:47:49Z"
+public_pr: 13
+public_pr_state: MERGED
+# Final reviewed PR tip (distinct from implementation-evidence head below).
+public_head_sha: "32f13b6db0bfd9964001133d05f33d6ed294d0ba"
+public_final_head_ci_run_id: "31623771005"
+public_merge_sha: "91927e4cfeb5010cf399ae870ad0897156dff03e"
+public_merged_at_utc: "2026-08-12T17:47:49Z"
+# Implementation evidence head/CI preserved separately from final reviewed tip.
+unit3_implementation_evidence_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+unit3_implementation_evidence_ci_run_id: "31623557067"
 
 private_source_authority_sync: "YES"
 private_phase3_authorization_pr: 2964
@@ -27,16 +43,18 @@ public_unit1_implementation_pr: 10
 public_unit1_implementation_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
 public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
 public_unit1_status: MERGED_COMPLETE
-public_implementation_pr: 11
-public_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
 public_unit2_implementation_pr: 11
 public_unit2_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
 public_unit2_head_sha: "3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa"
 public_unit2_merge_sha: "a3d5a5731d7342463fe365e597e5d974d3420d08"
 public_unit2_status: MERGED_COMPLETE
 public_unit2_final_ci_run_id: "31616758231"
-nw004_status: IN_PROGRESS
-next_phase3_unit: FOLLOW_UP_PLANNING_AGENT
+public_unit3_implementation_pr: 13
+public_unit3_implementation_branch: feat/meeting-follow-up-v1-follow-up-planning-agent-unit3
+public_unit3_status: MERGED_COMPLETE
+# NW-004 Phase 3 agent units are complete; next governed work is NW-006 (not a Phase 3 unit).
+next_work_item: NW-006_MG_GUIDE_MEETING_FOLLOW_UP_CARD
+nw006_status: PLANNED_NOT_STARTED
 
 human_activation:
   decision: AUTHORIZED_FOR_IMPLEMENTATION
@@ -144,14 +162,22 @@ second_implementation_unit:
 
 third_implementation_unit:
   name: Follow-Up Planning Agent
-  status: IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW
+  status: MERGED_COMPLETE
   implementation_started: "YES"
   public_branch: feat/meeting-follow-up-v1-follow-up-planning-agent-unit3
   public_implementation_pr: 13
-  public_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
-  public_final_ci_run_id: "31623557067"
+  public_pr_state: MERGED
+  # Implementation evidence (coding head + CI) — not the final reviewed tip.
+  implementation_evidence_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+  implementation_evidence_ci_run_id: "31623557067"
+  # Final reviewed PR tip + exact-head CI + merge binding.
+  public_head_sha: "32f13b6db0bfd9964001133d05f33d6ed294d0ba"
+  public_final_head_ci_run_id: "31623771005"
+  public_merge_sha: "91927e4cfeb5010cf399ae870ad0897156dff03e"
+  public_merged_at_utc: "2026-08-12T17:47:49Z"
   planning_artifact: proof/phase3/unit3/unit3-implementation-packet.md
   proof_artifact: proof/phase3/unit3/proof-return.yaml
+  closeout_artifact: proof/phase3/unit3/unit3-merge-closeout.md
   architecture: >
     meeting_context_v1 + relationship_context_v1 -> Follow-Up Planning Agent
     -> structured follow-up proposal -> deterministic policy gate
@@ -220,7 +246,8 @@ required_vertical_slice_outcomes:
 
 activation_assertions:
   GEMINI_ADK_AUTHORIZED: "YES"
-  NW004_STATUS: "IN_PROGRESS"
+  NW004_STATUS: "DONE"
+  NW004_CLOSEOUT_STATUS: "CLOSED_SUCCESS"
   PHASE3_UNIT1_STATUS: "MERGED_COMPLETE"
   PUBLIC_PR10_STATUS: "MERGED"
   PUBLIC_PR10_MERGE_SHA: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
@@ -228,12 +255,18 @@ activation_assertions:
   PUBLIC_PR11_STATUS: "MERGED"
   PUBLIC_PR11_HEAD_SHA: "3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa"
   PUBLIC_PR11_MERGE_SHA: "a3d5a5731d7342463fe365e597e5d974d3420d08"
-  NEXT_PHASE3_UNIT: "FOLLOW_UP_PLANNING_AGENT"
-  PHASE3_UNIT3_STATUS: "IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW"
-  PUBLIC_PR13_STATUS: "OPEN_AWAITING_REVIEW"
-  PUBLIC_PR13_HEAD_SHA: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+  PHASE3_UNIT3_STATUS: "MERGED_COMPLETE"
+  PUBLIC_PR13_STATUS: "MERGED"
+  PUBLIC_PR13_HEAD_SHA: "32f13b6db0bfd9964001133d05f33d6ed294d0ba"
+  PUBLIC_PR13_FINAL_HEAD_CI_RUN_ID: "31623771005"
+  PUBLIC_PR13_MERGE_SHA: "91927e4cfeb5010cf399ae870ad0897156dff03e"
+  PUBLIC_PR13_MERGED_AT_UTC: "2026-08-12T17:47:49Z"
   UNIT3_IMPLEMENTATION_STARTED: "YES"
-  # Unit 3 runtime truth (derived from measured runtime state; not merged yet)
+  UNIT3_IMPLEMENTATION_EVIDENCE_HEAD: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+  UNIT3_IMPLEMENTATION_EVIDENCE_CI_RUN_ID: "31623557067"
+  NEXT_WORK_ITEM: "NW-006_MG_GUIDE_MEETING_FOLLOW_UP_CARD"
+  NW006_STATUS: "PLANNED_NOT_STARTED"
+  # Unit 3 runtime truth (derived from measured runtime state; merged)
   FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED: "YES"
   FOLLOW_UP_PROPOSAL_OUTPUT: "VALID"
   DETERMINISTIC_POLICY_GATE_INVOKED: "YES"
@@ -267,18 +300,21 @@ sponsor_tech_precision:
     Unit 1 implements a google-genai-compatible provider surface (preserved).
     Unit 2 runs actual multi-agent Google ADK runtime orchestration through the
     pinned google-adk package (Runner + SequentialAgent + BaseAgent wrappers +
-    InMemorySessionService) and is MERGED on public main (PR #11). Runtime
-    markers are derived from measured runtime state; the runtime fails closed
-    with NO local fallback when the package is unavailable. Relationship
-    Context Agent resolves against synthetic CRM via Phase 2B offline adapter;
-    ambiguous-opportunity resolution fails closed. Unit 3 will reuse that
-    runtime for Follow-Up Planning Agent proposals under deterministic policy.
+    InMemorySessionService) and is MERGED on public main (PR #11). Unit 3 reuses
+    that runtime for the Follow-Up Planning Agent and is also MERGED (PR #13,
+    merge SHA 91927e4cfeb5010cf399ae870ad0897156dff03e). Runtime markers are
+    derived from measured runtime state; the runtime fails closed with NO local
+    fallback when the package is unavailable. Relationship Context Agent resolves
+    against synthetic CRM via Phase 2B offline adapter; ambiguous-opportunity
+    resolution fails closed.
 
 notes:
   - Public Unit 1 coding is MERGED on PR #10 (merge SHA 469ae3ba9962895bd77bebb9e5b2b44a8faac6e7).
   - Public Unit 2 coding is MERGED on PR #11 (head 3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa; merge SHA a3d5a5731d7342463fe365e597e5d974d3420d08).
   - Unit 2 implemented ADK runtime + Relationship Context Agent only; Follow-Up Planning Agent was not part of Unit 2.
-  - Unit 3 Follow-Up Planning Agent is implemented on branch feat/meeting-follow-up-v1-follow-up-planning-agent-unit3; PR #13 OPEN awaiting review (head 09c6a95dafa6e09f8244813e32a054aa27635d5c; CI run 31623557067 SUCCESS); six scenarios PASS; EXTERNAL_EFFECTS=0; not merged.
+  - Unit 3 Follow-Up Planning Agent is MERGED on PR #13 (final reviewed head 32f13b6db0bfd9964001133d05f33d6ed294d0ba; final exact-head CI 31623771005; merge SHA 91927e4cfeb5010cf399ae870ad0897156dff03e; merged at 2026-08-12T17:47:49Z); six scenarios PASS; EXTERNAL_EFFECTS=0.
+  - Unit 3 implementation evidence is preserved separately (head 09c6a95dafa6e09f8244813e32a054aa27635d5c; CI 31623557067) and is not the final reviewed tip CI.
+  - The MG Guide Meeting Follow-Up card (NW-006) remains PLANNED_NOT_STARTED and is intentionally planning-only in this closeout (next_work_item, not a Phase 3 agent unit).
   - Do not claim Unit 1 alone started Google ADK runtime; Unit 2 does.
   - Private exact metadata stays out of this public repository.
   - Live GHL remains unauthorized under this grant.
