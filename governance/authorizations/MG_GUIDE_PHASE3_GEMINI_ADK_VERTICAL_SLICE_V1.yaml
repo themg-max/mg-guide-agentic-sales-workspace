@@ -110,8 +110,12 @@ second_implementation_unit:
   input: synthetic meeting transcript + synthetic CRM fixtures
   output: schema-valid relationship_context_v1 (no Follow-Up Planning Agent)
   required_proof:
+    GOOGLE_ADK_PACKAGE_BOUND: "YES"
     GOOGLE_ADK_RUNTIME_STARTED: "YES"
     ADK_INTEGRATION_STATUS: "RUNTIME_INTEGRATED"
+    ADK_RUNTIME_BACKEND: "google_adk_package"
+    ADK_RUNTIME_PRIMITIVE_USED: "YES"
+    LOCAL_ADK_FALLBACK_USED: "NO"
     MEETING_CONTEXT_AGENT_REUSED: "YES"
     RELATIONSHIP_CONTEXT_AGENT_IMPLEMENTED: "YES"
     OFFLINE_GHL_ADAPTER_USED: "YES"
@@ -122,6 +126,7 @@ second_implementation_unit:
     RELATIONSHIP_MATCH: "PASS"
     AMBIGUOUS_CONTACT: "PASS"
     NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT: "PASS"
+    AMBIGUOUS_OPPORTUNITY: "PASS"
   stop_before: Follow-Up Planning Agent
   stop_after_unit: true
 
@@ -142,8 +147,12 @@ activation_assertions:
   # Unit 1 provider surface (unchanged)
   GEMINI_PROVIDER_STARTED: "YES"
   # Unit 2 runtime posture
+  GOOGLE_ADK_PACKAGE_BOUND: "YES"
   GOOGLE_ADK_RUNTIME_STARTED: "YES"
   ADK_INTEGRATION_STATUS: "RUNTIME_INTEGRATED"
+  ADK_RUNTIME_BACKEND: "google_adk_package"
+  ADK_RUNTIME_PRIMITIVE_USED: "YES"
+  LOCAL_ADK_FALLBACK_USED: "NO"
   GEMINI_ADK_STARTED: "YES"
   MEETING_CONTEXT_AGENT_IMPLEMENTED: "YES"
   MEETING_CONTEXT_AGENT_REUSED: "YES"
@@ -159,15 +168,20 @@ activation_assertions:
 sponsor_tech_precision:
   google_genai_provider: implemented
   google_adk_runtime: runtime_integrated
+  runtime_backend: google_adk_package
   note: >
     Unit 1 implements a google-genai-compatible provider surface (preserved).
-    Unit 2 starts actual multi-agent Google ADK runtime orchestration
-    (local ADK-compatible backend by default; optional google-adk package bind)
-    and the Relationship Context Agent against synthetic CRM via Phase 2B offline adapter.
+    Unit 2 runs actual multi-agent Google ADK runtime orchestration through the
+    pinned google-adk package (Runner + SequentialAgent + BaseAgent wrappers +
+    InMemorySessionService). Runtime markers are derived from measured runtime
+    state; the runtime fails closed with NO local fallback when the package is
+    unavailable. Relationship Context Agent resolves against synthetic CRM via
+    Phase 2B offline adapter; ambiguous-opportunity resolution fails closed.
 
 notes:
   - Public Unit 1 coding is MERGED on PR #10 (merge SHA 469ae3ba9962895bd77bebb9e5b2b44a8faac6e7).
   - Unit 2 implements ADK runtime + Relationship Context Agent only; stop before Follow-Up Planning Agent.
+  - Unit 2 repair (PR #11): earlier local-orchestration evidence superseded by actual google.adk package execution; markers derive from runtime state.
   - Do not claim Unit 1 alone started Google ADK runtime; Unit 2 does.
   - Private exact metadata stays out of this public repository.
   - Live GHL remains unauthorized under this grant.

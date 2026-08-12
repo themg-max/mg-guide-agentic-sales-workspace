@@ -449,3 +449,24 @@
   - L3A promotion, Firestore writes, deployment, IAM/secret mutation
   - Deterministic policy bypass; authority expansion
 - **STOP:** `STOP_CODE=PHASE3_UNIT2_ADK_RELATIONSHIP_CONTEXT_READY_FOR_REVIEW`
+
+### 2026-08-12 — Phase 3 Unit 2 sponsor-tech truth repair (PR #11)
+
+- **Human owner / operator:** VS Code / MG Orchestrator (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — no new grant; Unit 2 scope preserved (no Follow-Up Planning Agent)
+- **Objective:** Repair PR #11 so actual Google ADK execution truth equals recorded proof truth, and reconcile public docs
+- **Root cause repaired:** prior Unit 2 evidence recorded ADK runtime claims backed by custom local orchestration plus an import-only `google.adk` binding
+- **Repair 1 (runtime):** Unit 2 now orchestrates through actual `google.adk` primitives — `Runner` + `SequentialAgent` + custom `BaseAgent` wrappers + `InMemorySessionService`; package pinned `google-adk==1.18.0`; fail-closed with no local fallback when the package is unavailable; all runtime markers derived from measured runtime state
+- **Repair 2 (test/proof):** added runtime-truth consistency test (fails if `GOOGLE_ADK_RUNTIME_STARTED=YES` without package bound, or `RUNTIME_INTEGRATED` without backend `google_adk_package`); added fail-closed `AMBIGUOUS_OPPORTUNITY` scenario (unique contact + multiple eligible open opportunities → select none, no stage target, require review, external effects 0); all prior scenarios preserved
+- **Repair 3 (docs):** README no longer claims "Phase 1 foundation / does not run agents"; records Unit 1 merged + Unit 2 current, full slice not complete, no live CRM/Firestore/deployment. `.env.example` no longer "FOUNDATION ONLY"; states canonical GHL location is not a test environment and live GHL remains unused/unauthorized by Phase 3 Unit 2; placeholders only, no real IDs/tokens
+- **Evidence head:** `5878c05a1881e4fde1c70ab1624704fdf8154ba4` (pre-binding); CI run 31614783508 SUCCESS
+- **Validation:** `PYTHONPATH=src python3 -m pytest -q` (71 passed); Unit 1 fixture + gemini_adk_stub harnesses PASS; `agents.relationship_context` / `agents.adk_runtime` PASS; `git diff --check` PASS
+- **Proof:**
+  - `GOOGLE_ADK_PACKAGE_BOUND=YES`, `GOOGLE_ADK_RUNTIME_STARTED=YES`
+  - `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`, `ADK_RUNTIME_BACKEND=google_adk_package`
+  - `ADK_RUNTIME_PRIMITIVE_USED=YES`, `LOCAL_ADK_FALLBACK_USED=NO`
+  - `RELATIONSHIP_MATCH=PASS`, `AMBIGUOUS_CONTACT=PASS`, `NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT=PASS`, `AMBIGUOUS_OPPORTUNITY=PASS`
+  - `DETERMINISTIC_POLICY_BYPASS=NO`, `EXTERNAL_EFFECTS=0`, `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`
+- **Out of scope / refused:** Follow-Up Planning Agent; live GHL reads/writes; Firestore; deployment; L3A promotion; merge without reviewer disposition
+- **STOP:** `STOP_CODE=PHASE3_UNIT2_REPAIR_READY_FOR_REVIEW`
