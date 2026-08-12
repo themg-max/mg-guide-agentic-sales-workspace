@@ -165,22 +165,27 @@ PYTHONPATH=src python3 -m pytest -q
 
 # 3. Run one synthetic fixture package (intent-only; zero external effects)
 PYTHONPATH=src python3 -m orchestration fixtures/transcript-success.expected.json
+
+# 4. Phase 3 unit 1 — Meeting Context Agent fixture harness (offline by default)
+PYTHONPATH=src python3 -m agents.meeting_context --provider fixture
+PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub
 ```
 
-**Phase 1 available today:**
+**Available today:**
 
-- Contract/schema validation
+- Contract/schema validation (including `meeting_context_v1`)
 - Deterministic state machine + policy tests
 - Acceptance tests for three synthetic fixture packages
 - Local fixture runner (sidecar test doubles only)
+- Phase 2B offline GHL read adapter (synthetic fixtures; no live CRM)
+- Phase 3 unit 1 Meeting Context Agent fixture harness (Gemini/ADK surface started; default CI offline)
 
 **Not yet available (do not invent):**
 
-- Gemini / ADK agent runtime
+- Full multi-agent vertical slice beyond Meeting Context Agent unit 1
 - GHL credential configuration or live CRM calls
 - Firestore / Cloud Run provisioning
 - Hosted demo against deployed services
-- Repository CI workflows (not authorized in Phase 1 grant)
 
 Copy [`.env.example`](.env.example) only as a **placeholder catalog**. Do not
 populate production values. Do not commit a real `.env`.
@@ -208,13 +213,15 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Item | State |
 | --- | --- |
 | Foundation docs / contracts / fixtures | Present |
-| Phase 1 deterministic engine + tests | Present (this branch) |
-| Gemini / ADK agents | Not implemented |
-| GHL MCP client | Not implemented |
+| Phase 1 deterministic engine + tests | Present |
+| Phase 2B offline GHL read adapter | Present (synthetic only) |
+| Gemini / ADK — Meeting Context Agent (unit 1) | Implemented (fixture harness green; live model optional) |
+| Full Phase 3 vertical slice (remaining agents/packet) | Not complete |
+| Live GHL / CRM writes | Forbidden under current grants |
 | Firestore audit writer | Not implemented |
 | Cloud Run deployment | Not provisioned |
 | Production CRM writes | Forbidden |
-| External effects (Phase 1) | Always 0 |
+| External effects (authorized units) | Always 0 |
 
-**Next recommended phase (separate authorization):** GHL MCP live capability
-discovery — **READ ONLY**. Do not start Phase 2 from this branch automatically.
+**Stop after unit 1:** Meeting Context Agent harness is the first Phase 3
+implementation unit. Do not expand blast radius without a reviewed follow-on unit.

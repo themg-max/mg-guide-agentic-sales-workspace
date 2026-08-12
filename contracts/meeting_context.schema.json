@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://mg-guide.example/contracts/meeting_context.schema.json",
+  "title": "meeting_context_v1",
+  "description": "Structured meeting context produced by the Meeting Context Agent for downstream meeting_follow_up_packet_v1 construction.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "agent",
+    "provider",
+    "meeting",
+    "participants",
+    "extraction",
+    "evidence",
+    "external_effects",
+    "policy_authority"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "meeting_context_v1"
+    },
+    "agent": {
+      "type": "string",
+      "const": "meeting_context_agent"
+    },
+    "provider": {
+      "type": "string",
+      "enum": ["fixture", "gemini_adk", "gemini_adk_stub"]
+    },
+    "meeting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["meeting_id", "occurred_at", "source", "transcript_hash"],
+      "properties": {
+        "meeting_id": { "type": "string", "minLength": 1 },
+        "occurred_at": { "type": "string", "minLength": 1 },
+        "source": { "type": "string", "minLength": 1 },
+        "transcript_hash": { "type": "string", "minLength": 1 }
+      }
+    },
+    "participants": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "email", "phone", "role"],
+        "properties": {
+          "name": { "type": ["string", "null"] },
+          "email": { "type": ["string", "null"] },
+          "phone": { "type": ["string", "null"] },
+          "role": {
+            "type": "string",
+            "enum": ["prospect", "client", "agent", "unknown"]
+          }
+        }
+      }
+    },
+    "extraction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lifecycle",
+        "summary",
+        "needs",
+        "objections",
+        "commitments",
+        "next_step",
+        "opportunity_signal"
+      ],
+      "properties": {
+        "lifecycle": {
+          "type": "string",
+          "enum": ["complete"]
+        },
+        "summary": { "type": ["string", "null"] },
+        "needs": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "objections": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "commitments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["owner", "action", "due_date"],
+            "properties": {
+              "owner": { "type": ["string", "null"] },
+              "action": { "type": "string" },
+              "due_date": { "type": ["string", "null"] }
+            }
+          }
+        },
+        "next_step": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["action", "owner", "target_date"],
+          "properties": {
+            "action": { "type": "string" },
+            "owner": { "type": ["string", "null"] },
+            "target_date": { "type": ["string", "null"] }
+          }
+        },
+        "opportunity_signal": {
+          "type": ["object", "null"],
+          "additionalProperties": false,
+          "required": ["recommended_stage", "rationale"],
+          "properties": {
+            "recommended_stage": { "type": ["string", "null"] },
+            "rationale": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["transcript_spans", "extraction_confidence"],
+      "properties": {
+        "transcript_spans": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["field", "excerpt_id"],
+            "properties": {
+              "field": { "type": "string" },
+              "excerpt_id": { "type": "string" }
+            }
+          }
+        },
+        "extraction_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "external_effects": {
+      "type": "integer",
+      "const": 0
+    },
+    "policy_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["deterministic_policy_bypass", "notes"],
+      "properties": {
+        "deterministic_policy_bypass": {
+          "type": "boolean",
+          "const": false
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

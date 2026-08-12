@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mg-guide-agentic-sales-workspace-phase1"
 version = "0.1.0"
-description = "Phase 1 deterministic foundation for meeting_follow_up_v1 (synthetic fixtures only)"
+description = "meeting_follow_up_v1 foundation + Phase 3 Meeting Context Agent (synthetic fixtures; optional Gemini)"
 requires-python = ">=3.9"
 dependencies = [
   "jsonschema==4.23.0",
@@ -14,6 +14,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest==8.3.5"]
+gemini = ["google-genai>=1.0.0"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

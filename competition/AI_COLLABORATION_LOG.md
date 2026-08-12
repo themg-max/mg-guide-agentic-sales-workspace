@@ -337,3 +337,34 @@
   - L3A promotion, Firestore writes, deployment, IAM/secret mutation
   - Private IDs, secrets, or control-plane paths in public artifacts
   - Authority expansion beyond the grant envelope
+
+### 2026-08-12 — Phase 3 unit 1: Meeting Context Agent fixture harness
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004)
+- **Objective:** First implementation unit only — synthetic transcript → schema-valid structured meeting context; stop when tests green
+- **Branch:** `feat/meeting-follow-up-v1-gemini-adk-vertical-slice`
+- **Artifacts touched (authorized paths only):**
+  - `contracts/meeting_context.schema.json`
+  - `src/agents/meeting_context/**`
+  - `tests/agents/test_meeting_context_agent.py`
+  - `proof/phase3/**`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** `PYTHONPATH=src python3 -m pytest -q` PASS; fixture harness fixture + gemini_adk_stub PASS; `git diff --check`
+- **Proof:**
+  - `GEMINI_ADK_STARTED=YES`
+  - `MEETING_CONTEXT_AGENT_IMPLEMENTED=YES`
+  - `SYNTHETIC_TRANSCRIPT_INPUT=YES`
+  - `STRUCTURED_CONTEXT_OUTPUT=VALID`
+  - `DETERMINISTIC_POLICY_BYPASS=NO`
+  - `EXTERNAL_EFFECTS=0`
+  - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+  - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`
+- **Out of scope / refused this unit:**
+  - Relationship / Follow-Up agents and full packet assembly
+  - Live GHL/CRM calls or writes
+  - L3A promotion, Firestore, deployment, IAM/secret mutation
+  - Deterministic policy bypass
+

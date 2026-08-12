@@ -1,0 +1,74 @@
+proof_id: phase3-meeting-context-agent-unit1-v1
+manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+workflow_id: meeting_follow_up_v1
+unit: meeting_context_agent_fixture_harness
+branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
+authorization:
+  grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+  nw004_status: AUTHORIZED_FOR_IMPLEMENTATION
+  gemini_adk_authorized: "YES"
+  private_phase3_authorization_pr: 2964
+  private_phase3_authorization_merge_sha: "7c3f605504956aa26faf62ce6db0552ba9abe494"
+  public_authorization_sync_pr: 9
+  public_authorization_sync_merge_sha: "e924ce1d95434fc725168ddf1b044045476b04de"
+
+unit_proof:
+  GEMINI_ADK_STARTED: "YES"
+  MEETING_CONTEXT_AGENT_IMPLEMENTED: "YES"
+  SYNTHETIC_TRANSCRIPT_INPUT: "YES"
+  STRUCTURED_CONTEXT_OUTPUT: "VALID"
+  DETERMINISTIC_POLICY_BYPASS: "NO"
+  EXTERNAL_EFFECTS: 0
+
+effects:
+  GHL_LIVE_CALLS: 0
+  GHL_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  L3A_RUNTIME_STATUS: DEFERRED_RUNTIME_NOT_PROMOTED
+  FIRESTORE_WRITES: 0
+  DEPLOYMENT: "NO"
+  external_network_calls_NONE_in_default_ci: true
+  crm_calls_NONE: true
+  cloud_calls_NONE: true
+
+fixtures:
+  - fixture_id: transcript-success
+    structured_context_valid: true
+  - fixture_id: transcript-ambiguous-contact
+    structured_context_valid: true
+  - fixture_id: transcript-no-stage-change
+    structured_context_valid: true
+
+validation:
+  commands:
+    - "PYTHONPATH=src python3 -m pytest -q"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider fixture"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub"
+    - "git diff --check"
+  pytest: PASS
+  fixture_harness_fixture_provider: PASS
+  fixture_harness_gemini_adk_stub: PASS
+
+artifacts:
+  - contracts/meeting_context.schema.json
+  - src/agents/meeting_context/**
+  - tests/agents/test_meeting_context_agent.py
+  - proof/phase3/proof-return.yaml
+  - proof/phase3/unit1-closeout.md
+
+authorization_posture:
+  GEMINI_ADK_AUTHORIZED: "YES"
+  GEMINI_ADK_STARTED: "YES"
+  DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
+  LIVE_GHL_READS_AUTHORIZED: "NO"
+  GHL_WRITES_AUTHORIZED: "NO"
+  L3A_PROMOTION_AUTHORIZED: "NO"
+  FIRESTORE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+
+residual_risks:
+  - Live Gemini mode requires optional google-genai package and GEMINI_API_KEY; not exercised in default CI.
+  - Full vertical-slice packet assembly (Relationship + Follow-Up agents + SUCCESS/AMBIGUOUS/STAGE_DENIED end-to-end packet outcomes) remains subsequent units under the same grant.
+
+next_action: STOP_AFTER_UNIT1_MEETING_CONTEXT_AGENT_GREEN
+stop_code: PHASE3_UNIT1_MEETING_CONTEXT_AGENT_COMPLETE
