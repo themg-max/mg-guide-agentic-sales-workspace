@@ -500,3 +500,36 @@
   - Runtime/source/test/contract/fixture changes
   - Live GHL reads/writes; real customer data; deployment; L3A promotion
 - **STOP:** `STOP_CODE=PHASE3_UNIT2_CLOSED_UNIT3_PLAN_READY_FOR_REVIEW`
+
+### 2026-08-12 — Phase 3 Unit 3 Follow-Up Planning Agent implementation
+
+- **Human owner / operator:** VS Code / MG Orchestrator (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — no new grant; Unit 3 bounded packet `proof/phase3/unit3/unit3-implementation-packet.md` executed as scoped
+- **Objective:** Consume `meeting_context_v1` + `relationship_context_v1`, propose a structured follow-up plan via the Follow-Up Planning Agent, evaluate under the deterministic policy gate, and emit a reviewable `meeting_follow_up_packet_v1` with zero external effects
+- **Branch:** `feat/meeting-follow-up-v1-follow-up-planning-agent-unit3` (fresh from origin/main @ merge `a716cf140fcda082aaf15d6d0a8cdef2b6f5799a`)
+- **Public PR:** #13 OPEN awaiting review; head `09c6a95dafa6e09f8244813e32a054aa27635d5c`; CI run 31623557067 SUCCESS (canonical facts fetched via `gh` after PR open)
+- **Delivered:**
+  - `src/agents/follow_up_planning/**` — agent (propose-only), proposal schema validation, packet assembler (reuses `orchestration` state machine + `evaluate_policy` + `bound_intents`), Unit 3 ADK runtime (reuses pinned `google-adk` Runner/SequentialAgent/InMemorySessionService; three-agent sequential graph; fail-closed, no local fallback), harness
+  - `contracts/follow_up_proposal.schema.json` (`follow_up_proposal_v1`; additive)
+  - `fixtures/transcript-stage-change-denied.{txt,expected.json}` and `fixtures/transcript-insufficient-context.{txt,expected.json}` (synthetic only)
+  - `tests/agents/test_follow_up_planning_unit3.py` (runtime-truth consistency, fail-closed package binding, six scenarios, policy-denial authority, no-regression Unit 2)
+  - `proof/phase3/unit3/proof-return.yaml`; grant/ledger/README reconciliation
+- **Validation:** `PYTHONPATH=src python3 -m pytest -q` PASS (93 passed); Unit 1 fixture + gemini_adk_stub harnesses PASS; `agents.relationship_context` / `agents.adk_runtime` PASS; `agents.follow_up_planning` PASS; `git diff --check` PASS
+- **Proof (derived from actual runtime state):**
+  - `FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED=YES`
+  - `MEETING_CONTEXT_REUSED=YES`, `RELATIONSHIP_CONTEXT_REUSED=YES`, `GOOGLE_ADK_RUNTIME_REUSED=YES`
+  - `FOLLOW_UP_PROPOSAL_OUTPUT=VALID`
+  - `DETERMINISTIC_POLICY_GATE_INVOKED=YES`, `DETERMINISTIC_POLICY_BYPASS=NO`
+  - `EXTERNAL_EFFECTS=0`, `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`
+  - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+  - Scenarios: `SUCCESS=PASS`, `AMBIGUOUS_CONTACT=PASS`, `AMBIGUOUS_OPPORTUNITY=PASS`, `NO_OPPORTUNITY=PASS`, `STAGE_CHANGE_DENIED=PASS`, `INSUFFICIENT_CONTEXT=PASS`
+- **Human decisions retained:**
+  - Agent proposes; deterministic policy evaluates/authorizes; no agent self-authorization; no policy bypass
+  - Intent-only mutations; no live GHL, no CRM writes, no Firestore, no deployment
+- **Out of scope / refused this unit:**
+  - Live GHL reads/writes; broad CRM search; real customer data
+  - Firestore audit writer (NW-005); MG Guide card (NW-006); Cloud Run deployment (NW-007)
+  - L3A promotion; IAM/Secret Manager mutation; raw REST; production activation
+  - VS Code / custom-agent configuration changes
+- **STOP:** `STOP_CODE=PHASE3_UNIT3_FOLLOW_UP_PLANNING_READY_FOR_PR_REVIEW`

@@ -2,8 +2,10 @@
 
 from .meeting_context import MeetingContextAgent
 from .relationship_context import RelationshipContextAgent
+from .follow_up_planning import FollowUpPlanningAgent
 
 __all__ = [
+    "FollowUpPlanningAgent",
     "MeetingContextAgent",
     "RelationshipContextAgent",
 ]

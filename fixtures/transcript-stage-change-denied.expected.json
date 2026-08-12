@@ -1,0 +1,71 @@
+{
+  "fixture_id": "transcript-stage-change-denied",
+  "run_id": "run_demo_stage_denied_001",
+  "meeting": {
+    "meeting_id": "demo_meeting_005",
+    "occurred_at": "2026-08-11T15:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": null
+  },
+  "participants": [
+    {
+      "name": "Taylor Morgan",
+      "email": "taylor.morgan@example-demo.test",
+      "phone": "+1-555-0100",
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "Follow-up call with open liquidity questions; prospect explicitly withholds discovery-complete confirmation.",
+    "needs": [
+      "liquidity trade-off documentation"
+    ],
+    "objections": [
+      "liquidity lock-up concern"
+    ],
+    "commitments": [
+      {
+        "owner": "Alex Rivera",
+        "action": "Document open liquidity questions",
+        "due_date": null
+      }
+    ],
+    "next_step": {
+      "action": "Send notes recap and hold stage until confirmation",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": {
+      "recommended_stage": "discovery_complete",
+      "rationale": "Agent considered stage move; confidence below stage threshold."
+    }
+  },
+  "extraction_confidence": 0.85,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_stagedenied_summary"
+    },
+    {
+      "field": "opportunity_signal.recommended_stage",
+      "excerpt_id": "span_stagedenied_stage"
+    }
+  ],
+  "unit3_expectation": {
+    "scenario_id": "STAGE_CHANGE_DENIED",
+    "expected_packet_status": "completed_with_review",
+    "expected_reason_codes": [
+      "STAGE_TRANSITION_NOT_ALLOWED"
+    ],
+    "expected_note_intents": 1,
+    "expected_stage_intents": 0,
+    "expected_policy_gate_invoked": true,
+    "external_effects": 0
+  }
+}

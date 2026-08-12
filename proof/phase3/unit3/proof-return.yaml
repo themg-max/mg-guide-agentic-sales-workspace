@@ -1,0 +1,177 @@
+proof_id: phase3-follow-up-planning-agent-unit3-v1
+manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+workflow_id: meeting_follow_up_v1
+unit: follow_up_planning_agent
+branch: feat/meeting-follow-up-v1-follow-up-planning-agent-unit3
+public_implementation_pr: 13
+public_pr_status: OPEN_AWAITING_REVIEW
+public_unit3_status: IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW
+
+# Canonical GitHub facts fetched via gh CLI after PR open (single fetch,
+# reconciled across proof/ledger/grant/closeout artifacts).
+public_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+final_ci_run_id: "31623557067"
+final_ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31623557067"
+final_ci_conclusion: SUCCESS
+# Note: public_head_sha is the implementation+reconciliation evidence head.
+# Any commit after it on this branch is docs-only metadata reconciliation.
+
+authorization:
+  grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+  nw004_status: IN_PROGRESS
+  execution_status: IN_PROGRESS_UNIT3_IMPLEMENTATION
+  gemini_adk_authorized: "YES"
+  public_unit1_implementation_pr: 10
+  public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+  public_unit2_implementation_pr: 11
+  public_unit2_head_sha: "3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa"
+  public_unit2_merge_sha: "a3d5a5731d7342463fe365e597e5d974d3420d08"
+  public_unit2_closeout_pr: 12
+  public_unit2_closeout_merge_sha: "a716cf140fcda082aaf15d6d0a8cdef2b6f5799a"
+  unit3_planning_artifact: proof/phase3/unit3/unit3-implementation-packet.md
+
+unit_proof:
+  FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED: "YES"
+  MEETING_CONTEXT_REUSED: "YES"
+  RELATIONSHIP_CONTEXT_REUSED: "YES"
+  GOOGLE_ADK_RUNTIME_REUSED: "YES"
+  FOLLOW_UP_PROPOSAL_OUTPUT: "VALID"
+  DETERMINISTIC_POLICY_GATE_INVOKED: "YES"
+  DETERMINISTIC_POLICY_BYPASS: "NO"
+  EXTERNAL_EFFECTS: 0
+  # Unit 2 runtime truth preserved (reused, derived from measured state):
+  GOOGLE_ADK_PACKAGE_BOUND: "YES"
+  GOOGLE_ADK_RUNTIME_STARTED: "YES"
+  ADK_INTEGRATION_STATUS: RUNTIME_INTEGRATED
+  ADK_RUNTIME_BACKEND: google_adk_package
+  ADK_RUNTIME_PRIMITIVE_USED: "YES"
+  LOCAL_ADK_FALLBACK_USED: "NO"
+
+effects:
+  GHL_LIVE_CALLS: 0
+  GHL_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  L3A_RUNTIME_STATUS: DEFERRED_RUNTIME_NOT_PROMOTED
+  L3A_RUNTIME_PROMOTED: "NO"
+  FIRESTORE_WRITES: 0
+  DEPLOYMENT: "NO"
+  NETWORK_CRM_CALLS: 0
+  external_network_calls_NONE_in_default_ci: true
+  crm_calls_NONE: true
+  cloud_calls_NONE: true
+
+scenarios:
+  - scenario_id: SUCCESS
+    transcript_fixture: transcript-success
+    expected_packet_status: completed
+    actual_packet_status: completed
+    reason_codes: []
+    note_intents: 1
+    stage_intents: 1
+    policy_gate_invoked: true
+    proposal_disposition: proposed
+    result: PASS
+  - scenario_id: AMBIGUOUS_CONTACT
+    transcript_fixture: transcript-ambiguous-contact
+    expected_packet_status: blocked
+    actual_packet_status: blocked
+    reason_codes: [AMBIGUOUS_CONTACT]
+    note_intents: 0
+    stage_intents: 0
+    policy_gate_invoked: false
+    proposal_disposition: needs_review
+    result: PASS
+  - scenario_id: AMBIGUOUS_OPPORTUNITY
+    transcript_fixture: transcript-ambiguous-opportunity
+    expected_packet_status: blocked
+    actual_packet_status: blocked
+    reason_codes: [AMBIGUOUS_OPPORTUNITY]
+    note_intents: 0
+    stage_intents: 0
+    policy_gate_invoked: false
+    proposal_disposition: needs_review
+    result: PASS
+  - scenario_id: NO_OPPORTUNITY
+    transcript_fixture: transcript-no-stage-change
+    expected_packet_status: blocked
+    actual_packet_status: blocked
+    reason_codes: [OPPORTUNITY_NOT_FOUND]
+    note_intents: 0
+    stage_intents: 0
+    policy_gate_invoked: false
+    proposal_disposition: needs_review
+    result: PASS
+  - scenario_id: STAGE_CHANGE_DENIED
+    transcript_fixture: transcript-stage-change-denied
+    expected_packet_status: completed_with_review
+    actual_packet_status: completed_with_review
+    reason_codes: [STAGE_TRANSITION_NOT_ALLOWED]
+    note_intents: 1
+    stage_intents: 0
+    policy_gate_invoked: true
+    proposal_disposition: proposed_with_review
+    result: PASS
+  - scenario_id: INSUFFICIENT_CONTEXT
+    transcript_fixture: transcript-insufficient-context
+    expected_packet_status: blocked
+    actual_packet_status: blocked
+    reason_codes: [LOW_EXTRACTION_CONFIDENCE]
+    note_intents: 0
+    stage_intents: 0
+    policy_gate_invoked: false
+    proposal_disposition: no_op
+    result: PASS
+
+validation:
+  commands:
+    - "PYTHONPATH=src python3 -m pytest -q"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider fixture"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub"
+    - "PYTHONPATH=src python3 -m agents.relationship_context"
+    - "PYTHONPATH=src python3 -m agents.adk_runtime"
+    - "PYTHONPATH=src python3 -m agents.follow_up_planning"
+    - "git diff --check"
+  pytest: "PASS (93 passed)"
+  unit1_fixture_harness: PASS
+  unit1_gemini_adk_stub_harness: PASS
+  unit2_relationship_harness: PASS
+  unit2_adk_runtime_harness: PASS
+  unit3_follow_up_planning_harness: PASS
+  git_diff_check: PASS
+
+artifacts:
+  - contracts/follow_up_proposal.schema.json
+  - fixtures/transcript-stage-change-denied.txt
+  - fixtures/transcript-stage-change-denied.expected.json
+  - fixtures/transcript-insufficient-context.txt
+  - fixtures/transcript-insufficient-context.expected.json
+  - src/agents/__init__.py
+  - src/agents/follow_up_planning/**
+  - tests/agents/test_follow_up_planning_unit3.py
+  - proof/phase3/unit3/proof-return.yaml
+  - governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+  - README.md
+
+authorization_posture:
+  GEMINI_ADK_AUTHORIZED: "YES"
+  DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
+  AGENT_SELF_AUTHORIZATION: "NO"
+  LIVE_GHL_READS_AUTHORIZED: "NO"
+  GHL_WRITES_AUTHORIZED: "NO"
+  BROAD_CRM_SEARCH_AUTHORIZED: "NO"
+  L3A_PROMOTION_AUTHORIZED: "NO"
+  FIRESTORE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+  RAW_REST_AUTHORIZED: "NO"
+  IAM_SECRET_MUTATION_AUTHORIZED: "NO"
+  VSCODE_CUSTOM_AGENT_CHANGES: "NO"
+
+residual_risks:
+  - google-adk is pinned (1.18.0) and required; the Unit 3 runtime inherits the Unit 2 fail-closed posture with no local fallback if the package is unavailable.
+  - Mutation execution (note/stage writes), Firestore audit writer (NW-005), MG Guide card experience (NW-006), and Cloud Run deployment (NW-007) remain subsequent governed units; Unit 3 is intent-only with EXTERNAL_EFFECTS=0.
+  - Live Gemini path remains optional and is not required for Unit 3 proof.
+
+next_action: UNIT3_READY_FOR_PR_REVIEW
+stop_code: PHASE3_UNIT3_FOLLOW_UP_PLANNING_READY_FOR_PR_REVIEW

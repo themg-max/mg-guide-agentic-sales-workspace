@@ -1,0 +1,286 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/follow_up_proposal.schema.json",
+  "title": "follow_up_proposal_v1",
+  "description": "Structured follow-up proposal emitted by the Follow-Up Planning Agent (Phase 3 Unit 3). The agent proposes only; the deterministic policy gate evaluates/authorizes. Mutation intents are recorded only after the deterministic policy gate allows them. Zero external effects.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "agent",
+    "run_id",
+    "scenario_id",
+    "disposition",
+    "summary",
+    "proposed_next_steps",
+    "note_proposal",
+    "stage_proposal",
+    "crm_targets",
+    "resolution_status",
+    "policy_evaluation",
+    "authorized_mutation_intents",
+    "external_effects",
+    "policy_authority"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "follow_up_proposal_v1"
+    },
+    "agent": {
+      "type": "string",
+      "const": "follow_up_planning_agent"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "proposed",
+        "proposed_with_review",
+        "needs_review",
+        "blocked",
+        "no_op"
+      ]
+    },
+    "summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "proposed_next_steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "note_proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested",
+        "body_ref"
+      ],
+      "properties": {
+        "requested": {
+          "type": "boolean"
+        },
+        "body_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "stage_proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requested",
+        "from_stage",
+        "to_stage"
+      ],
+      "properties": {
+        "requested": {
+          "type": "boolean"
+        },
+        "from_stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "to_stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "crm_targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contact_id",
+        "opportunity_id"
+      ],
+      "properties": {
+        "contact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "opportunity_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "resolution_status": {
+      "type": "string"
+    },
+    "policy_evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invoked",
+        "evaluator",
+        "note_write",
+        "stage_write",
+        "reason_codes",
+        "deterministic_policy_bypass"
+      ],
+      "properties": {
+        "invoked": {
+          "type": "boolean"
+        },
+        "evaluator": {
+          "type": "string",
+          "const": "orchestration.policy.evaluate_policy"
+        },
+        "note_write": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "allowed",
+            "blocked"
+          ]
+        },
+        "stage_write": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "allowed",
+            "approval_required",
+            "blocked"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "deterministic_policy_bypass": {
+          "type": "boolean",
+          "const": false
+        }
+      }
+    },
+    "authorized_mutation_intents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "note",
+        "stage"
+      ],
+      "properties": {
+        "note": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "status"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "note"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "planned",
+                  "suppressed",
+                  "denied"
+                ]
+              },
+              "body_ref": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "stage": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "status"
+            ],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "const": "stage"
+              },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "planned",
+                  "suppressed",
+                  "denied"
+                ]
+              },
+              "from_stage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "to_stage": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "external_effects": {
+      "type": "integer",
+      "const": 0
+    },
+    "policy_authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "deterministic_policy_bypass",
+        "notes"
+      ],
+      "properties": {
+        "deterministic_policy_bypass": {
+          "type": "boolean",
+          "const": false
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
