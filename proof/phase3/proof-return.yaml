@@ -3,11 +3,20 @@ manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 workflow_id: meeting_follow_up_v1
 unit: meeting_context_agent_fixture_harness
 branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
-head_sha: "b103bf2c6bb0d7582764c4ef73c58fc5c670d9fe"
 public_implementation_pr: 10
+
+# Explicit evidence semantics — not a self-referential "current head" claim.
+# Final reviewer disposition binds to the post-repair PR tip separately.
+reviewed_head_sha: "b5d44b703f4ca3c2245c8e0d8b27752171c6fc29"
+reviewed_head_role: pre-repair_exact_evidence_head
+ci_run_id: "31608390000"
+ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31608390000"
+proof_head_semantics: VALID_EVIDENCE_BINDING_NOT_SELF_REF
+
 authorization:
   grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
   nw004_status: AUTHORIZED_FOR_IMPLEMENTATION
+  execution_status: IN_PROGRESS_UNIT1_COMPLETE
   gemini_adk_authorized: "YES"
   private_phase3_authorization_pr: 2964
   private_phase3_authorization_merge_sha: "7c3f605504956aa26faf62ce6db0552ba9abe494"
@@ -15,6 +24,11 @@ authorization:
   public_authorization_sync_merge_sha: "e924ce1d95434fc725168ddf1b044045476b04de"
 
 unit_proof:
+  # Precise sponsor-tech split (do not collapse into false ADK runtime claim)
+  GEMINI_PROVIDER_STARTED: "YES"
+  GOOGLE_ADK_RUNTIME_STARTED: "NO"
+  ADK_INTEGRATION_STATUS: COMPATIBLE_SURFACE_ONLY
+  # Compatibility umbrella only
   GEMINI_ADK_STARTED: "YES"
   MEETING_CONTEXT_AGENT_IMPLEMENTED: "YES"
   SYNTHETIC_TRANSCRIPT_INPUT: "YES"
@@ -57,9 +71,13 @@ artifacts:
   - tests/agents/test_meeting_context_agent.py
   - proof/phase3/proof-return.yaml
   - proof/phase3/unit1-closeout.md
+  - governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml
 
 authorization_posture:
   GEMINI_ADK_AUTHORIZED: "YES"
+  GEMINI_PROVIDER_STARTED: "YES"
+  GOOGLE_ADK_RUNTIME_STARTED: "NO"
+  ADK_INTEGRATION_STATUS: COMPATIBLE_SURFACE_ONLY
   GEMINI_ADK_STARTED: "YES"
   DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
   LIVE_GHL_READS_AUTHORIZED: "NO"
@@ -69,8 +87,9 @@ authorization_posture:
   DEPLOYMENT_AUTHORIZED: "NO"
 
 residual_risks:
-  - Live Gemini mode requires optional google-genai package and GEMINI_API_KEY; not exercised in default CI.
+  - Live Gemini mode requires optional google-genai package and GEMINI_API_KEY; default CI remains offline (fixture/stub + mocked live path).
+  - Google ADK runtime is not implemented; ADK_INTEGRATION_STATUS=COMPATIBLE_SURFACE_ONLY only.
   - Full vertical-slice packet assembly (Relationship + Follow-Up agents + SUCCESS/AMBIGUOUS/STAGE_DENIED end-to-end packet outcomes) remains subsequent units under the same grant.
 
-next_action: STOP_AFTER_UNIT1_MEETING_CONTEXT_AGENT_GREEN
-stop_code: PHASE3_UNIT1_MEETING_CONTEXT_AGENT_COMPLETE
+next_action: STOP_FOR_REVIEWER_DISPOSITION_ON_REPAIR_HEAD
+stop_code: PHASE3_UNIT1_PROOF_GOVERNANCE_REPAIR_READY_FOR_REVIEW

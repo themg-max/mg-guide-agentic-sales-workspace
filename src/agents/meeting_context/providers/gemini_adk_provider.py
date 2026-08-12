@@ -15,8 +15,12 @@ from typing import Any, Dict, List, Optional
 from ..models import MeetingContextResult
 from .base import ProviderRequest
 
-# Durable marker that the Gemini/ADK implementation surface has been started.
-GEMINI_ADK_STARTED = True
+# Precise Unit 1 tech markers (do not collapse into false ADK runtime claims).
+GEMINI_PROVIDER_STARTED = True
+GOOGLE_ADK_RUNTIME_STARTED = False
+ADK_INTEGRATION_STATUS = "COMPATIBLE_SURFACE_ONLY"
+# Compatibility umbrella only: provider surface started; not ADK runtime execution.
+GEMINI_ADK_STARTED = GEMINI_PROVIDER_STARTED and not GOOGLE_ADK_RUNTIME_STARTED
 
 DEFAULT_MODEL = "gemini-2.0-flash"
 
@@ -40,12 +44,16 @@ class GeminiAdkConfig:
 
 
 class GeminiAdkContextProvider:
-    """Bounded Gemini/ADK extraction provider.
+    """Bounded Gemini provider with ADK-compatible declaration surface.
+
+    Unit 1 implements google-genai provider wiring only.
+    Google ADK runtime is NOT executed here (GOOGLE_ADK_RUNTIME_STARTED=NO).
 
     - mode=stub: no network; builds structured context from request sidecar fields
-      while exercising the ADK provider surface (CI-safe).
-    - mode=live: attempts Google GenAI / ADK call when credentials are present.
-      Live mode never performs CRM/GHL/Firestore side effects.
+      while exercising the provider surface (CI-safe).
+    - mode=live: attempts Google GenAI call when credentials are present.
+      Live mode never performs CRM/GHL/Firestore side effects and does not start
+      Google ADK runtime.
     """
 
     name = "gemini_adk"
@@ -217,13 +225,19 @@ def _first_nonempty_line_after_marker(transcript: str) -> Optional[str]:
 
 
 def adk_agent_declaration() -> Dict[str, Any]:
-    """Sanitized ADK agent declaration for proof/telemetry (no secrets)."""
+    """Sanitized ADK-compatible declaration for proof/telemetry (no secrets).
+
+    This is a compatible surface only — not evidence of Google ADK runtime execution.
+    """
     return {
         "agent_id": "meeting_context_agent",
         "framework": "google_adk_compatible",
         "model_default": DEFAULT_MODEL,
         "tools": [],
         "side_effects": [],
+        "gemini_provider_started": GEMINI_PROVIDER_STARTED,
+        "google_adk_runtime_started": GOOGLE_ADK_RUNTIME_STARTED,
+        "adk_integration_status": ADK_INTEGRATION_STATUS,
         "gemini_adk_started": GEMINI_ADK_STARTED,
         "deterministic_policy_bypass": False,
         "crm_access": "none",

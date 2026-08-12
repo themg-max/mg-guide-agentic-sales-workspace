@@ -8,7 +8,10 @@ from .models import MeetingContextResult
 from .providers.base import ContextProvider, ProviderRequest
 from .providers.fixture_provider import FixtureContextProvider
 from .providers.gemini_adk_provider import (
+    ADK_INTEGRATION_STATUS,
     GEMINI_ADK_STARTED,
+    GEMINI_PROVIDER_STARTED,
+    GOOGLE_ADK_RUNTIME_STARTED,
     GeminiAdkConfig,
     GeminiAdkContextProvider,
     adk_agent_declaration,
@@ -55,6 +58,9 @@ class MeetingContextAgent:
         return {
             "agent_id": self.agent_id,
             "provider": getattr(self.provider, "name", type(self.provider).__name__),
+            "gemini_provider_started": GEMINI_PROVIDER_STARTED,
+            "google_adk_runtime_started": GOOGLE_ADK_RUNTIME_STARTED,
+            "adk_integration_status": ADK_INTEGRATION_STATUS,
             "gemini_adk_started": GEMINI_ADK_STARTED,
             "adk_declaration": adk_agent_declaration(),
             "external_effects": 0,

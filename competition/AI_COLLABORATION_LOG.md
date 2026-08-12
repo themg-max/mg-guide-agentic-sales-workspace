@@ -354,7 +354,10 @@
   - `competition/AI_COLLABORATION_LOG.md`
 - **Validation:** `PYTHONPATH=src python3 -m pytest -q` PASS; fixture harness fixture + gemini_adk_stub PASS; `git diff --check`
 - **Proof:**
-  - `GEMINI_ADK_STARTED=YES`
+  - `GEMINI_PROVIDER_STARTED=YES`
+  - `GOOGLE_ADK_RUNTIME_STARTED=NO`
+  - `ADK_INTEGRATION_STATUS=COMPATIBLE_SURFACE_ONLY`
+  - `GEMINI_ADK_STARTED=YES` (compatibility umbrella only; not ADK runtime)
   - `MEETING_CONTEXT_AGENT_IMPLEMENTED=YES`
   - `SYNTHETIC_TRANSCRIPT_INPUT=YES`
   - `STRUCTURED_CONTEXT_OUTPUT=VALID`
@@ -363,7 +366,38 @@
   - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
   - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`
 - **Out of scope / refused this unit:**
+  - Google ADK runtime execution
   - Relationship / Follow-Up agents and full packet assembly
   - Live GHL/CRM calls or writes
   - L3A promotion, Firestore, deployment, IAM/secret mutation
   - Deterministic policy bypass
+
+### 2026-08-12 — PR #10 proof/governance consistency repair (stop for disposition)
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — repair only; no Unit 1 scope expansion
+- **Objective:** Reconcile public grant execution state; separate Gemini provider vs Google ADK runtime claims; fix proof SHA semantics; optional network-free mocked live provider test
+- **Branch / PR:** `feat/meeting-follow-up-v1-gemini-adk-vertical-slice` / #10
+- **Artifacts touched (authorized paths only):**
+  - `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml` (`execution_status=IN_PROGRESS_UNIT1_COMPLETE`)
+  - `proof/phase3/proof-return.yaml` (`reviewed_head_sha` / `ci_run_id`; no self-ref head)
+  - `proof/phase3/unit1-closeout.md`
+  - `src/agents/meeting_context/**` (precise tech markers + harness telemetry)
+  - `tests/agents/test_meeting_context_agent.py` (markers + mocked live path)
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Evidence binding:**
+  - `reviewed_head_sha=b5d44b703f4ca3c2245c8e0d8b27752171c6fc29`
+  - `reviewed_head_role=pre-repair_exact_evidence_head`
+  - `ci_run_id=31608390000`
+- **Assertions retained:**
+  - `PUBLIC_GRANT_STATE_MATCH=YES`
+  - `GEMINI_PROVIDER_STARTED=YES`
+  - `GOOGLE_ADK_RUNTIME_STARTED=NO`
+  - `ADK_INTEGRATION_STATUS=COMPATIBLE_SURFACE_ONLY`
+  - `PROOF_HEAD_SEMANTICS_VALID=YES`
+  - `EXTERNAL_EFFECTS=0`, `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+  - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`
+- **Out of scope / refused:** Unit 1 feature expansion; live network Gemini; CRM; merge without reviewer disposition
+- **STOP:** `STOP_CODE=PHASE3_UNIT1_PROOF_GOVERNANCE_REPAIR_READY_FOR_REVIEW`

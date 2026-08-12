@@ -2,16 +2,23 @@
 # No private IDs, secrets, tokens, or control-plane paths.
 grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 status: AUTHORIZED_FOR_IMPLEMENTATION
-execution_status: AUTHORIZED_NOT_STARTED
+# Unit 1 (Meeting Context Agent harness) is implemented and green; full vertical
+# slice remains open. Not AUTHORIZED_NOT_STARTED.
+execution_status: IN_PROGRESS_UNIT1_COMPLETE
 workflow: meeting_follow_up_v1
 public_ledger_id: NW-004
 authorized_at_utc: "2026-08-12T14:32:13Z"
 proposed_at_utc: "2026-08-12T14:14:37Z"
+unit1_reconciled_at_utc: "2026-08-12T14:56:00Z"
 
 private_source_authority_sync: "YES"
 private_phase3_authorization_pr: 2964
 private_phase3_authorization_pr_url: "https://github.com/themg-max/A.I-Rolodex---Context/pull/2964"
 private_phase3_authorization_merge_sha: "7c3f605504956aa26faf62ce6db0552ba9abe494"
+public_authorization_sync_pr: 9
+public_authorization_sync_merge_sha: "e924ce1d95434fc725168ddf1b044045476b04de"
+public_implementation_pr: 10
+public_implementation_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
 
 human_activation:
   decision: AUTHORIZED_FOR_IMPLEMENTATION
@@ -63,9 +70,16 @@ architecture:
 first_implementation_unit:
   name: Meeting Context Agent fixture harness
   public_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
+  public_implementation_pr: 10
+  status: COMPLETE_TESTS_GREEN
   input: synthetic meeting transcript
   output: schema-valid structured meeting context for downstream packet construction
   required_proof:
+    # Precise sponsor-tech split (Unit 1 truth):
+    GEMINI_PROVIDER_STARTED: "YES"
+    GOOGLE_ADK_RUNTIME_STARTED: "NO"
+    ADK_INTEGRATION_STATUS: "COMPATIBLE_SURFACE_ONLY"
+    # Compatibility umbrella: provider surface started; not ADK runtime execution.
     GEMINI_ADK_STARTED: "YES"
     MEETING_CONTEXT_AGENT_IMPLEMENTED: "YES"
     SYNTHETIC_TRANSCRIPT_INPUT: "YES"
@@ -85,6 +99,13 @@ required_vertical_slice_outcomes:
 activation_assertions:
   GEMINI_ADK_AUTHORIZED: "YES"
   NW004_STATUS: "AUTHORIZED_FOR_IMPLEMENTATION"
+  # Unit 1 precise tech posture
+  GEMINI_PROVIDER_STARTED: "YES"
+  GOOGLE_ADK_RUNTIME_STARTED: "NO"
+  ADK_INTEGRATION_STATUS: "COMPATIBLE_SURFACE_ONLY"
+  # Compatibility umbrella only — does NOT claim Google ADK runtime execution
+  GEMINI_ADK_STARTED: "YES"
+  MEETING_CONTEXT_AGENT_IMPLEMENTED: "YES"
   GHL_LIVE_CALLS: 0
   GHL_WRITES: 0
   REAL_CUSTOMER_DATA: 0
@@ -92,10 +113,16 @@ activation_assertions:
   L3A_RUNTIME_STATUS: "DEFERRED_RUNTIME_NOT_PROMOTED"
   FIRESTORE_WRITES: 0
   DEPLOYMENT: "NO"
-  GEMINI_ADK_STARTED: "NO"
+
+sponsor_tech_precision:
+  google_genai_provider: implemented
+  google_adk_runtime: not_implemented
+  note: >
+    Unit 1 implements a google-genai-compatible provider surface and ADK-compatible
+    declaration only. Actual Google ADK runtime execution has not started.
 
 notes:
-  - Public coding begins only after this sanitized authorization sync merges.
-  - First unit is Meeting Context Agent harness only; stop when unit tests are green.
+  - Public coding for Unit 1 is complete on PR #10; full vertical slice remains open.
+  - Do not claim Google ADK runtime execution from Unit 1 evidence.
   - Private exact metadata stays out of this public repository.
   - Live GHL remains unauthorized under this grant.

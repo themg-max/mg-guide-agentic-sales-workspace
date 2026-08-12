@@ -48,6 +48,9 @@ class HarnessCaseResult:
 @dataclass
 class HarnessReport:
     cases: List[HarnessCaseResult]
+    gemini_provider_started: bool
+    google_adk_runtime_started: bool
+    adk_integration_status: str
     gemini_adk_started: bool
     meeting_context_agent_implemented: bool
     synthetic_transcript_input: bool
@@ -62,6 +65,9 @@ class HarnessReport:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "ok": self.ok,
+            "gemini_provider_started": self.gemini_provider_started,
+            "google_adk_runtime_started": self.google_adk_runtime_started,
+            "adk_integration_status": self.adk_integration_status,
             "gemini_adk_started": self.gemini_adk_started,
             "meeting_context_agent_implemented": self.meeting_context_agent_implemented,
             "synthetic_transcript_input": self.synthetic_transcript_input,
@@ -196,6 +202,16 @@ class MeetingContextFixtureHarness:
         telemetry = self.agent.telemetry()
         return HarnessReport(
             cases=cases,
+            gemini_provider_started=bool(
+                telemetry.get("gemini_provider_started")
+            ),
+            google_adk_runtime_started=bool(
+                telemetry.get("google_adk_runtime_started")
+            ),
+            adk_integration_status=str(
+                telemetry.get("adk_integration_status")
+                or "COMPATIBLE_SURFACE_ONLY"
+            ),
             gemini_adk_started=bool(telemetry.get("gemini_adk_started")),
             meeting_context_agent_implemented=True,
             synthetic_transcript_input=True,
