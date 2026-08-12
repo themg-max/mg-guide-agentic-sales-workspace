@@ -12,7 +12,7 @@ proposed_at_utc: "2026-08-12T14:14:37Z"
 unit1_reconciled_at_utc: "2026-08-12T14:56:00Z"
 unit1_merged_at_utc: "2026-08-12T15:10:00Z"
 unit2_started_at_utc: "2026-08-12T15:15:00Z"
-unit2_merged_at_utc: "2026-08-12T16:30:00Z"
+unit2_merged_at_utc: "2026-08-12T16:27:00Z"
 unit2_closeout_at_utc: "2026-08-12T16:33:00Z"
 unit3_packet_prepared_at_utc: "2026-08-12T16:33:00Z"
 
