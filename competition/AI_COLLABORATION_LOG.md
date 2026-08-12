@@ -508,7 +508,7 @@
 - **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — no new grant; Unit 3 bounded packet `proof/phase3/unit3/unit3-implementation-packet.md` executed as scoped
 - **Objective:** Consume `meeting_context_v1` + `relationship_context_v1`, propose a structured follow-up plan via the Follow-Up Planning Agent, evaluate under the deterministic policy gate, and emit a reviewable `meeting_follow_up_packet_v1` with zero external effects
 - **Branch:** `feat/meeting-follow-up-v1-follow-up-planning-agent-unit3` (fresh from origin/main @ merge `a716cf140fcda082aaf15d6d0a8cdef2b6f5799a`)
-- **Public PR:** #13 OPEN awaiting review; head `73fd69a680a78c702a903f95f6f8d08e80197e5b`; CI run 31623302186 SUCCESS (canonical facts fetched via `gh` after PR open)
+- **Public PR:** #13 OPEN awaiting review; head `09c6a95dafa6e09f8244813e32a054aa27635d5c`; CI run 31623557067 SUCCESS (canonical facts fetched via `gh` after PR open)
 - **Delivered:**
   - `src/agents/follow_up_planning/**` — agent (propose-only), proposal schema validation, packet assembler (reuses `orchestration` state machine + `evaluate_policy` + `bound_intents`), Unit 3 ADK runtime (reuses pinned `google-adk` Runner/SequentialAgent/InMemorySessionService; three-agent sequential graph; fail-closed, no local fallback), harness
   - `contracts/follow_up_proposal.schema.json` (`follow_up_proposal_v1`; additive)

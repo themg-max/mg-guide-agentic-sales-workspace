@@ -9,10 +9,12 @@ public_unit3_status: IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW
 
 # Canonical GitHub facts fetched via gh CLI after PR open (single fetch,
 # reconciled across proof/ledger/grant/closeout artifacts).
-public_head_sha: "73fd69a680a78c702a903f95f6f8d08e80197e5b"
-final_ci_run_id: "31623302186"
-final_ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31623302186"
+public_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+final_ci_run_id: "31623557067"
+final_ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31623557067"
 final_ci_conclusion: SUCCESS
+# Note: public_head_sha is the implementation+reconciliation evidence head.
+# Any commit after it on this branch is docs-only metadata reconciliation.
 
 authorization:
   grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
