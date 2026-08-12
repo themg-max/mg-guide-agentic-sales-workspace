@@ -50,11 +50,15 @@ This repository now includes the merged competition-local NW-006 MG Guide
 Meeting Follow-Up card renderer/reference component with no mutation controls
 and zero external effects. NW-008 acceptance readiness is planning-only.
 
-**Vertical slice promise (when implemented):**
+**Target end-state defined by the original foundation:**
 
 one synthetic transcript in → one verified CRM note, at most one
 policy-permitted opportunity-stage change, one Firestore audit record, and one
 MG Guide next-step brief out.
+
+> Verified CRM mutation and Firestore audit remain undelivered in this branch.
+> The competition-local card and proof artifacts document the target end-state
+> without claiming live verification or runtime write delivery.
 
 ---
 
