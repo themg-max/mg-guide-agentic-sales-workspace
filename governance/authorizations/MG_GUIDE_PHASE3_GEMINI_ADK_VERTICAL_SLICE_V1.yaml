@@ -23,8 +23,9 @@ public_unit1_implementation_pr: 10
 public_unit1_implementation_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
 public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
 public_unit1_status: MERGED_COMPLETE
-public_implementation_pr: 10
+public_implementation_pr: 11
 public_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+public_unit2_implementation_pr: 11
 public_unit2_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
 nw004_status: IN_PROGRESS
 next_phase3_unit: GOOGLE_ADK_RUNTIME_PLUS_RELATIONSHIP_CONTEXT

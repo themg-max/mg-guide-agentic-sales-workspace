@@ -5,11 +5,14 @@
 | Grant | `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` |
 | Ledger | NW-004 |
 | Branch | `feat/meeting-follow-up-v1-adk-relationship-context-unit2` |
+| Public PR | #11 |
 | Unit 1 baseline | PR #10 **MERGED** @ `469ae3ba9962895bd77bebb9e5b2b44a8faac6e7` |
 | Unit | Google ADK runtime orchestration + Relationship Context Agent |
 | Status | **COMPLETE / TESTS GREEN** (stop before merge) |
 | Grant execution_status | `IN_PROGRESS_UNIT2` |
 | Stop before | Follow-Up Planning Agent |
+| Evidence head | `b37247aba390080ee3acd7d4f971b53d47fa695e` (pre-binding) |
+| CI | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31612017121 **SUCCESS** |
 
 ## Proof assertions
 

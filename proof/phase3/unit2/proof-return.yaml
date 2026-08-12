@@ -3,8 +3,14 @@ manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 workflow_id: meeting_follow_up_v1
 unit: google_adk_runtime_plus_relationship_context
 branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+public_implementation_pr: 11
 
-# Bind final PR tip / CI after push; not a self-referential head claim.
+# Explicit evidence semantics — not a self-referential "current head" claim.
+# Final reviewer disposition binds to the post-binding PR tip separately.
+reviewed_head_sha: "b37247aba390080ee3acd7d4f971b53d47fa695e"
+reviewed_head_role: pre-binding_exact_evidence_head
+ci_run_id: "31612017121"
+ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31612017121"
 proof_head_semantics: VALID_EVIDENCE_BINDING_NOT_SELF_REF
 public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
 public_pr10_status: MERGED
