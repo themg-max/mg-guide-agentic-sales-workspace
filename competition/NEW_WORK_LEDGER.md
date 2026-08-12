@@ -22,10 +22,10 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-010 | 2026-08-11 | Phase 1 deterministic CI workflow (pytest-only) | DONE | Auth `MG_GUIDE_PHASE1_CI_V1`; branch `chore/phase1-deterministic-ci`; no secrets; contents:read |
 | NW-003 | 2026-08-11 | Phase 2A GHL MCP meta-discovery (tools/list + search/describe ops only) | DONE | Auth `MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1`; PR #4; zero record reads; zero writes; PASS_WITH_BLOCKERS |
 | NW-004 | 2026-08-12 | Gemini/ADK vertical-slice units 1–3 — Meeting + Relationship + Follow-Up Planning | DONE | **CLOSED_SUCCESS**; grant `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1`; Unit 1 MERGED_COMPLETE (PR #10 / `469ae3ba9962895bd77bebb9e5b2b44a8faac6e7`); Unit 2 MERGED_COMPLETE (PR #11 head `3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa` / merge `a3d5a5731d7342463fe365e597e5d974d3420d08`; final CI 31616758231 SUCCESS); Unit 3 MERGED_COMPLETE (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / final exact-head CI 31623771005 SUCCESS / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; merged `2026-08-12T17:47:49Z`; impl evidence head `09c6a95dafa6e09f8244813e32a054aa27635d5c` / CI 31623557067); all six scenarios PASS, deterministic policy gate invoked, EXTERNAL_EFFECTS=0; no live GHL / no writes / no deployment |
-| NW-005 | TBD | Firestore audit writer | PLANNED | `workflow_runs/{run_id}` |
-| NW-006 | 2026-08-12 | MG Guide Meeting Follow-Up card experience | IMPLEMENTED_PENDING_REVIEW | Competition-local host-agnostic deterministic card renderer/reference component landed on `feat/nw006-meeting-follow-up-card`; packet-input CardViewModel mapper + text/html renderers + stdout-only CLI + synthetic packet fixtures + tests; no private host wiring; no mutation execution; zero external effects |
-| NW-007 | TBD | Cloud Run deployment (test) | PLANNED | Requires activation authority; not part of foundation |
-| NW-008 | TBD | Acceptance tests AT-1…AT-10 + demo proof | PLANNED | Synthetic data only |
+| NW-005 | TBD | Firestore audit writer | PLANNED | `workflow_runs/{run_id}`; required before honest AT-10; no Firestore writes authorized under completed lanes |
+| NW-006 | 2026-08-12 | MG Guide Meeting Follow-Up card experience | MERGED_COMPLETE | PR #15 **MERGED**; final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627`; exact-head CI **31630399411** SUCCESS; merge SHA `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; merged_at `2026-08-12T19:12:33Z`; competition-local host-agnostic deterministic card renderer/reference component; no private host wiring; no mutation execution; `EXTERNAL_EFFECTS=0`; closeout `proof/nw006/nw-006-merge-closeout.md` |
+| NW-007 | TBD | Cloud Run deployment (test) | PLANNED | Requires activation authority; not part of foundation; sequenced before deployed demo claims in NW-008 |
+| NW-008 | 2026-08-12 | Acceptance tests AT-1…AT-10 + demo proof | PLANNED | Planning-only readiness matrix + implementation packet under `proof/nw008/**`; historical AT definitions preserved; **no AT marked complete** from synthetic card tests alone; dependency order recorded (NW-006 closeout → optional NW-013 → NW-005 → NW-007 → NW-008 → future safe-env mutation lane) |
 | NW-011 | 2026-08-11 | Phase 1 deterministic CI workflow proof | DONE | Branch `chore/phase1-deterministic-ci`; Python-only deterministic verification; no secrets or runtime dependencies |
 | NW-012 | 2026-08-11 | Isolated GHL test-account record-read compatibility probe | NOT_PURSUIED_ENVIRONMENT_UNAVAILABLE | No isolated GHL hackathon/test location can be provided; path retired. Proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` never activated; zero record reads; zero writes |
 | NW-013 | 2026-08-12 | Canonical GHL location synthetic-record read proof | AUTHORIZED_NOT_EXECUTED | Grant `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`; human binding complete; `HUMAN_SIGNATURE=APPROVED`; `CURRENT_GRANT_STATE=AUTHORIZED_FOR_EXECUTION`; private allowlist complete (IDs not public); PIT canonical location verified; IAM change not required; branch `gov/mg-guide-ghl-canonical-synthetic-read-binding-v1`; **GHL_LIVE_CALLS=0**, **GHL_WRITES=0**; live reads still unexecuted |
@@ -42,7 +42,9 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - NW-012 is retired (no isolated GHL hackathon/test location exists); the proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` was never activated and no record probes occurred.
 - NW-013 is **human-authorized but not live-executed** (`AUTHORIZED_FOR_EXECUTION` / `AUTHORIZED_NOT_EXECUTED`). The canonical GHL location is **not** a test environment. Live reads remain deferred to a separate bounded unit under the private exact-ID allowlist (`GHL_LIVE_CALLS=0` on the binding unit).
 - Phase 2B live GHL access has **not** started. NW-014 closed the offline adapter only (`network=NONE`); no live GHL claim is made by this closeout.
-- Gemini/ADK implementation is **authorized and closed** under NW-004 (`NW004_STATUS=DONE`, `NW004_CLOSEOUT_STATUS=CLOSED_SUCCESS`, `PHASE3_UNIT1_STATUS=MERGED_COMPLETE`, `PHASE3_UNIT2_STATUS=MERGED_COMPLETE`, `PHASE3_UNIT3_STATUS=MERGED_COMPLETE`, `GEMINI_ADK_AUTHORIZED=YES`). Unit 1 provider surface remains `COMPATIBLE_SURFACE_ONLY`. Unit 2 runtime truth: `GOOGLE_ADK_RUNTIME_STARTED=YES`, `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`. Unit 3 runtime truth: `FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED=YES`, `GOOGLE_ADK_RUNTIME_REUSED=YES`, `DETERMINISTIC_POLICY_GATE_INVOKED=YES`, `DETERMINISTIC_POLICY_BYPASS=NO`, `EXTERNAL_EFFECTS=0`. At NW-004 closeout the remaining vertical-slice layers (mutation execution, Firestore audit, MG Guide card experience, and deployment) stayed out of scope; NW-006 is now IMPLEMENTED_PENDING_REVIEW on `feat/nw006-meeting-follow-up-card`, while mutation execution, Firestore audit (NW-005), and deployment (NW-007) remain separately governed.
+- Gemini/ADK implementation is **authorized and closed** under NW-004 (`NW004_STATUS=DONE`, `NW004_CLOSEOUT_STATUS=CLOSED_SUCCESS`, `PHASE3_UNIT1_STATUS=MERGED_COMPLETE`, `PHASE3_UNIT2_STATUS=MERGED_COMPLETE`, `PHASE3_UNIT3_STATUS=MERGED_COMPLETE`, `GEMINI_ADK_AUTHORIZED=YES`). Unit 1 provider surface remains `COMPATIBLE_SURFACE_ONLY`. Unit 2 runtime truth: `GOOGLE_ADK_RUNTIME_STARTED=YES`, `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`. Unit 3 runtime truth: `FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED=YES`, `GOOGLE_ADK_RUNTIME_REUSED=YES`, `DETERMINISTIC_POLICY_GATE_INVOKED=YES`, `DETERMINISTIC_POLICY_BYPASS=NO`, `EXTERNAL_EFFECTS=0`. At NW-004 closeout the remaining vertical-slice layers (mutation execution, Firestore audit, MG Guide card experience, and deployment) stayed out of scope; **NW-006 is now MERGED_COMPLETE** (PR #15 / head `c7d25b447db0a961c17ae26e326ada230b7e4627` / CI 31630399411 SUCCESS / merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`), while mutation execution, Firestore audit (NW-005), deployment (NW-007), and acceptance/demo proof (NW-008) remain separately governed.
+- NW-006 MERGED_COMPLETE does **not** complete AT-1…AT-10, authorize CRM mutation, authorize Firestore writes, execute NW-013 live reads, or deploy (NW-007). Synthetic card tests are not a substitute for historical acceptance criteria.
+- NW-008 remains **PLANNED** with planning-only readiness artifacts; readiness snapshot: READY=none; PARTIAL=AT-1,AT-2,AT-3,AT-4,AT-5,AT-8,AT-9; DEFERRED=AT-10; BLOCKED=AT-6,AT-7.
 - NW-004 does **not** authorize live GHL, GHL writes, real customer data, L3A promotion, Firestore writes, or deployment (`GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`).
 
 
@@ -57,7 +59,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Public artifacts: `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml`
 - Public Unit 1 implementation: PR #10 MERGED; merge SHA `469ae3ba9962895bd77bebb9e5b2b44a8faac6e7`; branch `feat/meeting-follow-up-v1-gemini-adk-vertical-slice`
 - Public Unit 2 implementation: PR #11 MERGED; head SHA `3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa`; merge SHA `a3d5a5731d7342463fe365e597e5d974d3420d08`; branch `feat/meeting-follow-up-v1-adk-relationship-context-unit2`; final CI run 31616758231 SUCCESS
-- Public Unit 3 closeout: Follow-Up Planning Agent; branch `feat/meeting-follow-up-v1-follow-up-planning-agent-unit3`; PR #13 **MERGED**; final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba`; final exact-head CI run **31623771005** SUCCESS; merge SHA `91927e4cfeb5010cf399ae870ad0897156dff03e`; merged `2026-08-12T17:47:49Z`; implementation evidence head `09c6a95dafa6e09f8244813e32a054aa27635d5c` / CI **31623557067** SUCCESS (preserved separately; not the final reviewed tip); proof `proof/phase3/unit3/proof-return.yaml`; closeout `proof/phase3/unit3/unit3-merge-closeout.md`; all six scenarios PASS; **NW-006 now IMPLEMENTED_PENDING_REVIEW** on branch `feat/nw006-meeting-follow-up-card`
+- Public Unit 3 closeout: Follow-Up Planning Agent; branch `feat/meeting-follow-up-v1-follow-up-planning-agent-unit3`; PR #13 **MERGED**; final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba`; final exact-head CI run **31623771005** SUCCESS; merge SHA `91927e4cfeb5010cf399ae870ad0897156dff03e`; merged `2026-08-12T17:47:49Z`; implementation evidence head `09c6a95dafa6e09f8244813e32a054aa27635d5c` / CI **31623557067** SUCCESS (preserved separately; not the final reviewed tip); proof `proof/phase3/unit3/proof-return.yaml`; closeout `proof/phase3/unit3/unit3-merge-closeout.md`; all six scenarios PASS; **NW-006 later MERGED_COMPLETE** via PR #15 (see NW-006 section below)
 - Architecture (max four): Meeting Context Agent · Relationship Context Agent · Follow-Up Planning Agent · DETERMINISTIC POLICY GATE
 - Allowed: Gemini/ADK (bounded test/dev), synthetic transcripts/CRM fixtures, Phase1 contracts, Phase2B offline adapter read/use, deterministic policy, tests, sanitized proof
 - Denied: live GHL reads/writes, broad CRM search, real customer data, L3A promotion, Firestore writes, deployment, IAM/secret mutation, raw REST, authority expansion, policy bypass
@@ -71,9 +73,47 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Unit 3 delivered proof (merged): `FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED=YES`, `MEETING_CONTEXT_REUSED=YES`, `RELATIONSHIP_CONTEXT_REUSED=YES`, `GOOGLE_ADK_RUNTIME_REUSED=YES`, `FOLLOW_UP_PROPOSAL_OUTPUT=VALID`, `DETERMINISTIC_POLICY_GATE_INVOKED=YES`, `DETERMINISTIC_POLICY_BYPASS=NO`, `EXTERNAL_EFFECTS=0`, `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
 - Unit 3 scenarios (merged): `SUCCESS=PASS`, `AMBIGUOUS_CONTACT=PASS`, `AMBIGUOUS_OPPORTUNITY=PASS`, `NO_OPPORTUNITY=PASS`, `STAGE_CHANGE_DENIED=PASS`, `INSUFFICIENT_CONTEXT=PASS`
 - Unit 3 delivered: Follow-Up Planning Agent (`src/agents/follow_up_planning/**`), `contracts/follow_up_proposal.schema.json`, synthetic fixtures for denied/insufficient paths, Unit 3 tests/harness, `proof/phase3/unit3/**`
-- Explicit Unit 3 non-delivery (historical): live GHL; CRM mutation execution; Firestore audit writer (NW-005); Cloud Run deployment (NW-007). NW-006 card is later IMPLEMENTED_PENDING_REVIEW.
-- Completion bar (full vertical slice still open beyond NW-004): mutation execution + audit + MG Guide card + deployment remain separately governed; agent/policy packet path for Units 1–3 is closed with `EXTERNAL_EFFECTS=0`
-- Next: complete NW-006 PR review/merge for branch `feat/nw006-meeting-follow-up-card`; NW-005 and NW-007 remain separately governed
+- Explicit Unit 3 non-delivery (historical): live GHL; CRM mutation execution; Firestore audit writer (NW-005); Cloud Run deployment (NW-007). NW-006 card is later **MERGED_COMPLETE** (PR #15).
+- Completion bar (full vertical slice still open beyond NW-004/NW-006): mutation execution + audit + deployment + AT-1…AT-10 demo proof remain separately governed; agent/policy packet path for Units 1–3 is closed with `EXTERNAL_EFFECTS=0`; card path closed with `EXTERNAL_EFFECTS=0`
+- Next: optional NW-013 bounded synthetic live-read execution; then NW-005 → NW-007 → NW-008; CRM mutation only under a future separately authorized safe-environment lane
+
+## NW-006 MG Guide Meeting Follow-Up card (MERGED_COMPLETE)
+
+- Date (UTC): 2026-08-12
+- Status: **MERGED_COMPLETE**
+- Public PR: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/15 (**MERGED**)
+- Final reviewed head: `c7d25b447db0a961c17ae26e326ada230b7e4627`
+- Exact-head CI run: **31630399411** SUCCESS
+- Merge SHA: `e22eb861442a37be0797d6d7aec8bb17001fb7a3`
+- Merged at: `2026-08-12T19:12:33Z`
+- Branch (implementation): `feat/nw006-meeting-follow-up-card`
+- Closeout branch (docs): `chore/nw006-closeout-competition-readiness`
+- Durable markers:
+
+```text
+NW006_STATUS=MERGED_COMPLETE
+NW006_PR=15
+NW006_FINAL_REVIEWED_HEAD=c7d25b447db0a961c17ae26e326ada230b7e4627
+NW006_EXACT_HEAD_CI_RUN=31630399411
+NW006_EXACT_HEAD_CI_RESULT=SUCCESS
+NW006_MERGE_SHA=e22eb861442a37be0797d6d7aec8bb17001fb7a3
+NW006_MERGED_AT=2026-08-12T19:12:33Z
+EXTERNAL_EFFECTS=0
+```
+
+- Scope delivered: competition-local host-agnostic deterministic card mapper/renderers/CLI; required CardViewModel schema; synthetic packet fixtures + expected snapshots; card tests; implementation packet + proof return + merge closeout
+- Explicit non-delivery: private authenticated MG Guide host integration; CRM mutation; GHL live calls/writes; Firestore writer; deployment; AT-1…AT-10 completion claims
+- Artifacts: `proof/nw006/nw-006-merge-closeout.md`, `proof/nw006/nw-006-implementation-packet.md`, `proof/nw006/proof-return.yaml`, `src/mg_guide/meeting_follow_up_card/**`, `contracts/mg_guide_meeting_follow_up_card.schema.json`, `fixtures/nw006/**`, `tests/mg_guide/meeting_follow_up_card/**`
+
+## NW-008 acceptance readiness (PLANNED — planning only)
+
+- Date (UTC): 2026-08-12
+- Status: **PLANNED** (no acceptance execution in the NW-006 closeout unit)
+- Historical criteria source: `docs/MEETING_FOLLOW_UP_FOUNDATION.md` §17 (AT-1…AT-10 verbatim; not silently revised)
+- Artifacts: `proof/nw008/nw-008-readiness-matrix.md`, `proof/nw008/nw-008-implementation-packet.md`
+- Readiness snapshot: READY=none; PARTIAL=AT-1,AT-2,AT-3,AT-4,AT-5,AT-8,AT-9; DEFERRED=AT-10; BLOCKED=AT-6,AT-7
+- Recommended dependency order: NW-006 closeout → optional NW-013 bounded synthetic live-read → NW-005 Firestore audit auth/impl → NW-007 bounded Cloud Run/test deploy → NW-008 final acceptance/demo proof → CRM mutation only under a future separately authorized safe-environment lane
+- Constraints retained: no isolated GHL test location; canonical GHL location is not a test environment; NW-013 AUTHORIZED_NOT_EXECUTED; no GHL writes authorized; no Firestore writes authorized under completed lanes; production/customer data forbidden; raw REST forbidden; deterministic policy sole consequential-action authorization surface
 
 
 ## NW-013 canonical synthetic-read binding (AUTHORIZED_NOT_EXECUTED)

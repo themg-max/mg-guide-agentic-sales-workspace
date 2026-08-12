@@ -641,3 +641,43 @@
   - Documentary truth reconciliation for README / ledger / collaboration log
 - **Proof marker added:** `CARD_VIEWMODEL_SCHEMA_VALIDATION=PASS`
 - **STOP target after publish:** `STOP_CODE=NW006_PR_OPEN_READY_FOR_EXACT_HEAD_REVIEW`
+
+### 2026-08-12 — NW-006 merge closeout + NW-008 competition readiness packet (planning only)
+
+- **Human owner / operator:** Aaron Chandler / repository maintainer
+- **Tool / AI surfaces:** VS Code + MG Orchestrator + Copilot CLI runtime
+- **Objective:** Truth-bind NW-006 as MERGED_COMPLETE from merged PR #15 and prepare planning-only NW-008 readiness matrix + implementation packet; no runtime/cloud/CRM mutation work
+- **Required preflight executed:** `pwd`; `git branch --show-current`; `git status --short --untracked-files=all`; `git fetch origin`
+- **Branch guard:** not `main` for mutation work; local `main` fast-forwarded to `origin/main`; fresh branch `chore/nw006-closeout-competition-readiness` from `e22eb861442a37be0797d6d7aec8bb17001fb7a3`
+- **Verified GitHub truth preserved exactly:**
+  - `NW006_STATUS=MERGED_COMPLETE`
+  - `NW006_PR=15`
+  - `NW006_FINAL_REVIEWED_HEAD=c7d25b447db0a961c17ae26e326ada230b7e4627`
+  - `NW006_EXACT_HEAD_CI_RUN=31630399411`
+  - `NW006_EXACT_HEAD_CI_RESULT=SUCCESS`
+  - `NW006_MERGE_SHA=e22eb861442a37be0797d6d7aec8bb17001fb7a3`
+  - `NW006_MERGED_AT=2026-08-12T19:12:33Z`
+  - `EXTERNAL_EFFECTS=0`
+- **Artifacts touched (authorized paths only):**
+  - `proof/nw006/nw-006-merge-closeout.md`
+  - `proof/nw008/nw-008-readiness-matrix.md`
+  - `proof/nw008/nw-008-implementation-packet.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+  - `README.md`
+- **NW-008 readiness snapshot (historical AT definitions preserved verbatim):**
+  - READY: none
+  - PARTIAL: AT-1, AT-2, AT-3, AT-4, AT-5, AT-8, AT-9
+  - DEFERRED: AT-10
+  - BLOCKED: AT-6, AT-7
+- **Recommended dependency sequence recorded:** NW-006 closeout → optional NW-013 bounded synthetic live-read → NW-005 Firestore audit auth/impl → NW-007 bounded Cloud Run/test deploy → NW-008 final acceptance/demo proof → CRM mutation only under a future separately authorized safe-environment lane
+- **Constraints retained:** no isolated GHL test location; canonical GHL location is not a test environment; NW-013 AUTHORIZED_NOT_EXECUTED; no GHL writes authorized; no Firestore writes authorized under completed lanes; NW-005/NW-007 remain PLANNED; production/customer data forbidden; raw REST forbidden; deterministic policy sole consequential-action authorization surface
+- **Validation:** `python3 -m pytest -q`; `git diff --check`; exact-path staging only (never `git add .`)
+- **Out of scope / refused this unit:**
+  - NW-005 / NW-007 / NW-008 runtime implementation
+  - CRM mutation execution
+  - NW-013 live read execution
+  - deployment / IAM / secret changes
+  - silent revision of historical AT-1…AT-10 criteria
+  - marking ATs complete from synthetic card tests alone
+- **STOP:** `STOP_CODE=NW006_CLOSED_NW008_READINESS_PACKET_READY_FOR_REVIEW`

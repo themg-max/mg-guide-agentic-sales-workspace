@@ -3,21 +3,23 @@
 **Competition:** Google All Things Agentic Hackathon
 **Target track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
-**Project status:** **PHASE 3 CLOSED FOR UNIT 3 — Unit 1 MERGED; Unit 2 MERGED; Unit 3 MERGED (PR #13 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`); NW-004 CLOSED_SUCCESS; NW-006 IMPLEMENTED_PENDING_REVIEW (branch `feat/nw006-meeting-follow-up-card`)**
+**Project status:** **PHASE 3 CLOSED FOR UNIT 3 — Unit 1 MERGED; Unit 2 MERGED; Unit 3 MERGED (PR #13 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`); NW-004 CLOSED_SUCCESS; NW-006 MERGED_COMPLETE (PR #15 / head `c7d25b447db0a961c17ae26e326ada230b7e4627` / CI 31630399411 / merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`); NW-008 PLANNED (readiness packet only)**
 
 This repository is the standalone, competition-period home for the MG Guide
 Agentic Sales Workspace. It establishes durable provenance for the
 `meeting_follow_up_v1` vertical slice using **synthetic / test data only**.
 
-> Phase 3 is now closed for Unit 3: Phase 1 deterministic foundation and the
+> Phase 3 is closed for Unit 3: Phase 1 deterministic foundation and the
 > Phase 2B offline GHL read adapter are merged; Phase 3 Unit 1 (Meeting
 > Context Agent) is merged; Phase 3 Unit 2 (Google ADK package runtime
 > orchestration + Relationship Context Agent) is merged (PR #11); Phase 3
 > Unit 3 (Follow-Up Planning Agent) is merged (PR #13). The competition-local
-> NW-006 Meeting Follow-Up card module is implemented pending review. Remaining
-> governed work is mutation execution, Firestore audit, deployment, and private
-> host integration. There are still **no** live CRM calls, no Firestore writes,
-> and no deployment.
+> NW-006 Meeting Follow-Up card module is **MERGED_COMPLETE** (PR #15). Remaining
+> governed work is optional NW-013 live synthetic read execution, Firestore
+> audit (NW-005), deployment (NW-007), acceptance/demo proof (NW-008), mutation
+> execution under a future safe-environment lane, and private host integration.
+> There are still **no** live CRM calls, no Firestore writes, and no deployment.
+> Historical AT-1…AT-10 are **not** complete merely because synthetic card tests pass.
 
 ---
 
@@ -44,15 +46,19 @@ follow-up record** without the salesperson manually summarizing the
 conversation, finding the CRM contact, deciding the pipeline state, and
 documenting the next step.
 
-This repository now includes the competition-local NW-006 MG Guide Meeting
-Follow-Up card renderer/reference component with no mutation controls and zero
-external effects.
+This repository now includes the merged competition-local NW-006 MG Guide
+Meeting Follow-Up card renderer/reference component with no mutation controls
+and zero external effects. NW-008 acceptance readiness is planning-only.
 
-**Vertical slice promise (when implemented):**
+**Target end-state defined by the original foundation:**
 
 one synthetic transcript in → one verified CRM note, at most one
 policy-permitted opportunity-stage change, one Firestore audit record, and one
 MG Guide next-step brief out.
+
+> Verified CRM mutation and Firestore audit remain undelivered in this branch.
+> The competition-local card and proof artifacts document the target end-state
+> without claiming live verification or runtime write delivery.
 
 ---
 
@@ -84,8 +90,8 @@ MG Guide next-step brief out.
 
 Unit 1, Unit 2, and Unit 3 are implemented offline against synthetic fixtures
 and merged. NW-006 adds a bounded deterministic card module (mapper + text/html
-renderers + stdout-only CLI) and remains host-agnostic with no private
-authenticated integration.
+renderers + stdout-only CLI), is **MERGED_COMPLETE** on `main` via PR #15, and
+remains host-agnostic with no private authenticated integration.
 
 | Layer | Role |
 | --- | --- |
@@ -202,6 +208,10 @@ PYTHONPATH=src python3 -m agents.adk_runtime
 
 # 6. Phase 3 unit 3 — Follow-Up Planning Agent (proposal + policy gate + packet; intent-only)
 PYTHONPATH=src python3 -m agents.follow_up_planning
+
+# 7. NW-006 Meeting Follow-Up card (stdout-only; synthetic packet in → text/html out)
+PYTHONPATH=src python3 -m mg_guide.meeting_follow_up_card \
+  fixtures/nw006/packets/packet-success.completed.json
 ```
 
 **Available today:**
@@ -214,6 +224,8 @@ PYTHONPATH=src python3 -m agents.follow_up_planning
 - Phase 3 unit 1 Meeting Context Agent fixture harness — **merged** (PR #10; Gemini provider surface; default CI offline)
 - Phase 3 unit 2 Google ADK package runtime orchestration (actual `google-adk` Runner/SequentialAgent/session primitives; fail-closed, no local fallback) + Relationship Context Agent — **merged** (PR #11; synthetic CRM only)
 - Phase 3 unit 3 Follow-Up Planning Agent — **merged** (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / final exact-head CI 31623771005 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; synthetic only; deterministic policy gate invoked; intent-only packet assembly; EXTERNAL_EFFECTS=0)
+- NW-006 MG Guide Meeting Follow-Up card — **MERGED_COMPLETE** (PR #15 final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627` / exact-head CI 31630399411 SUCCESS / merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; host-agnostic renderer only; no mutation controls; EXTERNAL_EFFECTS=0)
+- NW-008 readiness matrix + planning packet — **planning only** (`proof/nw008/**`; historical AT-1…AT-10 not complete)
 
 **Not yet available (do not invent):**
 
@@ -253,16 +265,18 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Gemini / ADK — Meeting Context Agent (unit 1) | **Merged** (PR #10; fixture harness green; live model optional) |
 | Google ADK runtime + Relationship Context Agent (unit 2) | **Merged** (PR #11 / `a3d5a5731d7342463fe365e597e5d974d3420d08`) |
 | Follow-Up Planning Agent (unit 3) | **Merged** (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / CI 31623771005 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; merged `2026-08-12T17:47:49Z`) |
-| MG Guide Meeting Follow-Up card (NW-006) | **IMPLEMENTED_PENDING_REVIEW** — bounded implementation packet at [`proof/nw006/nw-006-implementation-packet.md`](proof/nw006/nw-006-implementation-packet.md), implementation proof at [`proof/nw006/proof-return.yaml`](proof/nw006/proof-return.yaml); no mutation controls; zero external effects; no private host wiring |
-| Full end-to-end competition vertical slice (remaining surfaces) | Not complete; remaining governed work is mutation execution, Firestore audit, deployment, and private host integration |
+| MG Guide Meeting Follow-Up card (NW-006) | **MERGED_COMPLETE** — PR #15; final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627`; exact-head CI **31630399411** SUCCESS; merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; merged `2026-08-12T19:12:33Z`; closeout [`proof/nw006/nw-006-merge-closeout.md`](proof/nw006/nw-006-merge-closeout.md); no mutation controls; zero external effects; no private host wiring |
+| Acceptance tests AT-1…AT-10 + demo proof (NW-008) | **PLANNED** — readiness matrix [`proof/nw008/nw-008-readiness-matrix.md`](proof/nw008/nw-008-readiness-matrix.md); planning packet [`proof/nw008/nw-008-implementation-packet.md`](proof/nw008/nw-008-implementation-packet.md); historical criteria preserved; no AT marked complete from card tests alone |
+| Full end-to-end competition vertical slice (remaining surfaces) | Not complete; remaining governed work is optional NW-013 live synthetic read, Firestore audit (NW-005), deployment (NW-007), NW-008 acceptance/demo proof, future safe-environment mutation lane, and private host integration |
 | Live GHL / CRM writes | Forbidden under current grants |
-| Firestore audit writer | Not implemented |
-| Cloud Run deployment | Not provisioned |
+| Firestore audit writer (NW-005) | Not implemented (PLANNED) |
+| Cloud Run deployment (NW-007) | Not provisioned (PLANNED) |
 | Production CRM writes | Forbidden |
 | External effects (authorized units) | Always 0 |
 
 **Closeout state:** Unit 3 (Follow-Up Planning Agent) has merged under PR #13 and
-NW-006 is implemented on a dedicated branch as a deterministic card renderer.
+NW-006 is **MERGED_COMPLETE** under PR #15 as a deterministic card renderer.
 The Follow-Up Planning Agent still proposes only; the deterministic policy gate
 still evaluates/authorizes; mutation execution, Firestore audit, deployment,
-and private host integration remain separate governed units.
+acceptance/demo proof, and private host integration remain separate governed
+units.
