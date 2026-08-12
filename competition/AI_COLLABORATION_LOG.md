@@ -367,4 +367,3 @@
   - Live GHL/CRM calls or writes
   - L3A promotion, Firestore, deployment, IAM/secret mutation
   - Deterministic policy bypass
-

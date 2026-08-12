@@ -3,6 +3,8 @@ manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 workflow_id: meeting_follow_up_v1
 unit: meeting_context_agent_fixture_harness
 branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
+head_sha: "9492e87"
+public_implementation_pr: 10
 authorization:
   grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
   nw004_status: AUTHORIZED_FOR_IMPLEMENTATION
