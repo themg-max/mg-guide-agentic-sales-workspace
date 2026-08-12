@@ -66,6 +66,7 @@
             "ambiguous",
             "not_found",
             "opportunity_missing",
+            "opportunity_ambiguous",
             "insufficient_context",
             "tool_failure"
           ]

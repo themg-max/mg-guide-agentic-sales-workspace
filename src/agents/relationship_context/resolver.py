@@ -177,9 +177,34 @@ def resolve_relationship(
         }
         return resolution, evidence
 
-    # Prefer single open opportunity; if multiple, take first deterministically by id.
-    opportunities_sorted = sorted(opportunities, key=lambda o: str(o.get("id") or ""))
-    opp = opportunities_sorted[0]
+    if len(opportunities) > 1:
+        # Fail closed: a uniquely matched contact with multiple eligible open
+        # opportunities must not select one. No stage target; requires review.
+        resolution = {
+            "lifecycle": "complete",
+            "status": "opportunity_ambiguous",
+            "contact_id": contact_id,
+            "opportunity_id": None,
+            "match_basis": match_basis,
+            "candidate_count": 1,
+            "current_stage": None,
+            "candidates": candidates,
+            "contact": contact_out,
+            "opportunity": None,
+        }
+        evidence = {
+            "participant_keys": participant_keys,
+            "resolution_confidence": 0.4,
+            "notes": (
+                f"Unique synthetic contact matched but {len(opportunities)} "
+                "eligible open opportunities exist; selected none, no stage "
+                "target, requires human review. Fail-closed, zero CRM writes."
+            ),
+        }
+        return resolution, evidence
+
+    # Single open opportunity.
+    opp = opportunities[0]
     stage_id = opp.get("pipeline_stage_id")
     # Resolve human stage name via pipelines metadata (offline).
     store.get_pipelines()

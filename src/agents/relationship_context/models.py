@@ -46,10 +46,13 @@ class RelationshipContextResult:
         """Map into meeting_follow_up_packet_v1 crm_resolution shape."""
         res = self.resolution
         status = res["status"]
-        # Packet enum uses opportunity_missing; insufficient_context maps to not_found.
+        # Packet enum uses opportunity_missing; insufficient_context maps to
+        # not_found and opportunity_ambiguous maps to ambiguous.
         packet_status = status
         if status == "insufficient_context":
             packet_status = "not_found"
+        elif status == "opportunity_ambiguous":
+            packet_status = "ambiguous"
         return {
             "lifecycle": res["lifecycle"] if res["lifecycle"] == "complete" else "failed",
             "status": packet_status,

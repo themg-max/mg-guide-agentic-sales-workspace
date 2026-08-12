@@ -3,14 +3,18 @@
 **Competition:** Google All Things Agentic Hackathon
 **Target track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
-**Project status:** **PHASE 1 DETERMINISTIC FOUNDATION (synthetic fixtures only)**
+**Project status:** **PHASE 3 IN PROGRESS — Unit 1 (Meeting Context Agent) MERGED; Unit 2 (Google ADK runtime + Relationship Context Agent) current (PR #11, stop before merge)**
 
 This repository is the standalone, competition-period home for the MG Guide
 Agentic Sales Workspace. It establishes durable provenance for the
 `meeting_follow_up_v1` vertical slice using **synthetic / test data only**.
 
-> This repository is a foundation commit only. It does **not** yet run agents,
-> call CRM tools, write to Firestore, or deploy services.
+> Phase 3 is partially implemented: Phase 1 deterministic foundation and the
+> Phase 2B offline GHL read adapter are merged; Phase 3 Unit 1 (Meeting
+> Context Agent) is merged; Phase 3 Unit 2 (Google ADK package runtime
+> orchestration + Relationship Context Agent) is the current reviewed unit.
+> The full vertical slice is **not** complete. There are still **no** live CRM
+> calls, no Firestore writes, and no deployment.
 
 ---
 
@@ -68,7 +72,10 @@ MG Guide next-step brief out.
 
 ---
 
-## Architecture intent (not yet implemented)
+## Architecture (partial Phase 3 implementation state)
+
+Unit 1 and Unit 2 are implemented offline against synthetic fixtures; the
+remaining layers below are still intent only.
 
 | Layer | Role |
 | --- | --- |
@@ -136,10 +143,14 @@ fixtures/
   transcript-*.txt
   transcript-*.expected.json
 src/orchestration/
+src/agents/
+src/integrations/
 tests/
   contracts/
   workflow/
   acceptance/
+  agents/
+  integrations/
 proof/phase1/
 competition/
   NEW_WORK_LEDGER.md
@@ -151,8 +162,8 @@ governance/
 
 ## Reproducible setup (currently valid steps only)
 
-These steps are valid **today** for the foundation repository. Runtime agent,
-GCP, and GHL setup are intentionally omitted until later governed phases.
+These steps are valid **today**. Live GHL, GCP, Firestore, and deployment
+setup remain intentionally omitted until later governed phases.
 
 ```bash
 # 1. Clone
@@ -182,8 +193,8 @@ PYTHONPATH=src python3 -m agents.adk_runtime
 - Acceptance tests for three synthetic fixture packages
 - Local fixture runner (sidecar test doubles only)
 - Phase 2B offline GHL read adapter (synthetic fixtures; no live CRM)
-- Phase 3 unit 1 Meeting Context Agent fixture harness (Gemini provider surface; default CI offline)
-- Phase 3 unit 2 Google ADK runtime orchestration + Relationship Context Agent (synthetic CRM only; stop before Follow-Up Planning Agent)
+- Phase 3 unit 1 Meeting Context Agent fixture harness — **merged** (PR #10; Gemini provider surface; default CI offline)
+- Phase 3 unit 2 Google ADK package runtime orchestration (actual `google-adk` Runner/SequentialAgent/session primitives; fail-closed, no local fallback) + Relationship Context Agent — **current unit** (PR #11; synthetic CRM only; stop before Follow-Up Planning Agent)
 
 **Not yet available (do not invent):**
 
@@ -220,7 +231,8 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Foundation docs / contracts / fixtures | Present |
 | Phase 1 deterministic engine + tests | Present |
 | Phase 2B offline GHL read adapter | Present (synthetic only) |
-| Gemini / ADK — Meeting Context Agent (unit 1) | Implemented (fixture harness green; live model optional) |
+| Gemini / ADK — Meeting Context Agent (unit 1) | **Merged** (PR #10; fixture harness green; live model optional) |
+| Google ADK runtime + Relationship Context Agent (unit 2) | **Current** (PR #11; google-adk package backend; stop before merge) |
 | Full Phase 3 vertical slice (remaining agents/packet) | Not complete |
 | Live GHL / CRM writes | Forbidden under current grants |
 | Firestore audit writer | Not implemented |
@@ -228,5 +240,6 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Production CRM writes | Forbidden |
 | External effects (authorized units) | Always 0 |
 
-**Stop after unit 1:** Meeting Context Agent harness is the first Phase 3
-implementation unit. Do not expand blast radius without a reviewed follow-on unit.
+**Stop after unit 2:** the Google ADK runtime + Relationship Context Agent
+unit stops before the Follow-Up Planning Agent and before merge of PR #11.
+Do not expand blast radius without a reviewed follow-on unit.

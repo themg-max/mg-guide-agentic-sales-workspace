@@ -1,0 +1,61 @@
+{
+  "fixture_id": "transcript-ambiguous-opportunity",
+  "run_id": "run_demo_ambiguous_opportunity_001",
+  "meeting": {
+    "meeting_id": "demo_meeting_004",
+    "occurred_at": "2026-08-10T18:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "053a004a25b193585e5563c56140bcb259a5f9c23d2e3e5dceb7b07af1ab8765"
+  },
+  "participants": [
+    {
+      "name": "Morgan Case",
+      "email": "morgan.case@example-demo.test",
+      "phone": "+1-555-0401",
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "Reconnect call with prospect who has multiple parallel open opportunities; prospect explicitly defers opportunity mapping.",
+    "needs": [
+      "keep parallel deal threads separate"
+    ],
+    "objections": [
+      "do not attach meeting to either open deal yet"
+    ],
+    "commitments": [
+      {
+        "owner": "Alex Rivera",
+        "action": "Review internally which opportunity this meeting maps to",
+        "due_date": null
+      }
+    ],
+    "next_step": {
+      "action": "Internal review of opportunity mapping before any CRM mutation",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": null
+  },
+  "extraction_confidence": 0.9,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_ambopp_summary"
+    }
+  ],
+  "unit2_expectation": {
+    "scenario_id": "AMBIGUOUS_OPPORTUNITY",
+    "expected_resolution_status": "opportunity_ambiguous",
+    "contact_id": "contact_demo_morgan_multi_001",
+    "opportunity_id": null,
+    "current_stage": null,
+    "external_effects": 0
+  }
+}

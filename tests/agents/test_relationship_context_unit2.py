@@ -8,11 +8,11 @@ from pathlib import Path
 import pytest
 
 from agents.adk_runtime import (
-    ADK_INTEGRATION_STATUS,
-    GOOGLE_ADK_RUNTIME_STARTED,
+    ADK_STATUS_RUNTIME_INTEGRATED,
+    RUNTIME_BACKEND_GOOGLE_ADK,
+    GoogleAdkPackageUnavailable,
     GoogleAdkRuntime,
     adk_runtime_declaration,
-    runtime_markers,
 )
 from agents.meeting_context import MeetingContextAgent, MeetingContextFixtureHarness
 from agents.meeting_context.providers.gemini_adk_provider import (
@@ -52,15 +52,15 @@ def test_unit2_adk_runtime_markers_distinct_from_unit1_provider_surface():
     """Unit 1 provider remains surface-only; Unit 2 runtime is integrated."""
     assert UNIT1_ADK_RUNTIME is False
     assert UNIT1_ADK_STATUS == "COMPATIBLE_SURFACE_ONLY"
-    assert GOOGLE_ADK_RUNTIME_STARTED is True
-    assert ADK_INTEGRATION_STATUS == "RUNTIME_INTEGRATED"
-    markers = runtime_markers()
+    runtime = GoogleAdkRuntime()
+    runtime.start()
+    markers = runtime.telemetry()
     assert markers["google_adk_runtime_started"] is True
     assert markers["adk_integration_status"] == "RUNTIME_INTEGRATED"
     assert markers["external_effects"] == 0
     assert markers["ghl_live_calls"] == 0
     assert markers["ghl_writes"] == 0
-    decl = adk_runtime_declaration()
+    decl = adk_runtime_declaration(runtime)
     assert decl["google_adk_runtime_started"] is True
     assert decl["integration_status"] == "RUNTIME_INTEGRATED"
     assert decl["stop_before"] == "follow_up_planning_agent"
@@ -76,11 +76,68 @@ def test_adk_runtime_starts_and_reports_backend():
     assert runtime.started is True
     tel = runtime.telemetry()
     assert tel["runtime_started"] is True
-    assert tel["google_adk_runtime_started"] is True
-    assert tel["adk_integration_status"] == "RUNTIME_INTEGRATED"
+    assert tel["google_adk_package_bound"] is True
+    assert tel["runtime_backend"] == RUNTIME_BACKEND_GOOGLE_ADK
+    assert tel["local_adk_fallback_used"] is False
     assert tel["stop_before"] == "follow_up_planning_agent"
     assert tel["ghl_live_calls"] == 0
     assert tel["deployment"] is False
+
+
+def test_runtime_truth_markers_derived_and_consistent():
+    """Proof truth must equal actual Google ADK execution truth.
+
+    Fails if GOOGLE_ADK_RUNTIME_STARTED=YES while the google-adk package is
+    not bound, or if ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED while the
+    runtime backend is not the google_adk_package.
+    """
+    harness = Unit2RelationshipHarness()
+    result = harness.run_scenario("RELATIONSHIP_MATCH")
+    assert result.ok, result.errors
+
+    runtime = GoogleAdkRuntime()
+    runtime.start()
+    req = harness._load_meeting_request("transcript-success")
+    run = runtime.run_unit2(meeting_request=req, scenario_id="RELATIONSHIP_MATCH")
+    tel = runtime.telemetry()
+
+    if tel["google_adk_runtime_started"] is True:
+        assert tel["google_adk_package_bound"] is True
+    if tel["adk_integration_status"] == ADK_STATUS_RUNTIME_INTEGRATED:
+        assert tel["runtime_backend"] == RUNTIME_BACKEND_GOOGLE_ADK
+    if run.google_adk_runtime_started:
+        assert run.google_adk_package_bound is True
+    if run.adk_integration_status == ADK_STATUS_RUNTIME_INTEGRATED:
+        assert run.session.backend == RUNTIME_BACKEND_GOOGLE_ADK
+
+    # Expected positive truth for this PR: package-bound ADK execution.
+    assert run.ok, run.errors
+    assert run.google_adk_package_bound is True
+    assert run.google_adk_runtime_started is True
+    assert run.adk_integration_status == ADK_STATUS_RUNTIME_INTEGRATED
+    assert run.session.backend == RUNTIME_BACKEND_GOOGLE_ADK
+    assert run.adk_runtime_primitive_used is True
+    assert run.local_adk_fallback_used is False
+
+
+def test_runtime_fails_closed_without_google_adk_package(monkeypatch):
+    """No local fallback: missing google-adk package => runtime never starts."""
+    import agents.adk_runtime.runtime as runtime_mod
+
+    def _raise():
+        raise GoogleAdkPackageUnavailable("simulated missing package")
+
+    monkeypatch.setattr(runtime_mod, "_import_google_adk_primitives", _raise)
+    runtime = GoogleAdkRuntime()
+    with pytest.raises(GoogleAdkPackageUnavailable):
+        runtime.start()
+    assert runtime.started is False
+    assert runtime.google_adk_package_bound is False
+    assert runtime.backend != RUNTIME_BACKEND_GOOGLE_ADK
+    tel = runtime.telemetry()
+    assert tel["google_adk_runtime_started"] is False
+    assert tel["adk_integration_status"] == "NOT_STARTED"
+    assert tel["local_adk_fallback_used"] is False
 
 
 @pytest.mark.parametrize(
@@ -89,6 +146,7 @@ def test_adk_runtime_starts_and_reports_backend():
         ("RELATIONSHIP_MATCH", "matched"),
         ("AMBIGUOUS_CONTACT", "ambiguous"),
         ("NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT", "opportunity_missing"),
+        ("AMBIGUOUS_OPPORTUNITY", "opportunity_ambiguous"),
     ],
 )
 def test_unit2_scenarios(scenario_id, expected_status):
@@ -99,6 +157,10 @@ def test_unit2_scenarios(scenario_id, expected_status):
     assert result.external_effects == 0
     assert result.deterministic_policy_bypass is False
     assert result.offline_ghl_adapter_used is True
+    assert result.google_adk_package_bound is True
+    assert result.adk_runtime_primitive_used is True
+    assert result.local_adk_fallback_used is False
+    assert result.runtime_backend == RUNTIME_BACKEND_GOOGLE_ADK
     assert result.relationship_context is not None
     ok, errors = validate_relationship_context(result.relationship_context)
     assert ok, errors
@@ -117,8 +179,12 @@ def test_unit2_scenarios(scenario_id, expected_status):
 def test_full_unit2_harness():
     report = run_unit2_harness()
     assert report.ok, report.to_dict()
+    assert report.google_adk_package_bound is True
     assert report.google_adk_runtime_started is True
     assert report.adk_integration_status == "RUNTIME_INTEGRATED"
+    assert report.adk_runtime_backend == RUNTIME_BACKEND_GOOGLE_ADK
+    assert report.adk_runtime_primitive_used is True
+    assert report.local_adk_fallback_used is False
     assert report.meeting_context_agent_reused is True
     assert report.relationship_context_agent_implemented is True
     assert report.offline_ghl_adapter_used is True
@@ -130,8 +196,20 @@ def test_full_unit2_harness():
         "RELATIONSHIP_MATCH": "PASS",
         "AMBIGUOUS_CONTACT": "PASS",
         "NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT": "PASS",
+        "AMBIGUOUS_OPPORTUNITY": "PASS",
     }
-    assert len(report.cases) == 3
+    assert len(report.cases) == 4
+    markers = report.proof_markers()
+    assert markers["GOOGLE_ADK_PACKAGE_BOUND"] == "YES"
+    assert markers["GOOGLE_ADK_RUNTIME_STARTED"] == "YES"
+    assert markers["ADK_INTEGRATION_STATUS"] == "RUNTIME_INTEGRATED"
+    assert markers["ADK_RUNTIME_BACKEND"] == "google_adk_package"
+    assert markers["ADK_RUNTIME_PRIMITIVE_USED"] == "YES"
+    assert markers["LOCAL_ADK_FALLBACK_USED"] == "NO"
+    assert markers["DETERMINISTIC_POLICY_BYPASS"] == "NO"
+    assert markers["EXTERNAL_EFFECTS"] == 0
+    assert markers["GHL_LIVE_CALLS"] == 0
+    assert markers["GHL_WRITES"] == 0
 
 
 def test_relationship_match_has_contact_and_opportunity():
@@ -168,6 +246,44 @@ def test_no_opportunity_unique_contact():
     assert res["opportunity_id"] is None
     assert res["contact"] is not None
     assert res["opportunity"] is None
+
+
+def test_ambiguous_opportunity_fail_closed():
+    """Unique contact + multiple eligible open opportunities => select none."""
+    result = Unit2RelationshipHarness().run_scenario("AMBIGUOUS_OPPORTUNITY")
+    assert result.ok, result.errors
+    res = result.relationship_context["resolution"]
+    assert res["status"] == "opportunity_ambiguous"
+    assert res["contact_id"] == "contact_demo_morgan_multi_001"
+    assert res["opportunity_id"] is None
+    assert res["current_stage"] is None
+    assert res["candidate_count"] == 1
+    assert res["contact"] is not None
+    assert res["opportunity"] is None
+    assert "review" in result.relationship_context["evidence"]["notes"].lower()
+    assert result.external_effects == 0
+    crm = result.relationship_context["crm_source"]
+    assert crm["live_calls"] == 0
+    assert crm["writes"] == 0
+
+
+def test_ambiguous_opportunity_overlay_maps_to_ambiguous():
+    store = SyntheticCrmStore.from_fixture_path(CRM_FIXTURE)
+    harness = Unit2RelationshipHarness()
+    mc_result = harness._meeting_agent().run(
+        harness._load_meeting_request("transcript-ambiguous-opportunity")
+    )
+    agent = RelationshipContextAgent(store=store)
+    rel = agent.run(
+        RelationshipRequest(
+            meeting_context=mc_result.to_dict(), run_id="overlay_ambopp"
+        )
+    )
+    overlay = rel.to_crm_resolution_overlay()
+    assert overlay["status"] == "ambiguous"
+    assert overlay["contact_id"] == "contact_demo_morgan_multi_001"
+    assert overlay["opportunity_id"] is None
+    assert overlay["current_stage"] is None
 
 
 def test_crm_resolution_overlay_packet_compatible():
@@ -276,4 +392,5 @@ def test_default_scenarios_cover_required_proof_keys():
         "RELATIONSHIP_MATCH",
         "AMBIGUOUS_CONTACT",
         "NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT",
+        "AMBIGUOUS_OPPORTUNITY",
     }

@@ -8,10 +8,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
-from agents.adk_runtime import GoogleAdkRuntime, adk_runtime_declaration, runtime_markers
-from agents.adk_runtime.markers import (
-    ADK_INTEGRATION_STATUS,
-    GOOGLE_ADK_RUNTIME_STARTED,
+from agents.adk_runtime import (
+    ADK_STATUS_RUNTIME_INTEGRATED,
+    RUNTIME_BACKEND_GOOGLE_ADK,
+    GoogleAdkRuntime,
+    adk_runtime_declaration,
 )
 from agents.meeting_context import MeetingContextAgent
 from agents.meeting_context.providers.base import ProviderRequest
@@ -39,6 +40,10 @@ DEFAULT_SCENARIOS: Dict[str, Dict[str, str]] = {
         "transcript_fixture": "transcript-no-stage-change",
         "expected_status": "opportunity_missing",
     },
+    "AMBIGUOUS_OPPORTUNITY": {
+        "transcript_fixture": "transcript-ambiguous-opportunity",
+        "expected_status": "opportunity_ambiguous",
+    },
 }
 
 
@@ -56,13 +61,20 @@ class Unit2CaseResult:
     deterministic_policy_bypass: bool
     offline_ghl_adapter_used: bool
     runtime_backend: Optional[str]
+    google_adk_package_bound: bool
+    adk_runtime_primitive_used: bool
+    local_adk_fallback_used: bool
 
 
 @dataclass
 class Unit2HarnessReport:
     cases: List[Unit2CaseResult]
+    google_adk_package_bound: bool
     google_adk_runtime_started: bool
     adk_integration_status: str
+    adk_runtime_backend: str
+    adk_runtime_primitive_used: bool
+    local_adk_fallback_used: bool
     meeting_context_agent_reused: bool
     relationship_context_agent_implemented: bool
     offline_ghl_adapter_used: bool
@@ -77,19 +89,57 @@ class Unit2HarnessReport:
     def ok(self) -> bool:
         return (
             all(c.ok for c in self.cases)
+            and self.google_adk_package_bound
             and self.google_adk_runtime_started
-            and self.adk_integration_status == "RUNTIME_INTEGRATED"
+            and self.adk_integration_status == ADK_STATUS_RUNTIME_INTEGRATED
+            and self.adk_runtime_backend == RUNTIME_BACKEND_GOOGLE_ADK
+            and self.adk_runtime_primitive_used
+            and not self.local_adk_fallback_used
             and self.relationship_context_output_valid
             and self.external_effects == 0
             and not self.deterministic_policy_bypass
             and all(v == "PASS" for v in self.scenario_results.values())
         )
 
+    def proof_markers(self) -> Dict[str, Any]:
+        """Proof-surface markers (YES/NO) derived from actual runtime state."""
+        return {
+            "GOOGLE_ADK_PACKAGE_BOUND": (
+                "YES" if self.google_adk_package_bound else "NO"
+            ),
+            "GOOGLE_ADK_RUNTIME_STARTED": (
+                "YES" if self.google_adk_runtime_started else "NO"
+            ),
+            "ADK_INTEGRATION_STATUS": self.adk_integration_status,
+            "ADK_RUNTIME_BACKEND": self.adk_runtime_backend,
+            "ADK_RUNTIME_PRIMITIVE_USED": (
+                "YES" if self.adk_runtime_primitive_used else "NO"
+            ),
+            "LOCAL_ADK_FALLBACK_USED": (
+                "YES" if self.local_adk_fallback_used else "NO"
+            ),
+            "DETERMINISTIC_POLICY_BYPASS": (
+                "YES" if self.deterministic_policy_bypass else "NO"
+            ),
+            "EXTERNAL_EFFECTS": self.external_effects,
+            "GHL_LIVE_CALLS": self.runtime_telemetry.get("ghl_live_calls", 0),
+            "GHL_WRITES": self.runtime_telemetry.get("ghl_writes", 0),
+            "REAL_CUSTOMER_DATA": self.runtime_telemetry.get(
+                "real_customer_data", 0
+            ),
+            **self.scenario_results,
+        }
+
     def to_dict(self) -> Dict[str, Any]:
         return {
             "ok": self.ok,
+            "proof_markers": self.proof_markers(),
+            "google_adk_package_bound": self.google_adk_package_bound,
             "google_adk_runtime_started": self.google_adk_runtime_started,
             "adk_integration_status": self.adk_integration_status,
+            "adk_runtime_backend": self.adk_runtime_backend,
+            "adk_runtime_primitive_used": self.adk_runtime_primitive_used,
+            "local_adk_fallback_used": self.local_adk_fallback_used,
             "meeting_context_agent_reused": self.meeting_context_agent_reused,
             "relationship_context_agent_implemented": (
                 self.relationship_context_agent_implemented
@@ -101,8 +151,6 @@ class Unit2HarnessReport:
             "external_effects": self.external_effects,
             "scenario_results": dict(self.scenario_results),
             "runtime_telemetry": self.runtime_telemetry,
-            "adk_declaration": adk_runtime_declaration(),
-            "markers": runtime_markers(),
             "cases": [
                 {
                     "scenario_id": c.scenario_id,
@@ -115,6 +163,9 @@ class Unit2HarnessReport:
                     "deterministic_policy_bypass": c.deterministic_policy_bypass,
                     "offline_ghl_adapter_used": c.offline_ghl_adapter_used,
                     "runtime_backend": c.runtime_backend,
+                    "google_adk_package_bound": c.google_adk_package_bound,
+                    "adk_runtime_primitive_used": c.adk_runtime_primitive_used,
+                    "local_adk_fallback_used": c.local_adk_fallback_used,
                     "relationship_context": c.relationship_context,
                 }
                 for c in self.cases
@@ -190,13 +241,24 @@ class Unit2RelationshipHarness:
             scenario_id=scenario_id,
         )
 
+        if not run.google_adk_package_bound:
+            errors.append("GOOGLE_ADK_PACKAGE_BOUND expected YES")
         if not run.google_adk_runtime_started:
             errors.append("GOOGLE_ADK_RUNTIME_STARTED expected YES")
-        if run.adk_integration_status != "RUNTIME_INTEGRATED":
+        if run.adk_integration_status != ADK_STATUS_RUNTIME_INTEGRATED:
             errors.append(
                 f"ADK_INTEGRATION_STATUS expected RUNTIME_INTEGRATED, got "
                 f"{run.adk_integration_status}"
             )
+        if run.session.backend != RUNTIME_BACKEND_GOOGLE_ADK:
+            errors.append(
+                f"ADK_RUNTIME_BACKEND expected google_adk_package, got "
+                f"{run.session.backend}"
+            )
+        if not run.adk_runtime_primitive_used:
+            errors.append("ADK_RUNTIME_PRIMITIVE_USED expected YES")
+        if run.local_adk_fallback_used:
+            errors.append("LOCAL_ADK_FALLBACK_USED expected NO")
         if not run.meeting_context_agent_reused:
             errors.append("Meeting Context Agent must be reused")
         if not run.relationship_context_agent_implemented:
@@ -242,6 +304,9 @@ class Unit2RelationshipHarness:
             deterministic_policy_bypass=bypass,
             offline_ghl_adapter_used=run.offline_ghl_adapter_used,
             runtime_backend=run.session.backend,
+            google_adk_package_bound=run.google_adk_package_bound,
+            adk_runtime_primitive_used=run.adk_runtime_primitive_used,
+            local_adk_fallback_used=run.local_adk_fallback_used,
         )
 
     def run(
@@ -259,7 +324,7 @@ class Unit2RelationshipHarness:
             c.ok and c.relationship_context is not None for c in cases
         ) and bool(cases)
 
-        # Fresh runtime telemetry sample.
+        # Fresh runtime telemetry sample (started + primitive use measured).
         sample_runtime = GoogleAdkRuntime(
             meeting_agent=self._meeting_agent(),
             relationship_agent=RelationshipContextAgent(
@@ -269,14 +334,41 @@ class Unit2RelationshipHarness:
         sample_runtime.start()
         telemetry = sample_runtime.telemetry()
 
+        # Primitive use is measured per case run; aggregate from case results.
+        primitive_used = all(c.adk_runtime_primitive_used for c in cases) and bool(
+            cases
+        )
+        package_bound = all(c.google_adk_package_bound for c in cases) and bool(
+            cases
+        )
+        fallback_used = any(c.local_adk_fallback_used for c in cases)
+        backends = {c.runtime_backend for c in cases}
+        runtime_started = (
+            package_bound
+            and primitive_used
+            and telemetry.get("runtime_started") is True
+        )
+        backend = (
+            RUNTIME_BACKEND_GOOGLE_ADK
+            if backends == {RUNTIME_BACKEND_GOOGLE_ADK}
+            else (sorted(backends)[0] if backends else telemetry["runtime_backend"])
+        )
+        integration_status = (
+            ADK_STATUS_RUNTIME_INTEGRATED
+            if runtime_started
+            and backend == RUNTIME_BACKEND_GOOGLE_ADK
+            and not fallback_used
+            else telemetry["adk_integration_status"]
+        )
+
         return Unit2HarnessReport(
             cases=cases,
-            google_adk_runtime_started=bool(
-                GOOGLE_ADK_RUNTIME_STARTED and telemetry.get("runtime_started")
-            ),
-            adk_integration_status=str(
-                telemetry.get("adk_integration_status") or ADK_INTEGRATION_STATUS
-            ),
+            google_adk_package_bound=package_bound,
+            google_adk_runtime_started=bool(runtime_started),
+            adk_integration_status=integration_status,
+            adk_runtime_backend=backend,
+            adk_runtime_primitive_used=primitive_used,
+            local_adk_fallback_used=fallback_used,
             meeting_context_agent_reused=True,
             relationship_context_agent_implemented=True,
             offline_ghl_adapter_used=offline_used,
