@@ -86,10 +86,12 @@ architecture (`packet → deterministic audit projection → workflow_runs/{run_
    fingerprint fields are attached, explicitly excluding `recorded_at`,
    persistence-proof fields, and both fingerprint fields — non-recursive
    (Decision 1c).
-3. **`policy.outcome_summary` demoted** — renamed `display_summary_label`,
-   mapping frozen, explicitly non-authoritative and never a new policy
-   decision; authoritative policy truth remains the exact `policy.*` fields
-   plus `final_disposition` (Decision 2).
+3. **`policy.outcome_summary` removed** — the ambiguous display label
+   (previously `display_summary_label`) is removed from
+   `workflow_run_audit_v1` entirely, along with its projection mapping.
+   Authoritative audit truth remains exactly: `policy.lifecycle`,
+   `policy.note_write`, `policy.stage_write`, `policy.reason_codes`, and
+   `final_disposition` (Decision 2).
 4. **MG Guide coupling removed** — the audit writer must not import or render
    `mg_guide.meeting_follow_up_card`; canonical audit field is
    `packet.run.status`; `card_state` comes from a frozen audit-local mapping
@@ -235,10 +237,9 @@ policy:
   note_write: string
   stage_write: string
   reason_codes: [string]       # packet.policy.reason_codes
-  display_summary_label: string # NON-AUTHORITATIVE display label only; frozen
-                               # mapping in Decision 2; must never contradict
-                               # policy.* / final_disposition and is never a
-                               # new policy decision
+  # NOTE: no display/summary label field. Authoritative audit truth is
+  # exactly policy.lifecycle, policy.note_write, policy.stage_write,
+  # policy.reason_codes, and final_disposition.
 
 # Reason codes (top-level convenience mirror for AT-10)
 reason_codes: [string]         # == policy.reason_codes (deterministic copy)
@@ -469,8 +470,7 @@ arrives via `projection_context`.
 | `provenance.*` | `meeting.*`, `run.status`, `fixture_id`/`source_refs`/writer metadata from `projection_context` |
 | `agent_steps.agents_used` | `packet.audit.agents_used` (stable order copy) |
 | `agent_steps.tools_used` | `packet.audit.tools_used` |
-| `policy.*` | direct copy of `packet.policy.*` |
-| `policy.display_summary_label` | **Frozen, non-authoritative** mapping: `PASS` iff (`note_write=allowed` or `stage_write=allowed`) and lifecycle not blocked/denied; `BLOCKED` iff `note_write=blocked` or run status `blocked`; `DENIED_PARTIAL` iff `stage_write` in {`blocked`, `approval_required`} and `note_write=allowed`; `NOT_ATTEMPTED` iff `policy.lifecycle=not_attempted`. The mapping is frozen in the schema, is a display crumb only, **must never contradict** `policy.*`/`final_disposition`, is never treated as a new policy decision, and never calls the policy engine |
+| `policy.*` | direct copy of `packet.policy.*` (`lifecycle`, `note_write`, `stage_write`, `reason_codes`) |
 | `reason_codes` | copy of `packet.policy.reason_codes` |
 | `mutation_intents` | deep copy of `packet.mutation_intents` |
 | `mutations` | deep copy of `packet.mutations` note/stage flags |
@@ -562,7 +562,7 @@ Minimum provenance that must appear on every stored/emitted audit record:
 | `completed_with_review` | `completed_with_review` | `completed_with_review` | `completed_with_review` | Persist partial-success audit |
 | `blocked` | `blocked` | `blocked` | `blocked` | Persist blocked audit (still required for AT-10) |
 | `failed` | `failed` | `failed` | `failed` | Persist failed audit (still required) |
-| non-terminal (`received`…`writing`, `evaluating`, etc.) | `pending` / null | `non_terminal` | `in_progress` | **Default NW-005: do not write** durable Firestore doc unless explicitly invoked with `allow_non_terminal=true` for debug; Stage A may emit local projection JSON only |
+| non-terminal (`received`…`writing`, `evaluating`, etc.) | `pending` / null | `non_terminal` | `in_progress` | **NW-005 v1: never write** a durable Firestore doc; Stage A/debug may emit local projection JSON only. There is no `allow_non_terminal` flag and no non-terminal → terminal durable upgrade path |
 | status vs disposition mismatch | any | fail closed → no cloud write; local validate error | n/a | Surface `AUDIT_PROJECTION_INCONSISTENT` |
 
 **Semantics notes**
@@ -606,6 +606,13 @@ Aligned with `contracts/workflow_states.yaml` replay rule:
 
 NW-005 audit store rules:
 
+NW-005 v1 persists **terminal states only** (`completed`,
+`completed_with_review`, `blocked`, `failed`). Non-terminal packets may be
+projected locally for Stage A/debug but **MUST NOT** be written to Firestore.
+There is no `allow_non_terminal` flag and no non-terminal → terminal durable
+upgrade path; the audit writer never consults any "policy allows upgrade"
+rule.
+
 Dynamic observations from this table (`prior_terminal_state`,
 `duplicate_write_rejected`) are recorded **only** in the
 `nw005_persistence_proof_v1` envelope (Decision 1b), never on the immutable
@@ -615,12 +622,17 @@ Firestore document, which retains only the static `idempotency.key` /
 | Existing doc | New projection | Behavior |
 | --- | --- | --- |
 | Absent | any terminal | **Create** (Stage B: create-only); envelope records `duplicate_write_rejected=false` |
-| Absent | non-terminal | Default **skip cloud write** |
-| Present, same `content_fingerprint` (Decision 1c exclusion set already omits volatile fields) | same | **No-op success** (idempotent retry); do not increment logical write counters beyond first verified write; may refresh `recorded_at` only if explicitly allowed — **preferred: leave doc unchanged** |
-| Present, terminal T1 | projection terminal T1 with different non-meta fields | **Reject** with `AUDIT_IDEMPOTENCY_CONFLICT`; do not overwrite; envelope records `duplicate_write_rejected=true`, `prior_terminal_state=T1` |
+| Absent | non-terminal | **Never write** to Firestore (terminal-only persistence); local projection JSON only for Stage A/debug |
+| Present, same `projection_input_fingerprint`, same `terminal_state` | same | **No-op success** (idempotent retry); do not increment logical write counters beyond first verified write; leave doc unchanged |
+| Present, terminal T1 | projection terminal T1 with different `projection_input_fingerprint` | **Reject** with `AUDIT_IDEMPOTENCY_CONFLICT`; do not overwrite; envelope records `duplicate_write_rejected=true`, `prior_terminal_state=T1` |
 | Present, terminal T1 | projection terminal T2 ≠ T1 | **Reject** with `AUDIT_TERMINAL_STATE_CONFLICT`; do not overwrite; envelope records `duplicate_write_rejected=true`, `prior_terminal_state=T1` |
-| Present, non_terminal | terminal | **Allow single upgrade write** only if prior doc was explicitly non-terminal and policy allows upgrade path; NW-005 v1 **prefers never writing non-terminal**, so this path should be rare/disabled by default |
 | Present | any | **Never delete** as part of normal write path |
+
+Fingerprint roles: `projection_input_fingerprint` represents the logical
+packet/audit truth and drives the idempotency equivalence above;
+`content_fingerprint` represents stored-document integrity and remains the
+read-back/integrity comparison field (`read_back_compare` in the
+`nw005_persistence_proof_v1` envelope).
 
 Implementation mechanism (Stage B):
 
@@ -812,7 +824,7 @@ AGENT_RERUN_BY_AUDIT_WRITER=NO
 CRM_FETCH_BY_AUDIT_WRITER=NO
 RAW_REST=FORBIDDEN
 PRODUCTION_ACTIVATION=NO
-STOP_CODE=NW005_PACKET_RECONCILED_READY_FOR_REVIEW
+STOP_CODE=NW005_PLANNING_PACKET_FROZEN_READY_FOR_HUMAN_REVIEW
 ```
 
 After a future Stage A coding unit (preview only):
@@ -855,7 +867,7 @@ SECRET_CHANGES=0
 NW007_RUNTIME_CHANGES=0
 NW008_RUNTIME_CHANGES=0
 NW013_EXECUTED=NO
-STOP_CODE=NW005_PACKET_RECONCILED_READY_FOR_REVIEW
+STOP_CODE=NW005_PLANNING_PACKET_FROZEN_READY_FOR_HUMAN_REVIEW
 ```
 
 **Future implementation unit STOP (preview)** — coding may stop when:
@@ -1037,5 +1049,5 @@ NW007_RUNTIME_CHANGES=0
 NW008_RUNTIME_CHANGES=0
 NW013_EXECUTED=NO
 CHANGED_PATH_CLASS=NW005_PLANNING_GOVERNANCE_ONLY
-STOP_CODE=NW005_PACKET_RECONCILED_READY_FOR_REVIEW
+STOP_CODE=NW005_PLANNING_PACKET_FROZEN_READY_FOR_HUMAN_REVIEW
 ```
