@@ -1,0 +1,146 @@
+proof_id: phase3-adk-runtime-relationship-context-unit2-v1
+manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+workflow_id: meeting_follow_up_v1
+unit: google_adk_runtime_plus_relationship_context
+branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+public_implementation_pr: 11
+
+# Explicit evidence semantics — not a self-referential "current head" claim.
+# Final reviewer disposition binds to the post-binding PR tip separately.
+# Repair round: sponsor-tech truth repair supersedes the earlier
+# local-backend evidence head (b37247aba390080ee3acd7d4f971b53d47fa695e).
+reviewed_head_sha: "5878c05a1881e4fde1c70ab1624704fdf8154ba4"
+reviewed_head_role: pre-binding_exact_evidence_head
+repair_of_evidence_head: "b37247aba390080ee3acd7d4f971b53d47fa695e"
+repair_reason: >
+  Prior Unit 2 evidence recorded ADK runtime claims backed by custom local
+  orchestration plus an import-only google.adk binding. Repaired to actual
+  google.adk Runner/SequentialAgent/InMemorySessionService execution with
+  runtime-state-derived markers, fail-closed package binding, an
+  AMBIGUOUS_OPPORTUNITY fail-closed scenario, and README/.env.example truth
+  reconciliation.
+ci_run_id: "31614783508"
+ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31614783508"
+proof_head_semantics: VALID_EVIDENCE_BINDING_NOT_SELF_REF
+public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+public_pr10_status: MERGED
+phase3_unit1_status: MERGED_COMPLETE
+
+authorization:
+  grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+  nw004_status: IN_PROGRESS
+  execution_status: IN_PROGRESS_UNIT2
+  gemini_adk_authorized: "YES"
+  private_phase3_authorization_pr: 2964
+  private_phase3_authorization_merge_sha: "7c3f605504956aa26faf62ce6db0552ba9abe494"
+  public_authorization_sync_pr: 9
+  public_authorization_sync_merge_sha: "e924ce1d95434fc725168ddf1b044045476b04de"
+  public_unit1_implementation_pr: 10
+  public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+
+unit_proof:
+  GOOGLE_ADK_PACKAGE_BOUND: "YES"
+  GOOGLE_ADK_RUNTIME_STARTED: "YES"
+  ADK_INTEGRATION_STATUS: RUNTIME_INTEGRATED
+  ADK_RUNTIME_BACKEND: google_adk_package
+  ADK_RUNTIME_PRIMITIVE_USED: "YES"
+  LOCAL_ADK_FALLBACK_USED: "NO"
+  MEETING_CONTEXT_AGENT_REUSED: "YES"
+  RELATIONSHIP_CONTEXT_AGENT_IMPLEMENTED: "YES"
+  OFFLINE_GHL_ADAPTER_USED: "YES"
+  SYNTHETIC_CRM_CONTEXT_ONLY: "YES"
+  RELATIONSHIP_CONTEXT_OUTPUT: "VALID"
+  DETERMINISTIC_POLICY_BYPASS: "NO"
+  EXTERNAL_EFFECTS: 0
+  # Unit 1 provider surface preserved (distinct markers):
+  UNIT1_PROVIDER_GOOGLE_ADK_RUNTIME_STARTED: "NO"
+  UNIT1_PROVIDER_ADK_INTEGRATION_STATUS: COMPATIBLE_SURFACE_ONLY
+  GEMINI_PROVIDER_STARTED: "YES"
+  GEMINI_ADK_STARTED: "YES"
+
+effects:
+  GHL_LIVE_CALLS: 0
+  GHL_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  L3A_RUNTIME_STATUS: DEFERRED_RUNTIME_NOT_PROMOTED
+  L3A_RUNTIME_PROMOTED: "NO"
+  FIRESTORE_WRITES: 0
+  DEPLOYMENT: "NO"
+  NETWORK_CRM_CALLS: 0
+  external_network_calls_NONE_in_default_ci: true
+  crm_calls_NONE: true
+  cloud_calls_NONE: true
+
+scenarios:
+  - scenario_id: RELATIONSHIP_MATCH
+    transcript_fixture: transcript-success
+    expected_status: matched
+    result: PASS
+  - scenario_id: AMBIGUOUS_CONTACT
+    transcript_fixture: transcript-ambiguous-contact
+    expected_status: ambiguous
+    result: PASS
+  - scenario_id: NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT
+    transcript_fixture: transcript-no-stage-change
+    expected_status: opportunity_missing
+    result: PASS
+  - scenario_id: AMBIGUOUS_OPPORTUNITY
+    transcript_fixture: transcript-ambiguous-opportunity
+    expected_status: opportunity_ambiguous
+    result: PASS
+
+validation:
+  commands:
+    - "PYTHONPATH=src python3 -m pytest -q"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider fixture"
+    - "PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub"
+    - "PYTHONPATH=src python3 -m agents.relationship_context"
+    - "PYTHONPATH=src python3 -m agents.adk_runtime"
+    - "git diff --check"
+  pytest: PASS
+  unit1_fixture_harness: PASS
+  unit1_gemini_adk_stub_harness: PASS
+  unit2_relationship_harness: PASS
+
+artifacts:
+  - contracts/relationship_context.schema.json
+  - contracts/failure_codes.yaml
+  - fixtures/ghl/relationship-context-crm.json
+  - fixtures/transcript-ambiguous-opportunity.txt
+  - fixtures/transcript-ambiguous-opportunity.expected.json
+  - requirements.txt
+  - pyproject.toml
+  - README.md
+  - .env.example
+  - src/agents/adk_runtime/**
+  - src/agents/relationship_context/**
+  - tests/agents/test_relationship_context_unit2.py
+  - proof/phase3/unit2/proof-return.yaml
+  - proof/phase3/unit2/unit2-closeout.md
+  - governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+
+authorization_posture:
+  GEMINI_ADK_AUTHORIZED: "YES"
+  GOOGLE_ADK_PACKAGE_BOUND: "YES"
+  GOOGLE_ADK_RUNTIME_STARTED: "YES"
+  ADK_INTEGRATION_STATUS: RUNTIME_INTEGRATED
+  ADK_RUNTIME_BACKEND: google_adk_package
+  ADK_RUNTIME_PRIMITIVE_USED: "YES"
+  LOCAL_ADK_FALLBACK_USED: "NO"
+  DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
+  LIVE_GHL_READS_AUTHORIZED: "NO"
+  GHL_WRITES_AUTHORIZED: "NO"
+  L3A_PROMOTION_AUTHORIZED: "NO"
+  FIRESTORE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+  FOLLOW_UP_PLANNING_AGENT_AUTHORIZED_THIS_UNIT: "NO"
+
+residual_risks:
+  - google-adk is pinned (1.18.0) and required; the Unit 2 runtime fails closed with no local fallback if the package is unavailable.
+  - Follow-Up Planning Agent and full meeting_follow_up_packet_v1 assembly remain subsequent units under the same grant.
+  - Live Gemini path remains optional and is not required for Unit 2 proof.
+
+next_action: STOP_BEFORE_MERGE_AWAIT_REVIEWER_DISPOSITION
+stop_code: PHASE3_UNIT2_REPAIR_READY_FOR_REVIEW

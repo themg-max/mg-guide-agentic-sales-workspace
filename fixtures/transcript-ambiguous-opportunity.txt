@@ -1,0 +1,43 @@
+# FIXTURE: transcript-ambiguous-opportunity
+# SYNTHETIC DATA ONLY — not a real person, meeting, or CRM record
+# Expected disposition: blocked (fail closed, requires review)
+# Expected CRM: NO note write, NO stage change — zero external effects
+# Expected reason code: AMBIGUOUS_OPPORTUNITY
+# Contact match basis: email exact; contact is unique but has MULTIPLE
+# eligible open opportunities, so no opportunity/stage target may be selected.
+
+MEETING_ID: demo_meeting_004
+OCCURRED_AT: 2026-08-10T18:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Morgan Case
+  email: morgan.case@example-demo.test
+  phone: +1-555-0401
+  role: prospect
+- name: Alex Rivera
+  email: alex.rivera@example-demo.test
+  phone: +1-555-0199
+  role: agent
+
+--- TRANSCRIPT ---
+
+Alex Rivera: Hi Morgan — thanks for making time to reconnect today.
+
+Morgan Case: Of course. We have a couple of parallel threads open with your team, and I want to keep them straight.
+
+Alex Rivera: Understood. I'll capture notes from today, but I won't move anything in the pipeline until we confirm which opportunity this conversation belongs to.
+
+Morgan Case: Exactly. Please don't attach this to either open deal yet — we're still scoping both.
+
+Alex Rivera: Agreed. Notes only, no stage change, and we'll review internally which opportunity this maps to.
+
+Morgan Case: Perfect. morgan.case@example-demo.test is the right email for me.
+
+--- END ---
+
+# POLICY INTENT:
+# - Contact resolution: unique match (email exact)
+# - Opportunity resolution: AMBIGUOUS (multiple eligible open opportunities)
+# - Fail closed: select none, no stage target, require review
+# - External effects: 0

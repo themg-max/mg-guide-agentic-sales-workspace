@@ -16,6 +16,15 @@ codes:
       LLM must not pick the closest match.
     demo_fixture: transcript-ambiguous-contact.txt
 
+  AMBIGUOUS_OPPORTUNITY:
+    http_semantics: n/a
+    terminal_status: blocked
+    crm_writes_after: 0
+    description: >
+      A uniquely matched contact has multiple eligible open opportunities.
+      Resolver must select none, set no stage target, and require review.
+    demo_fixture: transcript-ambiguous-opportunity.txt
+
   CONTACT_NOT_FOUND:
     terminal_status: blocked
     crm_writes_after: 0

@@ -21,7 +21,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-002 | 2026-08-11 | Phase 1 deterministic contracts/fixtures/state-machine foundation (no AI, no GHL) | DONE | Branch `feat/meeting-follow-up-v1-phase1-contracts-fixtures`; synthetic sidecars; zero external effects |
 | NW-010 | 2026-08-11 | Phase 1 deterministic CI workflow (pytest-only) | DONE | Auth `MG_GUIDE_PHASE1_CI_V1`; branch `chore/phase1-deterministic-ci`; no secrets; contents:read |
 | NW-003 | 2026-08-11 | Phase 2A GHL MCP meta-discovery (tools/list + search/describe ops only) | DONE | Auth `MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1`; PR #4; zero record reads; zero writes; PASS_WITH_BLOCKERS |
-| NW-004 | 2026-08-12 | Gemini/ADK vertical-slice unit 1 — Meeting Context Agent harness | IN_PROGRESS_UNIT1_COMPLETE | Grant `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1`; `GEMINI_ADK_AUTHORIZED=YES`; `GEMINI_PROVIDER_STARTED=YES`; `GOOGLE_ADK_RUNTIME_STARTED=NO`; `ADK_INTEGRATION_STATUS=COMPATIBLE_SURFACE_ONLY`; `GEMINI_ADK_STARTED=YES` (umbrella only); Meeting Context Agent + fixture harness green; structured context schema-valid; policy bypass=NO; EXTERNAL_EFFECTS=0; full vertical slice still open |
+| NW-004 | 2026-08-12 | Gemini/ADK vertical-slice units 1–2 — Meeting + Relationship Context | IN_PROGRESS | Grant `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1`; Unit 1 MERGED (PR #10 / `469ae3ba9962895bd77bebb9e5b2b44a8faac6e7`); Unit 2 = Google ADK runtime orchestration + Relationship Context Agent (offline synthetic CRM); **repair (PR #11 head `5878c05a1881e4fde1c70ab1624704fdf8154ba4`, CI run 31614783508 SUCCESS):** actual `google.adk` package primitives (Runner/SequentialAgent/BaseAgent/InMemorySessionService), markers derived from runtime state, fail-closed (no local fallback); `GOOGLE_ADK_PACKAGE_BOUND=YES`; `GOOGLE_ADK_RUNTIME_STARTED=YES`; `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`; `ADK_RUNTIME_BACKEND=google_adk_package`; `ADK_RUNTIME_PRIMITIVE_USED=YES`; `LOCAL_ADK_FALLBACK_USED=NO`; AMBIGUOUS_OPPORTUNITY fail-closed scenario added; Follow-Up Planning Agent not started; EXTERNAL_EFFECTS=0 |
 | NW-005 | TBD | Firestore audit writer | PLANNED | `workflow_runs/{run_id}` |
 | NW-006 | TBD | MG Guide Meeting Follow-Up card experience | PLANNED | Completed + needs-review states |
 | NW-007 | TBD | Cloud Run deployment (test) | PLANNED | Requires activation authority; not part of foundation |
@@ -42,7 +42,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - NW-012 is retired (no isolated GHL hackathon/test location exists); the proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` was never activated and no record probes occurred.
 - NW-013 is **human-authorized but not live-executed** (`AUTHORIZED_FOR_EXECUTION` / `AUTHORIZED_NOT_EXECUTED`). The canonical GHL location is **not** a test environment. Live reads remain deferred to a separate bounded unit under the private exact-ID allowlist (`GHL_LIVE_CALLS=0` on the binding unit).
 - Phase 2B live GHL access has **not** started. NW-014 closed the offline adapter only (`network=NONE`); no live GHL claim is made by this closeout.
-- Gemini/ADK implementation is **authorized and unit-1 complete** under NW-004 (`NW004_STATUS=AUTHORIZED_FOR_IMPLEMENTATION`, `execution_status=IN_PROGRESS_UNIT1_COMPLETE`, `GEMINI_ADK_AUTHORIZED=YES`). Unit 1 tech truth: `GEMINI_PROVIDER_STARTED=YES`, `GOOGLE_ADK_RUNTIME_STARTED=NO`, `ADK_INTEGRATION_STATUS=COMPATIBLE_SURFACE_ONLY`; `GEMINI_ADK_STARTED=YES` is a compatibility umbrella only (not ADK runtime execution). Full vertical slice not complete.
+- Gemini/ADK implementation is **authorized; Unit 1 merged; Unit 2 in progress** under NW-004 (`NW004_STATUS=IN_PROGRESS`, `PHASE3_UNIT1_STATUS=MERGED_COMPLETE`, `GEMINI_ADK_AUTHORIZED=YES`). Unit 1 provider surface remains `COMPATIBLE_SURFACE_ONLY`. Unit 2 runtime truth: `GOOGLE_ADK_RUNTIME_STARTED=YES`, `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`. Full vertical slice (Follow-Up Planning Agent + packet assembly) not complete.
 - NW-004 does **not** authorize live GHL, GHL writes, real customer data, L3A promotion, Firestore writes, or deployment (`GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`).
 
 
@@ -50,21 +50,25 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 
 - Date (UTC): 2026-08-12
 - Authorization: `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1`
-- Status: **AUTHORIZED_FOR_IMPLEMENTATION** / **unit 1 Meeting Context Agent complete**
+- Status: **AUTHORIZED_FOR_IMPLEMENTATION** / **Unit 1 MERGED_COMPLETE** / **Unit 2 IN_PROGRESS**
 - Human decision: `AUTHORIZED_FOR_IMPLEMENTATION` / `HUMAN_SIGNATURE=APPROVED`
 - Private source authority: PR https://github.com/themg-max/A.I-Rolodex---Context/pull/2964
 - Private merge SHA: `7c3f605504956aa26faf62ce6db0552ba9abe494`
 - Public artifacts: `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml`
-- Intended public implementation branch (after this sync merges): `feat/meeting-follow-up-v1-gemini-adk-vertical-slice`
-- First unit: Meeting Context Agent fixture harness (synthetic transcript → schema-valid structured meeting context)
+- Public Unit 1 implementation: PR #10 MERGED; merge SHA `469ae3ba9962895bd77bebb9e5b2b44a8faac6e7`; branch `feat/meeting-follow-up-v1-gemini-adk-vertical-slice`
+- Public Unit 2 implementation branch: `feat/meeting-follow-up-v1-adk-relationship-context-unit2`
 - Architecture (max four): Meeting Context Agent · Relationship Context Agent · Follow-Up Planning Agent · DETERMINISTIC POLICY GATE
 - Allowed: Gemini/ADK (bounded test/dev), synthetic transcripts/CRM fixtures, Phase1 contracts, Phase2B offline adapter read/use, deterministic policy, tests, sanitized proof
 - Denied: live GHL reads/writes, broad CRM search, real customer data, L3A promotion, Firestore writes, deployment, IAM/secret mutation, raw REST, authority expansion, policy bypass
-- Assertions: `GEMINI_ADK_AUTHORIZED=YES`, `GEMINI_PROVIDER_STARTED=YES`, `GOOGLE_ADK_RUNTIME_STARTED=NO`, `ADK_INTEGRATION_STATUS=COMPATIBLE_SURFACE_ONLY`, `GEMINI_ADK_STARTED=YES` (umbrella only), `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`, `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
-- Unit 1 delivered: Meeting Context Agent fixture harness (`src/agents/meeting_context/**`, `contracts/meeting_context.schema.json`, `tests/agents/**`, `proof/phase3/**`); structured context VALID; policy bypass NO; EXTERNAL_EFFECTS=0; google-genai provider surface only (no Google ADK runtime)
-- Evidence binding (pre-repair exact head): `reviewed_head_sha=b5d44b703f4ca3c2245c8e0d8b27752171c6fc29`, `ci_run_id=31608390000`; final disposition binds post-repair tip
+- Unit 1 assertions (preserved): `GEMINI_PROVIDER_STARTED=YES`, provider-level `GOOGLE_ADK_RUNTIME_STARTED=NO`, `ADK_INTEGRATION_STATUS=COMPATIBLE_SURFACE_ONLY` on Meeting Context provider surface only
+- Unit 2 assertions (repaired 2026-08-12; supersede local-backend evidence): `GOOGLE_ADK_PACKAGE_BOUND=YES`, `GOOGLE_ADK_RUNTIME_STARTED=YES`, `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`, `ADK_RUNTIME_BACKEND=google_adk_package`, `ADK_RUNTIME_PRIMITIVE_USED=YES`, `LOCAL_ADK_FALLBACK_USED=NO`, `MEETING_CONTEXT_AGENT_REUSED=YES`, `RELATIONSHIP_CONTEXT_AGENT_IMPLEMENTED=YES`, `OFFLINE_GHL_ADAPTER_USED=YES`, `SYNTHETIC_CRM_CONTEXT_ONLY=YES`, `RELATIONSHIP_CONTEXT_OUTPUT=VALID`, `DETERMINISTIC_POLICY_BYPASS=NO`, `EXTERNAL_EFFECTS=0`, `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`, `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+- Unit 2 scenarios: `RELATIONSHIP_MATCH=PASS`, `AMBIGUOUS_CONTACT=PASS`, `NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT=PASS`, `AMBIGUOUS_OPPORTUNITY=PASS` (fail-closed: no selection, no stage target, review required)
+- Unit 2 repair evidence: head `5878c05a1881e4fde1c70ab1624704fdf8154ba4` (pre-binding), CI run 31614783508 SUCCESS; actual `google.adk` Runner/SequentialAgent/BaseAgent/InMemorySessionService execution; markers derived from runtime state; fail-closed when package unavailable
+- Unit 1 delivered: Meeting Context Agent fixture harness; structured context VALID; policy bypass NO; EXTERNAL_EFFECTS=0
+- Unit 2 delivered (this branch): Google ADK runtime orchestration (`src/agents/adk_runtime/**`), Relationship Context Agent (`src/agents/relationship_context/**`), `contracts/relationship_context.schema.json`, synthetic CRM fixture, Unit 2 harness/tests, `proof/phase3/unit2/**`
+- Explicit Unit 2 non-delivery: Follow-Up Planning Agent; full packet assembly; live GHL; L3A promotion; Firestore; deployment
 - Completion bar (full vertical slice still open): valid packet output; deterministic policy authority preserved; SUCCESS / AMBIGUOUS / STAGE_DENIED fixtures pass; `EXTERNAL_EFFECTS=0`
-- Next: STOP for reviewer disposition on proof/governance repair head; subsequent agents only in later reviewed units under the same grant
+- Next: STOP before merge of Unit 2 PR; Follow-Up Planning Agent only in a later reviewed unit under the same grant
 
 
 ## NW-013 canonical synthetic-read binding (AUTHORIZED_NOT_EXECUTED)

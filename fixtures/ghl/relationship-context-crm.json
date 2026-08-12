@@ -1,0 +1,102 @@
+{
+  "fixture_id": "phase3-unit2-relationship-context-crm-v1",
+  "source": "synthetic_only",
+  "description": "Synthetic CRM universe for Relationship Context Agent offline resolution. No live GHL.",
+  "contacts": [
+    {
+      "id": "contact_demo_taylor_001",
+      "firstName": "Taylor",
+      "lastName": "Morgan",
+      "email": "taylor.morgan@example-demo.test",
+      "phone": "+1-555-0100",
+      "companyName": "Demo Prospect Co"
+    },
+    {
+      "id": "contact_demo_jordan_a_001",
+      "firstName": "Jordan",
+      "lastName": "Lee",
+      "email": "jordan.lee.a@example-demo.test",
+      "phone": "+1-555-0201",
+      "companyName": "Ambiguous Demo A"
+    },
+    {
+      "id": "contact_demo_jordan_b_002",
+      "firstName": "Jordan",
+      "lastName": "Lee",
+      "email": "jordan.lee.b@example-demo.test",
+      "phone": "+1-555-0202",
+      "companyName": "Ambiguous Demo B"
+    },
+    {
+      "id": "contact_demo_casey_001",
+      "firstName": "Casey",
+      "lastName": "Nguyen",
+      "email": "casey.nguyen@example-demo.test",
+      "phone": "+1-555-0142",
+      "companyName": "No Opportunity Demo Co"
+    },
+    {
+      "id": "contact_demo_morgan_multi_001",
+      "firstName": "Morgan",
+      "lastName": "Case",
+      "email": "morgan.case@example-demo.test",
+      "phone": "+1-555-0401",
+      "companyName": "Multi Opportunity Demo Co"
+    },
+    {
+      "id": "contact_demo_riley_insufficient_001",
+      "firstName": "Riley",
+      "lastName": "Quorum",
+      "email": "riley.quorum@example-demo.test",
+      "phone": "+1-555-0300",
+      "companyName": "Insufficient Context Demo"
+    }
+  ],
+  "opportunities": [
+    {
+      "id": "opp_demo_taylor_001",
+      "contactId": "contact_demo_taylor_001",
+      "pipelineId": "demo-pipeline-001",
+      "pipelineStageId": "demo-stage-discovery-scheduled",
+      "name": "Taylor Morgan discovery",
+      "status": "open",
+      "monetaryValue": 12000
+    },
+    {
+      "id": "opp_demo_morgan_a_001",
+      "contactId": "contact_demo_morgan_multi_001",
+      "pipelineId": "demo-pipeline-001",
+      "pipelineStageId": "demo-stage-discovery-scheduled",
+      "name": "Morgan Case discovery A",
+      "status": "open",
+      "monetaryValue": 8000
+    },
+    {
+      "id": "opp_demo_morgan_b_002",
+      "contactId": "contact_demo_morgan_multi_001",
+      "pipelineId": "demo-pipeline-001",
+      "pipelineStageId": "demo-stage-discovery-complete",
+      "name": "Morgan Case expansion B",
+      "status": "open",
+      "monetaryValue": 15000
+    }
+  ],
+  "pipelines": [
+    {
+      "id": "demo-pipeline-001",
+      "name": "Demo pipeline",
+      "stages": [
+        {
+          "id": "demo-stage-discovery-scheduled",
+          "name": "discovery_scheduled",
+          "position": 1
+        },
+        {
+          "id": "demo-stage-discovery-complete",
+          "name": "discovery_complete",
+          "position": 2
+        }
+      ]
+    }
+  ]
+}
