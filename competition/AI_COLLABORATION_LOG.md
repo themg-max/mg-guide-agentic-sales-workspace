@@ -307,3 +307,33 @@
   - Any CRM write / mutation
   - Binding real or synthetic record IDs into the public repo
   - Gemini / ADK / deployment / IAM / Secret Manager mutation
+
+### 2026-08-12 — NW-004 Phase 3 Gemini/ADK authorization sync (private PR #2964 merged)
+
+- **Human owner / operator:** repository maintainer (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1`
+- **Objective:** Sync sanitized public grant/ledger after private source-authority merge; do **not** start Gemini/ADK implementation in this unit
+- **Artifacts touched (authorized paths only):**
+  - `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Private provenance (sanitized):**
+  - `PRIVATE_PHASE3_AUTHORIZATION_PR=https://github.com/themg-max/A.I-Rolodex---Context/pull/2964`
+  - `PRIVATE_PHASE3_AUTHORIZATION_MERGE_SHA=7c3f605504956aa26faf62ce6db0552ba9abe494`
+- **Human decisions retained:**
+  - `DECISION=AUTHORIZED_FOR_IMPLEMENTATION`
+  - `HUMAN_SIGNATURE=APPROVED`
+  - `NW004_STATUS=AUTHORIZED_FOR_IMPLEMENTATION`
+  - `GEMINI_ADK_AUTHORIZED=YES`
+  - `GEMINI_ADK_STARTED=NO`
+  - Deterministic policy remains authoritative (bypass forbidden)
+  - First unit after sync merge: Meeting Context Agent fixture harness only
+  - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`
+  - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+- **Out of scope / refused:**
+  - Implementation code in this authorization-sync unit
+  - Live GHL/CRM calls or writes
+  - L3A promotion, Firestore writes, deployment, IAM/secret mutation
+  - Private IDs, secrets, or control-plane paths in public artifacts
+  - Authority expansion beyond the grant envelope

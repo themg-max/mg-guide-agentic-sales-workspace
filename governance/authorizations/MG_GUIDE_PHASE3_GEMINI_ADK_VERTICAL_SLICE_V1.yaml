@@ -1,0 +1,101 @@
+# Sanitized public grant mirror — private source authority is authoritative.
+# No private IDs, secrets, tokens, or control-plane paths.
+grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
+status: AUTHORIZED_FOR_IMPLEMENTATION
+execution_status: AUTHORIZED_NOT_STARTED
+workflow: meeting_follow_up_v1
+public_ledger_id: NW-004
+authorized_at_utc: "2026-08-12T14:32:13Z"
+proposed_at_utc: "2026-08-12T14:14:37Z"
+
+private_source_authority_sync: "YES"
+private_phase3_authorization_pr: 2964
+private_phase3_authorization_pr_url: "https://github.com/themg-max/A.I-Rolodex---Context/pull/2964"
+private_phase3_authorization_merge_sha: "7c3f605504956aa26faf62ce6db0552ba9abe494"
+
+human_activation:
+  decision: AUTHORIZED_FOR_IMPLEMENTATION
+  human_approver: Aaron Chandler
+  human_approval_role: repository maintainer / operator
+  human_signature: APPROVED
+  public_disclosure_of_private_ids: false
+  secret_value_recording: false
+
+objective: >
+  Implement bounded Gemini/ADK reasoning for the existing meeting follow-up
+  workflow using synthetic transcripts, existing contracts, and the Phase2B
+  offline GHL adapter. Produce deterministic-policy-reviewed follow-up
+  proposals with zero external CRM effects.
+
+allowed:
+  - Gemini model calls in bounded hackathon test/dev context
+  - Google ADK agent implementation
+  - synthetic transcript fixtures
+  - synthetic CRM fixtures
+  - Phase1 meeting_follow_up_packet_v1 contracts
+  - Phase2B offline GHL read adapter (read/use only; no adapter mutation)
+  - deterministic policy evaluator (authoritative; bypass forbidden)
+  - agent-level tests
+  - local/test telemetry
+  - sanitized proof artifacts
+
+forbidden:
+  - live GHL reads
+  - all GHL writes
+  - broad CRM search
+  - production/customer CRM data
+  - L3A controller promotion
+  - Firestore writes
+  - Cloud Run deployment
+  - IAM mutation
+  - Secret Manager mutation
+  - raw REST
+  - authority expansion
+  - deterministic policy bypass
+
+architecture:
+  - Meeting Context Agent
+  - Relationship Context Agent
+  - Follow-Up Planning Agent
+  - DETERMINISTIC POLICY GATE
+  - reviewable meeting_follow_up_packet_v1
+
+first_implementation_unit:
+  name: Meeting Context Agent fixture harness
+  public_branch: feat/meeting-follow-up-v1-gemini-adk-vertical-slice
+  input: synthetic meeting transcript
+  output: schema-valid structured meeting context for downstream packet construction
+  required_proof:
+    GEMINI_ADK_STARTED: "YES"
+    MEETING_CONTEXT_AGENT_IMPLEMENTED: "YES"
+    SYNTHETIC_TRANSCRIPT_INPUT: "YES"
+    STRUCTURED_CONTEXT_OUTPUT: "VALID"
+    DETERMINISTIC_POLICY_BYPASS: "NO"
+    EXTERNAL_EFFECTS: 0
+  stop_after_unit: true
+
+required_vertical_slice_outcomes:
+  VALID_PACKET_OUTPUT: "YES"
+  DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
+  SUCCESS_FIXTURE: "PASS"
+  AMBIGUOUS_FIXTURE: "PASS"
+  STAGE_DENIED_FIXTURE: "PASS"
+  EXTERNAL_EFFECTS: 0
+
+activation_assertions:
+  GEMINI_ADK_AUTHORIZED: "YES"
+  NW004_STATUS: "AUTHORIZED_FOR_IMPLEMENTATION"
+  GHL_LIVE_CALLS: 0
+  GHL_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  L3A_RUNTIME_PROMOTED: "NO"
+  L3A_RUNTIME_STATUS: "DEFERRED_RUNTIME_NOT_PROMOTED"
+  FIRESTORE_WRITES: 0
+  DEPLOYMENT: "NO"
+  GEMINI_ADK_STARTED: "NO"
+
+notes:
+  - Public coding begins only after this sanitized authorization sync merges.
+  - First unit is Meeting Context Agent harness only; stop when unit tests are green.
+  - Private exact metadata stays out of this public repository.
+  - Live GHL remains unauthorized under this grant.

@@ -21,7 +21,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-002 | 2026-08-11 | Phase 1 deterministic contracts/fixtures/state-machine foundation (no AI, no GHL) | DONE | Branch `feat/meeting-follow-up-v1-phase1-contracts-fixtures`; synthetic sidecars; zero external effects |
 | NW-010 | 2026-08-11 | Phase 1 deterministic CI workflow (pytest-only) | DONE | Auth `MG_GUIDE_PHASE1_CI_V1`; branch `chore/phase1-deterministic-ci`; no secrets; contents:read |
 | NW-003 | 2026-08-11 | Phase 2A GHL MCP meta-discovery (tools/list + search/describe ops only) | DONE | Auth `MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1`; PR #4; zero record reads; zero writes; PASS_WITH_BLOCKERS |
-| NW-004 | TBD | ADK/Gemini agent implementation (Gemini 3.5+) | PLANNED | Four agents max per foundation; `GEMINI_ADK_STARTED=NO` |
+| NW-004 | 2026-08-12 | Gemini/ADK vertical-slice authorization (implementation authorized) | AUTHORIZED_FOR_IMPLEMENTATION | Grant `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1`; private PR #2964 merged `7c3f605504956aa26faf62ce6db0552ba9abe494`; `GEMINI_ADK_AUTHORIZED=YES`; `GEMINI_ADK_STARTED=NO`; first unit = Meeting Context Agent harness; no live GHL; no L3A promotion |
 | NW-005 | TBD | Firestore audit writer | PLANNED | `workflow_runs/{run_id}` |
 | NW-006 | TBD | MG Guide Meeting Follow-Up card experience | PLANNED | Completed + needs-review states |
 | NW-007 | TBD | Cloud Run deployment (test) | PLANNED | Requires activation authority; not part of foundation |
@@ -42,7 +42,28 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - NW-012 is retired (no isolated GHL hackathon/test location exists); the proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` was never activated and no record probes occurred.
 - NW-013 is **human-authorized but not live-executed** (`AUTHORIZED_FOR_EXECUTION` / `AUTHORIZED_NOT_EXECUTED`). The canonical GHL location is **not** a test environment. Live reads remain deferred to a separate bounded unit under the private exact-ID allowlist (`GHL_LIVE_CALLS=0` on the binding unit).
 - Phase 2B live GHL access has **not** started. NW-014 closed the offline adapter only (`network=NONE`); no live GHL claim is made by this closeout.
-- Gemini/ADK has **not** started (`GEMINI_ADK_STARTED=NO`).
+- Gemini/ADK implementation is **authorized but not started** under NW-004 (`NW004_STATUS=AUTHORIZED_FOR_IMPLEMENTATION`, `GEMINI_ADK_AUTHORIZED=YES`, `GEMINI_ADK_STARTED=NO`).
+- NW-004 does **not** authorize live GHL, GHL writes, real customer data, L3A promotion, Firestore writes, or deployment (`GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`).
+
+
+## NW-004 Gemini/ADK vertical-slice authorization (AUTHORIZED_FOR_IMPLEMENTATION)
+
+- Date (UTC): 2026-08-12
+- Authorization: `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1`
+- Status: **AUTHORIZED_FOR_IMPLEMENTATION** / **implementation not started**
+- Human decision: `AUTHORIZED_FOR_IMPLEMENTATION` / `HUMAN_SIGNATURE=APPROVED`
+- Private source authority: PR https://github.com/themg-max/A.I-Rolodex---Context/pull/2964
+- Private merge SHA: `7c3f605504956aa26faf62ce6db0552ba9abe494`
+- Public artifacts: `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml`
+- Intended public implementation branch (after this sync merges): `feat/meeting-follow-up-v1-gemini-adk-vertical-slice`
+- First unit: Meeting Context Agent fixture harness (synthetic transcript → schema-valid structured meeting context)
+- Architecture (max four): Meeting Context Agent · Relationship Context Agent · Follow-Up Planning Agent · DETERMINISTIC POLICY GATE
+- Allowed: Gemini/ADK (bounded test/dev), synthetic transcripts/CRM fixtures, Phase1 contracts, Phase2B offline adapter read/use, deterministic policy, tests, sanitized proof
+- Denied: live GHL reads/writes, broad CRM search, real customer data, L3A promotion, Firestore writes, deployment, IAM/secret mutation, raw REST, authority expansion, policy bypass
+- Assertions: `GEMINI_ADK_AUTHORIZED=YES`, `GEMINI_ADK_STARTED=NO`, `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`, `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+- Completion bar (full vertical slice): valid packet output; deterministic policy authority preserved; SUCCESS / AMBIGUOUS / STAGE_DENIED fixtures pass; `EXTERNAL_EFFECTS=0`
+- Next: merge this sanitized authorization sync, then open the implementation branch for the first unit only
+
 
 ## NW-013 canonical synthetic-read binding (AUTHORIZED_NOT_EXECUTED)
 
