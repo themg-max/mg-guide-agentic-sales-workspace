@@ -1,25 +1,25 @@
-proof_id: meeting-follow-up-v1-phase2b-ghl-read-adapter-offline-v1
+proof_id: meeting-follow-up-v1-phase2b-ghl-read-adapter-offline-closeout-v1
 manifest_id: MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1
 workflow_id: meeting_follow_up_v1
-branch: feat/meeting-follow-up-v1-ghl-read-adapter-offline
-# Verified code baseline; the proof record is committed separately.
-head_sha: 302ec50d07645a92e4bf10f4d244e9bbff1c8824
-pr_url: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/6
+branch: chore/phase2b-offline-adapter-closeout
+head_sha: 075a3ea47dda02fdaffdc4390d4573f947959103
+pr_url: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/7
 files_changed:
-  - src/integrations/ghl/**
-  - tests/integrations/ghl/**
-  - fixtures/ghl/**
-  - proof/phase2b/proof-return.yaml
   - competition/NEW_WORK_LEDGER.md
   - competition/AI_COLLABORATION_LOG.md
+  - proof/phase2b/**
 validation:
   git_diff_check: PASS
   tests: PASS
-  contract_validation: PASS
+  contract_validation: NOT_APPLICABLE
   notes: >
-    Local deterministic verification, the full pytest suite, and diff hygiene
-    passed. The adapter replays synthetic fixtures only and provides no network
-    transport, credential loading, or mutation operation.
+    Documentary closeout of MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1 after
+    human merge of PR #6. Source implementation head
+    075a3ea47dda02fdaffdc4390d4573f947959103; merge SHA
+    2b88240e1e023150449183b03c118b91d663cabc. Closeout branch tip is the PR
+    head (not restated here to avoid self-referential SHA churn). Effects:
+    network_calls=0, crm_reads=0, crm_writes=0. NW-013 remains unexecuted.
+    No live GHL claim.
 external_calls:
   network: NONE
   crm: NONE
@@ -29,9 +29,11 @@ authorization_posture:
   GHL_WRITE_AUTHORIZED: "NO"
   DEPLOYMENT_AUTHORIZED: "NO"
 residual_risks:
-  - Live GHL response shapes and record behavior remain unprobed by design.
-  - This adapter does not activate canonical-location synthetic reads.
-  - Any live read still requires MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.
+  - Offline adapter closeout does not prove live GHL response shapes.
+  - NW-013 / MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1 remains gated
+    on private synthetic-record binding and human activation.
+  - No live GHL claim is made by this closeout.
 next_action: >
-  Open the bounded Phase 2B pull request for human review. Do not activate live
-  GHL access or any CRM mutation.
+  Human review of this closeout PR only. Do not activate live GHL access.
+  Private OL3 lane prepares synthetic-record binding artifacts separately;
+  do not execute live calls from this public closeout.
