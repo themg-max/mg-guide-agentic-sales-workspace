@@ -18,6 +18,7 @@
 | External effects target | **0** |
 | Mutation controls | **none** |
 | CRM / GHL / Firestore / deployment / IAM / secrets | **forbidden** |
+| Product surface claim | MG Guide Meeting Follow-Up card; competition-local, host-agnostic renderer/reference component only |
 
 This packet freezes the **exact** UI / runtime / component surface for NW-006
 before any card code is written. It supersedes the planning-only envelope in
@@ -31,6 +32,10 @@ for implementation bounding, without authorizing live systems.
 Render an already-produced, schema-valid `meeting_follow_up_packet_v1` as a
 dedicated **MG Guide Meeting Follow-Up card** through a **deterministic
 CardViewModel mapper**, with zero external effects and zero mutation authority.
+
+NW-006 delivers only a **competition-local, host-agnostic card
+renderer/reference component**. Private authenticated MG Guide host integration
+is explicitly **not delivered** and **not authorized** by NW-006.
 
 ```text
 meeting_follow_up_packet_v1
@@ -73,16 +78,17 @@ Authority rules (hard):
 ### 2.2 Runtime decision for NW-006 (fixed)
 
 Because this public competition repository has **no** pre-existing frontend host,
-NW-006 implements the **competition-local MG Guide Meeting Follow-Up card
-module** as a **pure-Python, side-effect-free render path** that:
+NW-006 implements the **competition-local, host-agnostic MG Guide Meeting
+Follow-Up card module** as a **pure-Python, side-effect-free render path** that:
 
 1. Accepts a completed (or explicitly non-terminal) `meeting_follow_up_packet_v1`
    document already on disk / in memory.
 2. Maps it deterministically to a `CardViewModel`.
 3. Renders **card chrome** as structured text + static HTML suitable for demo
    review and pytest assertions.
-4. Does **not** stand up Cloud Run, does **not** bind private MG Guide prod
-   routes, and does **not** introduce a network server requirement for tests.
+4. Does **not** stand up Cloud Run, does **not** bind private authenticated MG
+   Guide host routes, and does **not** introduce a network server requirement
+   for tests.
 
 **Framework stack (allowed):**
 
@@ -198,11 +204,11 @@ proof/nw006/
 | `src/mg_guide/**` | Card module only |
 | `fixtures/nw006/**` | Synthetic packet + expected CardViewModel fixtures |
 | `tests/mg_guide/meeting_follow_up_card/**` | Card unit/acceptance tests |
+| `contracts/mg_guide_meeting_follow_up_card.schema.json` | **Required** CardViewModel contract for NW-006 |
 | `proof/nw006/**` | Packet, proof-return, closeout (sanitized) |
 | `competition/NEW_WORK_LEDGER.md` | NW-006 status reconciliation **after** green tests only |
 | `competition/AI_COLLABORATION_LOG.md` | Session log after green tests only |
 | `README.md` | Status line only after green tests (no architecture rewrite) |
-| `pyproject.toml` | **Only if** needed to register package discovery; prefer zero dep churn |
 
 ### 4.2 Explicitly forbidden paths / surfaces
 
@@ -218,6 +224,7 @@ proof/nw006/
 | IAM / Secret Manager / `.env` secrets | Out of scope |
 | Live network clients | EXTERNAL_EFFECTS must remain 0 |
 | Mutation execution APIs | No approve-and-write controls |
+| `contracts/**` except `contracts/mg_guide_meeting_follow_up_card.schema.json` | No other contract modifications authorized in NW-006 |
 
 ### 4.3 Import allowlist for `src/mg_guide/meeting_follow_up_card/**`
 
@@ -279,13 +286,16 @@ CardViewModel
     note_write: string                   # echo only
     stage_write: string                  # echo only
     reason_codes: string[]               # echo only; never recomputed
+  ui_integrity:
+    errors: string[]                     # card-local UI/integrity errors only
   crm_display:
     resolution_status: string | null     # echo packet.crm_resolution.status
-    contact_id: string | null            # display only
-    opportunity_id: string | null
     match_basis: string | null
     candidate_count: int | null
     current_stage: string | null
+  metadata:
+    contact_id: string | null            # non-renderable metadata only
+    opportunity_id: string | null        # non-renderable metadata only
   learning:
     summary: string | null
     needs: string[]
@@ -355,15 +365,45 @@ IntentDisplay =
    and fail closed to a `failed` chrome if a packet claims nonzero effects —
    still without executing anything).
 
-### 5.3 Optional JSON schema (implementation may add)
+### 5.3 Required CardViewModel schema contract
 
-If a machine-readable view-model schema is useful for tests:
+NW-006 **must** define and validate against:
 
 ```text
 contracts/mg_guide_meeting_follow_up_card.schema.json
 ```
 
-This is **additive and optional**. It must not redefine policy authority.
+This contract is **required** and must not redefine policy authority.
+
+### 5.4 Input-integrity invariant (required fail-closed behavior)
+
+Before mapping a packet to a normal card state, enforce:
+
+```text
+packet.external_effects == 0
+packet.mutations.lifecycle in {"not_attempted", "intent_only"}
+packet.mutations.note.attempted == false
+packet.mutations.note.verified == false
+packet.mutations.opportunity_stage.attempted == false
+packet.mutations.opportunity_stage.verified == false
+```
+
+Any violation is NW-006 out-of-scope input and must:
+
+1. be rejected as out-of-scope input, or
+2. render failed chrome with `CARD_INPUT_OUT_OF_SCOPE`
+
+In both paths, the card must never claim verified CRM effects.
+
+### 5.5 Error provenance separation
+
+`policy_display.reason_codes` is only for deterministic policy reason codes
+echoed from the packet.
+
+`ui_integrity.errors` is only for card/UI integrity errors.
+
+`CARD_INPUT_INVALID` and `CARD_INPUT_OUT_OF_SCOPE` are UI/card errors and must
+not be inserted into `policy_display.reason_codes`.
 
 ---
 
@@ -390,8 +430,8 @@ names from the vertical slice; the card maps **packet fields**, not scenario IDs
 2. If `run.status` is non-terminal, `card_state` is **always** `in_progress`
    (preferred NW-006 behavior: distinct in-progress chrome; never a terminal claim).
 3. Unknown / missing `run.status` → treat as render error → `failed` chrome with
-   a **card-local** display code `CARD_INPUT_INVALID` (display only; do not write
-   into packet; do not call policy).
+   a **card-local** UI error `CARD_INPUT_INVALID` (display only; do not write
+   into packet; do not call policy; do not place in policy reason codes).
 4. Card **does not** reinterpret `completed` into `completed_with_review` based on
    reason codes; packet status wins. Reason codes are still displayed.
 5. Foundation demo copy (“Meeting note created”, “Opportunity moved”) is **only**
@@ -455,6 +495,8 @@ NON_TERMINAL statuses:
    CardViewModel fixture.
 5. `external_effects` on every packet fixture is `0`.
 6. No real customer data, no production IDs, no secrets.
+7. Card fixtures may contain synthetic CRM IDs in packet metadata, but text/HTML
+   rendering tests must assert no raw `contact_id` / `opportunity_id` leakage.
 
 ### 8.2 Scenario → fixture map
 
@@ -498,13 +540,16 @@ Broader regression (must remain green; card must not break upstream):
 pytest -q
 ```
 
-Optional offline demo (non-CI authority; stdout/file only):
+Optional offline demo (non-CI authority; stdout only):
 
 ```bash
 python -m mg_guide.meeting_follow_up_card \
   --packet fixtures/nw006/packets/packet-success.completed.json \
   --format text
 ```
+
+CLI must write to stdout only. No module-owned file writes are allowed. Demo
+files may be produced only by shell redirection outside the module.
 
 **CI:** reuse existing `.github/workflows/phase1-deterministic.yml` pytest path;
 do not add secret-bearing workflows. No deploy jobs.
@@ -548,6 +593,14 @@ Scenario proof matrix (all must PASS):
 | NON_TERMINAL → `in_progress` (never terminal) | PASS |
 | Forbidden import guard | PASS |
 | `external_effects == 0` on all card fixtures | PASS |
+| `CARD_INPUT_SCHEMA_VALIDATION` | PASS |
+| `CARD_OUT_OF_SCOPE_MUTATION_PACKET_FAILS_CLOSED` | PASS |
+| `CARD_POLICY_REASON_CODES_PASSTHROUGH` | PASS |
+| `CARD_UI_ERRORS_SEPARATE_FROM_POLICY` | PASS |
+| `CARD_RAW_CRM_IDS_NOT_RENDERED` | PASS |
+| `CARD_HTML_ESCAPING` | PASS |
+| `CARD_DETERMINISTIC_REPEATABILITY` | PASS |
+| `CARD_FORBIDDEN_IMPORT_GUARD` | PASS |
 
 ---
 
@@ -577,6 +630,19 @@ Exact-path staging only; no `git add .`.
 - Re-running Units 1–3 agents from the card
 - Replacing deterministic policy with LLM judgment on the card
 - Broad design-system / multi-page app build-out beyond the single card surface
+
+### HTML safety requirement (mandatory tests)
+
+Render HTML must escape packet/user content before insertion. Add mandatory
+escaping tests using synthetic content containing:
+
+- `<script>`
+- `<img onerror>`
+- ampersands
+- angle brackets
+- quotes
+
+No scripts or executable markup from packet content may appear in output.
 
 ---
 
@@ -618,6 +684,14 @@ RENDER_HTML=src/mg_guide/meeting_follow_up_card/render_html.py
 FIXTURES=fixtures/nw006/**
 TESTS=tests/mg_guide/meeting_follow_up_card/**
 EXTERNAL_EFFECTS=0
+CARD_INPUT_SCHEMA_VALIDATION=PASS
+CARD_OUT_OF_SCOPE_MUTATION_PACKET_FAILS_CLOSED=PASS
+CARD_POLICY_REASON_CODES_PASSTHROUGH=PASS
+CARD_UI_ERRORS_SEPARATE_FROM_POLICY=PASS
+CARD_RAW_CRM_IDS_NOT_RENDERED=PASS
+CARD_HTML_ESCAPING=PASS
+CARD_DETERMINISTIC_REPEATABILITY=PASS
+CARD_FORBIDDEN_IMPORT_GUARD=PASS
 ```
 
 ---
