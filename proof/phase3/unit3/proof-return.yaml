@@ -3,13 +3,16 @@ manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 workflow_id: meeting_follow_up_v1
 unit: follow_up_planning_agent
 branch: feat/meeting-follow-up-v1-follow-up-planning-agent-unit3
-public_implementation_pr: PENDING_PR_OPEN
-public_pr_status: PENDING_PR_OPEN
-public_unit3_status: IMPLEMENTED_LOCALLY_GREEN_AWAITING_PR_REVIEW
+public_implementation_pr: 13
+public_pr_status: OPEN_AWAITING_REVIEW
+public_unit3_status: IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW
 
-# Canonical GitHub facts (PR number, head SHA, CI run) are fetched after the
-# PR is opened and reconciled into this proof before reviewer handoff. No PR/CI
-# metadata is invented here.
+# Canonical GitHub facts fetched via gh CLI after PR open (single fetch,
+# reconciled across proof/ledger/grant/closeout artifacts).
+public_head_sha: "73fd69a680a78c702a903f95f6f8d08e80197e5b"
+final_ci_run_id: "31623302186"
+final_ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31623302186"
+final_ci_conclusion: SUCCESS
 
 authorization:
   grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1

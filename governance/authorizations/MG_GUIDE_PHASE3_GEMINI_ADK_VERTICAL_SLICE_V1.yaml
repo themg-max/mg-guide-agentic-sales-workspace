@@ -144,10 +144,12 @@ second_implementation_unit:
 
 third_implementation_unit:
   name: Follow-Up Planning Agent
-  status: IMPLEMENTED_LOCALLY_GREEN_AWAITING_PR_REVIEW
+  status: IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW
   implementation_started: "YES"
   public_branch: feat/meeting-follow-up-v1-follow-up-planning-agent-unit3
-  public_implementation_pr: PENDING_PR_OPEN
+  public_implementation_pr: 13
+  public_head_sha: "73fd69a680a78c702a903f95f6f8d08e80197e5b"
+  public_final_ci_run_id: "31623302186"
   planning_artifact: proof/phase3/unit3/unit3-implementation-packet.md
   proof_artifact: proof/phase3/unit3/proof-return.yaml
   architecture: >
@@ -227,7 +229,9 @@ activation_assertions:
   PUBLIC_PR11_HEAD_SHA: "3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa"
   PUBLIC_PR11_MERGE_SHA: "a3d5a5731d7342463fe365e597e5d974d3420d08"
   NEXT_PHASE3_UNIT: "FOLLOW_UP_PLANNING_AGENT"
-  PHASE3_UNIT3_STATUS: "IMPLEMENTED_LOCALLY_GREEN_AWAITING_PR_REVIEW"
+  PHASE3_UNIT3_STATUS: "IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW"
+  PUBLIC_PR13_STATUS: "OPEN_AWAITING_REVIEW"
+  PUBLIC_PR13_HEAD_SHA: "73fd69a680a78c702a903f95f6f8d08e80197e5b"
   UNIT3_IMPLEMENTATION_STARTED: "YES"
   # Unit 3 runtime truth (derived from measured runtime state; not merged yet)
   FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED: "YES"
@@ -274,7 +278,7 @@ notes:
   - Public Unit 1 coding is MERGED on PR #10 (merge SHA 469ae3ba9962895bd77bebb9e5b2b44a8faac6e7).
   - Public Unit 2 coding is MERGED on PR #11 (head 3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa; merge SHA a3d5a5731d7342463fe365e597e5d974d3420d08).
   - Unit 2 implemented ADK runtime + Relationship Context Agent only; Follow-Up Planning Agent was not part of Unit 2.
-  - Unit 3 Follow-Up Planning Agent is implemented on branch feat/meeting-follow-up-v1-follow-up-planning-agent-unit3 (six scenarios PASS locally; EXTERNAL_EFFECTS=0); awaiting PR review; not merged.
+  - Unit 3 Follow-Up Planning Agent is implemented on branch feat/meeting-follow-up-v1-follow-up-planning-agent-unit3; PR #13 OPEN awaiting review (head 73fd69a680a78c702a903f95f6f8d08e80197e5b; CI run 31623302186 SUCCESS); six scenarios PASS; EXTERNAL_EFFECTS=0; not merged.
   - Do not claim Unit 1 alone started Google ADK runtime; Unit 2 does.
   - Private exact metadata stays out of this public repository.
   - Live GHL remains unauthorized under this grant.

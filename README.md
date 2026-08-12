@@ -3,7 +3,7 @@
 **Competition:** Google All Things Agentic Hackathon
 **Target track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
-**Project status:** **PHASE 3 IN PROGRESS — Unit 1 MERGED; Unit 2 MERGED (PR #11); Unit 3 Follow-Up Planning Agent implemented on bounded branch, awaiting PR review**
+**Project status:** **PHASE 3 IN PROGRESS — Unit 1 MERGED; Unit 2 MERGED (PR #11); Unit 3 Follow-Up Planning Agent implemented, PR #13 open awaiting review**
 
 This repository is the standalone, competition-period home for the MG Guide
 Agentic Sales Workspace. It establishes durable provenance for the
@@ -205,7 +205,7 @@ PYTHONPATH=src python3 -m agents.follow_up_planning
 - Phase 2B offline GHL read adapter (synthetic fixtures; no live CRM)
 - Phase 3 unit 1 Meeting Context Agent fixture harness — **merged** (PR #10; Gemini provider surface; default CI offline)
 - Phase 3 unit 2 Google ADK package runtime orchestration (actual `google-adk` Runner/SequentialAgent/session primitives; fail-closed, no local fallback) + Relationship Context Agent — **merged** (PR #11; synthetic CRM only)
-- Phase 3 unit 3 Follow-Up Planning Agent — **implemented on bounded branch, awaiting PR review** (`feat/meeting-follow-up-v1-follow-up-planning-agent-unit3`; synthetic only; deterministic policy gate invoked; intent-only packet assembly; EXTERNAL_EFFECTS=0)
+- Phase 3 unit 3 Follow-Up Planning Agent — **implemented; PR #13 open awaiting review** (`feat/meeting-follow-up-v1-follow-up-planning-agent-unit3`; synthetic only; deterministic policy gate invoked; intent-only packet assembly; EXTERNAL_EFFECTS=0)
 
 **Not yet available (do not invent):**
 
@@ -244,7 +244,7 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Phase 2B offline GHL read adapter | Present (synthetic only) |
 | Gemini / ADK — Meeting Context Agent (unit 1) | **Merged** (PR #10; fixture harness green; live model optional) |
 | Google ADK runtime + Relationship Context Agent (unit 2) | **Merged** (PR #11 / `a3d5a5731d7342463fe365e597e5d974d3420d08`) |
-| Follow-Up Planning Agent (unit 3) | **Implemented on bounded branch; awaiting PR review** (not merged) |
+| Follow-Up Planning Agent (unit 3) | **Implemented; PR #13 open awaiting review** (not merged) |
 | Full Phase 3 vertical slice (remaining agents/packet) | Not complete |
 | Live GHL / CRM writes | Forbidden under current grants |
 | Firestore audit writer | Not implemented |
