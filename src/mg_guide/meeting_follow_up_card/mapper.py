@@ -69,40 +69,70 @@ def _human_actions(card_state: str) -> List[str]:
     return ["wait"]
 
 
-def _framing(status: str, no_crm_changes_made: bool) -> Dict[str, Any]:
+def _framing(
+    status: str,
+    *,
+    out_of_scope: bool = False,
+    invalid_input: bool = False,
+) -> Dict[str, Any]:
+    # no_crm_changes_made always describes this card path (never upstream CRM claims).
+    card_did_not_mutate = True
+    if out_of_scope:
+        return {
+            "tone": "failed",
+            "headline": "Follow-up input out of scope",
+            "body": (
+                "Input is outside the NW-006 zero-effect display envelope. "
+                "This card did not perform CRM changes."
+            ),
+            "no_crm_changes_made": card_did_not_mutate,
+        }
+    if invalid_input and status == "failed":
+        return {
+            "tone": "failed",
+            "headline": "Follow-up input invalid",
+            "body": (
+                "Card input could not be mapped under NW-006 rules. "
+                "This card did not perform CRM changes."
+            ),
+            "no_crm_changes_made": card_did_not_mutate,
+        }
     if status == "completed":
         return {
             "tone": "success",
             "headline": "Follow-up card ready",
             "body": "Deterministic follow-up intents are prepared for offline review.",
-            "no_crm_changes_made": no_crm_changes_made,
+            "no_crm_changes_made": card_did_not_mutate,
         }
     if status == "completed_with_review":
         return {
             "tone": "review",
             "headline": "Follow-up requires review",
             "body": "Policy reason codes indicate human review is required before any downstream action.",
-            "no_crm_changes_made": no_crm_changes_made,
+            "no_crm_changes_made": card_did_not_mutate,
         }
     if status == "blocked":
         return {
             "tone": "blocked",
             "headline": "Follow-up blocked",
-            "body": "No CRM changes were made.",
-            "no_crm_changes_made": True,
+            "body": "No CRM changes were made by this card.",
+            "no_crm_changes_made": card_did_not_mutate,
         }
     if status == "failed":
         return {
             "tone": "failed",
             "headline": "Follow-up failed",
-            "body": "Rendering is constrained to packet output only; no CRM changes were made.",
-            "no_crm_changes_made": True,
+            "body": (
+                "Rendering is constrained to packet output only. "
+                "This card did not perform CRM changes."
+            ),
+            "no_crm_changes_made": card_did_not_mutate,
         }
     return {
         "tone": "in_progress",
         "headline": "Follow-up not ready",
         "body": "Packet status is non-terminal.",
-        "no_crm_changes_made": True,
+        "no_crm_changes_made": card_did_not_mutate,
     }
 
 
@@ -195,7 +225,10 @@ def _build_intents(packet: Mapping[str, Any]) -> Dict[str, Any]:
 def map_packet_to_card(packet: Mapping[str, Any]) -> Dict[str, Any]:
     data = dict(packet)
     ui_errors: List[str] = []
-    schema_errors = sorted(_packet_validator().iter_errors(data), key=lambda err: list(err.path))
+    schema_errors = sorted(
+        _packet_validator().iter_errors(data),
+        key=lambda err: tuple(str(p) for p in err.absolute_path),
+    )
     if schema_errors:
         ui_errors.append("CARD_INPUT_INVALID")
 
@@ -210,7 +243,8 @@ def map_packet_to_card(packet: Mapping[str, Any]) -> Dict[str, Any]:
         status = "failed"
 
     invariant_violations = _invariant_violations(data)
-    if invariant_violations:
+    out_of_scope = bool(invariant_violations)
+    if out_of_scope:
         ui_errors.append("CARD_INPUT_OUT_OF_SCOPE")
         status = "failed"
 
@@ -228,16 +262,9 @@ def map_packet_to_card(packet: Mapping[str, Any]) -> Dict[str, Any]:
     brief = data.get("brief") if isinstance(data.get("brief"), Mapping) else {}
     reason_codes = policy.get("reason_codes") if isinstance(policy.get("reason_codes"), list) else []
 
-    no_crm_changes_made = True
-    mutations = data.get("mutations") if isinstance(data.get("mutations"), Mapping) else {}
-    note = mutations.get("note") if isinstance(mutations.get("note"), Mapping) else {}
-    stage = (
-        mutations.get("opportunity_stage")
-        if isinstance(mutations.get("opportunity_stage"), Mapping)
-        else {}
-    )
-    if bool(note.get("attempted")) or bool(stage.get("attempted")):
-        no_crm_changes_made = False
+    attention = brief.get("salesperson_attention_required")
+    if attention is not None and not isinstance(attention, bool):
+        attention = None
 
     card = CardViewModel(
         schema=CARD_SCHEMA,
@@ -253,7 +280,11 @@ def map_packet_to_card(packet: Mapping[str, Any]) -> Dict[str, Any]:
             "occurred_at": meeting.get("occurred_at"),
             "title": _meeting_title(data),
         },
-        framing=_framing(card_state, no_crm_changes_made),
+        framing=_framing(
+            card_state,
+            out_of_scope=out_of_scope,
+            invalid_input="CARD_INPUT_INVALID" in ui_errors and not out_of_scope,
+        ),
         policy_display={
             "note_write": policy.get("note_write"),
             "stage_write": policy.get("stage_write"),
@@ -298,7 +329,7 @@ def map_packet_to_card(packet: Mapping[str, Any]) -> Dict[str, Any]:
             "crm_actions": brief.get("crm_actions")
             if isinstance(brief.get("crm_actions"), list)
             else [],
-            "salesperson_attention_required": bool(brief.get("salesperson_attention_required")),
+            "salesperson_attention_required": attention,
         },
         controls={
             "mutation_controls_enabled": False,

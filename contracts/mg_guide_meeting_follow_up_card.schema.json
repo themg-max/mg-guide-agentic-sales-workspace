@@ -346,7 +346,10 @@
           }
         },
         "salesperson_attention_required": {
-          "type": "boolean"
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },

@@ -1,0 +1,77 @@
+{
+  "schema": "mg_guide_meeting_follow_up_card_v1",
+  "card_state": "blocked",
+  "run": {
+    "run_id": "run_nw006_no_opportunity_001",
+    "workflow": "meeting_follow_up_v1",
+    "packet_status": "blocked",
+    "created_at": "2026-08-12T18:14:00Z"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_005",
+    "occurred_at": "2026-08-12T17:44:00Z",
+    "title": "Sam Unlisted - Discovery Meeting"
+  },
+  "framing": {
+    "tone": "blocked",
+    "headline": "Follow-up blocked",
+    "body": "No CRM changes were made by this card.",
+    "no_crm_changes_made": true
+  },
+  "policy_display": {
+    "note_write": "blocked",
+    "stage_write": "blocked",
+    "reason_codes": [
+      "OPPORTUNITY_NOT_FOUND"
+    ]
+  },
+  "ui_integrity": {
+    "errors": [],
+    "schema_validation_errors": [],
+    "invariant_violations": []
+  },
+  "crm_display": {
+    "resolution_status": "opportunity_missing",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": null
+  },
+  "metadata": {
+    "contact_id": "contact_demo_sam_001",
+    "opportunity_id": null
+  },
+  "learning": {
+    "summary": "Contact matched but no open opportunity was found.",
+    "needs": [
+      "create or link opportunity"
+    ],
+    "objections": [],
+    "next_step_action": "Create opportunity offline before follow-up write",
+    "next_step_owner": "Alex Rivera"
+  },
+  "intents_display": {
+    "note": [],
+    "stage": [],
+    "note_execution_attempted": false,
+    "stage_execution_attempted": false
+  },
+  "brief_display": {
+    "headline": "No opportunity found",
+    "next_action": "Escalate offline to create or map opportunity",
+    "crm_actions": [],
+    "salesperson_attention_required": true
+  },
+  "controls": {
+    "mutation_controls_enabled": false,
+    "agent_rerun_enabled": false,
+    "policy_reeval_enabled": false,
+    "allowed_human_actions": [
+      "escalate_offline"
+    ]
+  },
+  "integrity": {
+    "external_effects": 0,
+    "source_schema": "meeting_follow_up_packet_v1",
+    "mapper_id": "meeting_follow_up_card_mapper_v1"
+  }
+}

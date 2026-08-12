@@ -13,10 +13,11 @@ Agentic Sales Workspace. It establishes durable provenance for the
 > Phase 2B offline GHL read adapter are merged; Phase 3 Unit 1 (Meeting
 > Context Agent) is merged; Phase 3 Unit 2 (Google ADK package runtime
 > orchestration + Relationship Context Agent) is merged (PR #11); Phase 3
-> Unit 3 (Follow-Up Planning Agent) is merged (PR #13). The full vertical
-> slice is still not complete because the MG Guide card / mutation surfaces
-> remain separate, governed follow-on work. There are still **no** live CRM
-> calls, no Firestore writes, and no deployment.
+> Unit 3 (Follow-Up Planning Agent) is merged (PR #13). The competition-local
+> NW-006 Meeting Follow-Up card module is implemented pending review. Remaining
+> governed work is mutation execution, Firestore audit, deployment, and private
+> host integration. There are still **no** live CRM calls, no Firestore writes,
+> and no deployment.
 
 ---
 
@@ -253,7 +254,7 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Google ADK runtime + Relationship Context Agent (unit 2) | **Merged** (PR #11 / `a3d5a5731d7342463fe365e597e5d974d3420d08`) |
 | Follow-Up Planning Agent (unit 3) | **Merged** (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / CI 31623771005 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; merged `2026-08-12T17:47:49Z`) |
 | MG Guide Meeting Follow-Up card (NW-006) | **IMPLEMENTED_PENDING_REVIEW** — bounded implementation packet at [`proof/nw006/nw-006-implementation-packet.md`](proof/nw006/nw-006-implementation-packet.md), implementation proof at [`proof/nw006/proof-return.yaml`](proof/nw006/proof-return.yaml); no mutation controls; zero external effects; no private host wiring |
-| Full end-to-end competition vertical slice (remaining agents/packet) | Not complete; final card and runtime controls remain separate governance units |
+| Full end-to-end competition vertical slice (remaining surfaces) | Not complete; remaining governed work is mutation execution, Firestore audit, deployment, and private host integration |
 | Live GHL / CRM writes | Forbidden under current grants |
 | Firestore audit writer | Not implemented |
 | Cloud Run deployment | Not provisioned |

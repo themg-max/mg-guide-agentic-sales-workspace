@@ -52,7 +52,7 @@ def render_card_html(card: Dict[str, Any]) -> str:
         f"<p><strong>Next action:</strong> {escape(str(brief['next_action']), quote=True)}</p>"
         "<h2>Allowed actions</h2>"
         f"<ul>{_li(controls['allowed_human_actions'])}</ul>"
-        f"<p><strong>No CRM changes made:</strong> {escape(str(framing['no_crm_changes_made']), quote=True)}</p>"
+        f"<p><strong>Card CRM changes made:</strong> {escape(str(not framing['no_crm_changes_made']), quote=True)}</p>"
         f"<p><strong>External effects:</strong> {escape(str(card['integrity']['external_effects']), quote=True)}</p>"
         "</section>"
     )

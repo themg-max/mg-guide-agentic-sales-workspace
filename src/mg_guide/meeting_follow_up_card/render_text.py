@@ -43,7 +43,7 @@ def render_card_text(card: Dict[str, Any]) -> str:
         f"Brief CRM actions: {_render_list(brief['crm_actions'])}",
         f"Attention required: {brief['salesperson_attention_required']}",
         f"Allowed actions: {_render_list(controls['allowed_human_actions'])}",
-        f"No CRM changes made: {framing['no_crm_changes_made']}",
+        f"Card CRM changes made: {not framing['no_crm_changes_made']}",
         f"External effects: {card['integrity']['external_effects']}",
     ]
 

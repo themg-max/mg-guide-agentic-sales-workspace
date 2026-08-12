@@ -1,0 +1,75 @@
+{
+  "schema": "mg_guide_meeting_follow_up_card_v1",
+  "card_state": "failed",
+  "run": {
+    "run_id": "run_nw006_failed_001",
+    "workflow": "meeting_follow_up_v1",
+    "packet_status": "failed",
+    "created_at": "2026-08-12T18:18:00Z"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_007",
+    "occurred_at": "2026-08-12T17:48:00Z",
+    "title": "Taylor Morgan - Discovery Meeting"
+  },
+  "framing": {
+    "tone": "failed",
+    "headline": "Follow-up failed",
+    "body": "Rendering is constrained to packet output only. This card did not perform CRM changes.",
+    "no_crm_changes_made": true
+  },
+  "policy_display": {
+    "note_write": "blocked",
+    "stage_write": "blocked",
+    "reason_codes": [
+      "GHL_TOOL_FAILURE"
+    ]
+  },
+  "ui_integrity": {
+    "errors": [],
+    "schema_validation_errors": [],
+    "invariant_violations": []
+  },
+  "crm_display": {
+    "resolution_status": "tool_failure",
+    "match_basis": "none",
+    "candidate_count": 0,
+    "current_stage": null
+  },
+  "metadata": {
+    "contact_id": null,
+    "opportunity_id": null
+  },
+  "learning": {
+    "summary": "Failure occurred in CRM resolution tool path.",
+    "needs": [],
+    "objections": [],
+    "next_step_action": "Investigate CRM resolver failure",
+    "next_step_owner": "Alex Rivera"
+  },
+  "intents_display": {
+    "note": [],
+    "stage": [],
+    "note_execution_attempted": false,
+    "stage_execution_attempted": false
+  },
+  "brief_display": {
+    "headline": "CRM tool failure",
+    "next_action": "Escalate technical investigation",
+    "crm_actions": [],
+    "salesperson_attention_required": true
+  },
+  "controls": {
+    "mutation_controls_enabled": false,
+    "agent_rerun_enabled": false,
+    "policy_reeval_enabled": false,
+    "allowed_human_actions": [
+      "escalate_offline"
+    ]
+  },
+  "integrity": {
+    "external_effects": 0,
+    "source_schema": "meeting_follow_up_packet_v1",
+    "mapper_id": "meeting_follow_up_card_mapper_v1"
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "schema": "mg_guide_meeting_follow_up_card_v1",
+  "card_state": "completed",
+  "run": {
+    "run_id": "run_nw006_success_001",
+    "workflow": "meeting_follow_up_v1",
+    "packet_status": "completed",
+    "created_at": "2026-08-12T18:00:00Z"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_001",
+    "occurred_at": "2026-08-12T17:30:00Z",
+    "title": "Taylor Morgan - Discovery Meeting"
+  },
+  "framing": {
+    "tone": "success",
+    "headline": "Follow-up card ready",
+    "body": "Deterministic follow-up intents are prepared for offline review.",
+    "no_crm_changes_made": true
+  },
+  "policy_display": {
+    "note_write": "allowed",
+    "stage_write": "allowed",
+    "reason_codes": []
+  },
+  "ui_integrity": {
+    "errors": [],
+    "schema_validation_errors": [],
+    "invariant_violations": []
+  },
+  "crm_display": {
+    "resolution_status": "matched",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": "discovery_scheduled"
+  },
+  "metadata": {
+    "contact_id": "contact_demo_taylor_001",
+    "opportunity_id": "opp_demo_taylor_001"
+  },
+  "learning": {
+    "summary": "Discovery call complete with agreed follow-up review package.",
+    "needs": [
+      "retirement planning",
+      "liquidity options"
+    ],
+    "objections": [
+      "liquidity lock-up concern"
+    ],
+    "next_step_action": "Send recommendation review follow-up",
+    "next_step_owner": "Alex Rivera"
+  },
+  "intents_display": {
+    "note": [
+      {
+        "kind": "note",
+        "status": "planned",
+        "summary": "Note intent planned: source extraction.summary",
+        "from_stage": null,
+        "to_stage": null
+      }
+    ],
+    "stage": [
+      {
+        "kind": "stage",
+        "status": "planned",
+        "summary": "Stage intent planned: discovery_scheduled -> discovery_complete",
+        "from_stage": "discovery_scheduled",
+        "to_stage": "discovery_complete"
+      }
+    ],
+    "note_execution_attempted": false,
+    "stage_execution_attempted": false
+  },
+  "brief_display": {
+    "headline": "Follow-up ready for offline review",
+    "next_action": "Review prepared note and stage intent",
+    "crm_actions": [
+      "plan_note_intent",
+      "plan_stage_intent"
+    ],
+    "salesperson_attention_required": false
+  },
+  "controls": {
+    "mutation_controls_enabled": false,
+    "agent_rerun_enabled": false,
+    "policy_reeval_enabled": false,
+    "allowed_human_actions": [
+      "acknowledge",
+      "copy_note_text_offline"
+    ]
+  },
+  "integrity": {
+    "external_effects": 0,
+    "source_schema": "meeting_follow_up_packet_v1",
+    "mapper_id": "meeting_follow_up_card_mapper_v1"
+  }
+}

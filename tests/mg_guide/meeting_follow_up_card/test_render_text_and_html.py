@@ -4,6 +4,8 @@ import copy
 import json
 from pathlib import Path
 
+import pytest
+
 from mg_guide.meeting_follow_up_card.mapper import map_packet_to_card
 from mg_guide.meeting_follow_up_card.render_html import render_card_html
 from mg_guide.meeting_follow_up_card.render_text import render_card_text
@@ -75,4 +77,22 @@ def test_out_of_scope_mutation_packet_fails_closed():
     assert card["card_state"] == "failed"
     assert "CARD_INPUT_OUT_OF_SCOPE" in card["ui_integrity"]["errors"]
     assert "CARD_INPUT_OUT_OF_SCOPE" not in card["policy_display"]["reason_codes"]
+    assert card["framing"]["body"] == (
+        "Input is outside the NW-006 zero-effect display envelope. "
+        "This card did not perform CRM changes."
+    )
+    assert card["framing"]["no_crm_changes_made"] is True
+    text = render_card_text(card)
+    html = render_card_html(card)
+    assert "No CRM changes were made." not in text
+    assert "This card did not perform CRM changes." in text
+    assert "This card did not perform CRM changes." in html
+    assert "Card CRM changes made: False" in text
 
+
+@pytest.mark.parametrize("value", [True, False, None])
+def test_salesperson_attention_required_preserves_nullable_truth(value):
+    packet = _load_success_packet()
+    packet["brief"]["salesperson_attention_required"] = value
+    card = map_packet_to_card(packet)
+    assert card["brief_display"]["salesperson_attention_required"] is value

@@ -38,6 +38,7 @@ proof_markers:
   CARD_HTML_ESCAPING: PASS
   CARD_DETERMINISTIC_REPEATABILITY: PASS
   CARD_FORBIDDEN_IMPORT_GUARD: PASS
+  CARD_VIEWMODEL_SCHEMA_VALIDATION: PASS
 
 scenario_matrix:
   SUCCESS: completed
@@ -69,6 +70,7 @@ artifacts:
   - fixtures/nw006/packets/packet-insufficient-context.blocked.json
   - fixtures/nw006/packets/packet-tool-failure.failed.json
   - fixtures/nw006/packets/packet-non-terminal.evaluating.json
+  - fixtures/nw006/expected/**
   - src/mg_guide/meeting_follow_up_card/**
   - tests/mg_guide/meeting_follow_up_card/**
   - proof/nw006/nw-006-implementation-packet.md

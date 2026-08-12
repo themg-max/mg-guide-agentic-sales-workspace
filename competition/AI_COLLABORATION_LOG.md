@@ -585,8 +585,8 @@
 
 ### 2026-08-12 — NW-006 implementation packet normalization + bounded card module implementation
 
-- **Human owner / operator:** VS Code / MG Orchestrator (Aaron Chandler)
-- **Tool / AI surfaces:** VS Code + Copilot CLI runtime
+- **Human owner / operator:** Aaron Chandler / repository maintainer
+- **Tool / AI surfaces:** VS Code + MG Orchestrator + Copilot CLI runtime
 - **Objective:** Tighten NW-006 implementation packet, then implement the deterministic competition-local host-agnostic MG Guide Meeting Follow-Up card module on branch `feat/nw006-meeting-follow-up-card`
 - **Required preflight executed:** `pwd`; `git branch --show-current`; `git status --short --untracked-files=all`
 - **Branch guard:** not `main`; expected branch confirmed
@@ -626,4 +626,18 @@
   - CRM mutation execution
   - GHL / Firestore / Cloud Run / IAM / secret wiring
   - Authenticated private MG Guide host integration
-- **STOP:** `STOP_CODE=NW006_CARD_IMPLEMENTATION_READY_FOR_PR_REVIEW`
+- **STOP (historical implementation gate):** `STOP_CODE=NW006_CARD_IMPLEMENTATION_READY_FOR_PR_REVIEW`
+
+### 2026-08-12 — NW-006 review repairs + PR publication prep
+
+- **Human owner / operator:** Aaron Chandler / repository maintainer
+- **Tool / AI surfaces:** VS Code + MG Orchestrator + Copilot CLI runtime
+- **Repairs:**
+  - Preserve nullable `salesperson_attention_required` truth (`true`/`false`/`null`)
+  - Out-of-scope mutation framing is card-local only (`CARD_INPUT_OUT_OF_SCOPE` UI error; no unverified upstream CRM claims)
+  - Validate all eight scenario CardViewModel outputs against required schema
+  - Deterministic schema-error sort via stringified `absolute_path`
+  - Durable expected CardViewModel snapshots under `fixtures/nw006/expected/**`
+  - Documentary truth reconciliation for README / ledger / collaboration log
+- **Proof marker added:** `CARD_VIEWMODEL_SCHEMA_VALIDATION=PASS`
+- **STOP target after publish:** `STOP_CODE=NW006_PR_OPEN_READY_FOR_EXACT_HEAD_REVIEW`

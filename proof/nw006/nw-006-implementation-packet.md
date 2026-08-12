@@ -311,7 +311,7 @@ CardViewModel
     headline: string | null
     next_action: string | null
     crm_actions: string[]
-    salesperson_attention_required: bool
+    salesperson_attention_required: bool | null   # preserve packet nullability
   controls:
     mutation_controls_enabled: false     # CONSTANT
     agent_rerun_enabled: false           # CONSTANT
@@ -395,6 +395,16 @@ Any violation is NW-006 out-of-scope input and must:
 
 In both paths, the card must never claim verified CRM effects.
 
+Out-of-scope failed framing body (normative):
+
+```text
+Input is outside the NW-006 zero-effect display envelope.
+This card did not perform CRM changes.
+```
+
+`no_crm_changes_made` / equivalent copy must describe this card path only, not
+unverified upstream CRM effects.
+
 ### 5.5 Error provenance separation
 
 `policy_display.reason_codes` is only for deterministic policy reason codes
@@ -443,7 +453,7 @@ names from the vertical slice; the card maps **packet fields**, not scenario IDs
 
 | State | Required user-visible anchor |
 | --- | --- |
-| `blocked` | **“No CRM changes were made.”** |
+| `blocked` | **“No CRM changes were made by this card.”** |
 | `failed` | Failure framing + reason codes; no mutation controls |
 | `completed_with_review` | Explicit review needed; show stage denial when present |
 | `completed` | Success framing for a clean terminal packet; intents shown as planned when not verified |

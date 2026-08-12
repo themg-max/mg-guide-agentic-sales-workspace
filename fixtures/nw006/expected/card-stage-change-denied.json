@@ -1,0 +1,91 @@
+{
+  "schema": "mg_guide_meeting_follow_up_card_v1",
+  "card_state": "completed_with_review",
+  "run": {
+    "run_id": "run_nw006_stage_denied_001",
+    "workflow": "meeting_follow_up_v1",
+    "packet_status": "completed_with_review",
+    "created_at": "2026-08-12T18:05:00Z"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_002",
+    "occurred_at": "2026-08-12T17:35:00Z",
+    "title": "Casey Nguyen - Discovery Meeting"
+  },
+  "framing": {
+    "tone": "review",
+    "headline": "Follow-up requires review",
+    "body": "Policy reason codes indicate human review is required before any downstream action.",
+    "no_crm_changes_made": true
+  },
+  "policy_display": {
+    "note_write": "allowed",
+    "stage_write": "approval_required",
+    "reason_codes": [
+      "STAGE_TRANSITION_NOT_ALLOWED"
+    ]
+  },
+  "ui_integrity": {
+    "errors": [],
+    "schema_validation_errors": [],
+    "invariant_violations": []
+  },
+  "crm_display": {
+    "resolution_status": "matched",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": "discovery_scheduled"
+  },
+  "metadata": {
+    "contact_id": "contact_demo_casey_001",
+    "opportunity_id": "opp_demo_casey_001"
+  },
+  "learning": {
+    "summary": "Prospect requested notes but deferred stage movement decision.",
+    "needs": [
+      "education resources"
+    ],
+    "objections": [
+      "not ready for stage advancement"
+    ],
+    "next_step_action": "Send notes recap and hold stage",
+    "next_step_owner": "Alex Rivera"
+  },
+  "intents_display": {
+    "note": [
+      {
+        "kind": "note",
+        "status": "planned",
+        "summary": "Note intent planned: source extraction.summary",
+        "from_stage": null,
+        "to_stage": null
+      }
+    ],
+    "stage": [],
+    "note_execution_attempted": false,
+    "stage_execution_attempted": false
+  },
+  "brief_display": {
+    "headline": "Review required before stage movement",
+    "next_action": "Review stage policy reason codes",
+    "crm_actions": [
+      "plan_note_intent"
+    ],
+    "salesperson_attention_required": true
+  },
+  "controls": {
+    "mutation_controls_enabled": false,
+    "agent_rerun_enabled": false,
+    "policy_reeval_enabled": false,
+    "allowed_human_actions": [
+      "acknowledge",
+      "copy_note_text_offline",
+      "escalate_offline"
+    ]
+  },
+  "integrity": {
+    "external_effects": 0,
+    "source_schema": "meeting_follow_up_packet_v1",
+    "mapper_id": "meeting_follow_up_card_mapper_v1"
+  }
+}
