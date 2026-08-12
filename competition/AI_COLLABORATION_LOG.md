@@ -337,4 +337,3 @@
   - L3A promotion, Firestore writes, deployment, IAM/secret mutation
   - Private IDs, secrets, or control-plane paths in public artifacts
   - Authority expansion beyond the grant envelope
-
