@@ -2,7 +2,8 @@ proof_id: meeting-follow-up-v1-canonical-synthetic-read-binding-v1
 manifest_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1_BINDING
 workflow_id: meeting_follow_up_v1
 branch: gov/mg-guide-ghl-canonical-synthetic-read-binding-v1
-head_sha: "542cd4d9c3d84f6d81a67c42980358c860cc37fb"
+reviewed_head_sha: "e4584280aa8d3ed4caeec39177e2f46ab66f28cc"
+reviewed_head_role: "pre-disposition exact evidence head"
 private_source_authority_sync: "YES"
 private_activation_pr: 2958
 private_activation_merge_sha: "e69ccf97efbc538f79289d522de2fc8e9504e5a2"
@@ -29,8 +30,8 @@ validation:
   notes: >
     Documentary human-binding + activation-decision unit only. YAML parse of
     binding and execution-manifest required. No runtime/test surface changed.
-    Live GHL not invoked. head_sha records the branch tip at binding closeout
-    push time; a subsequent SHA-only touch is intentionally avoided.
+    The reviewed_head_sha records the exact public PR #8 head under review.
+    No additional SHA-only churn is introduced beyond the final reviewed state.
 external_calls:
   network: NONE
   crm: NONE
