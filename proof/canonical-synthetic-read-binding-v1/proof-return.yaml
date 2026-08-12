@@ -1,0 +1,40 @@
+proof_id: meeting-follow-up-v1-canonical-synthetic-read-binding-v1
+manifest_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1_BINDING
+workflow_id: meeting_follow_up_v1
+branch: gov/mg-guide-ghl-canonical-synthetic-read-binding-v1
+head_sha: "PENDING_COMMIT"
+pr_url: ""
+files_changed:
+  - governance/authorizations/MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.yaml
+  - governance/GOVERNANCE_PROFILE.yaml
+  - proof/canonical-synthetic-read-binding-v1/**
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+validation:
+  git_diff_check: PASS
+  tests: NOT_APPLICABLE
+  contract_validation: NOT_APPLICABLE
+  notes: >
+    Documentary human-binding + activation-decision unit only. YAML parse of
+    binding and execution-manifest required. No runtime/test surface changed.
+    Live GHL not invoked. head_sha is finalized after commit on this branch.
+external_calls:
+  network: NONE
+  crm: NONE
+  cloud: NONE
+authorization_posture:
+  PHASE1_IMPLEMENTATION_AUTHORIZED: "YES"
+  GHL_WRITE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+residual_risks:
+  - Grant is AUTHORIZED_FOR_EXECUTION but live reads are still unexecuted; a
+    separate bounded execution unit must enforce private allowlist and budgets.
+  - Exact IDs exist only in private control plane; loss of private binding would
+    block safe execution.
+  - Canonical location is not a test environment; mis-targeting non-allowlisted
+    IDs remains a hard deny.
+next_action: >
+  Human review of this binding PR. Do not execute live GHL from this unit.
+  After merge (or explicit reviewer disposition on exact head), a separate
+  bounded execution unit may perform at most one get-contact, one
+  get-opportunity, and get-pipelines metadata under the private allowlist.

@@ -255,6 +255,35 @@
   - `create-note`, `update-opportunity`, or any CRM mutation
   - Gemini, ADK, Firestore, Cloud Run, IAM, and non-synthetic data
 
+### 2026-08-12 — Canonical synthetic-read human binding + activation decision
+
+- **Human owner / operator:** repository maintainer / CRM operator (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`
+- **Objective:** Record public-sanitized human synthetic-record binding, PIT/canonical-location verification (no token values), and explicit activation decision; do **not** execute any live GHL call
+- **Artifacts touched (authorized paths only):**
+  - `governance/authorizations/MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.yaml`
+  - `governance/GOVERNANCE_PROFILE.yaml`
+  - `proof/canonical-synthetic-read-binding-v1/**`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Validation:** YAML parse of binding + execution-manifest; `git diff --check`; secret/private-identifier heuristic scan; no network/CRM calls
+- **Human decisions retained:**
+  - `DECISION=AUTHORIZED_FOR_EXECUTION`
+  - `HUMAN_SIGNATURE=APPROVED`
+  - `SYNTHETIC_CONTACT_BOUND=YES`, `SYNTHETIC_OPPORTUNITY_BOUND=YES`, `RELATIONSHIP_VERIFIED=YES`
+  - `PRIVATE_ALLOWLIST_COMPLETE=YES` (IDs private-control-plane only)
+  - `PIT_CANONICAL_LOCATION_VERIFIED=YES`, `IAM_CHANGE_REQUIRED=NO`
+  - Authorized ops only: exact-ID `get-contact` MAX=1, exact-ID `get-opportunity` MAX=1, `get-pipelines` metadata
+  - All searches/writes/email/SMS/raw REST/non-allowlisted IDs denied
+  - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0` for this binding unit
+  - `DEPLOYMENT_AUTHORIZED=NO`, `GEMINI_ADK_AUTHORIZED=NO`, `AUTHORITY_EXPANSION=NO`
+- **Out of scope / refused:**
+  - Any live GHL/CRM call in this unit
+  - Public disclosure of exact record IDs or PIT/token values
+  - CRM writes, deployment, Gemini/ADK, IAM/secret mutation
+  - Mapping private monorepo PR #2954 path literally (not present in this public repo); public PR created on topic branch instead
+
 ### 2026-08-12 — Phase 2B offline adapter closeout (PR #6 merged)
 
 - **Human owner / operator:** repository maintainer (Aaron Chandler)

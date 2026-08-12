@@ -41,9 +41,23 @@ authorization_posture_public:
   GLOBAL_ACTIVATION_AUTHORIZED: "NO"
   PRODUCTION_CRM_DATA_AUTHORIZED: "NO"
 
-recommended_next_public_branch: feat/meeting-follow-up-v1-phase1-contracts-fixtures
+canonical_location_synthetic_read_grant:
+  grant_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1
+  status: AUTHORIZED_FOR_EXECUTION
+  execution_status: AUTHORIZED_NOT_EXECUTED
+  human_signature: APPROVED
+  ghl_live_calls_binding_unit: 0
+  ghl_writes: 0
+  public_id_disclosure: false
+  note: >
+    Human-authorized exact-ID synthetic reads only. Live execution not performed
+    by the binding unit. GHL_READ_AUTHORIZED remains NO until a separate live
+    proof unit completes under private allowlist budgets.
+
+recommended_next_public_branch: gov/mg-guide-ghl-canonical-synthetic-read-binding-v1
 
 notes:
   - Public profile is sanitized; no private filesystem paths or secrets.
-  - Private human adoption disposition is recorded only in the private control plane.
-  - Phase 1 coding requires separate private authorization review and public-scope grant.
+  - Private human adoption disposition and exact synthetic allowlist IDs remain in the private control plane.
+  - Canonical-location synthetic read grant is AUTHORIZED_FOR_EXECUTION / AUTHORIZED_NOT_EXECUTED after human signature.
+  - No live GHL calls, writes, deployment, Gemini/ADK, or IAM/secret mutation authorized by this binding unit.
