@@ -3,7 +3,7 @@
 **Competition:** Google All Things Agentic Hackathon
 **Target track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
-**Project status:** **PHASE 3 CLOSED FOR UNIT 3 — Unit 1 MERGED; Unit 2 MERGED; Unit 3 MERGED (PR #13 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`); NW-004 CLOSED_SUCCESS; NW-006 PLANNED / NOT_STARTED**
+**Project status:** **PHASE 3 CLOSED FOR UNIT 3 — Unit 1 MERGED; Unit 2 MERGED; Unit 3 MERGED (PR #13 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`); NW-004 CLOSED_SUCCESS; NW-006 IMPLEMENTED_PENDING_REVIEW (branch `feat/nw006-meeting-follow-up-card`)**
 
 This repository is the standalone, competition-period home for the MG Guide
 Agentic Sales Workspace. It establishes durable provenance for the
@@ -43,9 +43,9 @@ follow-up record** without the salesperson manually summarizing the
 conversation, finding the CRM contact, deciding the pipeline state, and
 documenting the next step.
 
-This closeout reconciles the merged PR #13 state for Unit 3 and keeps the
-NW-006 MG Guide Meeting Follow-Up card as a planning-only artifact with no
-mutation controls and zero external effects.
+This repository now includes the competition-local NW-006 MG Guide Meeting
+Follow-Up card renderer/reference component with no mutation controls and zero
+external effects.
 
 **Vertical slice promise (when implemented):**
 
@@ -82,8 +82,9 @@ MG Guide next-step brief out.
 ## Architecture (Phase 3 closeout state)
 
 Unit 1, Unit 2, and Unit 3 are implemented offline against synthetic fixtures
-and merged. The remaining layers below Unit 3, including the MG Guide card
-experience (NW-006), remain planning-only and intentionally not started.
+and merged. NW-006 adds a bounded deterministic card module (mapper + text/html
+renderers + stdout-only CLI) and remains host-agnostic with no private
+authenticated integration.
 
 | Layer | Role |
 | --- | --- |
@@ -251,7 +252,7 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Gemini / ADK — Meeting Context Agent (unit 1) | **Merged** (PR #10; fixture harness green; live model optional) |
 | Google ADK runtime + Relationship Context Agent (unit 2) | **Merged** (PR #11 / `a3d5a5731d7342463fe365e597e5d974d3420d08`) |
 | Follow-Up Planning Agent (unit 3) | **Merged** (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / CI 31623771005 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; merged `2026-08-12T17:47:49Z`) |
-| MG Guide Meeting Follow-Up card (NW-006) | **PLANNED_NOT_STARTED** — planning packet at [`proof/phase3/unit3/nw-006-meeting-follow-up-card-plan.md`](proof/phase3/unit3/nw-006-meeting-follow-up-card-plan.md); no mutation controls; zero external effects |
+| MG Guide Meeting Follow-Up card (NW-006) | **IMPLEMENTED_PENDING_REVIEW** — bounded implementation packet at [`proof/nw006/nw-006-implementation-packet.md`](proof/nw006/nw-006-implementation-packet.md), implementation proof at [`proof/nw006/proof-return.yaml`](proof/nw006/proof-return.yaml); no mutation controls; zero external effects; no private host wiring |
 | Full end-to-end competition vertical slice (remaining agents/packet) | Not complete; final card and runtime controls remain separate governance units |
 | Live GHL / CRM writes | Forbidden under current grants |
 | Firestore audit writer | Not implemented |
@@ -259,9 +260,8 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Production CRM writes | Forbidden |
 | External effects (authorized units) | Always 0 |
 
-**Closeout state:** Unit 3 (Follow-Up Planning Agent) has merged under PR #13. The
-Follow-Up Planning Agent proposes only; the deterministic policy gate
-still evaluates/authorizes; mutation execution, Firestore audit, and deployment
-remain separate governed units. The NW-006 MG Guide Meeting Follow-Up card remains
-PLANNED / NOT_STARTED and is intentionally limited to a planning-only packet in
-this closeout.
+**Closeout state:** Unit 3 (Follow-Up Planning Agent) has merged under PR #13 and
+NW-006 is implemented on a dedicated branch as a deterministic card renderer.
+The Follow-Up Planning Agent still proposes only; the deterministic policy gate
+still evaluates/authorizes; mutation execution, Firestore audit, deployment,
+and private host integration remain separate governed units.

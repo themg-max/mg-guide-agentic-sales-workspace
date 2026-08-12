@@ -1,0 +1,87 @@
+{
+  "schema": "meeting_follow_up_packet_v1",
+  "run": {
+    "run_id": "run_nw006_insufficient_context_001",
+    "workflow": "meeting_follow_up_v1",
+    "created_at": "2026-08-12T18:16:00Z",
+    "status": "blocked"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_006",
+    "occurred_at": "2026-08-12T17:46:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "participants": [
+    {
+      "name": "Sam Unlisted",
+      "email": null,
+      "phone": null,
+      "role": "prospect"
+    }
+  ],
+  "extraction": {
+    "lifecycle": "aborted",
+    "summary": null,
+    "needs": [],
+    "objections": [],
+    "commitments": [],
+    "next_step": null,
+    "opportunity_signal": null
+  },
+  "evidence": {
+    "transcript_spans": [],
+    "extraction_confidence": 0.55
+  },
+  "crm_resolution": {
+    "lifecycle": "not_attempted",
+    "status": "not_attempted",
+    "contact_id": null,
+    "opportunity_id": null,
+    "match_basis": "not_attempted",
+    "candidate_count": 0,
+    "current_stage": null
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "blocked",
+    "stage_write": "blocked",
+    "reason_codes": ["LOW_EXTRACTION_CONFIDENCE"]
+  },
+  "mutations": {
+    "lifecycle": "not_attempted",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "from_stage": null,
+      "to_stage": null,
+      "verified": false
+    }
+  },
+  "mutation_intents": {
+    "note": [],
+    "stage": []
+  },
+  "brief": {
+    "lifecycle": "complete",
+    "headline": "Insufficient context",
+    "meeting_summary": null,
+    "crm_actions": [],
+    "next_action": "Acquire clearer transcript context",
+    "salesperson_attention_required": true
+  },
+  "audit": {
+    "started_at": "2026-08-12T18:16:00Z",
+    "completed_at": "2026-08-12T18:17:00Z",
+    "agents_used": ["meeting_context_agent", "relationship_context_agent", "follow_up_planning_agent"],
+    "tools_used": [],
+    "warnings": [],
+    "final_disposition": "blocked"
+  },
+  "external_effects": 0
+}
+

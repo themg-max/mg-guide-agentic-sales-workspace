@@ -582,3 +582,48 @@
   - Cloud Run deployment (NW-007)
   - IAM / secret / CRM mutation changes
 - **STOP:** `STOP_CODE=PHASE3_UNIT3_CLOSEOUT_RECONCILED_NW006_PLAN_READY_FOR_PR`
+
+### 2026-08-12 — NW-006 implementation packet normalization + bounded card module implementation
+
+- **Human owner / operator:** VS Code / MG Orchestrator (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + Copilot CLI runtime
+- **Objective:** Tighten NW-006 implementation packet, then implement the deterministic competition-local host-agnostic MG Guide Meeting Follow-Up card module on branch `feat/nw006-meeting-follow-up-card`
+- **Required preflight executed:** `pwd`; `git branch --show-current`; `git status --short --untracked-files=all`
+- **Branch guard:** not `main`; expected branch confirmed
+- **Packet normalization applied (Step 1):**
+  - Product surface clarified as competition-local host-agnostic renderer/reference component only
+  - Private authenticated MG Guide host integration explicitly not delivered/authorized
+  - Required contract set to `contracts/mg_guide_meeting_follow_up_card.schema.json`; no other contract edits authorized by packet
+  - Input-integrity invariant and fail-closed handling (`CARD_INPUT_OUT_OF_SCOPE`) added
+  - Error provenance split: `policy_display.reason_codes` vs `ui_integrity.errors`
+  - Raw CRM IDs forbidden from render output; metadata-only retention requirement added
+  - Mandatory HTML escaping test requirements added (`<script>`, `<img onerror>`, ampersands, angle brackets, quotes)
+  - `pyproject.toml` removed from expected edit scope
+  - CLI constrained to stdout-only; no module-owned file writes
+  - Determinism proof requirements expanded to mapper/text/html repeatability
+- **Step 1 validation:** `git diff --check` PASS; packet staged by exact path only; commit `docs(nw006): tighten card implementation contract`
+- **Implementation delivered (Step 2):**
+  - `src/mg_guide/meeting_follow_up_card/**` (models, mapper, renderers, CLI, module entrypoint)
+  - `contracts/mg_guide_meeting_follow_up_card.schema.json` (required CardViewModel contract)
+  - `fixtures/nw006/packets/**` (8 static synthetic packet fixtures)
+  - `tests/mg_guide/meeting_follow_up_card/**` (mapper, non-terminal, escaping, determinism, ID-leak, out-of-scope fail-closed, forbidden imports, schema + external effects, CLI stdout)
+  - `proof/nw006/proof-return.yaml` (NW-006 proof markers)
+- **Validation executed:**
+  - `python3 -m pytest tests/mg_guide/meeting_follow_up_card -q` PASS
+  - `python3 -m pytest -q` PASS
+  - `git diff --check` PASS
+- **Proof assertions satisfied:**
+  - `CARD_INPUT_SCHEMA_VALIDATION=PASS`
+  - `CARD_OUT_OF_SCOPE_MUTATION_PACKET_FAILS_CLOSED=PASS`
+  - `CARD_POLICY_REASON_CODES_PASSTHROUGH=PASS`
+  - `CARD_UI_ERRORS_SEPARATE_FROM_POLICY=PASS`
+  - `CARD_RAW_CRM_IDS_NOT_RENDERED=PASS`
+  - `CARD_HTML_ESCAPING=PASS`
+  - `CARD_DETERMINISTIC_REPEATABILITY=PASS`
+  - `CARD_FORBIDDEN_IMPORT_GUARD=PASS`
+  - `EXTERNAL_EFFECTS=0`
+- **Out of scope / refused in this unit:**
+  - CRM mutation execution
+  - GHL / Firestore / Cloud Run / IAM / secret wiring
+  - Authenticated private MG Guide host integration
+- **STOP:** `STOP_CODE=NW006_CARD_IMPLEMENTATION_READY_FOR_PR_REVIEW`

@@ -1,0 +1,91 @@
+{
+  "schema": "meeting_follow_up_packet_v1",
+  "run": {
+    "run_id": "run_nw006_ambiguous_contact_001",
+    "workflow": "meeting_follow_up_v1",
+    "created_at": "2026-08-12T18:10:00Z",
+    "status": "blocked"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_003",
+    "occurred_at": "2026-08-12T17:40:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "participants": [
+    {
+      "name": "Jordan Lee",
+      "email": null,
+      "phone": null,
+      "role": "prospect"
+    }
+  ],
+  "extraction": {
+    "lifecycle": "complete",
+    "summary": "Conversation lacked unique identifiers for contact resolution.",
+    "needs": ["contact disambiguation"],
+    "objections": [],
+    "commitments": [],
+    "next_step": {
+      "action": "Resolve contact identity before any CRM write",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": null
+  },
+  "evidence": {
+    "transcript_spans": [],
+    "extraction_confidence": 0.88
+  },
+  "crm_resolution": {
+    "lifecycle": "failed",
+    "status": "ambiguous",
+    "contact_id": null,
+    "opportunity_id": null,
+    "match_basis": "name",
+    "candidate_count": 2,
+    "current_stage": null
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "blocked",
+    "stage_write": "blocked",
+    "reason_codes": ["AMBIGUOUS_CONTACT"]
+  },
+  "mutations": {
+    "lifecycle": "not_attempted",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "from_stage": null,
+      "to_stage": null,
+      "verified": false
+    }
+  },
+  "mutation_intents": {
+    "note": [],
+    "stage": []
+  },
+  "brief": {
+    "lifecycle": "complete",
+    "headline": "Contact match blocked",
+    "meeting_summary": "Contact is ambiguous.",
+    "crm_actions": [],
+    "next_action": "Escalate offline to resolve identity",
+    "salesperson_attention_required": true
+  },
+  "audit": {
+    "started_at": "2026-08-12T18:10:00Z",
+    "completed_at": "2026-08-12T18:11:00Z",
+    "agents_used": ["meeting_context_agent", "relationship_context_agent", "follow_up_planning_agent"],
+    "tools_used": [],
+    "warnings": [],
+    "final_disposition": "blocked"
+  },
+  "external_effects": 0
+}
+
