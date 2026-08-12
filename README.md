@@ -55,7 +55,8 @@ MG Guide next-step brief out.
 
 - One workflow: `meeting_follow_up_v1`
 - Synthetic meeting transcript fixtures only
-- Isolated / test GoHighLevel (GHL) location only
+- Unit 2 is offline synthetic only
+- No isolated GHL test location is available
 - At most one contact note create and at most one opportunity-stage change per run
 - Read-back verification of every mutation
 - Firestore audit record per run
@@ -82,7 +83,7 @@ remaining layers below are still intent only.
 | **Google ADK + Gemini 3.5+** | Specialized reasoning agents (propose; never unilaterally decide) |
 | **OL3 workflow authority** | Deterministic state machine and mutation policy gate |
 | **MG MCP** | Trusted organizational context — **read-only** |
-| **GHL MCP** | Standardized external CRM tool boundary (test account only) |
+| **GHL MCP** | Standardized external CRM tool boundary (Unit 2 offline synthetic only) |
 | **Firestore** | Runtime / audit state (`workflow_runs/{run_id}`) |
 | **MG Guide** | Salesperson Meeting Follow-Up experience (application surface) |
 | **Planned Cloud Run** | Future deployment target for the slice (not provisioned here) |
@@ -101,12 +102,15 @@ GHL MCP client
   ↓
 GHL MCP server
   ↓
-GoHighLevel test CRM (isolated location only)
+Canonical GoHighLevel location (not a test environment)
 ```
 
 Exact GHL MCP tool/operation names remain **UNKNOWN** until live discovery
-against an authorized test account. This repository must **not** invent tool
-identifiers or fall back to raw GHL REST without a new architecture decision.
+against the canonical GHL location under separate governance. The canonical
+location is not a test environment, and any live canonical synthetic read is
+separately governed. Unit 2 does not authorize live GHL or any writes. This
+repository must **not** invent tool identifiers or fall back to raw GHL REST
+without a new architecture decision.
 
 ---
 
