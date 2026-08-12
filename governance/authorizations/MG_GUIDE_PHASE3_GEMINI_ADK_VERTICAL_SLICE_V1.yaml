@@ -2,9 +2,9 @@
 # No private IDs, secrets, tokens, or control-plane paths.
 grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 status: AUTHORIZED_FOR_IMPLEMENTATION
-# Unit 1 MERGED on public main (PR #10). Unit 2 (ADK runtime + Relationship
-# Context Agent) is the active implementation unit. Full vertical slice remains open.
-execution_status: IN_PROGRESS_UNIT2
+# Unit 1 MERGED (PR #10). Unit 2 MERGED (PR #11). Unit 3 Follow-Up Planning
+# Agent is the next candidate; implementation not started in this closeout.
+execution_status: IN_PROGRESS_UNIT2_COMPLETE
 workflow: meeting_follow_up_v1
 public_ledger_id: NW-004
 authorized_at_utc: "2026-08-12T14:32:13Z"
@@ -12,6 +12,9 @@ proposed_at_utc: "2026-08-12T14:14:37Z"
 unit1_reconciled_at_utc: "2026-08-12T14:56:00Z"
 unit1_merged_at_utc: "2026-08-12T15:10:00Z"
 unit2_started_at_utc: "2026-08-12T15:15:00Z"
+unit2_merged_at_utc: "2026-08-12T16:27:00Z"
+unit2_closeout_at_utc: "2026-08-12T16:33:00Z"
+unit3_packet_prepared_at_utc: "2026-08-12T16:33:00Z"
 
 private_source_authority_sync: "YES"
 private_phase3_authorization_pr: 2964
@@ -27,8 +30,12 @@ public_implementation_pr: 11
 public_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
 public_unit2_implementation_pr: 11
 public_unit2_implementation_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
+public_unit2_head_sha: "3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa"
+public_unit2_merge_sha: "a3d5a5731d7342463fe365e597e5d974d3420d08"
+public_unit2_status: MERGED_COMPLETE
+public_unit2_final_ci_run_id: "31616758231"
 nw004_status: IN_PROGRESS
-next_phase3_unit: GOOGLE_ADK_RUNTIME_PLUS_RELATIONSHIP_CONTEXT
+next_phase3_unit: FOLLOW_UP_PLANNING_AGENT
 
 human_activation:
   decision: AUTHORIZED_FOR_IMPLEMENTATION
@@ -102,7 +109,11 @@ first_implementation_unit:
 second_implementation_unit:
   name: Google ADK runtime + Relationship Context Agent
   public_branch: feat/meeting-follow-up-v1-adk-relationship-context-unit2
-  status: IN_PROGRESS_TESTS_GREEN
+  public_implementation_pr: 11
+  public_head_sha: "3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa"
+  public_merge_sha: "a3d5a5731d7342463fe365e597e5d974d3420d08"
+  public_final_ci_run_id: "31616758231"
+  status: MERGED_COMPLETE
   architecture: >
     synthetic transcript -> Meeting Context Agent -> Google ADK runtime
     orchestration -> Relationship Context Agent -> Phase 2B offline GHL adapter
@@ -130,6 +141,70 @@ second_implementation_unit:
   stop_before: Follow-Up Planning Agent
   stop_after_unit: true
 
+third_implementation_unit:
+  name: Follow-Up Planning Agent
+  status: BOUNDED_IMPLEMENTATION_PACKET_READY
+  implementation_started: "NO"
+  public_branch_candidate: feat/meeting-follow-up-v1-follow-up-planning-agent-unit3
+  planning_artifact: proof/phase3/unit3/unit3-implementation-packet.md
+  architecture: >
+    meeting_context_v1 + relationship_context_v1 -> Follow-Up Planning Agent
+    -> structured follow-up proposal -> deterministic policy gate
+    -> reviewable meeting_follow_up_packet_v1 -> STOP
+  authority_boundary:
+    agent_role: propose
+    policy_role: evaluate_and_authorize
+    agent_must_not:
+      - bypass deterministic policy
+      - directly authorize CRM mutation
+      - perform live GHL reads or any writes
+  allowed_planning_scope:
+    - Follow-Up Planning Agent
+    - proposal/output contract if needed
+    - reuse existing Google ADK package runtime
+    - reuse meeting_context_v1
+    - reuse relationship_context_v1
+    - deterministic policy evaluation
+    - synthetic fixtures
+    - tests
+    - sanitized proof artifacts
+    - competition ledger/grant reconciliation
+  blocked:
+    - live GHL reads
+    - all GHL writes
+    - real customer data
+    - broad CRM search
+    - Firestore writes
+    - Cloud Run deployment
+    - IAM
+    - Secret Manager
+    - raw REST
+    - L3A runtime promotion
+    - deterministic-policy bypass
+    - production activation
+  required_proof:
+    FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED: "YES"
+    MEETING_CONTEXT_REUSED: "YES"
+    RELATIONSHIP_CONTEXT_REUSED: "YES"
+    GOOGLE_ADK_RUNTIME_REUSED: "YES"
+    FOLLOW_UP_PROPOSAL_OUTPUT: "VALID"
+    DETERMINISTIC_POLICY_GATE_INVOKED: "YES"
+    DETERMINISTIC_POLICY_BYPASS: "NO"
+    EXTERNAL_EFFECTS: 0
+  required_scenario_proof:
+    SUCCESS: "PASS"
+    AMBIGUOUS_CONTACT: "PASS"
+    AMBIGUOUS_OPPORTUNITY: "PASS"
+    NO_OPPORTUNITY: "PASS"
+    STAGE_CHANGE_DENIED: "PASS"
+    INSUFFICIENT_CONTEXT: "PASS"
+  stop_after_unit: true
+  stop_before:
+    - live GHL
+    - Firestore audit writer
+    - Cloud Run deployment
+    - MG Guide production card activation
+
 required_vertical_slice_outcomes:
   VALID_PACKET_OUTPUT: "YES"
   DETERMINISTIC_POLICY_AUTHORITY_PRESERVED: "YES"
@@ -144,9 +219,15 @@ activation_assertions:
   PHASE3_UNIT1_STATUS: "MERGED_COMPLETE"
   PUBLIC_PR10_STATUS: "MERGED"
   PUBLIC_PR10_MERGE_SHA: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
+  PHASE3_UNIT2_STATUS: "MERGED_COMPLETE"
+  PUBLIC_PR11_STATUS: "MERGED"
+  PUBLIC_PR11_HEAD_SHA: "3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa"
+  PUBLIC_PR11_MERGE_SHA: "a3d5a5731d7342463fe365e597e5d974d3420d08"
+  NEXT_PHASE3_UNIT: "FOLLOW_UP_PLANNING_AGENT"
+  UNIT3_IMPLEMENTATION_STARTED: "NO"
   # Unit 1 provider surface (unchanged)
   GEMINI_PROVIDER_STARTED: "YES"
-  # Unit 2 runtime posture
+  # Unit 2 runtime posture (merged)
   GOOGLE_ADK_PACKAGE_BOUND: "YES"
   GOOGLE_ADK_RUNTIME_STARTED: "YES"
   ADK_INTEGRATION_STATUS: "RUNTIME_INTEGRATED"
@@ -173,15 +254,18 @@ sponsor_tech_precision:
     Unit 1 implements a google-genai-compatible provider surface (preserved).
     Unit 2 runs actual multi-agent Google ADK runtime orchestration through the
     pinned google-adk package (Runner + SequentialAgent + BaseAgent wrappers +
-    InMemorySessionService). Runtime markers are derived from measured runtime
-    state; the runtime fails closed with NO local fallback when the package is
-    unavailable. Relationship Context Agent resolves against synthetic CRM via
-    Phase 2B offline adapter; ambiguous-opportunity resolution fails closed.
+    InMemorySessionService) and is MERGED on public main (PR #11). Runtime
+    markers are derived from measured runtime state; the runtime fails closed
+    with NO local fallback when the package is unavailable. Relationship
+    Context Agent resolves against synthetic CRM via Phase 2B offline adapter;
+    ambiguous-opportunity resolution fails closed. Unit 3 will reuse that
+    runtime for Follow-Up Planning Agent proposals under deterministic policy.
 
 notes:
   - Public Unit 1 coding is MERGED on PR #10 (merge SHA 469ae3ba9962895bd77bebb9e5b2b44a8faac6e7).
-  - Unit 2 implements ADK runtime + Relationship Context Agent only; stop before Follow-Up Planning Agent.
-  - Unit 2 repair (PR #11): earlier local-orchestration evidence superseded by actual google.adk package execution; markers derive from runtime state.
+  - Public Unit 2 coding is MERGED on PR #11 (head 3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa; merge SHA a3d5a5731d7342463fe365e597e5d974d3420d08).
+  - Unit 2 implemented ADK runtime + Relationship Context Agent only; Follow-Up Planning Agent was not part of Unit 2.
+  - Unit 3 bounded implementation packet is prepared; implementation not started in this closeout step.
   - Do not claim Unit 1 alone started Google ADK runtime; Unit 2 does.
   - Private exact metadata stays out of this public repository.
   - Live GHL remains unauthorized under this grant.

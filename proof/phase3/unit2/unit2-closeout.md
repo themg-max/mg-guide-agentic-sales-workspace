@@ -5,35 +5,24 @@
 | Grant | `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` |
 | Ledger | NW-004 |
 | Branch | `feat/meeting-follow-up-v1-adk-relationship-context-unit2` |
-| Public PR | #11 |
+| Public PR | #11 **MERGED** |
 | Unit 1 baseline | PR #10 **MERGED** @ `469ae3ba9962895bd77bebb9e5b2b44a8faac6e7` |
 | Unit | Google ADK runtime orchestration + Relationship Context Agent |
-| Status | **REPAIRED / TESTS GREEN** (stop before merge) |
-| Grant execution_status | `IN_PROGRESS_UNIT2` |
-| Stop before | Follow-Up Planning Agent |
-| Evidence head | `5878c05a1881e4fde1c70ab1624704fdf8154ba4` (pre-binding; repairs `b37247aba390080ee3acd7d4f971b53d47fa695e`) |
-| CI | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31614783508 **SUCCESS** |
+| Status | **MERGED_COMPLETE** |
+| Grant execution_status | `IN_PROGRESS_UNIT2_COMPLETE` |
+| Public head SHA | `3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa` |
+| Public merge SHA | `a3d5a5731d7342463fe365e597e5d974d3420d08` |
+| Final CI | https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31616758231 **SUCCESS** |
+| Stop before (Unit 2) | Follow-Up Planning Agent |
+| Next Phase 3 unit | Follow-Up Planning Agent (implementation not started) |
 
-## Repair note (sponsor-tech truth)
+## Merge closeout
 
-The first Unit 2 evidence head backed `GOOGLE_ADK_RUNTIME_STARTED=YES` with a
-custom local orchestration class plus an import-only `google.adk` binding.
-That did not equal actual Google ADK runtime execution. This repair:
-
-- Orchestrates Unit 2 through **actual `google.adk` primitives**:
-  `Runner` + `SequentialAgent` + custom `BaseAgent` wrappers +
-  `InMemorySessionService` (package pinned `google-adk==1.18.0`).
-- **Derives** all runtime markers from measured runtime state (package
-  binding, backend, consumed ADK events, session state). No hard-coded truth.
-- **Fails closed** when the google-adk package is unavailable — there is no
-  local fallback runtime (`LOCAL_ADK_FALLBACK_USED=NO`).
-- Adds a truth-consistency test: fails if `GOOGLE_ADK_RUNTIME_STARTED=YES`
-  without the package bound, or if `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`
-  without `ADK_RUNTIME_BACKEND=google_adk_package`.
-- Adds fail-closed `AMBIGUOUS_OPPORTUNITY` scenario: a uniquely matched
-  contact with multiple eligible open opportunities selects **none**, sets no
-  stage target, requires review, external effects = 0.
-- Reconciles README/.env.example to the Unit 2 state.
+PR #11 merged to public `main` after sponsor-tech truth repair and final README
+GHL environment reconciliation. Unit 2 delivered Google ADK package runtime
+orchestration and the Relationship Context Agent against offline synthetic CRM
+only. External effects remained 0. Follow-Up Planning Agent was **not** part of
+Unit 2.
 
 ## Proof assertions
 
@@ -57,6 +46,8 @@ REAL_CUSTOMER_DATA=0
 L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED
 FIRESTORE_WRITES=0
 DEPLOYMENT=NO
+PHASE3_UNIT2_STATUS=MERGED_COMPLETE
+PUBLIC_PR11_MERGE_SHA=a3d5a5731d7342463fe365e597e5d974d3420d08
 ```
 
 ## Scenario results
@@ -68,7 +59,7 @@ DEPLOYMENT=NO
 | `NO_OPPORTUNITY_OR_INSUFFICIENT_CONTEXT` | `transcript-no-stage-change` | `opportunity_missing` | **PASS** |
 | `AMBIGUOUS_OPPORTUNITY` | `transcript-ambiguous-opportunity` | `opportunity_ambiguous` | **PASS** |
 
-## Architecture (Unit 2 stop gate)
+## Architecture (Unit 2 delivered)
 
 ```text
 synthetic transcript
@@ -86,10 +77,11 @@ synthetic transcript
 | Claim | Unit 2 truth |
 | --- | --- |
 | Unit 1 Meeting Context provider surface | **Unchanged** (`COMPATIBLE_SURFACE_ONLY` / provider-level ADK runtime = NO) |
-| Google ADK runtime orchestration | **Started** via actual `google.adk` package primitives (`GOOGLE_ADK_PACKAGE_BOUND=YES`, `GOOGLE_ADK_RUNTIME_STARTED=YES`) |
-| ADK integration | **RUNTIME_INTEGRATED** with `ADK_RUNTIME_BACKEND=google_adk_package`; no local fallback (`LOCAL_ADK_FALLBACK_USED=NO`) |
+| Google ADK runtime orchestration | **Started** via actual `google.adk` package primitives and **merged** |
+| ADK integration | **RUNTIME_INTEGRATED** with `ADK_RUNTIME_BACKEND=google_adk_package`; no local fallback |
 | Relationship Context Agent | **Implemented** against synthetic CRM only |
 | Offline GHL adapter | **Used** (Phase 2B; no transport / no live calls) |
+| Follow-Up Planning Agent | **Not delivered** in Unit 2 |
 
 ## Delivered
 
@@ -101,7 +93,7 @@ synthetic transcript
 - `fixtures/transcript-ambiguous-opportunity.{txt,expected.json}`
 - `tests/agents/test_relationship_context_unit2.py` (+ runtime-truth consistency and fail-closed tests)
 - Unit 1 harness regression retained green
-- Ledger + grant reconciliation for PR #10 merge + Unit 2 start
+- Ledger + grant reconciliation for PR #11 merge
 
 ## Explicit non-delivery (by design / stop gate)
 
@@ -123,6 +115,12 @@ PYTHONPATH=src python3 -m agents.adk_runtime
 git diff --check
 ```
 
+## Next
+
+Unit 3 candidate: Follow-Up Planning Agent. Bounded implementation packet:
+[`../unit3/unit3-implementation-packet.md`](../unit3/unit3-implementation-packet.md).
+Implementation not started in this closeout.
+
 ## STOP
 
-`STOP_CODE=PHASE3_UNIT2_REPAIR_READY_FOR_REVIEW`
+`STOP_CODE=PHASE3_UNIT2_CLOSED_UNIT3_PLAN_READY_FOR_REVIEW`

@@ -470,3 +470,33 @@
   - `DETERMINISTIC_POLICY_BYPASS=NO`, `EXTERNAL_EFFECTS=0`, `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`
 - **Out of scope / refused:** Follow-Up Planning Agent; live GHL reads/writes; Firestore; deployment; L3A promotion; merge without reviewer disposition
 - **STOP:** `STOP_CODE=PHASE3_UNIT2_REPAIR_READY_FOR_REVIEW`
+
+### 2026-08-12 — Phase 3 Unit 2 merge closeout + Unit 3 Follow-Up Planning packet
+
+- **Human owner / operator:** VS Code / MG Orchestrator (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — no new grant; no Unit 3 implementation in this step
+- **Objective:** Reconcile durable public state after PR #11 merge; mark Unit 2 MERGED_COMPLETE; prepare bounded Unit 3 Follow-Up Planning Agent implementation packet; stop before coding Unit 3
+- **Branch:** `chore/phase3-unit2-closeout-unit3-plan` (fresh from merge SHA `a3d5a5731d7342463fe365e597e5d974d3420d08`)
+- **Unit 2 baseline:** PR #11 **MERGED**; head `3ab0b1dfa0c2c20a711156d5cf88febb5d21dbfa`; merge `a3d5a5731d7342463fe365e597e5d974d3420d08`; final CI run 31616758231 SUCCESS; EXTERNAL_EFFECTS=0
+- **Artifacts touched (authorized paths only):**
+  - `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml` (`execution_status=IN_PROGRESS_UNIT2_COMPLETE`, `public_unit2_status=MERGED_COMPLETE`, `next_phase3_unit=FOLLOW_UP_PLANNING_AGENT`)
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+  - `proof/phase3/unit2/unit2-closeout.md`
+  - `proof/phase3/unit2/proof-return.yaml`
+  - `proof/phase3/unit3/unit3-implementation-packet.md` (new; plan only)
+  - `README.md` (status reconciliation only)
+- **Human decisions retained:**
+  - `PHASE3_UNIT2_STATUS=MERGED_COMPLETE`
+  - `PUBLIC_PR11_MERGE_SHA=a3d5a5731d7342463fe365e597e5d974d3420d08`
+  - `NEXT_PHASE3_UNIT=FOLLOW_UP_PLANNING_AGENT`
+  - `UNIT3_IMPLEMENTATION_STARTED=NO`
+  - Agent proposes; deterministic policy evaluates/authorizes; no policy bypass
+  - Unit 3 blocked surfaces remain live GHL, all writes, Firestore, deployment, IAM/secrets, raw REST, L3A promotion, production activation
+- **Validation:** `git diff --check`; confirm no `src/**`, `tests/**`, `contracts/**`, `fixtures/**`, dependency manifests changed
+- **Out of scope / refused this step:**
+  - Follow-Up Planning Agent implementation code
+  - Runtime/source/test/contract/fixture changes
+  - Live GHL reads/writes; real customer data; deployment; L3A promotion
+- **STOP:** `STOP_CODE=PHASE3_UNIT2_CLOSED_UNIT3_PLAN_READY_FOR_REVIEW`
