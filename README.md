@@ -3,7 +3,7 @@
 **Competition:** Google All Things Agentic Hackathon
 **Target track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
-**Project status:** **PHASE 3 IN PROGRESS — Unit 1 MERGED; Unit 2 MERGED (PR #11); Unit 3 Follow-Up Planning Agent next (packet ready, not started)**
+**Project status:** **PHASE 3 IN PROGRESS — Unit 1 MERGED; Unit 2 MERGED (PR #11); Unit 3 Follow-Up Planning Agent implemented on bounded branch, awaiting PR review**
 
 This repository is the standalone, competition-period home for the MG Guide
 Agentic Sales Workspace. It establishes durable provenance for the
@@ -13,8 +13,8 @@ Agentic Sales Workspace. It establishes durable provenance for the
 > Phase 2B offline GHL read adapter are merged; Phase 3 Unit 1 (Meeting
 > Context Agent) is merged; Phase 3 Unit 2 (Google ADK package runtime
 > orchestration + Relationship Context Agent) is merged (PR #11). Phase 3
-> Unit 3 (Follow-Up Planning Agent) is the next candidate (implementation
-> packet ready; not started). The full vertical slice is **not** complete.
+> Unit 3 (Follow-Up Planning Agent) is implemented on a bounded branch and
+> awaiting PR review (not merged). The full vertical slice is **not** complete.
 > There are still **no** live CRM calls, no Firestore writes, and no deployment.
 
 ---
@@ -77,8 +77,8 @@ MG Guide next-step brief out.
 ## Architecture (partial Phase 3 implementation state)
 
 Unit 1 and Unit 2 are implemented offline against synthetic fixtures and
-merged; Unit 3 (Follow-Up Planning Agent) is planned next. Remaining layers
-below Unit 3 are still intent only.
+merged; Unit 3 (Follow-Up Planning Agent) is implemented on a bounded branch
+awaiting PR review. Remaining layers below Unit 3 are still intent only.
 
 | Layer | Role |
 | --- | --- |
@@ -142,6 +142,7 @@ docs/
   SECURITY.md
 contracts/
   meeting_follow_up_packet.schema.json
+  follow_up_proposal.schema.json
   workflow_states.yaml
   ghl_tool_manifest.yaml
   failure_codes.yaml
@@ -190,22 +191,25 @@ PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub
 # 5. Phase 3 unit 2 — ADK runtime + Relationship Context Agent (offline synthetic CRM)
 PYTHONPATH=src python3 -m agents.relationship_context
 PYTHONPATH=src python3 -m agents.adk_runtime
+
+# 6. Phase 3 unit 3 — Follow-Up Planning Agent (proposal + policy gate + packet; intent-only)
+PYTHONPATH=src python3 -m agents.follow_up_planning
 ```
 
 **Available today:**
 
-- Contract/schema validation (including `meeting_context_v1` and `relationship_context_v1`)
+- Contract/schema validation (including `meeting_context_v1`, `relationship_context_v1`, and `follow_up_proposal_v1`)
 - Deterministic state machine + policy tests
 - Acceptance tests for three synthetic fixture packages
 - Local fixture runner (sidecar test doubles only)
 - Phase 2B offline GHL read adapter (synthetic fixtures; no live CRM)
 - Phase 3 unit 1 Meeting Context Agent fixture harness — **merged** (PR #10; Gemini provider surface; default CI offline)
 - Phase 3 unit 2 Google ADK package runtime orchestration (actual `google-adk` Runner/SequentialAgent/session primitives; fail-closed, no local fallback) + Relationship Context Agent — **merged** (PR #11; synthetic CRM only)
-- Phase 3 unit 3 Follow-Up Planning Agent — **next** (bounded implementation packet ready; not started; synthetic only; deterministic policy gate required)
+- Phase 3 unit 3 Follow-Up Planning Agent — **implemented on bounded branch, awaiting PR review** (`feat/meeting-follow-up-v1-follow-up-planning-agent-unit3`; synthetic only; deterministic policy gate invoked; intent-only packet assembly; EXTERNAL_EFFECTS=0)
 
 **Not yet available (do not invent):**
 
-- Follow-Up Planning Agent and full multi-agent packet assembly end-to-end
+- Mutation execution (CRM note/stage writes) — Unit 3 records policy-bounded intents only
 - GHL credential configuration or live CRM calls
 - Firestore / Cloud Run provisioning
 - Hosted demo against deployed services
@@ -240,7 +244,7 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Phase 2B offline GHL read adapter | Present (synthetic only) |
 | Gemini / ADK — Meeting Context Agent (unit 1) | **Merged** (PR #10; fixture harness green; live model optional) |
 | Google ADK runtime + Relationship Context Agent (unit 2) | **Merged** (PR #11 / `a3d5a5731d7342463fe365e597e5d974d3420d08`) |
-| Follow-Up Planning Agent (unit 3) | **Next** (implementation packet ready; not started) |
+| Follow-Up Planning Agent (unit 3) | **Implemented on bounded branch; awaiting PR review** (not merged) |
 | Full Phase 3 vertical slice (remaining agents/packet) | Not complete |
 | Live GHL / CRM writes | Forbidden under current grants |
 | Firestore audit writer | Not implemented |
@@ -248,7 +252,9 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | Production CRM writes | Forbidden |
 | External effects (authorized units) | Always 0 |
 
-**Stop after unit 2 closeout:** Unit 2 is merged. Unit 3 Follow-Up Planning
-Agent is the next candidate under the same grant. Do not start Unit 3 coding
-until the reviewed implementation packet is accepted on a fresh bounded branch.
+**Stop after unit 3 implementation:** Unit 3 (Follow-Up Planning Agent) is
+implemented on `feat/meeting-follow-up-v1-follow-up-planning-agent-unit3`
+under the same grant and is awaiting PR review. The Follow-Up Planning Agent
+proposes only; the deterministic policy gate evaluates/authorizes; mutation
+execution, Firestore audit, and deployment remain separate governed units.
 Do not expand blast radius without a reviewed follow-on unit.

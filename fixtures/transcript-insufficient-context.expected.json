@@ -1,0 +1,54 @@
+{
+  "fixture_id": "transcript-insufficient-context",
+  "run_id": "run_demo_insufficient_001",
+  "meeting": {
+    "meeting_id": "demo_meeting_006",
+    "occurred_at": "2026-08-11T16:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": null
+  },
+  "participants": [
+    {
+      "name": "Sam Unlisted",
+      "email": null,
+      "phone": null,
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "Partial capture only; conversation content insufficient for a reliable follow-up summary.",
+    "needs": [],
+    "objections": [],
+    "commitments": [],
+    "next_step": {
+      "action": "Reconvene when audio is clear; record no CRM changes",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": null
+  },
+  "extraction_confidence": 0.55,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_insufficient_summary"
+    }
+  ],
+  "unit3_expectation": {
+    "scenario_id": "INSUFFICIENT_CONTEXT",
+    "expected_packet_status": "blocked",
+    "expected_reason_codes": [
+      "LOW_EXTRACTION_CONFIDENCE"
+    ],
+    "expected_note_intents": 0,
+    "expected_stage_intents": 0,
+    "expected_policy_gate_invoked": false,
+    "external_effects": 0
+  }
+}

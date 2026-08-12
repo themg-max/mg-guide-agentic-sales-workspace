@@ -1,0 +1,39 @@
+# FIXTURE: transcript-insufficient-context
+# SYNTHETIC DATA ONLY — not a real person, meeting, or CRM record
+# Expected disposition: blocked (Unit 3)
+# Expected CRM: no mutation intents; no fabricated CRM facts
+# Expected reason code: LOW_EXTRACTION_CONFIDENCE
+# Extraction confidence 0.55 < extraction_abort_threshold (0.70), so the run
+# blocks at extraction and never reaches CRM resolution or policy evaluation.
+
+MEETING_ID: demo_meeting_006
+OCCURRED_AT: 2026-08-11T16:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Sam Unlisted
+  email: null
+  phone: null
+  role: prospect
+- name: Alex Rivera
+  email: alex.rivera@example-demo.test
+  phone: +1-555-0199
+  role: agent
+
+--- TRANSCRIPT ---
+
+Alex Rivera: Thanks for joining. Could you share a bit about your goals?
+
+Sam Unlisted: [audio unclear] ... maybe later ... not sure.
+
+Alex Rivera: No problem. It sounds like we do not have enough to summarize yet.
+
+Sam Unlisted: [inaudible]
+
+Alex Rivera: Let's pause here and reconvene when the line is clearer. I will not record any CRM changes from this call.
+
+--- END ---
+
+# POLICY INTENT:
+# - Insufficient context: extraction confidence below abort threshold
+# - No note intent, no stage intent, no fabricated CRM facts

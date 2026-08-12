@@ -1,0 +1,42 @@
+# FIXTURE: transcript-stage-change-denied
+# SYNTHETIC DATA ONLY — not a real person, meeting, or CRM record
+# Expected disposition: completed_with_review (Unit 3)
+# Expected CRM: one note intent planned; opportunity stage intent DENIED by policy
+# Expected reason code: STAGE_TRANSITION_NOT_ALLOWED
+# Contact match basis: email exact (synthetic CRM fixture)
+# Extraction confidence 0.85: above extraction_abort_threshold (0.70) but below
+# stage_transition_confidence_min (0.90), so the deterministic policy gate must
+# deny the stage intent while the note intent remains allowed.
+
+MEETING_ID: demo_meeting_005
+OCCURRED_AT: 2026-08-11T15:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Taylor Morgan
+  email: taylor.morgan@example-demo.test
+  phone: +1-555-0100
+  role: prospect
+- name: Alex Rivera
+  email: alex.rivera@example-demo.test
+  phone: +1-555-0199
+  role: agent
+
+--- TRANSCRIPT ---
+
+Alex Rivera: Thanks for meeting again, Taylor. Where do we stand after the discovery session?
+
+Taylor Morgan: The direction makes sense, but I am still unsure about the liquidity trade-offs. Please document the open questions.
+
+Alex Rivera: Of course. I will capture detailed notes and hold off on marking discovery complete until you confirm.
+
+Taylor Morgan: Right — I am not confirming that yet. You can reach me at taylor.morgan@example-demo.test.
+
+Alex Rivera: Understood. Notes only for now; no stage movement.
+
+--- END ---
+
+# POLICY INTENT:
+# - Note write: allowed (meeting occurred; identity exact via email)
+# - Stage write: DENIED by deterministic policy gate (extraction confidence
+#   0.85 < stage_transition_confidence_min 0.90)
