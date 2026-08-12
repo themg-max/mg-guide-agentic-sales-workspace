@@ -1,0 +1,106 @@
+{
+  "schema": "meeting_follow_up_packet_v1",
+  "run": {
+    "run_id": "run_nw006_stage_denied_001",
+    "workflow": "meeting_follow_up_v1",
+    "created_at": "2026-08-12T18:05:00Z",
+    "status": "completed_with_review"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_002",
+    "occurred_at": "2026-08-12T17:35:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "participants": [
+    {
+      "name": "Casey Nguyen",
+      "email": "casey.nguyen@example-demo.test",
+      "phone": "+1-555-0142",
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction": {
+    "lifecycle": "complete",
+    "summary": "Prospect requested notes but deferred stage movement decision.",
+    "needs": ["education resources"],
+    "objections": ["not ready for stage advancement"],
+    "commitments": [],
+    "next_step": {
+      "action": "Send notes recap and hold stage",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": {
+      "recommended_stage": "discovery_complete",
+      "rationale": "Recommendation present but denied by policy."
+    }
+  },
+  "evidence": {
+    "transcript_spans": [],
+    "extraction_confidence": 0.85
+  },
+  "crm_resolution": {
+    "lifecycle": "complete",
+    "status": "matched",
+    "contact_id": "contact_demo_casey_001",
+    "opportunity_id": "opp_demo_casey_001",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": "discovery_scheduled"
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "allowed",
+    "stage_write": "approval_required",
+    "reason_codes": ["STAGE_TRANSITION_NOT_ALLOWED"]
+  },
+  "mutations": {
+    "lifecycle": "intent_only",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "from_stage": "discovery_scheduled",
+      "to_stage": null,
+      "verified": false
+    }
+  },
+  "mutation_intents": {
+    "note": [
+      {
+        "kind": "note",
+        "status": "planned",
+        "body_ref": "extraction.summary"
+      }
+    ],
+    "stage": []
+  },
+  "brief": {
+    "lifecycle": "complete",
+    "headline": "Review required before stage movement",
+    "meeting_summary": "Notes allowed; stage denied.",
+    "crm_actions": ["plan_note_intent"],
+    "next_action": "Review stage policy reason codes",
+    "salesperson_attention_required": true
+  },
+  "audit": {
+    "started_at": "2026-08-12T18:05:00Z",
+    "completed_at": "2026-08-12T18:06:00Z",
+    "agents_used": ["meeting_context_agent", "relationship_context_agent", "follow_up_planning_agent"],
+    "tools_used": [],
+    "warnings": [],
+    "final_disposition": "completed_with_review"
+  },
+  "external_effects": 0
+}
+

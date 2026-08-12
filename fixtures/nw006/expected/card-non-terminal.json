@@ -1,0 +1,75 @@
+{
+  "schema": "mg_guide_meeting_follow_up_card_v1",
+  "card_state": "in_progress",
+  "run": {
+    "run_id": "run_nw006_non_terminal_001",
+    "workflow": "meeting_follow_up_v1",
+    "packet_status": "evaluating",
+    "created_at": "2026-08-12T18:20:00Z"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_008",
+    "occurred_at": "2026-08-12T17:50:00Z",
+    "title": "Taylor Morgan - Discovery Meeting"
+  },
+  "framing": {
+    "tone": "in_progress",
+    "headline": "Follow-up not ready",
+    "body": "Packet status is non-terminal.",
+    "no_crm_changes_made": true
+  },
+  "policy_display": {
+    "note_write": "not_attempted",
+    "stage_write": "not_attempted",
+    "reason_codes": []
+  },
+  "ui_integrity": {
+    "errors": [],
+    "schema_validation_errors": [],
+    "invariant_violations": []
+  },
+  "crm_display": {
+    "resolution_status": "matched",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": "discovery_scheduled"
+  },
+  "metadata": {
+    "contact_id": "contact_demo_taylor_002",
+    "opportunity_id": "opp_demo_taylor_002"
+  },
+  "learning": {
+    "summary": "Follow-up extraction is complete and awaiting policy finalization.",
+    "needs": [
+      "retirement planning"
+    ],
+    "objections": [],
+    "next_step_action": "Await deterministic policy completion",
+    "next_step_owner": "Alex Rivera"
+  },
+  "intents_display": {
+    "note": [],
+    "stage": [],
+    "note_execution_attempted": false,
+    "stage_execution_attempted": false
+  },
+  "brief_display": {
+    "headline": null,
+    "next_action": null,
+    "crm_actions": [],
+    "salesperson_attention_required": null
+  },
+  "controls": {
+    "mutation_controls_enabled": false,
+    "agent_rerun_enabled": false,
+    "policy_reeval_enabled": false,
+    "allowed_human_actions": [
+      "wait"
+    ]
+  },
+  "integrity": {
+    "external_effects": 0,
+    "source_schema": "meeting_follow_up_packet_v1",
+    "mapper_id": "meeting_follow_up_card_mapper_v1"
+  }
+}

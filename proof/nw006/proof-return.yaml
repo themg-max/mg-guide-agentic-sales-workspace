@@ -1,0 +1,79 @@
+proof_id: nw006-meeting-follow-up-card-v1
+work_item: NW-006
+workflow_id: meeting_follow_up_v1
+branch: feat/nw006-meeting-follow-up-card
+repository: themg-max/mg-guide-agentic-sales-workspace
+baseline_pr: 14
+baseline_merge_sha: "87d962e05e118e364eb452ce3f367cdb2de08399"
+
+nw006_status: IMPLEMENTED_PENDING_REVIEW
+
+delivery_scope:
+  product_target: MG Guide Meeting Follow-Up card
+  module_scope: competition-local host-agnostic renderer/reference component
+  private_authenticated_host_integration: "NO"
+  card_input_contract: meeting_follow_up_packet_v1
+  required_viewmodel_contract: contracts/mg_guide_meeting_follow_up_card.schema.json
+
+proof_markers:
+  CARD_INPUT_CONTRACT: meeting_follow_up_packet_v1
+  CARD_VIEWMODEL_MAPPER: deterministic
+  CARD_POLICY_REEVAL: "NO"
+  CARD_AGENT_RERUN: "NO"
+  CARD_CRM_FETCH: "NO"
+  CARD_MUTATION_CONTROLS: NONE
+  CARD_GHL_INTEGRATION: "NO"
+  CARD_FIRESTORE_WRITER: "NO"
+  CARD_DEPLOYMENT: "NO"
+  EXTERNAL_EFFECTS: 0
+  GHL_LIVE_CALLS: 0
+  GHL_WRITES: 0
+  FIRESTORE_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  CARD_INPUT_SCHEMA_VALIDATION: PASS
+  CARD_OUT_OF_SCOPE_MUTATION_PACKET_FAILS_CLOSED: PASS
+  CARD_POLICY_REASON_CODES_PASSTHROUGH: PASS
+  CARD_UI_ERRORS_SEPARATE_FROM_POLICY: PASS
+  CARD_RAW_CRM_IDS_NOT_RENDERED: PASS
+  CARD_HTML_ESCAPING: PASS
+  CARD_DETERMINISTIC_REPEATABILITY: PASS
+  CARD_FORBIDDEN_IMPORT_GUARD: PASS
+  CARD_VIEWMODEL_SCHEMA_VALIDATION: PASS
+
+scenario_matrix:
+  SUCCESS: completed
+  STAGE_CHANGE_DENIED: completed_with_review
+  AMBIGUOUS_CONTACT: blocked
+  AMBIGUOUS_OPPORTUNITY: blocked
+  NO_OPPORTUNITY: blocked
+  INSUFFICIENT_CONTEXT: blocked
+  FAILED: failed
+  NON_TERMINAL: in_progress
+
+validation:
+  commands:
+    - "python3 -m pytest tests/mg_guide/meeting_follow_up_card -q"
+    - "python3 -m pytest -q"
+    - "git diff --check"
+  results:
+    card_tests: PASS
+    full_pytest: PASS
+    git_diff_check: PASS
+
+artifacts:
+  - contracts/mg_guide_meeting_follow_up_card.schema.json
+  - fixtures/nw006/packets/packet-success.completed.json
+  - fixtures/nw006/packets/packet-stage-change-denied.completed_with_review.json
+  - fixtures/nw006/packets/packet-ambiguous-contact.blocked.json
+  - fixtures/nw006/packets/packet-ambiguous-opportunity.blocked.json
+  - fixtures/nw006/packets/packet-no-opportunity.blocked.json
+  - fixtures/nw006/packets/packet-insufficient-context.blocked.json
+  - fixtures/nw006/packets/packet-tool-failure.failed.json
+  - fixtures/nw006/packets/packet-non-terminal.evaluating.json
+  - fixtures/nw006/expected/**
+  - src/mg_guide/meeting_follow_up_card/**
+  - tests/mg_guide/meeting_follow_up_card/**
+  - proof/nw006/nw-006-implementation-packet.md
+  - proof/nw006/proof-return.yaml
+
+stop_code: NW006_CARD_IMPLEMENTATION_READY_FOR_PR_REVIEW

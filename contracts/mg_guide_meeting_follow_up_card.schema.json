@@ -1,0 +1,460 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/mg_guide_meeting_follow_up_card.schema.json",
+  "title": "mg_guide_meeting_follow_up_card_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "card_state",
+    "run",
+    "meeting",
+    "framing",
+    "policy_display",
+    "ui_integrity",
+    "crm_display",
+    "metadata",
+    "learning",
+    "intents_display",
+    "brief_display",
+    "controls",
+    "integrity"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "mg_guide_meeting_follow_up_card_v1"
+    },
+    "card_state": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "completed_with_review",
+        "blocked",
+        "failed",
+        "in_progress"
+      ]
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "workflow",
+        "packet_status",
+        "created_at"
+      ],
+      "properties": {
+        "run_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workflow": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "packet_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "meeting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "meeting_id",
+        "occurred_at",
+        "title"
+      ],
+      "properties": {
+        "meeting_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "occurred_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "type": "string"
+        }
+      }
+    },
+    "framing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tone",
+        "headline",
+        "body",
+        "no_crm_changes_made"
+      ],
+      "properties": {
+        "tone": {
+          "type": "string",
+          "enum": [
+            "success",
+            "review",
+            "blocked",
+            "failed",
+            "in_progress"
+          ]
+        },
+        "headline": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "no_crm_changes_made": {
+          "type": "boolean"
+        }
+      }
+    },
+    "policy_display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "note_write",
+        "stage_write",
+        "reason_codes"
+      ],
+      "properties": {
+        "note_write": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stage_write": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ui_integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "errors",
+        "schema_validation_errors",
+        "invariant_violations"
+      ],
+      "properties": {
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "schema_validation_errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "invariant_violations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "crm_display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resolution_status",
+        "match_basis",
+        "candidate_count",
+        "current_stage"
+      ],
+      "properties": {
+        "resolution_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "match_basis": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "current_stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contact_id",
+        "opportunity_id"
+      ],
+      "properties": {
+        "contact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "opportunity_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "learning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary",
+        "needs",
+        "objections",
+        "next_step_action",
+        "next_step_owner"
+      ],
+      "properties": {
+        "summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "needs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "objections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "next_step_action": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_step_owner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "intents_display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "note",
+        "stage",
+        "note_execution_attempted",
+        "stage_execution_attempted"
+      ],
+      "properties": {
+        "note": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/intentDisplay"
+          }
+        },
+        "stage": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/intentDisplay"
+          }
+        },
+        "note_execution_attempted": {
+          "type": "boolean"
+        },
+        "stage_execution_attempted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "brief_display": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "headline",
+        "next_action",
+        "crm_actions",
+        "salesperson_attention_required"
+      ],
+      "properties": {
+        "headline": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "next_action": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "crm_actions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "salesperson_attention_required": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mutation_controls_enabled",
+        "agent_rerun_enabled",
+        "policy_reeval_enabled",
+        "allowed_human_actions"
+      ],
+      "properties": {
+        "mutation_controls_enabled": {
+          "type": "boolean",
+          "const": false
+        },
+        "agent_rerun_enabled": {
+          "type": "boolean",
+          "const": false
+        },
+        "policy_reeval_enabled": {
+          "type": "boolean",
+          "const": false
+        },
+        "allowed_human_actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "acknowledge",
+              "copy_note_text_offline",
+              "escalate_offline",
+              "wait"
+            ]
+          }
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_effects",
+        "source_schema",
+        "mapper_id"
+      ],
+      "properties": {
+        "external_effects": {
+          "type": "integer",
+          "const": 0
+        },
+        "source_schema": {
+          "type": "string",
+          "const": "meeting_follow_up_packet_v1"
+        },
+        "mapper_id": {
+          "type": "string",
+          "const": "meeting_follow_up_card_mapper_v1"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "intentDisplay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "status",
+        "summary",
+        "from_stage",
+        "to_stage"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "note",
+            "stage"
+          ]
+        },
+        "status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "summary": {
+          "type": "string"
+        },
+        "from_stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "to_stage": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}
+
