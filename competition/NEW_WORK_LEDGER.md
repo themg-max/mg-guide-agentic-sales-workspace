@@ -28,7 +28,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-008 | TBD | Acceptance tests AT-1…AT-10 + demo proof | PLANNED | Synthetic data only |
 | NW-011 | 2026-08-11 | Phase 1 deterministic CI workflow proof | DONE | Branch `chore/phase1-deterministic-ci`; Python-only deterministic verification; no secrets or runtime dependencies |
 | NW-012 | 2026-08-11 | Isolated GHL test-account record-read compatibility probe | NOT_PURSUIED_ENVIRONMENT_UNAVAILABLE | No isolated GHL hackathon/test location can be provided; path retired. Proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` never activated; zero record reads; zero writes |
-| NW-013 | TBD | Canonical GHL location synthetic-record read proof | PLANNED | Grant `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`; GATED_PENDING_SYNTHETIC_RECORD_BINDING; canonical location is NOT classified as a test environment; exact-ID synthetic reads only; no writes; **unexecuted** |
+| NW-013 | 2026-08-12 | Canonical GHL location synthetic-record read proof | AUTHORIZED_NOT_EXECUTED | Grant `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`; human binding complete; `HUMAN_SIGNATURE=APPROVED`; `CURRENT_GRANT_STATE=AUTHORIZED_FOR_EXECUTION`; private allowlist complete (IDs not public); PIT canonical location verified; IAM change not required; branch `gov/mg-guide-ghl-canonical-synthetic-read-binding-v1`; **GHL_LIVE_CALLS=0**, **GHL_WRITES=0**; live reads still unexecuted |
 | NW-014 | 2026-08-12 | Phase 2B offline GHL read adapter | DONE | Auth `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1` **CLOSED_SUCCESS**; PR #6 merged; head `075a3ea47dda02fdaffdc4390d4573f947959103`; merge `2b88240e1e023150449183b03c118b91d663cabc`; network_calls=0; crm_reads=0; crm_writes=0 |
 
 ---
@@ -40,9 +40,25 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - UNKNOWN GHL tool identifiers are intentional; inventing them is a ledger violation.
 - NW-003 meta-discovery does **not** claim record-level read probes occurred (`GHL_RECORD_READS=0`).
 - NW-012 is retired (no isolated GHL hackathon/test location exists); the proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` was never activated and no record probes occurred.
-- NW-013 remains **unexecuted**; the canonical GHL location is **not** a test environment, and starting any live read requires explicit human authorization of `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` after synthetic-record binding.
+- NW-013 is **human-authorized but not live-executed** (`AUTHORIZED_FOR_EXECUTION` / `AUTHORIZED_NOT_EXECUTED`). The canonical GHL location is **not** a test environment. Live reads remain deferred to a separate bounded unit under the private exact-ID allowlist (`GHL_LIVE_CALLS=0` on the binding unit).
 - Phase 2B live GHL access has **not** started. NW-014 closed the offline adapter only (`network=NONE`); no live GHL claim is made by this closeout.
 - Gemini/ADK has **not** started (`GEMINI_ADK_STARTED=NO`).
+
+## NW-013 canonical synthetic-read binding (AUTHORIZED_NOT_EXECUTED)
+
+- Date (UTC): 2026-08-12
+- Authorization: `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`
+- Status: **AUTHORIZED_FOR_EXECUTION** / **AUTHORIZED_NOT_EXECUTED**
+- Human approver: Aaron Chandler (repository maintainer / CRM operator)
+- Human signature: `APPROVED` at `2026-08-12T02:02:01Z`
+- Branch: `gov/mg-guide-ghl-canonical-synthetic-read-binding-v1`
+- Public artifacts: `governance/authorizations/MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.yaml`, `proof/canonical-synthetic-read-binding-v1/**`
+- Assertions (public): `SYNTHETIC_CONTACT_BOUND=YES`, `SYNTHETIC_OPPORTUNITY_BOUND=YES`, `RELATIONSHIP_VERIFIED=YES`, `PRIVATE_ALLOWLIST_COMPLETE=YES`, `PIT_CANONICAL_LOCATION_VERIFIED=YES`, `IAM_CHANGE_REQUIRED=NO`
+- Authorized ops (deferred live): `get-contact` MAX=1, `get-opportunity` MAX=1, `get-pipelines` metadata only
+- Denied: broad searches, non-allowlisted IDs, all writes, email/SMS, raw REST, real customer reads
+- Effects this unit: `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_RECORD_READS=0`
+- Boundary: exact IDs and PIT/token values are **not** published in this repository
+- Next: separate bounded live-read execution unit only after reviewer disposition on exact PR head; no authority expansion
 
 ## Phase 2B offline GHL read adapter (CLOSED_SUCCESS)
 
@@ -56,7 +72,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Scope delivered: request envelopes, contact/opportunity/pipeline-stage/pagination/error normalization, explicit read allowlist, explicit mutation denial, fixture replay, acceptance tests, and proof return
 - Effects: `network_calls=0`, `crm_reads=0`, `crm_writes=0`
 - Preserved posture: no live GHL/CRM access, no Gemini/ADK, no Firestore/Cloud Run/IAM/Secret Manager mutation
-- Live-proof gate remains inactive and unexecuted: `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` / NW-013 still requires synthetic contact + opportunity records, private exact-ID allowlisting, an authorized secret path, and explicit human activation
+- Live-proof gate is now human-authorized but still unexecuted: `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` / NW-013 = `AUTHORIZED_NOT_EXECUTED` after synthetic contact + opportunity binding, private exact-ID allowlisting, authorized secret path, PIT canonical-location verification, and explicit human activation (`HUMAN_SIGNATURE=APPROVED`). Binding unit performed zero live calls.
 
 ## Phase 1 deterministic CI PASS (PR #3)
 

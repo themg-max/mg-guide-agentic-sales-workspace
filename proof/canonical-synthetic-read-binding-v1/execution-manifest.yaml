@@ -1,0 +1,92 @@
+# Bounded execution manifest for human synthetic-record binding + activation
+# decision only. Does not authorize this commit to perform live GHL calls.
+manifest_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1_BINDING
+workflow_id: meeting_follow_up_v1
+branch: gov/mg-guide-ghl-canonical-synthetic-read-binding-v1
+objective: >
+  Record public-sanitized human synthetic-record binding assertions, PIT/canonical
+  location verification (no token values), and explicit human activation decision
+  for MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1. Zero live GHL calls
+  in this unit.
+
+allowed_paths:
+  - governance/authorizations/MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.yaml
+  - governance/GOVERNANCE_PROFILE.yaml
+  - proof/canonical-synthetic-read-binding-v1/**
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+
+blocked_surfaces:
+  - ghl_live_calls
+  - ghl_writes
+  - gemini
+  - adk
+  - iam
+  - secrets_mutation
+  - network_crm
+  - deployment
+  - raw_rest
+  - public_record_id_disclosure
+
+synthetic_data_only: true
+external_mutations_authorized: false
+requires_proof_return: true
+
+execution_status: AUTHORIZED_NOT_EXECUTED
+private_source_authority_sync: "YES"
+private_activation_pr: 2958
+private_activation_merge_sha: "e69ccf97efbc538f79289d522de2fc8e9504e5a2"
+synthetic_binding_private: COMPLETE
+private_allowlist_complete: "YES"
+human_activation: APPROVED
+exact_ids_public: "NO"
+token_value_public: "NO"
+live_ghl_proof_executed: "NO"
+ghl_writes: 0
+l3a_runtime_status: DEFERRED_RUNTIME_NOT_PROMOTED
+next_runtime_gate: L3A_EXACT_PACKET_INGEST_AND_READBACK
+runtime_claims:
+  MG_MCP_EXACT_PACKET_FOUND: "NO"
+activation_gate: AUTHORIZED_FOR_EXECUTION
+allowlist_complete: true
+
+authorized_live_operations_deferred:
+  - get-contact (exact allowlisted synthetic contact; MAX=1)
+  - get-opportunity (exact allowlisted synthetic opportunity; MAX=1)
+  - get-pipelines (pipeline metadata only)
+
+denied_operations:
+  - search-contacts-advanced
+  - search-opportunity
+  - search-opportunities-advanced
+  - create-note
+  - update-opportunity
+  - update-opportunity-status
+  - email
+  - sms
+  - raw REST
+  - any non-allowlisted record ID
+  - all CRM writes
+
+budgets:
+  CONTACT_RECORD_READ_BUDGET: 1
+  OPPORTUNITY_RECORD_READ_BUDGET: 1
+  GHL_WRITES_ALLOWED: 0
+  REAL_CUSTOMER_RECORD_READS_ALLOWED: 0
+  GHL_LIVE_CALLS_THIS_UNIT: 0
+
+definition_of_done:
+  - human binding assertions recorded without public IDs
+  - PIT/canonical location verified flags recorded without token values
+  - HUMAN_SIGNATURE=APPROVED recorded
+  - CURRENT_GRANT_STATE=AUTHORIZED_FOR_EXECUTION
+  - execution_status remains AUTHORIZED_NOT_EXECUTED for this unit
+  - YAML parse + git diff --check pass
+  - PR opened for human review; no live GHL execution
+
+notes: >
+  Private control-plane allowlist and exact IDs are intentionally absent from this
+  public repository. ChatGPT packet referenced private path
+  .ai/memory/features/gov/mg-guide-ghl-canonical-synthetic-read-proof-v1/ and PR
+  #2954 (other control plane). This public repo maps the same grant onto a new
+  topic branch and PR under governance/authorizations + proof/.

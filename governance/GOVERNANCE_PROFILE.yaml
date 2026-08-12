@@ -32,7 +32,7 @@ operating_model:
 
 authorization_posture_public:
   REPOSITORY_ADOPTED_FOR_COMPETITION_IMPLEMENTATION: "YES"
-  PHASE1_IMPLEMENTATION_AUTHORIZED: "NO"
+  PHASE1_IMPLEMENTATION_AUTHORIZED: "YES"
   GHL_READ_AUTHORIZED: "NO"
   GHL_WRITE_AUTHORIZED: "NO"
   DEPLOYMENT_AUTHORIZED: "NO"
@@ -41,9 +41,38 @@ authorization_posture_public:
   GLOBAL_ACTIVATION_AUTHORIZED: "NO"
   PRODUCTION_CRM_DATA_AUTHORIZED: "NO"
 
-recommended_next_public_branch: feat/meeting-follow-up-v1-phase1-contracts-fixtures
+canonical_location_synthetic_read_grant:
+  grant_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1
+  status: AUTHORIZED_FOR_EXECUTION
+  execution_status: AUTHORIZED_NOT_EXECUTED
+  human_signature: APPROVED
+  private_source_authority_sync: "YES"
+  private_activation_pr: 2958
+  private_activation_merge_sha: "e69ccf97efbc538f79289d522de2fc8e9504e5a2"
+  synthetic_binding_private: COMPLETE
+  private_allowlist_complete: "YES"
+  human_activation: APPROVED
+  exact_ids_public: "NO"
+  token_value_public: "NO"
+  live_ghl_proof_executed: "NO"
+  ghl_live_calls_binding_unit: 0
+  ghl_writes: 0
+  public_id_disclosure: false
+  l3a_runtime_status: DEFERRED_RUNTIME_NOT_PROMOTED
+  next_runtime_gate: L3A_EXACT_PACKET_INGEST_AND_READBACK
+  runtime_claims:
+    MG_MCP_EXACT_PACKET_FOUND: "NO"
+  note: >
+    Human-authorized exact-ID synthetic reads only. Live execution not performed
+    by the binding unit. GHL_READ_AUTHORIZED remains NO until a separate live
+    proof unit completes under private allowlist budgets. The private NW-013
+    activation authority merged in PR #2958 and is acknowledged here without
+    publishing exact IDs or tokens.
+
+recommended_next_public_branch: gov/mg-guide-ghl-canonical-synthetic-read-binding-v1
 
 notes:
   - Public profile is sanitized; no private filesystem paths or secrets.
-  - Private human adoption disposition is recorded only in the private control plane.
-  - Phase 1 coding requires separate private authorization review and public-scope grant.
+  - Private human adoption disposition and exact synthetic allowlist IDs remain in the private control plane.
+  - Canonical-location synthetic read grant is AUTHORIZED_FOR_EXECUTION / AUTHORIZED_NOT_EXECUTED after human signature.
+  - No live GHL calls, writes, deployment, Gemini/ADK, or IAM/secret mutation authorized by this binding unit.

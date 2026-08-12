@@ -1,0 +1,54 @@
+proof_id: meeting-follow-up-v1-canonical-synthetic-read-binding-v1
+manifest_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1_BINDING
+workflow_id: meeting_follow_up_v1
+branch: gov/mg-guide-ghl-canonical-synthetic-read-binding-v1
+reviewed_head_sha: "e4584280aa8d3ed4caeec39177e2f46ab66f28cc"
+reviewed_head_role: "pre-disposition exact evidence head"
+private_source_authority_sync: "YES"
+private_activation_pr: 2958
+private_activation_merge_sha: "e69ccf97efbc538f79289d522de2fc8e9504e5a2"
+synthetic_binding_private: COMPLETE
+private_allowlist_complete: "YES"
+human_activation: APPROVED
+exact_ids_public: "NO"
+token_value_public: "NO"
+live_ghl_proof_executed: "NO"
+ghl_writes: 0
+l3a_runtime_status: DEFERRED_RUNTIME_NOT_PROMOTED
+next_runtime_gate: L3A_EXACT_PACKET_INGEST_AND_READBACK
+pr_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/8"
+files_changed:
+  - governance/authorizations/MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.yaml
+  - governance/GOVERNANCE_PROFILE.yaml
+  - proof/canonical-synthetic-read-binding-v1/**
+  - competition/NEW_WORK_LEDGER.md
+  - competition/AI_COLLABORATION_LOG.md
+validation:
+  git_diff_check: PASS
+  tests: NOT_APPLICABLE
+  contract_validation: NOT_APPLICABLE
+  notes: >
+    Documentary human-binding + activation-decision unit only. YAML parse of
+    binding and execution-manifest required. No runtime/test surface changed.
+    The reviewed_head_sha records the exact public PR #8 head under review.
+    No additional SHA-only churn is introduced beyond the final reviewed state.
+external_calls:
+  network: NONE
+  crm: NONE
+  cloud: NONE
+authorization_posture:
+  PHASE1_IMPLEMENTATION_AUTHORIZED: "YES"
+  GHL_WRITE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+residual_risks:
+  - Grant is AUTHORIZED_FOR_EXECUTION but live reads are still unexecuted; a
+    separate bounded execution unit must enforce private allowlist and budgets.
+  - Exact IDs exist only in private control plane; loss of private binding would
+    block safe execution.
+  - Canonical location is not a test environment; mis-targeting non-allowlisted
+    IDs remains a hard deny.
+next_action: >
+  Human review of this binding PR. Do not execute live GHL from this unit.
+  After merge (or explicit reviewer disposition on exact head), a separate
+  bounded execution unit may perform at most one get-contact, one
+  get-opportunity, and get-pipelines metadata under the private allowlist.

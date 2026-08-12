@@ -1,0 +1,80 @@
+# PUBLIC sanitized synthetic-record binding assertions.
+# Exact contact/opportunity IDs remain in the private control plane only.
+# This file MUST NOT contain record IDs, tokens, PITs, or secret values.
+
+binding_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1_BINDING
+grant_id: MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1
+workflow: meeting_follow_up_v1
+private_source_authority_sync: "YES"
+private_activation_pr: 2958
+private_activation_merge_sha: "e69ccf97efbc538f79289d522de2fc8e9504e5a2"
+synthetic_binding_private: COMPLETE
+private_allowlist_complete: "YES"
+human_activation: APPROVED
+exact_ids_public: "NO"
+token_value_public: "NO"
+live_ghl_proof_executed: "NO"
+ghl_writes: 0
+l3a_runtime_status: DEFERRED_RUNTIME_NOT_PROMOTED
+next_runtime_gate: L3A_EXACT_PACKET_INGEST_AND_READBACK
+runtime_claims:
+  MG_MCP_EXACT_PACKET_FOUND: "NO"
+public_disclosure_of_exact_ids: false
+token_value_recorded: false
+
+assertions:
+  SYNTHETIC_CONTACT_BOUND: "YES"
+  SYNTHETIC_OPPORTUNITY_BOUND: "YES"
+  RELATIONSHIP_VERIFIED: "YES"
+  PRIVATE_ALLOWLIST_COMPLETE: "YES"
+  REAL_CUSTOMER_RECORD_READS_ALLOWED: 0
+
+contact_binding:
+  designation: synthetic_only
+  bound: true
+  public_id_disclosed: false
+  max_reads_authorized: 1
+  notes: >
+    Exact synthetic contact ID is bound in the private allowlist only.
+    Public artifacts assert binding completeness without disclosing the ID.
+
+opportunity_binding:
+  designation: synthetic_only
+  bound: true
+  public_id_disclosed: false
+  max_reads_authorized: 1
+  notes: >
+    Exact synthetic opportunity ID is bound in the private allowlist only.
+    Relationship to the bound synthetic contact was verified privately.
+
+pit_location_verification:
+  verified: true
+  canonical_location_match: true
+  verified_by: Aaron Chandler
+  verified_at_utc: "2026-08-12T02:02:01Z"
+  token_value_recorded: false
+  iam_change_required: false
+  secret_exists: true
+  secret_access_already_provisioned: true
+  notes: >
+    Human CRM operator verified PIT canonical location privately.
+    Token value is never recorded in this public repository.
+    No IAM change is required for this grant.
+
+private_allowlist:
+  complete: true
+  location: private_control_plane_only
+  public_copy_present: false
+
+relationship:
+  verified: true
+  verified_by: Aaron Chandler
+  notes: >
+    Synthetic contact and synthetic opportunity relationship verified by human
+    maintainer / CRM operator before activation signature.
+
+boundary_rules:
+  - never_paste_ids_into_chat
+  - never_copy_ids_into_public_repo
+  - never_use_real_customer_or_prospect_records
+  - never_record_pit_or_token_values
