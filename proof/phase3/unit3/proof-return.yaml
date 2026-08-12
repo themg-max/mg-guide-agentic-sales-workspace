@@ -3,23 +3,30 @@ manifest_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
 workflow_id: meeting_follow_up_v1
 unit: follow_up_planning_agent
 branch: feat/meeting-follow-up-v1-follow-up-planning-agent-unit3
+repository: themg-max/mg-guide-agentic-sales-workspace
 public_implementation_pr: 13
-public_pr_status: OPEN_AWAITING_REVIEW
-public_unit3_status: IMPLEMENTED_CI_GREEN_AWAITING_PR_REVIEW
+public_pr_status: MERGED
+public_unit3_status: MERGED_COMPLETE
 
-# Canonical GitHub facts fetched via gh CLI after PR open (single fetch,
-# reconciled across proof/ledger/grant/closeout artifacts).
-public_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
-final_ci_run_id: "31623557067"
-final_ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31623557067"
-final_ci_conclusion: SUCCESS
-# Note: public_head_sha is the implementation+reconciliation evidence head.
-# Any commit after it on this branch is docs-only metadata reconciliation.
+# Implementation evidence (coding head + CI). Distinct from final reviewed tip.
+implementation_evidence_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+implementation_evidence_ci_run_id: "31623557067"
+implementation_evidence_ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31623557067"
+implementation_evidence_ci_conclusion: SUCCESS
+
+# Canonical GitHub binding for the merged PR #13 closeout (final reviewed tip).
+public_head_sha: "32f13b6db0bfd9964001133d05f33d6ed294d0ba"
+public_final_head_ci_run_id: "31623771005"
+public_final_head_ci_run_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31623771005"
+public_final_head_ci_conclusion: SUCCESS
+public_merge_sha: "91927e4cfeb5010cf399ae870ad0897156dff03e"
+public_merged_at_utc: "2026-08-12T17:47:49Z"
 
 authorization:
   grant_id: MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1
-  nw004_status: IN_PROGRESS
-  execution_status: IN_PROGRESS_UNIT3_IMPLEMENTATION
+  nw004_status: DONE
+  nw004_closeout_status: CLOSED_SUCCESS
+  execution_status: MERGED_COMPLETE
   gemini_adk_authorized: "YES"
   public_unit1_implementation_pr: 10
   public_unit1_merge_sha: "469ae3ba9962895bd77bebb9e5b2b44a8faac6e7"
@@ -29,6 +36,10 @@ authorization:
   public_unit2_closeout_pr: 12
   public_unit2_closeout_merge_sha: "a716cf140fcda082aaf15d6d0a8cdef2b6f5799a"
   unit3_planning_artifact: proof/phase3/unit3/unit3-implementation-packet.md
+  unit3_closeout_artifact: proof/phase3/unit3/unit3-merge-closeout.md
+  nw006_planning_artifact: proof/phase3/unit3/nw-006-meeting-follow-up-card-plan.md
+  nw006_status: PLANNED_NOT_STARTED
+  next_work_item: NW-006_MG_GUIDE_MEETING_FOLLOW_UP_CARD
 
 unit_proof:
   FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED: "YES"
@@ -122,7 +133,11 @@ scenarios:
     proposal_disposition: no_op
     result: PASS
 
-validation:
+# Implementation validation ran on the implementation evidence head
+# (09c6a95dafa6e09f8244813e32a054aa27635d5c, CI 31623557067).
+implementation_validation:
+  evidence_head_sha: "09c6a95dafa6e09f8244813e32a054aa27635d5c"
+  evidence_ci_run_id: "31623557067"
   commands:
     - "PYTHONPATH=src python3 -m pytest -q"
     - "PYTHONPATH=src python3 -m agents.meeting_context --provider fixture"
@@ -139,7 +154,18 @@ validation:
   unit3_follow_up_planning_harness: PASS
   git_diff_check: PASS
 
-artifacts:
+# Closeout validation is documentary-only; it binds to the merged PR #13 final
+# reviewed tip (32f13b6d...) and does not self-bind any future closeout PR head.
+closeout_validation:
+  bound_final_head_sha: "32f13b6db0bfd9964001133d05f33d6ed294d0ba"
+  bound_final_head_ci_run_id: "31623771005"
+  bound_merge_sha: "91927e4cfeb5010cf399ae870ad0897156dff03e"
+  closeout_pr_head_self_binding: "NOT_ATTEMPTED"
+  note: >
+    Reviewer binds the closeout PR exact head from GitHub after PR creation.
+    This artifact intentionally carries no closeout PR head SHA.
+
+implementation_artifacts:
   - contracts/follow_up_proposal.schema.json
   - fixtures/transcript-stage-change-denied.txt
   - fixtures/transcript-stage-change-denied.expected.json
@@ -148,7 +174,11 @@ artifacts:
   - src/agents/__init__.py
   - src/agents/follow_up_planning/**
   - tests/agents/test_follow_up_planning_unit3.py
+
+closeout_artifacts:
   - proof/phase3/unit3/proof-return.yaml
+  - proof/phase3/unit3/unit3-merge-closeout.md
+  - proof/phase3/unit3/nw-006-meeting-follow-up-card-plan.md
   - governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml
   - competition/NEW_WORK_LEDGER.md
   - competition/AI_COLLABORATION_LOG.md
@@ -173,5 +203,7 @@ residual_risks:
   - Mutation execution (note/stage writes), Firestore audit writer (NW-005), MG Guide card experience (NW-006), and Cloud Run deployment (NW-007) remain subsequent governed units; Unit 3 is intent-only with EXTERNAL_EFFECTS=0.
   - Live Gemini path remains optional and is not required for Unit 3 proof.
 
-next_action: UNIT3_READY_FOR_PR_REVIEW
-stop_code: PHASE3_UNIT3_FOLLOW_UP_PLANNING_READY_FOR_PR_REVIEW
+next_action: NW006_CARD_PLAN_READY_FOR_REVIEW
+next_work_item: NW-006_MG_GUIDE_MEETING_FOLLOW_UP_CARD
+nw006_status: PLANNED_NOT_STARTED
+stop_code: PHASE3_UNIT3_CLOSEOUT_RECONCILED_NW006_PLAN_READY_FOR_PR

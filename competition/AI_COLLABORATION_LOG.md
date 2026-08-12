@@ -438,7 +438,7 @@
   - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `REAL_CUSTOMER_DATA=0`
   - `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
 - **Human decisions retained:**
-  - `NW004_STATUS=IN_PROGRESS`
+  - `NW004_STATUS=IN_PROGRESS` (historical at Unit 2 implementation time; closed later after Unit 3 merge)
   - `NEXT_PHASE3_UNIT=GOOGLE_ADK_RUNTIME_PLUS_RELATIONSHIP_CONTEXT` (this unit)
   - Unit 1 provider markers remain surface-only; Unit 2 runtime markers are separate and true
   - Stop before Follow-Up Planning Agent and full packet assembly
@@ -508,7 +508,7 @@
 - **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — no new grant; Unit 3 bounded packet `proof/phase3/unit3/unit3-implementation-packet.md` executed as scoped
 - **Objective:** Consume `meeting_context_v1` + `relationship_context_v1`, propose a structured follow-up plan via the Follow-Up Planning Agent, evaluate under the deterministic policy gate, and emit a reviewable `meeting_follow_up_packet_v1` with zero external effects
 - **Branch:** `feat/meeting-follow-up-v1-follow-up-planning-agent-unit3` (fresh from origin/main @ merge `a716cf140fcda082aaf15d6d0a8cdef2b6f5799a`)
-- **Public PR:** #13 OPEN awaiting review; head `09c6a95dafa6e09f8244813e32a054aa27635d5c`; CI run 31623557067 SUCCESS (canonical facts fetched via `gh` after PR open)
+- **Public PR (implementation evidence; historical):** #13 opened on this branch; **implementation evidence head** `09c6a95dafa6e09f8244813e32a054aa27635d5c`; **implementation evidence CI** run **31623557067** SUCCESS (not the final reviewed tip CI)
 - **Delivered:**
   - `src/agents/follow_up_planning/**` — agent (propose-only), proposal schema validation, packet assembler (reuses `orchestration` state machine + `evaluate_policy` + `bound_intents`), Unit 3 ADK runtime (reuses pinned `google-adk` Runner/SequentialAgent/InMemorySessionService; three-agent sequential graph; fail-closed, no local fallback), harness
   - `contracts/follow_up_proposal.schema.json` (`follow_up_proposal_v1`; additive)
@@ -532,4 +532,53 @@
   - Firestore audit writer (NW-005); MG Guide card (NW-006); Cloud Run deployment (NW-007)
   - L3A promotion; IAM/Secret Manager mutation; raw REST; production activation
   - VS Code / custom-agent configuration changes
-- **STOP:** `STOP_CODE=PHASE3_UNIT3_FOLLOW_UP_PLANNING_READY_FOR_PR_REVIEW`
+- **STOP (historical implementation gate):** `STOP_CODE=PHASE3_UNIT3_FOLLOW_UP_PLANNING_READY_FOR_PR_REVIEW`
+
+### 2026-08-12 — Phase 3 Unit 3 merge closeout + NW-006 planning packet (evidence repair)
+
+- **Human owner / operator:** VS Code / MG Orchestrator (Aaron Chandler)
+- **Tool / AI surfaces:** VS Code + MG Orchestrator (Copilot CLI runtime)
+- **Authorization:** `MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1` (NW-004) — no new grant; Unit 3 closeout only; no NW-006 implementation
+- **Objective:** Repair and finalize durable public state after PR #13 merge; mark Unit 3 `MERGED_COMPLETE`; close NW-004 as `DONE / CLOSED_SUCCESS`; produce bounded planning-only artifact for NW-006 `MG Guide Meeting Follow-Up card`; keep implementation evidence CI distinct from final reviewed-head CI
+- **Canonical GitHub binding (final reviewed tip):**
+  - `PR13_STATE=MERGED`
+  - `PR13_HEAD_SHA=32f13b6db0bfd9964001133d05f33d6ed294d0ba`
+  - `PR13_FINAL_HEAD_CI_RUN_ID=31623771005` SUCCESS
+  - `PR13_MERGE_SHA=91927e4cfeb5010cf399ae870ad0897156dff03e`
+  - `PR13_MERGED_AT=2026-08-12T17:47:49Z`
+- **Implementation evidence binding (preserved separately; not final tip CI):**
+  - `UNIT3_IMPLEMENTATION_EVIDENCE_HEAD=09c6a95dafa6e09f8244813e32a054aa27635d5c`
+  - `UNIT3_IMPLEMENTATION_EVIDENCE_CI_RUN_ID=31623557067` SUCCESS
+- **Artifacts touched (authorized paths only):**
+  - `governance/authorizations/MG_GUIDE_PHASE3_GEMINI_ADK_VERTICAL_SLICE_V1.yaml`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+  - `proof/phase3/unit3/proof-return.yaml`
+  - `proof/phase3/unit3/unit3-merge-closeout.md`
+  - `proof/phase3/unit3/nw-006-meeting-follow-up-card-plan.md`
+  - `README.md`
+- **Validation:** YAML parse + duplicate-key detection; `git diff --check`; `git diff --name-only` review; confirm only closeout / planning documentation and governance artifacts changed; no `src/**`, `tests/**`, `contracts/**`, `fixtures/**`, `.github/**`, Firebase/CRM/IAM/deployment sources touched
+- **Proof assertions retained:**
+  - `FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED=YES`
+  - `MEETING_CONTEXT_REUSED=YES`
+  - `RELATIONSHIP_CONTEXT_REUSED=YES`
+  - `GOOGLE_ADK_RUNTIME_REUSED=YES`
+  - `FOLLOW_UP_PROPOSAL_OUTPUT=VALID`
+  - `DETERMINISTIC_POLICY_GATE_INVOKED=YES`
+  - `DETERMINISTIC_POLICY_BYPASS=NO`
+  - `EXTERNAL_EFFECTS=0`
+  - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`
+- **Human decisions retained:**
+  - `PHASE3_UNIT3_STATUS=MERGED_COMPLETE`
+  - `NW004_STATUS=DONE`
+  - `NW004_CLOSEOUT_STATUS=CLOSED_SUCCESS`
+  - `NW006_STATUS=PLANNED_NOT_STARTED`
+  - `NEXT_WORK_ITEM=NW-006_MG_GUIDE_MEETING_FOLLOW_UP_CARD` (not a Phase 3 agent unit)
+  - Card plan is planning-only: renders policy output; does not re-evaluate policy; no agent rerun; no mutation controls
+- **Out of scope / refused this closeout:**
+  - NW-006 implementation
+  - live GHL calls or writes
+  - Firestore audit writer (NW-005)
+  - Cloud Run deployment (NW-007)
+  - IAM / secret / CRM mutation changes
+- **STOP:** `STOP_CODE=PHASE3_UNIT3_CLOSEOUT_RECONCILED_NW006_PLAN_READY_FOR_PR`
