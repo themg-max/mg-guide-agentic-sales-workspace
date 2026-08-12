@@ -66,6 +66,45 @@ PRODUCTION_ACTIVATION=FORBIDDEN
 
 ---
 
+## 0.1 Review reconciliation (PR #17 draft feedback, applied)
+
+Six review repairs were applied to this packet without changing the core
+architecture (`packet → deterministic audit projection → workflow_runs/{run_id}
+→ STOP`; audit records, never authorizes):
+
+1. **Audit truth vs persistence proof split** — `write_attempted`,
+   `write_verified`, writer-side Firestore op counts, read-back compare, and
+   cleanup results moved out of `workflow_run_audit_v1` into the separate
+   `nw005_persistence_proof_v1` envelope (Decision 1b) emitted to
+   proof-return. The Firestore document never gets a second update merely to
+   say its first write succeeded.
+2. **Fingerprint semantics normalized** — exact pinned canonicalization
+   (RFC 8785 subset, integers only) replaces "JCS-like";
+   `projection_input_fingerprint` hashes the normalized mapped-input subset;
+   `content_fingerprint` hashes the immutable audit body **before** the
+   fingerprint fields are attached, explicitly excluding `recorded_at`,
+   persistence-proof fields, and both fingerprint fields — non-recursive
+   (Decision 1c).
+3. **`policy.outcome_summary` demoted** — renamed `display_summary_label`,
+   mapping frozen, explicitly non-authoritative and never a new policy
+   decision; authoritative policy truth remains the exact `policy.*` fields
+   plus `final_disposition` (Decision 2).
+4. **MG Guide coupling removed** — the audit writer must not import or render
+   `mg_guide.meeting_follow_up_card`; canonical audit field is
+   `packet.run.status`; `card_state` comes from a frozen audit-local mapping
+   (`audit_status_mapper_v1`) or an upstream-provided value (Decision 2).
+5. **Stage B IAM language corrected** — no claim of IAM collection-path
+   restriction; server SDK access is IAM/ADC-controlled and bypasses Security
+   Rules; least-permission custom role scoped to the actual proof call graph
+   in a dedicated test project/database, plus an application-level hard
+   allowlist on collection + `run_id` (Decision 9).
+6. **Smoke vs acceptance retention separated** — `stage_b_smoke`
+   (create → read-back → verify → immediate delete) proves write/read
+   correctness only; a separately authorized `acceptance_demo` retention
+   window is required before any AT-10 record-presence claim (Decision 10).
+
+---
+
 ## 1. Objective (future implementation units — not this branch docs unit)
 
 Persist a **deterministic operational proof record** for each
@@ -91,7 +130,7 @@ meeting_follow_up_packet_v1
 | Agents | Audit writer **must not** rerun any agent (`meeting_context`, `relationship_context`, `follow_up_planning`, ADK runtime) |
 | CRM | Audit writer **must not** fetch CRM / relationship context or call GHL |
 | Packet | Authoritative input — sole data source for projection |
-| Card | May project **already-computable** MG Guide card state via pure deterministic mapper import **or** inline equivalent pure function; must not render for side effects |
+| Card | May project card state **only** via a frozen audit-local pure mapping from `packet.run.status`; must **not** import or render the NW-006 card module (`mg_guide.meeting_follow_up_card`) — no audit→UI runtime dependency |
 | Mutations | Records mutation **intents** and **attempted/verified flags** only; never executes mutations |
 | Transcripts | Store **hash + fixture/source refs** only — never full transcript body |
 
@@ -140,8 +179,11 @@ provenance:
     component_version: string  # semver or git SHA short when available
     projection_version: string # const: workflow_run_audit_v1
     mode: string               # emulator | local_fixture | firestore_test_project
-    write_attempted: boolean
-    write_verified: boolean    # true only after successful read-back (Stage B)
+# NOTE: write_attempted / write_verified and writer-side Firestore op counts
+# are PERSISTENCE PROOF, not audit truth. They live in the
+# nw005_persistence_proof_v1 envelope (Decision 1b) and are never written
+# into this document — the doc never gets a second update merely to record
+# that its first write succeeded.
 
 # Agent steps / provenance
 agent_steps:
@@ -154,7 +196,10 @@ policy:
   note_write: string
   stage_write: string
   reason_codes: [string]       # packet.policy.reason_codes
-  outcome_summary: string      # derived label only; see projection rules
+  display_summary_label: string # NON-AUTHORITATIVE display label only; frozen
+                               # mapping in Decision 2; must never contradict
+                               # policy.* / final_disposition and is never a
+                               # new policy decision
 
 # Reason codes (top-level convenience mirror for AT-10)
 reason_codes: [string]         # == policy.reason_codes (deterministic copy)
@@ -165,9 +210,9 @@ tool_call_counts:
   ghl_mcp:
     reads: integer             # from external_effects breakdown when present; else 0
     writes: integer            # must be 0 under current grants
-  firestore:
-    reads: integer             # writer read-back count for THIS audit op only
-    writes: integer            # 0|1 for THIS audit op (never CRM)
+  # NOTE: the writer's OWN Firestore read/write counts for persisting this
+  # audit are persistence proof (Decision 1b envelope), not audit truth, and
+  # are excluded from this document.
   other: integer               # residual listed tools not classified above
 
 # Mutation intents (from packet.mutation_intents; status only)
@@ -198,11 +243,13 @@ crm_resolution:
   # exports unless already synthetic demo ids. Stage A fixtures may include
   # synthetic ids; Stage B public artifacts must not introduce real IDs.
 
-# MG Guide card state (deterministic projection)
+# MG Guide card state (frozen audit-local mapping from packet.run.status;
+# the audit writer must NOT import the NW-006 card module — see Decision 2)
 mg_guide_card:
   card_state: string           # completed | completed_with_review | blocked |
                                # failed | in_progress
-  projection_source: string    # packet_status_mapper_v1
+  projection_source: string    # const: audit_status_mapper_v1 (frozen in the
+                               # audit module; NOT mg_guide.meeting_follow_up_card)
 
 # External effect counters
 external_effects:
@@ -210,9 +257,9 @@ external_effects:
   counters:
     GHL_READS: integer
     GHL_WRITES: integer
-    FIRESTORE_READS: integer
-    FIRESTORE_WRITES: integer
     EXTERNAL_EFFECTS: integer  # sum of consequential external ops claimed
+# FIRESTORE_READS / FIRESTORE_WRITES for the writer's own persistence ops are
+# persistence proof (Decision 1b), not packet truth — excluded from this doc.
 
 # Warnings / errors
 warnings: [string]             # packet.audit.warnings
@@ -232,11 +279,86 @@ idempotency:
   duplicate_write_rejected: boolean
 
 integrity:
-  projection_input_fingerprint: string  # sha256 of canonical JSON of mapped fields
-  content_fingerprint: string           # sha256 of canonical JSON of stored doc
-                                        # excluding recorded_at + write flags that
-                                        # legitimately differ on retry metadata
+  projection_input_fingerprint: string  # sha256-hex of canonical JSON of the
+                                        # normalized mapped-input subset (Decision 1c)
+  content_fingerprint: string           # sha256-hex of canonical JSON of the
+                                        # immutable audit body computed BEFORE the
+                                        # integrity fields are attached; excludes
+                                        # recorded_at, all persistence-proof fields,
+                                        # and both fingerprint fields themselves
+                                        # (non-recursive — Decision 1c)
 ```
+
+**Decision 1b — Persistence proof envelope (separate from audit truth)**
+
+`workflow_run_audit_v1` is **immutable packet-derived audit truth**: it is
+projected entirely from the packet plus fixed writer identity metadata,
+written once (create-only), and never updated merely to record that its own
+write succeeded. Evidence that persistence happened is a **separate artifact**
+emitted by the proof harness, not a field on the Firestore document:
+
+```yaml
+schema: nw005_persistence_proof_v1  # lives in proof/nw005/.../proof-return.yaml; NOT in Firestore
+run_id: string
+mode: string                        # stage_b_smoke | acceptance_demo (Decision 10)
+write_attempted: boolean
+write_verified: boolean             # true only after successful read-back compare
+firestore_ops:
+  creates: integer                  # 0|1 per run_id under idempotency rules
+  reads: integer                    # bounded read-back count
+  deletes: integer                  # cleanup count
+read_back_compare:
+  content_fingerprint_match: boolean
+  mismatched_fields: [string]
+cleanup:
+  attempted: boolean
+  status: string                    # OK | FAILED | NOT_REQUIRED
+recorded_at: string                 # proof harness clock
+```
+
+Rules:
+
+- The Firestore document **never** receives a second update whose only purpose
+  is to say the first write was verified.
+- `recorded_at` on the audit document is set once at projection/write time and
+  is excluded from `content_fingerprint` (Decision 1c).
+- The persistence envelope is the **only** place writer-side op counts,
+  read-back comparison results, and cleanup results are recorded.
+
+**Decision 1c — Canonicalization and fingerprint semantics (exact, non-recursive)**
+
+Canonical JSON algorithm (pinned and golden-byte-tested in Stage A; **not**
+"JCS-like"):
+
+1. UTF-8 encoding; strings NFC-normalized before serialization.
+2. Object keys sorted by Unicode code point, recursively for nested objects.
+3. No insignificant whitespace; separators are exactly `,` and `:`.
+4. Strings use minimal JSON escaping (`\"`, `\\`, and `\uXXXX` for control
+   characters only).
+5. All numbers in this schema are integers; serialized with no decimal point
+   and no exponent. Booleans and null use JSON literals.
+6. Arrays preserve field-defined order.
+
+This is RFC 8785 (JCS) restricted to integer numbers; the implementation pins
+this exact serializer in the projection module and unit-tests it against
+golden byte strings.
+
+- `projection_input_fingerprint` = SHA-256 (lowercase hex) of the canonical
+  JSON of the **normalized mapped-input subset**: exactly the packet-derived
+  fields enumerated in the Decision 2 projection table, assembled into the
+  audit field structure, computed before writer clock fields and integrity
+  fields are added.
+- `content_fingerprint` = SHA-256 (lowercase hex) of the canonical JSON of the
+  **immutable audit body** computed **before** the `integrity` fields are
+  attached. The hash input explicitly excludes:
+  - `recorded_at` (writer clock),
+  - every persistence-proof field (`write_attempted`, `write_verified`,
+    Firestore op counts, read-back compare, cleanup result — all of which live
+    in `nw005_persistence_proof_v1`, never in this document), and
+  - both `integrity.*` fingerprint fields themselves.
+
+  The definition is therefore **non-recursive**: no hash input ever contains a
+  fingerprint field.
 
 **Storage rules (from foundation §13, restated as NW-005 gates)**
 
@@ -272,23 +394,25 @@ project_workflow_run_audit(packet: meeting_follow_up_packet_v1) -> workflow_run_
 | `agent_steps.agents_used` | `packet.audit.agents_used` (stable order copy) |
 | `agent_steps.tools_used` | `packet.audit.tools_used` |
 | `policy.*` | direct copy of `packet.policy.*` |
-| `policy.outcome_summary` | derived: `PASS` if note or stage allowed and no blocking reason dominating; `BLOCKED` if note_write=blocked or status blocked; `DENIED_PARTIAL` if stage blocked/approval_required with note allowed; `NOT_ATTEMPTED` if policy.lifecycle=not_attempted; never calls policy engine |
+| `policy.display_summary_label` | **Frozen, non-authoritative** mapping: `PASS` iff (`note_write=allowed` or `stage_write=allowed`) and lifecycle not blocked/denied; `BLOCKED` iff `note_write=blocked` or run status `blocked`; `DENIED_PARTIAL` iff `stage_write` in {`blocked`, `approval_required`} and `note_write=allowed`; `NOT_ATTEMPTED` iff `policy.lifecycle=not_attempted`. The mapping is frozen in the schema, is a display crumb only, **must never contradict** `policy.*`/`final_disposition`, is never treated as a new policy decision, and never calls the policy engine |
 | `reason_codes` | copy of `packet.policy.reason_codes` |
 | `mutation_intents` | deep copy of `packet.mutation_intents` |
 | `mutations` | deep copy of `packet.mutations` note/stage flags |
 | `crm_resolution` | subset copy from `packet.crm_resolution` (no enrichment) |
-| `mg_guide_card.card_state` | pure map: terminal statuses → themselves; non-terminal → `in_progress`; invalid/missing disposition mismatch → prefer fail-closed `failed` only when packet already indicates failed |
+| `mg_guide_card.card_state` | Frozen audit-local pure map (`audit_status_mapper_v1`) over `packet.run.status`: terminal statuses → themselves; non-terminal → `in_progress`; status/disposition mismatch → projection fails closed per Decision 4 (no card state emitted). Alternatively the caller may pass an already-produced card-state value into the projection. Must **not** import `mg_guide.meeting_follow_up_card` |
 | `external_effects.packet_external_effects` | `packet.external_effects` |
 | `external_effects.counters.GHL_*` | **0** unless packet/tools explicitly encode counts; current competition packets use integer `external_effects` and empty `tools_used` → zeros |
 | `tool_call_counts.ghl_mcp.writes` | **must be 0** under current grants; if projection ever sees a positive write count it still **only records** it — never performs CRM writes |
 | `warnings` | `packet.audit.warnings` |
 | `errors` | `[]` unless `terminal_state=failed`, then include final_disposition + reason_codes as error crumbs (no stack traces required) |
 | `final_disposition` | `packet.audit.final_disposition` |
-| fingerprints | SHA-256 over canonical JCS-like sorted-key JSON of projection body |
+| fingerprints | SHA-256 over exact canonical JSON per Decision 1c (no "JCS-like" ambiguity; non-recursive) |
 
 **Forbidden in projection module**
 
 - Imports that perform I/O (except the separate writer adapter boundary).
+- Imports of `mg_guide.meeting_follow_up_card` or any UI/card renderer — the
+  audit layer must not depend on the UI layer at runtime or import time.
 - Calls into `orchestration.policy.evaluate_policy`.
 - Calls into agent runtimes / ADK / Gemini.
 - Calls into GHL adapters (online or offline) for “refresh.”
@@ -345,7 +469,7 @@ Minimum provenance that must appear on every stored/emitted audit record:
 | `agent_steps.agents_used` | YES | May be empty list if packet says so |
 | `policy.reason_codes` + top-level `reason_codes` | YES | May be empty list |
 | `mutations.*.attempted/verified` | YES | Booleans |
-| `mg_guide_card.card_state` | YES | Deterministic |
+| `mg_guide_card.card_state` | YES | Frozen audit-local mapping from `packet.run.status`; no UI import |
 | `external_effects.counters` | YES | Explicit zeros preferred over omission |
 | `integrity.projection_input_fingerprint` | YES | |
 
@@ -379,8 +503,13 @@ Minimum provenance that must appear on every stored/emitted audit record:
 > record with agents, tool counts, reason codes, disposition.
 
 NW-005 Stage A proves projection completeness offline. Stage B proves durable
-store + read-back for synthetic records only. Full AT-10 closeout remains an
-NW-008 concern after NW-005 implementation is authorized and merged.
+store + read-back for synthetic records only. A Stage B **smoke** run
+(create → read-back → verify → immediate delete) demonstrates write/read
+correctness only; it does **not** by itself close AT-10 record presence. AT-10
+presence evidence requires either the separately authorized `acceptance_demo`
+retention mode (Decision 10) or NW-008's own governed evidence. Full AT-10
+closeout remains an NW-008 concern after NW-005 implementation is authorized
+and merged.
 
 ---
 
@@ -398,7 +527,7 @@ NW-005 audit store rules:
 | --- | --- | --- |
 | Absent | any terminal | **Create** (Stage B: create-only); set `duplicate_write_rejected=false` |
 | Absent | non-terminal | Default **skip cloud write** |
-| Present, same `content_fingerprint` (ignoring writer timestamps) | same | **No-op success** (idempotent retry); do not increment logical write counters beyond first verified write; may refresh `recorded_at` only if explicitly allowed — **preferred: leave doc unchanged** |
+| Present, same `content_fingerprint` (Decision 1c exclusion set already omits volatile fields) | same | **No-op success** (idempotent retry); do not increment logical write counters beyond first verified write; may refresh `recorded_at` only if explicitly allowed — **preferred: leave doc unchanged** |
 | Present, terminal T1 | projection terminal T1 with different non-meta fields | **Reject** with `AUDIT_IDEMPOTENCY_CONFLICT`; do not overwrite |
 | Present, terminal T1 | projection terminal T2 ≠ T1 | **Reject** with `AUDIT_TERMINAL_STATE_CONFLICT`; do not overwrite |
 | Present, non_terminal | terminal | **Allow single upgrade write** only if prior doc was explicitly non-terminal and policy allows upgrade path; NW-005 v1 **prefers never writing non-terminal**, so this path should be rare/disabled by default |
@@ -468,12 +597,16 @@ Stage B sequence (when authorized):
 
 ```text
 1) load synthetic packet
-2) project audit doc
-3) create workflow_runs/{run_id}
+2) project audit doc (+ fingerprints per Decision 1c)
+3) create workflow_runs/{run_id} (create-only precondition)
 4) get read-back
 5) compare fingerprints / critical fields
-6) record counters FIRESTORE_WRITES / FIRESTORE_READS
-7) cleanup delete (or TTL) per Decision 10
+6) emit nw005_persistence_proof_v1 envelope (write_attempted/verified,
+   op counters, read-back compare, cleanup result) into proof-return —
+   never as a second update to the Firestore document
+7) cleanup per Decision 10 mode:
+   - stage_b_smoke: immediate delete
+   - acceptance_demo: retain within the separately authorized window, then delete
 8) STOP
 ```
 
@@ -515,7 +648,10 @@ NW005_FIRESTORE_STAGE_B=0      # default off
 | Topic | Decision |
 | --- | --- |
 | Identity type | Least-privilege GCP principal for **test project only** (user ADC for dev **or** dedicated test SA) |
-| Role scope | Prefer custom role or narrow predefined roles limited to datastore create/get/delete on `workflow_runs` path pattern if available; avoid Editor/Owner |
+| Access model | Server-side Firestore SDK uses **IAM/ADC** and **bypasses Firestore Security Rules** — Security Rules are not the control for Stage B and must not be cited as one |
+| Environment | Dedicated **test project and test database**, isolated from any production or customer-adjacent resource |
+| Role scope | Custom role containing **only the permissions the proof call graph actually requires** (verified: e.g. `datastore.entities.create/get/delete`, plus index/list only if the call graph needs them); database-scoped IAM condition where applicable and verified; avoid Editor/Owner. **IAM cannot restrict access to a collection path — this packet makes no such claim** |
+| App allowlist | Application-level hard allowlist enforced in writer code: collection must equal `workflow_runs` **and** `run_id` must be in the bounded synthetic proof allowlist (Decision 11) |
 | Secrets | No SA JSON keys in git; no secret value commits; use ADC / secret manager outside repo |
 | Public repo | Grant mirrors sanitized; no private SA emails required in public packet |
 | IAM changes | **Not authorized** by this planning packet; require separate authority if any project IAM is modified |
@@ -533,7 +669,9 @@ reused to expand CRM blast radius.
 | --- | --- | --- |
 | Stage A in-memory | Process lifetime | Dropped on process exit |
 | Stage A emulator | Local emulator data | `emulator flush` / container recycle in proof scripts |
-| Stage B test project | **Short-lived synthetic docs only** | Mandatory cleanup in proof script `finally`: delete `workflow_runs/{run_id}` created by the proof |
+| Stage B `stage_b_smoke` mode (default) | Zero retention beyond the proof call | create → read-back → verify → **immediate delete** in proof script `finally`; smoke proves write/read correctness only |
+| Stage B `acceptance_demo` mode (separately authorized) | Bounded retention window defined in the authorizing grant (long enough for judge/test evidence capture) | Synthetic records remain present for the authorized window so AT-10 record presence can be demonstrated, then deleted; window + run_id allowlist recorded in the sanitized grant mirror |
+| AT-10 claim rule | — | Do **not** claim durable AT-10 evidence from a smoke record already deleted in the same proof run |
 | Orphan safety | If delete fails | Record `CLEANUP_FAILED` in proof-return; human follows up; no second unrestricted sweep |
 | TTL | Optional Firestore TTL policy on `recorded_at` / `expire_at` field **if** separately authorized; not required for Stage A |
 | Production retention | N/A | No production writes |
@@ -544,6 +682,7 @@ Proof scripts must log:
 DOCS_CREATED=<n>
 DOCS_DELETED=<n>
 CLEANUP_STATUS=OK|FAILED
+RETENTION_MODE=stage_b_smoke|acceptance_demo
 ```
 
 ---
@@ -584,7 +723,7 @@ AGENT_RERUN_BY_AUDIT_WRITER=NO
 CRM_FETCH_BY_AUDIT_WRITER=NO
 RAW_REST=FORBIDDEN
 PRODUCTION_ACTIVATION=NO
-STOP_CODE=NW005_FIRESTORE_AUDIT_PACKET_READY_FOR_REVIEW
+STOP_CODE=NW005_PACKET_RECONCILED_READY_FOR_REVIEW
 ```
 
 After a future Stage A coding unit (preview only):
@@ -600,9 +739,11 @@ After a future Stage B proof (preview only):
 
 ```text
 NW005_STAGE_B_STATUS=PASSED
+NW005_STAGE_B_MODE=stage_b_smoke|acceptance_demo
 FIRESTORE_WRITES=<bounded>
 FIRESTORE_READS=<bounded>
 CLEANUP_STATUS=OK
+PERSISTENCE_PROOF_ENVELOPE=nw005_persistence_proof_v1  # in proof-return, not in the Firestore doc
 EXTERNAL_EFFECTS=<firestore only>
 ```
 
@@ -625,7 +766,7 @@ SECRET_CHANGES=0
 NW007_RUNTIME_CHANGES=0
 NW008_RUNTIME_CHANGES=0
 NW013_EXECUTED=NO
-STOP_CODE=NW005_FIRESTORE_AUDIT_PACKET_READY_FOR_REVIEW
+STOP_CODE=NW005_PACKET_RECONCILED_READY_FOR_REVIEW
 ```
 
 **Future implementation unit STOP (preview)** — coding may stop when:
@@ -652,7 +793,10 @@ STOP_CODE=NW005_FIRESTORE_AUDIT_PACKET_READY_FOR_REVIEW
 
 - Synthetic records only.
 - `workflow_runs/{run_id}` only.
-- Create + read-back verify + cleanup.
+- Create + read-back verify + cleanup; persistence evidence emitted as the
+  `nw005_persistence_proof_v1` envelope (Decision 1b), never as a document update.
+- Retention follows Decision 10: `stage_b_smoke` deletes immediately;
+  `acceptance_demo` retains within a separately authorized window.
 - Not started by this packet.
 
 ```text
@@ -720,7 +864,7 @@ STOP (offline)             cleanup delete → STOP
 | Item | Relationship |
 | --- | --- |
 | NW-004 agents | Produce packets consumed as audit **inputs**; writer must not rerun them |
-| NW-006 card | Card state projected into audit; card remains offline renderer |
+| NW-006 card | Card state derived via frozen audit-local mapping from `packet.run.status` (or an upstream-provided value); the audit writer never imports the card module |
 | NW-008 AT-10 | Depends on durable (or governed alternate) audit sink — NW-005 is the authorized sink plan |
 | NW-007 | May host writer later; deploy not required for Stage A |
 | NW-013 | Independent optional live CRM read proof; not a dependency to start Stage A |
@@ -768,6 +912,11 @@ NW-005 may move beyond PLANNED only when:
 - [ ] Architecture remains packet → projection → `workflow_runs/{run_id}` → STOP
 - [ ] Authority rule: audit records, does not authorize
 - [ ] All 13 decisions are acceptable or explicitly amended in review notes
+- [ ] Fingerprint definition is non-recursive with exact canonicalization (Decision 1c)
+- [ ] Persistence proof is separated from audit content (Decision 1b)
+- [ ] IAM language makes no collection-path restriction claim (Decision 9)
+- [ ] Audit writer has no UI dependency ambiguity (Decision 2)
+- [ ] Smoke vs acceptance retention semantics are explicit (Decision 10)
 - [ ] Stage B remains separately gated
 - [ ] No implementation files slipped into this docs unit
 - [ ] `NW005_IMPLEMENTATION_STARTED=NO`
@@ -795,5 +944,5 @@ NW007_RUNTIME_CHANGES=0
 NW008_RUNTIME_CHANGES=0
 NW013_EXECUTED=NO
 CHANGED_PATH_CLASS=NW005_PLANNING_GOVERNANCE_ONLY
-STOP_CODE=NW005_FIRESTORE_AUDIT_PACKET_READY_FOR_REVIEW
+STOP_CODE=NW005_PACKET_RECONCILED_READY_FOR_REVIEW
 ```
