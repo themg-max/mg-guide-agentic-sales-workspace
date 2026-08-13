@@ -12,11 +12,11 @@ implementation_head_sha: "197574432c971f6b121e6f339cc236c413015f65"
 implementation_head_ci_run: "31655056168"
 implementation_head_ci_result: SUCCESS
 implementation_head_ci_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655056168"
-# Final PR head (this proof artifact may be committed after the implementation head)
-final_head_sha: "e5519bf8d033ffc46c60efbcd51c56dc77ccffb8"
-exact_head_ci_run: "31655138893"
-exact_head_ci_result: SUCCESS
-exact_head_ci_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655138893"
+# Proof artifact reference (historical) - do not chase live PR head inside the artifact
+proof_artifact_sha: "e5519bf8d033ffc46c60efbcd51c56dc77ccffb8"
+proof_artifact_ci_run: "31655138893"
+proof_artifact_ci_result: SUCCESS
+proof_artifact_ci_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655138893"
 pr_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/18"
 pr_number: 18
 
