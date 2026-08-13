@@ -189,8 +189,10 @@ Any fallback requires the same human signature; it is not self-selectable.
 
 Smallest deployable interface:
 
-- `GET /healthz` — liveness only; returns service name, version/commit,
-  scenario catalog hash. No dynamic state.
+- `GET /health` — Cloud Run liveness/provenance; returns service name, version/commit,
+  scenario catalog hash. No dynamic state. (`GET /healthz` retained as an optional
+  local/container compatibility alias; exact-path `/healthz` may be reserved by the
+  Google Front End and is not the external Cloud Run gate.)
 - `POST /demo/meeting-follow-up` — accepts **only** a scenario selector
   bounded to a fixed synthetic catalog; runs the deterministic pipeline and
   returns the visible outputs below. **No arbitrary `run_id`, no arbitrary
@@ -261,7 +263,7 @@ REQUESTED_SCOPE=
 - configure authenticated judge access (preferred: IAP + judge Google group)
   if approved
 - execute bounded health and synthetic workflow smoke checks
-  (`GET /healthz`, the defined SUCCESS and STAGE_CHANGE_DENIED scenarios)
+  (`GET /health`, the defined SUCCESS and STAGE_CHANGE_DENIED scenarios)
 
 NOT_REQUESTED:
 - Firestore runtime writes
