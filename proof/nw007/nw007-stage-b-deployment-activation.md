@@ -44,9 +44,11 @@ STAGE_A_COMPLETED=API_ENABLEMENT;AR_INSPECT_AND_CREATE;BUILD_SA_CREATE;RUNTIME_S
 
 ```
 REQUESTED_DECISION=ACTIVATE_NW007_STAGE_B_DEPLOYMENT_UNDER_SIGNED_GRANT_PR26_AND_STAGE_A_PROOF_PR28
-CURRENT_DECISION=PENDING_REVIEWER_DISPOSITION
+CURRENT_DECISION=APPROVED
 
-HUMAN_ACTIVATION=PENDING_REVIEWER_DISPOSITION
+HUMAN_ACTIVATION=APPROVED
+ACTIVATED_BY=AARON PRESTON CHANDLER
+ACTIVATED_AT=2026-08-13T13:44:57.012-04:00
 ACTIVATION_OWNER=VS Code / Orchestrator Stage B authorization lane
 
 PARENT_AUTHORITY_PR=26
@@ -57,9 +59,9 @@ STAGE_A_PROOF_MERGE_SHA=dc524f227eee5e52d2c41e55c33344628d318224
 SELF_ACTIVATION=FORBIDDEN
 ```
 
-Human/reviewer disposition on this PR is required before any Stage B execution
-lane may treat deployment effects as activated. This artifact does not self-
-activate and does not expand the signed grant.
+Actual human approval is recorded above. This artifact does not self-activate,
+never attributes ChatGPT reviewer disposition as human approval, and does not
+expand the signed grant.
 
 ## Stage A → Stage B carry-forward (exact)
 
@@ -81,6 +83,42 @@ IAP_AUTHENTICATED_ACCESS_VERIFICATION
 These strings are inherited exactly from the Stage A proof final fields. Stage B
 execution may satisfy them only within the hard constraints below and only after
 this activation is approved and merged.
+
+```
+STAGE_B_EXECUTION_SEQUENCE=
+B1_REPO_IMPLEMENTATION;
+B2_CLOUD_DEPLOYMENT
+
+STAGE_B_B1_SCOPE=
+HTTP_ADAPTER_IMPLEMENTATION;
+DOCKERFILE_CONTAINER_PACKAGING;
+TESTS;
+IMPLEMENTATION_PR
+
+STAGE_B_B1_CLOUD_MUTATION=NO
+
+STAGE_B_B2_PREREQUISITE=
+APPROVED_AND_MERGED_STAGE_B_IMPLEMENTATION_PR
+
+STAGE_B_B2_SCOPE=
+CLOUD_BUILD;
+IMAGE_PUSH;
+CLOUD_RUN_DEPLOYMENT;
+CONDITIONAL_B3;
+J1;
+IAP1;
+DIRECT_CLOUD_RUN_IAP_ENABLEMENT;
+CUSTOM_OAUTH_CONFIGURATION;
+JUDGE_ACCESS_BINDING;
+SYNTHETIC_AUTHENTICATED_SMOKE_TESTS
+
+B2_EXECUTION_MUST_RECORD_AND_VERIFY_IMPLEMENTATION_PR_MERGE_SHA=YES
+B2_EXECUTION_MUST_VERIFY_IMPLEMENTATION_PR_MERGE_SHA_BEFORE_CLOUD_BUILD_OR_DEPLOYMENT_MUTATION=YES
+```
+
+B1 is the repository implementation lane only. B1 must not mutate cloud
+resources. B2 is the cloud deployment lane and must record and verify the exact
+implementation PR merge SHA before any Cloud Build or deployment mutation occurs.
 
 ## Stage B activation state (authorization intent)
 
