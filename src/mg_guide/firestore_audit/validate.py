@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Tuple
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 
 class AuditValidationError(ValueError):
@@ -26,7 +26,30 @@ def _repo_root() -> Path:
 def _audit_validator() -> Draft202012Validator:
     schema_path = _repo_root() / "contracts" / "workflow_run_audit.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    return Draft202012Validator(schema)
+    # Create a FormatChecker with a date-time checker that accepts RFC3339-like
+    # strings. The stdlib datetime.fromisoformat accepts offsets but not trailing
+    # Z; normalize Z to +00:00 and try parsing. Register this checker under
+    # 'date-time' so schema format: date-time is enforced.
+    fc = FormatChecker()
+
+    @fc.checks("date-time")
+    def _is_datetime(instance: str) -> bool:  # type: ignore
+        from datetime import datetime
+
+        if not isinstance(instance, str):
+            # Non-strings are type-errors elsewhere; format checks only for strs.
+            return True
+        try:
+            sval = instance
+            if sval.endswith("Z"):
+                sval = sval[:-1] + "+00:00"
+            # datetime.fromisoformat handles the offset form produced above
+            datetime.fromisoformat(sval)
+            return True
+        except Exception:
+            return False
+
+    return Draft202012Validator(schema, format_checker=fc)
 
 
 def schema_errors(audit: Mapping[str, Any]) -> List[str]:

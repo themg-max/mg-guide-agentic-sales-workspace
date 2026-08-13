@@ -71,3 +71,35 @@ def test_idempotency_key_must_match_run_id(load_expected_audit):
     audit["idempotency"]["key"] = "other-run"
     with pytest.raises(AuditValidationError):
         validate_workflow_run_audit(audit)
+
+
+def test_invalid_started_at_fails_datetime_format(load_expected_audit):
+    audit = copy.deepcopy(load_expected_audit("audit-success.completed.json"))
+    # invalid started_at
+    audit["started_at"] = "not-a-date"
+    ok, errs = is_valid_workflow_run_audit(audit)
+    assert not ok
+    assert any("started_at" in e or "date-time" in e for e in errs)
+    with pytest.raises(AuditValidationError):
+        validate_workflow_run_audit(audit)
+
+
+def test_invalid_recorded_at_fails_datetime_format(load_expected_audit):
+    audit = copy.deepcopy(load_expected_audit("audit-success.completed.json"))
+    audit["recorded_at"] = "2026-13-99T99:99:99Z"
+    ok, errs = is_valid_workflow_run_audit(audit)
+    assert not ok
+    assert any("recorded_at" in e or "date-time" in e for e in errs)
+    with pytest.raises(AuditValidationError):
+        validate_workflow_run_audit(audit)
+
+
+def test_invalid_completed_at_non_null_fails_datetime_format(load_expected_audit):
+    audit = copy.deepcopy(load_expected_audit("audit-success.completed.json"))
+    # set completed_at to non-ISO garbage
+    audit["completed_at"] = "COMPLETED_AT_WRONG"
+    ok, errs = is_valid_workflow_run_audit(audit)
+    assert not ok
+    assert any("completed_at" in e or "date-time" in e for e in errs)
+    with pytest.raises(AuditValidationError):
+        validate_workflow_run_audit(audit)

@@ -25,7 +25,9 @@ no MG Guide card import, no Stage B.
 | Baseline SHA | `fa57a28a46e597807230b2e281e7dd3cd4bba477` (PR #17 merge) |
 | PR17 final head | `4d3fb5b0d3333d107c8b48ac112645a6b7aa501e` |
 | Implementation head (pre-proof-annotation) | `197574432c971f6b121e6f339cc236c413015f65` |
-| Exact-head CI (on implementation head) | [run 31655056168](https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655056168) **SUCCESS** |
+| Implementation head CI run | [run 31655056168](https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655056168) **SUCCESS** |
+| Final PR head (proof annotation head) | `e5519bf8d033ffc46c60efbcd51c56dc77ccffb8` |
+| Exact-head CI (on final proof annotation head) | [run 31655138893](https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655138893) **SUCCESS** |
 | PR | https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/18 |
 
 ## Implementation surfaces
