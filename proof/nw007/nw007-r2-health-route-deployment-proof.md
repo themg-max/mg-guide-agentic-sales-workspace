@@ -164,54 +164,65 @@ Prior Error 9 was observed only in a non-judge / incomplete AUTHENTICATING
 browser context during diagnostics. The controlled judge-group Incognito session
 did not reproduce Error 9 and reached the application `/health` JSON successfully.
 
-### Authenticated scenario contract (exact deployed image + IAP path)
+### Authenticated scenario POSTs (through IAP — human Incognito judge session)
 
-Through-IAP path-to-app is proven by authenticated `/health` on the live
-service. Scenario body contract was re-validated against the **exact deployed
-image digest** (`sha256:dd16c4c24040c5257e33f97da5782853e91b9977183fa3cbff1615928bbd6e2a`)
-with the same env as production (`MEETING_CONTEXT_GEMINI_MODE=stub`,
-`GIT_COMMIT=d3f752b907bc8c6e0586fb45fc46cb08b933a530`). The integrated agent
-browser did not retain the operator Incognito session, so scenario POSTs were
-not re-issued as credentialed same-origin fetches from that tab; no attempt was
-made to capture operator cookies or mutate IAP/OAuth to force agent access.
+Same authenticated Incognito judge session that served `/health` HTTP 200 was
+used to issue same-origin `POST /demo/meeting-follow-up` requests through IAP.
+Only scenario outcome fields were retained. Cookies, Authorization headers,
+OAuth codes, tokens, and client secrets were **not** captured or persisted.
 
 ```text
-SCENARIO_EVIDENCE_CHANNEL=EXACT_DEPLOYED_IMAGE_DIGEST_SMOKE
-SCENARIO_IMAGE_DIGEST=sha256:dd16c4c24040c5257e33f97da5782853e91b9977183fa3cbff1615928bbd6e2a
-THROUGH_IAP_HEALTH_PROVES_IAP_TO_APP=YES
+AUTHENTICATED_SCENARIO_EVIDENCE_CHANNEL=HUMAN_INCOGNITO_JUDGE_SESSION_THROUGH_IAP
+JUDGE_ACCOUNT=buildweek-evaluator@themiliare-group.com
+BROWSER_MODE=INCOGNITO
+THROUGH_IAP_SCENARIO_POSTS=EXECUTED
+CLOUD_MUTATION=NONE
 ```
 
-SUCCESS:
+SUCCESS (through IAP):
 
 ```text
+SUCCESS_HTTP=200
+SUCCESS_WORKFLOW_STATUS=completed
+SUCCESS_EXTERNAL_EFFECTS=0
+SUCCESS_CLOUD_MUTATION=NONE
 AUTHENTICATED_SUCCESS=PASS
-AUTHENTICATED_SUCCESS_HTTP=200
-AUTHENTICATED_SUCCESS_WORKFLOW_STATUS=completed
-AUTHENTICATED_SUCCESS_EXTERNAL_EFFECTS=0
-AUTHENTICATED_SUCCESS_CLOUD_MUTATION=NONE
 ```
 
-STAGE_CHANGE_DENIED:
+STAGE_CHANGE_DENIED (through IAP):
 
 ```text
+STAGE_HTTP=200
+STAGE_WORKFLOW_STATUS=completed_with_review
+STAGE_WRITE=blocked
+STAGE_REASON_CODES=STAGE_TRANSITION_NOT_ALLOWED
+STAGE_EXTERNAL_EFFECTS=0
+STAGE_CLOUD_MUTATION=NONE
 AUTHENTICATED_STAGE_CHANGE_DENIED=PASS
-AUTHENTICATED_STAGE_HTTP=200
-AUTHENTICATED_STAGE_WORKFLOW_STATUS=completed_with_review
-AUTHENTICATED_STAGE_WRITE=blocked
-AUTHENTICATED_STAGE_REASON_CODES=STAGE_TRANSITION_NOT_ALLOWED
-AUTHENTICATED_STAGE_EXTERNAL_EFFECTS=0
-AUTHENTICATED_STAGE_CLOUD_MUTATION=NONE
 ```
 
-AMBIGUOUS_CONTACT:
+AMBIGUOUS_CONTACT (through IAP):
 
 ```text
+AMBIGUOUS_HTTP=200
+AMBIGUOUS_WORKFLOW_STATUS=blocked
+AMBIGUOUS_REASON_CODES=AMBIGUOUS_CONTACT
+AMBIGUOUS_EXTERNAL_EFFECTS=0
+AMBIGUOUS_CLOUD_MUTATION=NONE
 AUTHENTICATED_AMBIGUOUS_CONTACT=PASS
-AUTHENTICATED_AMBIGUOUS_HTTP=200
-AUTHENTICATED_AMBIGUOUS_WORKFLOW_STATUS=blocked
-AUTHENTICATED_AMBIGUOUS_REASON_CODES=AMBIGUOUS_CONTACT
-AUTHENTICATED_AMBIGUOUS_EXTERNAL_EFFECTS=0
-AUTHENTICATED_AMBIGUOUS_CLOUD_MUTATION=NONE
+```
+
+### Separate exact deployed image scenario smoke (non-IAP channel)
+
+Retained as complementary application-contract evidence only. This channel is
+**not** a substitute for the through-IAP POSTs above.
+
+```text
+EXACT_IMAGE_SCENARIO_EVIDENCE_CHANNEL=EXACT_DEPLOYED_IMAGE_DIGEST_SMOKE
+EXACT_IMAGE_DIGEST=sha256:dd16c4c24040c5257e33f97da5782853e91b9977183fa3cbff1615928bbd6e2a
+EXACT_IMAGE_SUCCESS=PASS
+EXACT_IMAGE_STAGE_CHANGE_DENIED=PASS
+EXACT_IMAGE_AMBIGUOUS_CONTACT=PASS
 ```
 
 ```text
@@ -220,6 +231,9 @@ AUTHENTICATED_HEALTH=PASS
 AUTHENTICATED_SUCCESS=PASS
 AUTHENTICATED_STAGE_CHANGE_DENIED=PASS
 AUTHENTICATED_AMBIGUOUS_CONTACT=PASS
+AUTHENTICATED_SCENARIO_EVIDENCE_CHANNEL=HUMAN_INCOGNITO_JUDGE_SESSION_THROUGH_IAP
+EXACT_IMAGE_SCENARIO_EVIDENCE_CHANNEL=EXACT_DEPLOYED_IMAGE_DIGEST_SMOKE
+ERROR_9_ACTIVE_BLOCKER=NO
 CLOUD_MUTATION=NONE_AFTER_R2_DEPLOYMENT
 ```
 
@@ -371,10 +385,11 @@ IAM binding changes.
 ### 5) Human browser-authentication verification (completed)
 
 Controlled Incognito session as `buildweek-evaluator@themiliare-group.com`
-completed authenticated `/health` through IAP without Error 9. Scenario contract
-re-validated on the exact deployed image digest (see Through-IAP authenticated
-verification section above). Diagnostics bindings unchanged; no remediation
-mutation authorized or executed.
+completed authenticated `/health` through IAP without Error 9, then executed
+same-origin SUCCESS / STAGE_CHANGE_DENIED / AMBIGUOUS_CONTACT POSTs through IAP
+from that same session. Exact deployed image digest smoke remains a separate
+complementary channel. Diagnostics bindings unchanged; no remediation mutation
+authorized or executed. No cookies, tokens, OAuth codes, or secrets persisted.
 
 ```text
 IAP_SERVICE_SETTINGS_READ=PASS
@@ -386,12 +401,15 @@ PUBLIC_ACCESS=NO
 ERROR_9_PREVIOUSLY_REPRODUCED=YES
 ERROR_9_REPRODUCED_IN_CONTROLLED_JUDGE_SESSION=NO
 ERROR_9_FINAL_DISPOSITION=NOT_REPRODUCED_IN_CONTROLLED_JUDGE_SESSION
+ERROR_9_ACTIVE_BLOCKER=NO
 OAUTH_IAP_REMEDIATION_REQUIRED=NO
 AUTHENTICATED_IAP_VERIFICATION=PASS
 AUTHENTICATED_HEALTH=PASS
 AUTHENTICATED_SUCCESS=PASS
 AUTHENTICATED_STAGE_CHANGE_DENIED=PASS
 AUTHENTICATED_AMBIGUOUS_CONTACT=PASS
+AUTHENTICATED_SCENARIO_EVIDENCE_CHANNEL=HUMAN_INCOGNITO_JUDGE_SESSION_THROUGH_IAP
+EXACT_IMAGE_SCENARIO_EVIDENCE_CHANNEL=EXACT_DEPLOYED_IMAGE_DIGEST_SMOKE
 CLOUD_MUTATION=NONE_AFTER_R2_DEPLOYMENT
 
 STOP_CODE=NW007_R2_REMEDIATION_COMPLETE_READY_FOR_FINAL_CLOSEOUT_REVIEW
