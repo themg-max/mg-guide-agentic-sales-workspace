@@ -112,14 +112,30 @@ must remain so until a human authorizes execution in a follow-on approval.
 | Any production / customer project | **FORBIDDEN** | Hard forbid (implementation packet Decision 8) |
 | Unclassified project | **FORBIDDEN** | Fail closed |
 
-### Preconditions still required before any future authorization can become executable
+### Environment provisioning completed
 
-These are **out of scope for this binding PR** (must not be performed here):
+The following Stage B environment prerequisites are complete and are recorded
+as binding evidence for execution-authorization review:
 
-1. Human-authorized enablement of `firestore.googleapis.com` on `mg-devpost`
-2. Human-authorized creation of a dedicated Firestore Native database + location binding
-3. Separate explicit human authorization to execute Stage B smoke under this grant ID
-4. Optional separate authority for least-privilege custom role (not required while Owner principal is accepted)
+1. `firestore.googleapis.com` is enabled on `mg-devpost`
+2. Firestore Native database `devpost-google-contest` has been created
+3. Database location is bound to `us-east4`
+4. Database edition is `STANDARD`
+5. Database mode is `NATIVE`
+6. Encryption is `GOOGLE_MANAGED`
+7. User Application Default Credentials availability has been verified without
+   exposing token material
+
+### Remaining prerequisite
+
+1. Separate explicit human authorization to execute Stage B smoke under
+   `MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1`
+
+Optional future hardening:
+
+- A least-privilege execution identity/role may be introduced under separate
+  IAM authority. It is not required for this environment-binding PR and must
+  not be created here.
 
 ## Synthetic run ID allowlist (exact match only)
 
