@@ -56,9 +56,12 @@ NW005_STAGE_A_PR18_MERGED_AT=2026-08-13T01:15:44Z
 | --- | --- | --- |
 | `GCP_TEST_PROJECT_ID` | `mg-devpost` | **BOUND** — dedicated competition/test project `MG DevPost` (`projectNumber=985566250549`, `lifecycleState=ACTIVE`) |
 | `PROJECT_CLASSIFICATION` | `DEDICATED_TEST_NON_PRODUCTION` | **BOUND** — not a production CRM/customer project; selected over multi-workload project `ai-rolodex-to-crm` |
-| `FIRESTORE_DATABASE_ID` | `UNKNOWN` | **UNRESOLVED** — no Firestore database is provisioned on `mg-devpost` |
-| `FIRESTORE_LOCATION_ID` | `UNKNOWN` | **UNRESOLVED** — location cannot be bound until a database exists |
-| `FIRESTORE_API_STATUS` | `NOT_ENABLED` | **BOUND** — `firestore.googleapis.com` is disabled on `mg-devpost` (discovery only; API was **not** enabled by this packet) |
+| `FIRESTORE_DATABASE_ID` | `devpost-google-contest` | **BOUND** — dedicated Firestore Native database created for the NW-005 test project and ready for explicit human authorization review |
+| `FIRESTORE_LOCATION_ID` | `us-east4` | **BOUND** — dedicated Firestore location aligned to the new database |
+| `FIRESTORE_API_STATUS` | `ENABLED` | **BOUND** — `firestore.googleapis.com` is enabled on `mg-devpost` and must not be mutated in this packet |
+| `FIRESTORE_EDITION` | `STANDARD` | **BOUND** — database edition is standard |
+| `FIRESTORE_MODE` | `NATIVE` | **BOUND** — database mode is Firestore Native |
+| `ENCRYPTION_MODE` | `GOOGLE_MANAGED` | **BOUND** — encryption is Google-managed |
 | `EXECUTION_PRINCIPAL` | `user:themg@themiliare-group.com` | **BOUND** — active gcloud account observed at binding time; Owner on `mg-devpost` |
 | `CREDENTIAL_SOURCE` | `USER_APPLICATION_DEFAULT_CREDENTIALS` | **BOUND** — local user ADC (`type=authorized_user`); no SA JSON key; no secret commit |
 | `IAM_CHANGE_REQUIRED` | `NO` | **BOUND** — principal already holds `roles/owner` on `mg-devpost`; no IAM mutation required for smoke once API+DB exist. Least-privilege custom role remains **recommended** and still requires separate authority if pursued |
@@ -70,28 +73,36 @@ NW005_STAGE_A_PR18_MERGED_AT=2026-08-13T01:15:44Z
 ```text
 GCP_TEST_PROJECT_ID=mg-devpost
 PROJECT_CLASSIFICATION=DEDICATED_TEST_NON_PRODUCTION
-FIRESTORE_DATABASE_ID=UNKNOWN
-FIRESTORE_LOCATION_ID=UNKNOWN
-FIRESTORE_API_STATUS=NOT_ENABLED
+FIRESTORE_DATABASE_ID=devpost-google-contest
+FIRESTORE_LOCATION_ID=us-east4
+FIRESTORE_API_STATUS=ENABLED
+FIRESTORE_EDITION=STANDARD
+FIRESTORE_MODE=NATIVE
+ENCRYPTION_MODE=GOOGLE_MANAGED
 EXECUTION_PRINCIPAL=user:themg@themiliare-group.com
 CREDENTIAL_SOURCE=USER_APPLICATION_DEFAULT_CREDENTIALS
 IAM_CHANGE_REQUIRED=NO
 SYNTHETIC_RUN_ID_ALLOWLIST_BOUND=YES
 ALLOWLIST_COUNT=4
+REQUIRED_FIELDS_WITH_UNKNOWN=NONE
+ENVIRONMENT_BINDING_COMPLETE=YES
+CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED
 ```
 
 ### Hard gate
 
 ```text
-REQUIRED_FIELDS_WITH_UNKNOWN=FIRESTORE_DATABASE_ID,FIRESTORE_LOCATION_ID
+REQUIRED_FIELDS_WITH_UNKNOWN=NONE
+ENVIRONMENT_BINDING_COMPLETE=YES
 STATUS=PROPOSED_NOT_AUTHORIZED
+CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED
 ```
 
-**Blocking rule:** if any required environment field remains `UNKNOWN`, Stage B
-implementation and execution remain blocked. As of this packet,
-`FIRESTORE_DATABASE_ID` and `FIRESTORE_LOCATION_ID` are `UNKNOWN`, and
-`FIRESTORE_API_STATUS=NOT_ENABLED`, so Stage B is **NOT_AUTHORIZED** and must
-not be implemented or executed.
+**Gate result:** `REQUIRED_FIELDS_WITH_UNKNOWN=NONE` and
+`ENVIRONMENT_BINDING_COMPLETE=YES`, so the environment is fully bound for
+explicit human authorization review. This packet still forbids any Stage B
+implementation or execution; `CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED` and
+must remain so until a human authorizes execution in a follow-on approval.
 
 ### Explicit non-bindings / rejected alternates
 
@@ -301,18 +312,30 @@ separately NOT_AUTHORIZED here.
 - wildcard document access / prefix allowlist behavior
 - Self-activation of Stage B by an agent
 
+## Credential verification (planning-only; no tokens disclosed)
+
+```bash
+gcloud config get-value project
+gcloud auth list --filter=status:ACTIVE
+gcloud auth application-default print-access-token >/dev/null
+```
+
+The credential check confirms the active project and active user account are
+available for ADC-based authorization review without printing any token value,
+without creating service-account JSON keys, and without writing Firestore data.
+
 ## Human authorization request (not granted by this packet)
 
-When **all** required environment fields are resolved (including a real
-`FIRESTORE_DATABASE_ID` + `FIRESTORE_LOCATION_ID` after human-authorized
-API enablement and database provisioning), a human maintainer may grant
-execution under:
+The environment is now fully bound and ready for explicit human execution
+authorization review. A human maintainer may grant execution under:
 
 ```text
 AUTHORIZATION_ID=MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1
-REQUESTED_DECISION=AUTHORIZED_FOR_EXECUTION   # human only
+REQUESTED_DECISION=AUTHORIZED_FOR_EXECUTION
 REQUESTED_MODE=stage_b_smoke
 REQUESTED_PROJECT=mg-devpost
+REQUESTED_DATABASE=devpost-google-contest
+REQUESTED_LOCATION=us-east4
 REQUESTED_COLLECTION=workflow_runs
 REQUESTED_ALLOWLIST_COUNT=4
 ```
@@ -324,9 +347,10 @@ decision artifact.
 ### Current authorization posture
 
 ```text
-HUMAN_SIGNATURE=NOT_REQUESTED_YET_ENVIRONMENT_INCOMPLETE
+HUMAN_SIGNATURE=PENDING_EXPLICIT_APPROVAL
 CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED
-BLOCKERS=FIRESTORE_API_NOT_ENABLED;FIRESTORE_DATABASE_ID_UNKNOWN;FIRESTORE_LOCATION_ID_UNKNOWN
+BLOCKERS=HUMAN_EXECUTION_APPROVAL_REQUIRED
+ENVIRONMENT_BINDING_COMPLETE=YES
 ```
 
 ## Current truth (this binding packet)
