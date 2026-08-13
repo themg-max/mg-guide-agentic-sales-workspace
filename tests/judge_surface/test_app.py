@@ -59,6 +59,25 @@ def client() -> _TestClient:
     return _TestClient(JudgeSurfaceApp())
 
 
+def test_health_returns_ok(client: _TestClient) -> None:
+    code, data = client.request("GET", "/health")
+    assert code == 200
+    assert data["status"] == "ok"
+    assert data["service"] == "mg-guide-agentic-sales-workspace-judge"
+    assert data["judge_mode"] == "stub"
+    assert "SUCCESS" in data["scenario_names"]
+    assert len(data["scenario_catalog_hash"]) == 64
+
+
+def test_health_rejects_non_stub_mode(monkeypatch) -> None:
+    monkeypatch.setenv("MEETING_CONTEXT_GEMINI_MODE", "live")
+    client = _TestClient(JudgeSurfaceApp())
+    code, data = client.request("GET", "/health")
+    assert code == 503
+    assert data["error"] == "judge_mode_rejected"
+    assert data["authorized_mode"] == "stub"
+
+
 def test_healthz_returns_ok(client: _TestClient) -> None:
     code, data = client.request("GET", "/healthz")
     assert code == 200

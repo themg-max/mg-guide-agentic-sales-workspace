@@ -1,7 +1,8 @@
 """Minimal judge-safe WSGI application for meeting_follow_up_v1.
 
 Implements:
-  GET /healthz  - liveness/provenance response
+  GET /health    - Cloud Run liveness/provenance response
+  GET /healthz   - local/container compatibility alias for /health
   POST /demo/meeting-follow-up - run a fixed synthetic scenario selector
 
 All responses are JSON.  The adapter never performs cloud mutations, CRM
@@ -63,13 +64,13 @@ class JudgeSurfaceApp:
     def _handle(self, environ: WSGIEnv) -> JSONType:
         method = environ.get("REQUEST_METHOD", "GET")
         path = environ.get("PATH_INFO", "/")
-        if method == "GET" and path == "/healthz":
-            return self._healthz()
+        if method == "GET" and path in ("/health", "/healthz"):
+            return self._health()
         if method == "POST" and path == "/demo/meeting-follow-up":
             return self._demo(environ)
         raise _JSONError("404 Not Found", {"error": "not_found", "path": path})
 
-    def _healthz(self) -> JSONType:
+    def _health(self) -> JSONType:
         mode = self._require_judge_mode()
         return {
             "status": "ok",
