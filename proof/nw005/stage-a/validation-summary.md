@@ -24,6 +24,9 @@ no MG Guide card import, no Stage B.
 | Branch | `feat/nw005-firestore-audit-stage-a` |
 | Baseline SHA | `fa57a28a46e597807230b2e281e7dd3cd4bba477` (PR #17 merge) |
 | PR17 final head | `4d3fb5b0d3333d107c8b48ac112645a6b7aa501e` |
+| Implementation head (pre-proof-annotation) | `197574432c971f6b121e6f339cc236c413015f65` |
+| Exact-head CI (on implementation head) | [run 31655056168](https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655056168) **SUCCESS** |
+| PR | https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/18 |
 
 ## Implementation surfaces
 
