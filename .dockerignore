@@ -1,0 +1,38 @@
+# Git / CI
+.git
+.github
+.gitignore
+
+# Python cache / build artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.pytest_cache
+.mypy_cache
+.ruff_cache
+build/
+dist/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# IDE / editor
+.vscode
+.idea
+*.swp
+
+# Docs and proof artifacts (not required at runtime)
+docs/
+proof/
+scripts/
+
+# Tests are not shipped in the runtime image
+tests/
+
+# Repository metadata
+LICENSE
+README.md
+*.md
