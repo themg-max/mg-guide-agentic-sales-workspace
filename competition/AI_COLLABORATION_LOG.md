@@ -681,3 +681,40 @@
   - silent revision of historical AT-1…AT-10 criteria
   - marking ATs complete from synthetic card tests alone
 - **STOP:** `STOP_CODE=NW006_CLOSED_NW008_READINESS_PACKET_READY_FOR_REVIEW`
+
+### 2026-08-12 — NW-005 Stage A merge truth + Stage B Firestore smoke-proof authorization packet (planning only)
+
+- **Human owner / operator:** Aaron Chandler / repository maintainer
+- **Tool / AI surfaces:** VS Code + MG Orchestrator + Copilot CLI runtime
+- **Objective:** Create the NW-005 Stage B Firestore smoke-proof authorization packet as a planning-only artifact; no runtime/cloud/IAM changes
+- **Required preflight executed:** `pwd`; `git branch --show-current`; `git status --short --untracked-files=all`; `git fetch origin`
+- **Branch guard:** not `main`; fresh branch `plan/nw005-stage-b-firestore-proof` from `origin/main`
+- **PR18 merge ancestry verified:** `git merge-base --is-ancestor 63aadc5c90569cfa119af7cc7e30fbac62f8544b origin/main` PASS
+- **Verified GitHub truth preserved exactly:**
+  - `PR18_STATE=MERGED`
+  - `PR18_FINAL_HEAD=695bf3dcae3c9a82ef3af9be9cf264a669485939`
+  - `PR18_MERGE_SHA=63aadc5c90569cfa119af7cc7e30fbac62f8544b`
+  - `PR18_MERGED_AT=2026-08-13T01:15:44Z`
+- **NW-005 status recorded:** Stage A = `MERGED_COMPLETE`; Stage B = `PLANNING` / `NOT_AUTHORIZED`; `FIRESTORE_NETWORK_OPERATIONS=0`
+- **Artifacts touched (planning-only authorized paths only):**
+  - `proof/nw005/stage-b/nw-005-stage-b-authorization-packet.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Stage B authorization packet contents:**
+  - `AUTHORIZATION_ID=MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1`
+  - `STATUS=PROPOSED_NOT_AUTHORIZED`
+  - Objective: `workflow_run_audit_v1` → Firestore create-only write → exact get → `content_fingerprint` verification → cleanup → STOP
+  - Required environment fields all `UNKNOWN` (`GCP_TEST_PROJECT_ID`, `FIRESTORE_DATABASE_ID`, `REGION`, `EXECUTION_PRINCIPAL`, `CREDENTIAL_SOURCE`, `IAM_CHANGE_REQUIRED`) → Stage B implementation remains blocked
+  - Permitted call graph: create → get → verify schema/run_id/content_fingerprint → delete (stage_b_smoke) only
+  - Prohibited: set/overwrite, update, collection list, query, wildcard document access, production/customer data, GHL/CRM calls, policy re-evaluation, agent rerun, Cloud Run deployment, Secret Manager mutation, IAM mutation without separate explicit human authorization
+  - Caps: `MAX_DOCUMENT_CREATES=10`, `MAX_DOCUMENT_READS=20`, `MAX_DOCUMENT_DELETES=10`, `MAX_EXECUTION_MINUTES=10`, `DATA=synthetic_only`
+  - Retention: `stage_b_smoke` = create→get→verify→delete; `acceptance_demo` = NOT_AUTHORIZED, deferred to NW-008 (temporary retention window required before cleanup)
+  - AT-10 must NOT be claimed complete from `stage_b_smoke`
+- **Validation:** `git diff --check`; `git diff --name-only origin/main...HEAD` (expected paths only); exact-path staging only (never `git add .`)
+- **Out of scope / refused this unit:**
+  - Stage B runtime implementation
+  - Firestore client/network operations
+  - IAM / Secret Manager / Cloud Run changes
+  - GHL / CRM calls
+  - Marking AT-10 complete
+- **STOP:** `STOP_CODE=NW005_STAGE_B_AUTHORIZATION_PACKET_READY_FOR_REVIEW`
