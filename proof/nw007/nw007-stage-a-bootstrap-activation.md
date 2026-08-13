@@ -22,6 +22,26 @@ PARENT_SIGNED_GRANT_STOP_CODE=NW007_SIGNED_GRANT_READY_FOR_DURABLE_PR
 STAGE=NW007_STAGE_A_BOOTSTRAP
 ```
 
+## Human activation decision (provenance only)
+
+```
+REQUESTED_DECISION=ACTIVATE_NW007_STAGE_A_BOOTSTRAP_UNDER_SIGNED_GRANT_PR26
+CURRENT_DECISION=APPROVED
+
+HUMAN_ACTIVATION=APPROVED
+ACTIVATED_BY=AARON PRESTON CHANDLER
+ACTIVATED_AT=2026-08-13T13:09:50-04:00
+
+PARENT_AUTHORITY_PR=26
+PARENT_AUTHORITY_MERGE_SHA=e5822b3a24ad7bcb71add846e60a578255c663e5
+
+SELF_ACTIVATION=FORBIDDEN
+```
+
+Human activation provenance records approval to proceed under the signed parent
+grant. It does not expand scope, does not authorize image build or deploy, and
+does not itself mutate cloud resources.
+
 ## Stage A activation state
 
 ```
@@ -29,10 +49,24 @@ API_ENABLEMENT_AUTHORIZED=YES
 IAM_MUTATION_AUTHORIZED=YES
 SERVICE_ACCOUNT_CREATION_AUTHORIZED=YES
 ARTIFACT_REGISTRY_CREATION_AUTHORIZED=YES
+ARTIFACT_REGISTRY_CREATION_CONDITION=ONLY_IF_APPROVED_REPOSITORY_ABSENT_AFTER_SUCCESSFUL_US_EAST4_INSPECTION
 IAP_CONFIGURATION_AUTHORIZED=YES
 IMAGE_BUILD_AUTHORIZED=NO
 DEPLOYMENT_AUTHORIZED=NO
 ```
+
+Conditional Artifact Registry rule (explicit):
+
+```
+ARTIFACT_REGISTRY_CREATION_AUTHORIZED=YES
+ARTIFACT_REGISTRY_CREATION_CONDITION=
+ONLY_IF_APPROVED_REPOSITORY_ABSENT_AFTER_SUCCESSFUL_US_EAST4_INSPECTION
+```
+
+After `artifactregistry.googleapis.com` is enabled, list `us-east4` repositories
+first. Create `mg-guide-judge` (docker, `us-east4`) only if no approved
+repository for this grant already exists. Do not treat pre-enablement UNKNOWN
+as absence. Cap remains `MAX_AR_REPOSITORIES_CREATED=1`.
 
 The only Stage A bootstrap effects authorized are:
 
@@ -127,4 +161,4 @@ cleanup obligations for the competition-only deployment window.
 
 ---
 
-STOP_CODE=NW007_STAGE_A_BOOTSTRAP_ACTIVATION_READY_FOR_REVIEW
+STOP_CODE=NW007_STAGE_A_BOOTSTRAP_ACTIVATION_REPAIRED_READY_FOR_REVIEW
