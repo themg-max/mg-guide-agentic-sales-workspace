@@ -2,7 +2,7 @@
 
 ```text
 AUTHORIZATION_ID=MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1
-DECISION=AWAITING_HUMAN_SIGNATURE
+DECISION=AUTHORIZED_FOR_EXECUTION
 REQUESTED_DECISION=AUTHORIZED_FOR_EXECUTION
 REQUESTED_MODE=stage_b_smoke
 
@@ -36,35 +36,51 @@ GHL_CRM_AUTHORIZED=NO
 ACCEPTANCE_DEMO_AUTHORIZED=NO
 AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 
-CURRENT_EXECUTION_STATE=NOT_AUTHORIZED
-HUMAN_SIGNATURE=PENDING
+CURRENT_EXECUTION_STATE=AUTHORIZED_NOT_STARTED
+HUMAN_SIGNATURE=APPROVED
+HUMAN_APPROVER=Achandler21
+APPROVED_AT=2026-08-13T02:22:25Z
+
+AUTHORIZED_MODE=stage_b_smoke
+AUTHORIZED_PROJECT=mg-devpost
+AUTHORIZED_DATABASE=devpost-google-contest
+AUTHORIZED_LOCATION=us-east4
+AUTHORIZED_COLLECTION=workflow_runs
+
+EXECUTION_WAVE=1
+MAX_DISTINCT_RUN_IDS_THIS_EXECUTION=1
+AUTHORIZED_INITIAL_RUN_ID=run_nw006_success_001
 ```
 
 ## Purpose
 
-This artifact records the authorization request for a future Stage B smoke proof
-on the dedicated Firestore Native database in project `mg-devpost`.
+This artifact records the explicit human authorization for the bounded
+NW-005 Stage B Firestore smoke proof on the dedicated non-production
+`mg-devpost` environment.
 
-This document is a planning / approval artifact only. It does not authorize any
-Firestore document operations, does not create collections or documents, and
-must not be used to self-activate execution.
+This authorization permits only the Stage B execution scope defined in this
+artifact after PR #22 is merged. The artifact itself does not perform runtime
+actions.
 
-## Decision request
+## Authorization decision
 
-Human approval is required before any execution may proceed under:
+Human approval has been recorded under the authorization below. The grant
+becomes the durable repository execution baseline only after PR #22 is merged.
 
 ```text
 AUTHORIZATION_ID=MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1
-REQUESTED_DECISION=AUTHORIZED_FOR_EXECUTION
-REQUESTED_MODE=stage_b_smoke
-PROJECT=mg-devpost
-PROJECT_CLASSIFICATION=DEDICATED_TEST_NON_PRODUCTION
-DATABASE=devpost-google-contest
-LOCATION=us-east4
-COLLECTION=workflow_runs
+DECISION=AUTHORIZED_FOR_EXECUTION
+AUTHORIZED_MODE=stage_b_smoke
+AUTHORIZED_PROJECT=mg-devpost
+AUTHORIZED_DATABASE=devpost-google-contest
+AUTHORIZED_LOCATION=us-east4
+AUTHORIZED_COLLECTION=workflow_runs
 ```
 
-## Allowed future call graph (only after an explicit human approval)
+## Authorized Stage B call graph
+
+The following call graph is authorized only after PR #22 is merged and the
+Stage B implementation branch is created from that merged baseline.
 
 ```text
 create workflow_runs/{allowlisted_run_id}
@@ -107,13 +123,13 @@ this request unless a separate explicit approval is recorded:
 ## Execution posture
 
 ```text
-CURRENT_EXECUTION_STATE=NOT_AUTHORIZED
-HUMAN_SIGNATURE=PENDING
+CURRENT_EXECUTION_STATE=AUTHORIZED_NOT_STARTED
+HUMAN_SIGNATURE=APPROVED
 SELF_ACTIVATION=FORBIDDEN
 ```
 
-The human decision remains pending. This artifact itself does not perform the
-authorization or any runtime action.
+The human decision has been recorded. This artifact itself does not perform
+any runtime action.
 
 ## Binding evidence summary
 
@@ -127,12 +143,12 @@ FIRESTORE_EDITION=STANDARD
 FIRESTORE_MODE=NATIVE
 ENCRYPTION_MODE=GOOGLE_MANAGED
 ENVIRONMENT_BINDING_COMPLETE=YES
-CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED
-BLOCKERS=HUMAN_EXECUTION_APPROVAL_REQUIRED
+CURRENT_GRANT_STATE=AUTHORIZED_NOT_STARTED
+BLOCKERS=NONE
 ```
 
 ## Stop condition
 
 ```text
-STOP_CODE=NW005_STAGE_B_EXECUTION_AUTHORIZATION_READY_FOR_HUMAN_DECISION
+STOP_CODE=NW005_STAGE_B_EXECUTION_AUTHORIZED_READY_FOR_PR_REVIEW
 ```
