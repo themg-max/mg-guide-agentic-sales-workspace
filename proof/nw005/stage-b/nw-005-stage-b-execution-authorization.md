@@ -54,29 +54,33 @@ AUTHORIZED_INITIAL_RUN_ID=run_nw006_success_001
 
 ## Purpose
 
-This artifact records the authorization request for a future Stage B smoke proof
-on the dedicated Firestore Native database in project `mg-devpost`.
+This artifact records the explicit human authorization for the bounded
+NW-005 Stage B Firestore smoke proof on the dedicated non-production
+`mg-devpost` environment.
 
-This document is a planning / approval artifact only. It does not authorize any
-Firestore document operations, does not create collections or documents, and
-must not be used to self-activate execution.
+This authorization permits only the Stage B execution scope defined in this
+artifact after PR #22 is merged. The artifact itself does not perform runtime
+actions.
 
-## Decision request
+## Authorization decision
 
-Human approval is required before any execution may proceed under:
+Human approval has been recorded under the authorization below. The grant
+becomes the durable repository execution baseline only after PR #22 is merged.
 
 ```text
 AUTHORIZATION_ID=MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1
-REQUESTED_DECISION=AUTHORIZED_FOR_EXECUTION
-REQUESTED_MODE=stage_b_smoke
-PROJECT=mg-devpost
-PROJECT_CLASSIFICATION=DEDICATED_TEST_NON_PRODUCTION
-DATABASE=devpost-google-contest
-LOCATION=us-east4
-COLLECTION=workflow_runs
+DECISION=AUTHORIZED_FOR_EXECUTION
+AUTHORIZED_MODE=stage_b_smoke
+AUTHORIZED_PROJECT=mg-devpost
+AUTHORIZED_DATABASE=devpost-google-contest
+AUTHORIZED_LOCATION=us-east4
+AUTHORIZED_COLLECTION=workflow_runs
 ```
 
-## Allowed future call graph (only after an explicit human approval)
+## Authorized Stage B call graph
+
+The following call graph is authorized only after PR #22 is merged and the
+Stage B implementation branch is created from that merged baseline.
 
 ```text
 create workflow_runs/{allowlisted_run_id}
