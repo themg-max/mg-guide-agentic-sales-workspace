@@ -1,17 +1,16 @@
 # NW-007 R2 Execution-Approval Proof Checkpoint
 
 ```text
-STOP_CODE=NW007_R2_EXECUTION_APPROVAL_READY_FOR_HUMAN_SIGNATURE
+STOP_CODE=NW007_R2_SIGNED_APPROVAL_READY_FOR_FINAL_REVIEW
 ARTIFACT_KIND=R2_EXECUTION_APPROVAL_CHECKPOINT
 OWNER_LANE=VS Code / Orchestrator R2 planning/proof lane
 CREATED_AT=2026-08-13T20:44:00Z
-UPDATED_AT=2026-08-13T20:50:00Z
+UPDATED_AT=2026-08-13T21:02:00Z
 ```
 
 This artifact is **planning/approval only**. Creating, reviewing, or merging it
-does **not** execute R2 cloud mutation. R2 execution remains blocked until this
-durable approval artifact contains an explicit human `APPROVED` signature and
-that approval is merged.
+does **not** execute R2 cloud mutation. Human R2 execution approval has been
+signed; execution remains blocked until the signed approval is merged.
 
 ```text
 R2_EXECUTION_SELF_ACTIVATION=FORBIDDEN
@@ -262,7 +261,8 @@ READ_ONLY_PREFLIGHT=PASS
 ## Forbidden actions gate
 
 This checkpoint is intentionally read-only and therefore does not execute any of
-the following before human R2 approval:
+the following; human R2 execution approval has been signed, and execution remains
+blocked until the signed approval is merged:
 
 - `gcloud builds submit`
 - docker/image push to Artifact Registry
@@ -294,8 +294,7 @@ SIGNED_BY=Aaron Chandler
 R2_EXECUTION_SELF_ACTIVATION=FORBIDDEN
 ```
 
-Requested scope if and only if a human later signs `APPROVED` and that approval
-is merged:
+Approved scope becomes executable only after this signed approval is merged:
 
 ```text
 R2_PLANNED_SCOPE=
@@ -307,7 +306,7 @@ ONE_NEW_REVISION
 AUTHENTICATED_SMOKE
 ```
 
-Hard constraints that remain in force even after a future human approval:
+Hard constraints that remain in force even after this signed human approval:
 
 ```text
 PROJECT=mg-devpost
@@ -323,8 +322,9 @@ IAP_RECONFIGURATION_REQUIRED=NO
 IAM_RECONFIGURATION_REQUIRED=NO
 ```
 
-Until `CURRENT_DECISION=APPROVED` and `HUMAN_SIGNATURE=APPROVED` are written by
-an explicit human signature in this durable artifact and merged:
+`CURRENT_DECISION=APPROVED` and `HUMAN_SIGNATURE=APPROVED` are recorded in this
+durable artifact. R2 execution remains blocked until this signed approval is
+merged:
 
 ```text
 R2_EXECUTION=BLOCKED
@@ -349,9 +349,8 @@ The read-only preflight confirms:
   `CONFIGURED_AND_AUTHENTICATED_JUDGE_ACCESS_PASS`
 - no OAuth/IAP/IAM reconfiguration is required or authorized by empty brand query
 
-The lane is therefore ready for **human R2 execution approval signature**. No
-cloud mutation has been performed. R2 execution remains blocked until human
-signature `APPROVED` is recorded and merged.
+Human R2 execution approval has been signed; execution remains blocked until
+the signed approval is merged. No cloud mutation has been performed.
 
 ```text
 STOP_CODE=NW007_R2_SIGNED_APPROVAL_READY_FOR_FINAL_REVIEW
