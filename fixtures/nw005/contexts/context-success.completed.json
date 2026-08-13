@@ -1,0 +1,10 @@
+{
+  "recorded_at": "2026-08-12T20:00:00Z",
+  "fixture_id": "packet-success.completed.json",
+  "source_refs": [
+    "fixtures/nw005/packets/packet-success.completed.json"
+  ],
+  "writer_component": "mg_guide.firestore_audit.project",
+  "writer_component_version": "0.1.0-stage-a",
+  "writer_mode": "local_fixture"
+}

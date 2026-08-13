@@ -1,0 +1,113 @@
+{
+  "schema": "meeting_follow_up_packet_v1",
+  "run": {
+    "run_id": "run_nw006_success_001",
+    "workflow": "meeting_follow_up_v1",
+    "created_at": "2026-08-12T18:00:00Z",
+    "status": "completed"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_001",
+    "occurred_at": "2026-08-12T17:30:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "participants": [
+    {
+      "name": "Taylor Morgan",
+      "email": "taylor.morgan@example-demo.test",
+      "phone": "+1-555-0100",
+      "role": "prospect"
+    },
+    {
+      "name": "Alex Rivera",
+      "email": "alex.rivera@example-demo.test",
+      "phone": "+1-555-0199",
+      "role": "agent"
+    }
+  ],
+  "extraction": {
+    "lifecycle": "complete",
+    "summary": "Discovery call complete with agreed follow-up review package.",
+    "needs": ["retirement planning", "liquidity options"],
+    "objections": ["liquidity lock-up concern"],
+    "commitments": [],
+    "next_step": {
+      "action": "Send recommendation review follow-up",
+      "owner": "Alex Rivera",
+      "target_date": "2026-08-14"
+    },
+    "opportunity_signal": {
+      "recommended_stage": "discovery_complete",
+      "rationale": "Discovery completed with explicit next step."
+    }
+  },
+  "evidence": {
+    "transcript_spans": [],
+    "extraction_confidence": 0.95
+  },
+  "crm_resolution": {
+    "lifecycle": "complete",
+    "status": "matched",
+    "contact_id": "contact_demo_taylor_001",
+    "opportunity_id": "opp_demo_taylor_001",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "current_stage": "discovery_scheduled"
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "allowed",
+    "stage_write": "allowed",
+    "reason_codes": []
+  },
+  "mutations": {
+    "lifecycle": "intent_only",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "from_stage": "discovery_scheduled",
+      "to_stage": "discovery_complete",
+      "verified": false
+    }
+  },
+  "mutation_intents": {
+    "note": [
+      {
+        "kind": "note",
+        "status": "planned",
+        "body_ref": "extraction.summary"
+      }
+    ],
+    "stage": [
+      {
+        "kind": "stage",
+        "status": "planned",
+        "from_stage": "discovery_scheduled",
+        "to_stage": "discovery_complete"
+      }
+    ]
+  },
+  "brief": {
+    "lifecycle": "complete",
+    "headline": "Follow-up ready for offline review",
+    "meeting_summary": "Discovery call complete.",
+    "crm_actions": ["plan_note_intent", "plan_stage_intent"],
+    "next_action": "Review prepared note and stage intent",
+    "salesperson_attention_required": false
+  },
+  "audit": {
+    "started_at": "2026-08-12T18:00:00Z",
+    "completed_at": "2026-08-12T18:01:00Z",
+    "agents_used": ["meeting_context_agent", "relationship_context_agent", "follow_up_planning_agent"],
+    "tools_used": [],
+    "warnings": [],
+    "final_disposition": "completed"
+  },
+  "external_effects": 0
+}
+

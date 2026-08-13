@@ -1,0 +1,99 @@
+{
+  "schema": "workflow_run_audit_v1",
+  "run_id": "run_nw006_non_terminal_001",
+  "workflow_id": "meeting_follow_up_v1",
+  "started_at": "2026-08-12T18:20:00Z",
+  "completed_at": null,
+  "terminal_state": "non_terminal",
+  "recorded_at": "2026-08-12T20:00:00Z",
+  "provenance": {
+    "packet_schema": "meeting_follow_up_packet_v1",
+    "meeting_id": "meeting_nw006_008",
+    "meeting_source": "synthetic_demo",
+    "transcript_hash": "2222222222222222222222222222222222222222222222222222222222222222",
+    "fixture_id": "packet-non-terminal.evaluating.json",
+    "packet_run_status": "evaluating",
+    "source_refs": [
+      "fixtures/nw005/packets/packet-non-terminal.evaluating.json"
+    ],
+    "writer": {
+      "component": "mg_guide.firestore_audit.project",
+      "component_version": "0.1.0-stage-a",
+      "projection_version": "workflow_run_audit_v1",
+      "mode": "local_fixture"
+    }
+  },
+  "agent_steps": {
+    "agents_used": [
+      "meeting_context_agent",
+      "relationship_context_agent",
+      "follow_up_planning_agent"
+    ],
+    "tools_used": []
+  },
+  "policy": {
+    "lifecycle": "not_attempted",
+    "note_write": "not_attempted",
+    "stage_write": "not_attempted",
+    "reason_codes": []
+  },
+  "reason_codes": [],
+  "tool_call_counts": {
+    "tools_listed_count": 0,
+    "ghl_mcp": {
+      "reads": 0,
+      "writes": 0
+    },
+    "other": 0
+  },
+  "mutation_intents": {
+    "note": [],
+    "stage": []
+  },
+  "mutations": {
+    "lifecycle": "not_attempted",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "verified": false,
+      "from_stage": null,
+      "to_stage": null
+    }
+  },
+  "crm_resolution": {
+    "lifecycle": "complete",
+    "status": "matched",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "contact_id": "contact_demo_taylor_002",
+    "opportunity_id": "opp_demo_taylor_002"
+  },
+  "mg_guide_card": {
+    "card_state": "in_progress",
+    "projection_source": "audit_status_mapper_v1"
+  },
+  "external_effects": {
+    "packet_external_effects": 0,
+    "counters": {
+      "GHL_READS": 0,
+      "GHL_WRITES": 0,
+      "EXTERNAL_EFFECTS": 0
+    }
+  },
+  "warnings": [],
+  "errors": [],
+  "final_disposition": "pending",
+  "brief_headline": null,
+  "idempotency": {
+    "key": "run_nw006_non_terminal_001",
+    "strategy": "create_only_if_absent"
+  },
+  "integrity": {
+    "projection_input_fingerprint": "32a011c2602935088e36d3343ec88bdda23838a82154e5270c97777b6a069b39",
+    "content_fingerprint": "bcf7afed8f4a4c6a591b95564e9f2ae328561f3f86358c5415e73dcea3cb6844"
+  }
+}

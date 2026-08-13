@@ -1,0 +1,127 @@
+proof_id: nw005-firestore-audit-stage-a-v1
+work_item: NW-005
+stage: A
+workflow_id: meeting_follow_up_v1
+branch: feat/nw005-firestore-audit-stage-a
+repository: themg-max/mg-guide-agentic-sales-workspace
+baseline_sha: "fa57a28a46e597807230b2e281e7dd3cd4bba477"
+baseline_label: PR17_MERGE_SHA
+pr17_final_head: "4d3fb5b0d3333d107c8b48ac112645a6b7aa501e"
+pr17_state: MERGED
+implementation_head_sha: "197574432c971f6b121e6f339cc236c413015f65"
+implementation_head_ci_run: "31655056168"
+implementation_head_ci_result: SUCCESS
+implementation_head_ci_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655056168"
+# Proof artifact reference (historical) - do not chase live PR head inside the artifact
+proof_artifact_sha: "e5519bf8d033ffc46c60efbcd51c56dc77ccffb8"
+proof_artifact_ci_run: "31655138893"
+proof_artifact_ci_result: SUCCESS
+proof_artifact_ci_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/31655138893"
+pr_url: "https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/18"
+pr_number: 18
+
+objective: |
+  Deterministic offline Firestore audit projection only:
+  meeting_follow_up_packet_v1 → validate → project_workflow_run_audit(packet, ProjectionContext)
+  → workflow_run_audit_v1 → validate → deterministic fingerprint/idempotency proof → STOP
+
+architecture:
+  input_contract: meeting_follow_up_packet_v1
+  output_contract: workflow_run_audit_v1
+  canonicalizer: nw005_canonical_json_v1
+  projector: project_workflow_run_audit
+  store: MemoryAuditStore (terminal-only, in-process)
+  firestore_client: NONE
+  stage_b: NOT_AUTHORIZED
+
+delivery_scope:
+  authorized_surfaces:
+    - contracts/workflow_run_audit.schema.json
+    - src/mg_guide/firestore_audit/**
+    - fixtures/nw005/**
+    - tests/nw005/**
+    - proof/nw005/stage-a/**
+  explicitly_out_of_scope:
+    - google-cloud-firestore dependency
+    - Firestore provisioning / IAM / secrets
+    - Cloud Run deploy
+    - Stage B real Firestore writes
+    - policy re-evaluation
+    - agent rerun
+    - GHL / CRM fetch
+    - MG Guide card renderer import
+    - .github/workflows/**
+
+proof_markers:
+  NW005_STAGE: A
+  AUDIT_SCHEMA_VALID: PASS
+  AUDIT_PROJECTION_DETERMINISTIC: PASS
+  AUDIT_CANONICALIZER: nw005_canonical_json_v1
+  AUDIT_PROJECTION_CONTEXT_EXPLICIT: PASS
+  AUDIT_TERMINAL_ONLY_PERSISTENCE: PASS
+  AUDIT_NON_TERMINAL_DURABLE_WRITE: "NO"
+  AUDIT_IDEMPOTENCY: PASS
+  AUDIT_IDEMPOTENCY_CONFLICT_FAILS_CLOSED: PASS
+  AUDIT_TERMINAL_STATE_CONFLICT_FAILS_CLOSED: PASS
+  AUDIT_POLICY_REEVAL: "NO"
+  AUDIT_AGENT_RERUN: "NO"
+  AUDIT_CRM_FETCH: "NO"
+  AUDIT_UI_RUNTIME_DEPENDENCY: "NO"
+  AUDIT_TRANSCRIPT_BODY_STORED: "NO"
+  AUDIT_TOOL_INVOCATION_COUNTS_AVAILABLE: "NO"
+  FIRESTORE_CLIENT_DEPENDENCY: "NO"
+  FIRESTORE_READS: 0
+  FIRESTORE_WRITES: 0
+  GHL_LIVE_CALLS: 0
+  GHL_READS: 0
+  GHL_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  EXTERNAL_EFFECTS: 0
+  NW005_STAGE_B_STATUS: NOT_AUTHORIZED
+
+scenario_matrix:
+  completed: fixtures/nw005/packets/packet-success.completed.json
+  completed_with_review: fixtures/nw005/packets/packet-stage-change-denied.completed_with_review.json
+  blocked: fixtures/nw005/packets/packet-ambiguous-contact.blocked.json
+  failed: fixtures/nw005/packets/packet-tool-failure.failed.json
+  non_terminal_local_only: fixtures/nw005/packets/packet-non-terminal.evaluating.json
+
+validation:
+  commands:
+    - "PYTHONPATH=src python3 -m pytest tests/nw005 -q"
+    - "PYTHONPATH=src python3 -m pytest -q"
+    - "git diff --check"
+  results:
+    targeted_nw005_pytest: PASS
+    targeted_nw005_count: 41
+    full_pytest: PASS
+    full_pytest_count: 162
+    git_diff_check: PASS
+
+artifacts:
+  - contracts/workflow_run_audit.schema.json
+  - src/mg_guide/firestore_audit/__init__.py
+  - src/mg_guide/firestore_audit/models.py
+  - src/mg_guide/firestore_audit/canonicalize.py
+  - src/mg_guide/firestore_audit/project.py
+  - src/mg_guide/firestore_audit/validate.py
+  - src/mg_guide/firestore_audit/memory_store.py
+  - fixtures/nw005/packets/**
+  - fixtures/nw005/expected_audits/**
+  - fixtures/nw005/contexts/**
+  - tests/nw005/**
+  - proof/nw005/stage-a/proof-return.yaml
+  - proof/nw005/stage-a/validation-summary.md
+
+external_effect_counters:
+  FIRESTORE_READS: 0
+  FIRESTORE_WRITES: 0
+  GHL_LIVE_CALLS: 0
+  GHL_READS: 0
+  GHL_WRITES: 0
+  REAL_CUSTOMER_DATA: 0
+  EXTERNAL_EFFECTS: 0
+
+stop_code: NW005_STAGE_A_READY_FOR_PR_REVIEW
+do_not_merge: true
+do_not_begin_stage_b: true

@@ -1,0 +1,91 @@
+{
+  "schema": "meeting_follow_up_packet_v1",
+  "run": {
+    "run_id": "run_nw006_failed_001",
+    "workflow": "meeting_follow_up_v1",
+    "created_at": "2026-08-12T18:18:00Z",
+    "status": "failed"
+  },
+  "meeting": {
+    "meeting_id": "meeting_nw006_007",
+    "occurred_at": "2026-08-12T17:48:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "participants": [
+    {
+      "name": "Taylor Morgan",
+      "email": "taylor.morgan@example-demo.test",
+      "phone": "+1-555-0100",
+      "role": "prospect"
+    }
+  ],
+  "extraction": {
+    "lifecycle": "complete",
+    "summary": "Failure occurred in CRM resolution tool path.",
+    "needs": [],
+    "objections": [],
+    "commitments": [],
+    "next_step": {
+      "action": "Investigate CRM resolver failure",
+      "owner": "Alex Rivera",
+      "target_date": null
+    },
+    "opportunity_signal": null
+  },
+  "evidence": {
+    "transcript_spans": [],
+    "extraction_confidence": 0.9
+  },
+  "crm_resolution": {
+    "lifecycle": "failed",
+    "status": "tool_failure",
+    "contact_id": null,
+    "opportunity_id": null,
+    "match_basis": "none",
+    "candidate_count": 0,
+    "current_stage": null
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "blocked",
+    "stage_write": "blocked",
+    "reason_codes": ["GHL_TOOL_FAILURE"]
+  },
+  "mutations": {
+    "lifecycle": "not_attempted",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "from_stage": null,
+      "to_stage": null,
+      "verified": false
+    }
+  },
+  "mutation_intents": {
+    "note": [],
+    "stage": []
+  },
+  "brief": {
+    "lifecycle": "complete",
+    "headline": "CRM tool failure",
+    "meeting_summary": "Resolver failure prevented progress.",
+    "crm_actions": [],
+    "next_action": "Escalate technical investigation",
+    "salesperson_attention_required": true
+  },
+  "audit": {
+    "started_at": "2026-08-12T18:18:00Z",
+    "completed_at": "2026-08-12T18:19:00Z",
+    "agents_used": ["meeting_context_agent", "relationship_context_agent", "follow_up_planning_agent"],
+    "tools_used": [],
+    "warnings": [],
+    "final_disposition": "failed"
+  },
+  "external_effects": 0
+}
+
