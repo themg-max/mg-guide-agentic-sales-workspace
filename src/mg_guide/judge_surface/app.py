@@ -20,7 +20,13 @@ from mg_guide.meeting_follow_up_card.render_html import render_card_html
 from mg_guide.meeting_follow_up_card.render_text import render_card_text
 from orchestration.runner import WorkflowRunner
 
-from .scenarios import SCENARIO_CATALOG, judge_mode, scenario_catalog_hash, scenario_names
+from .scenarios import (
+    AUTHORIZED_JUDGE_MODE,
+    SCENARIO_CATALOG,
+    judge_mode,
+    scenario_catalog_hash,
+    scenario_names,
+)
 
 
 # pylint: disable=invalid-name
@@ -64,17 +70,19 @@ class JudgeSurfaceApp:
         raise _JSONError("404 Not Found", {"error": "not_found", "path": path})
 
     def _healthz(self) -> JSONType:
+        mode = self._require_judge_mode()
         return {
             "status": "ok",
             "service": self._service_name,
             "version": self._version,
             "commit": self._commit,
             "scenario_catalog_hash": scenario_catalog_hash(),
-            "judge_mode": judge_mode(),
+            "judge_mode": mode,
             "scenario_names": scenario_names(),
         }
 
     def _demo(self, environ: WSGIEnv) -> JSONType:
+        self._require_judge_mode()
         body = _read_json_body(environ)
         selector = body.get("scenario")
         if selector not in SCENARIO_CATALOG:
@@ -124,14 +132,32 @@ class JudgeSurfaceApp:
     @staticmethod
     def _resolution_outcome(packet: JSONType) -> JSONType:
         crm = packet.get("crm_resolution") or {}
-        return {
+        result = {
             "status": crm.get("status"),
-            "contact_id": crm.get("contact_id"),
-            "opportunity_id": crm.get("opportunity_id"),
             "match_basis": crm.get("match_basis"),
             "candidate_count": crm.get("candidate_count"),
             "current_stage": crm.get("current_stage"),
         }
+        # Keep the public judge-facing payload minimal and fail-closed.  The
+        # demo surface does not need raw CRM identifiers.
+        return result
+
+    @staticmethod
+    def _require_judge_mode() -> str:
+        try:
+            return judge_mode()
+        except ValueError as exc:
+            raise _JSONError(
+                "503 Service Unavailable",
+                {
+                    "error": "judge_mode_rejected",
+                    "authorized_mode": AUTHORIZED_JUDGE_MODE,
+                    "detail": str(exc),
+                    "meeting_context_gemini_mode": os.environ.get(
+                        "MEETING_CONTEXT_GEMINI_MODE"
+                    ),
+                },
+            ) from exc
 
     @staticmethod
     def _follow_up_proposal(packet: JSONType) -> JSONType:

@@ -30,10 +30,24 @@ SCENARIO_CATALOG: Dict[str, Path] = {
     "AMBIGUOUS_CONTACT": _sidecar("transcript-ambiguous-contact.expected.json"),
 }
 
+AUTHORIZED_JUDGE_MODE = "stub"
+
 
 def judge_mode() -> str:
-    """Return the active judge mode.  Only STUB is authorized for B1."""
-    return os.environ.get("MEETING_CONTEXT_GEMINI_MODE", "stub").lower()
+    """Return the active judge mode.
+
+    Only the approved STUB judge mode is permitted for the repository-only B1
+    implementation. Any other environment value is rejected to preserve a
+    fail-closed runtime.
+    """
+    value = os.environ.get("MEETING_CONTEXT_GEMINI_MODE", AUTHORIZED_JUDGE_MODE)
+    mode = (value or AUTHORIZED_JUDGE_MODE).strip().lower()
+    if mode != AUTHORIZED_JUDGE_MODE:
+        raise ValueError(
+            "MEETING_CONTEXT_GEMINI_MODE must be 'stub'; got "
+            f"{value!r} (normalized={mode!r})"
+        )
+    return mode
 
 
 def scenario_names() -> List[str]:

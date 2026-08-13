@@ -35,11 +35,23 @@ def test_scenario_names_are_fixed() -> None:
     assert names == ["AMBIGUOUS_CONTACT", "STAGE_CHANGE_DENIED", "SUCCESS"]
 
 
-def test_judge_mode_defaults_to_stub(monkeypatch) -> None:
-    monkeypatch.delenv("MEETING_CONTEXT_GEMINI_MODE", raising=False)
-    assert judge_mode() == "stub"
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        (None, "stub"),
+        ("STUB", "stub"),
+    ],
+)
+def test_judge_mode_allows_authorized_values(monkeypatch, value, expected) -> None:
+    if value is None:
+        monkeypatch.delenv("MEETING_CONTEXT_GEMINI_MODE", raising=False)
+    else:
+        monkeypatch.setenv("MEETING_CONTEXT_GEMINI_MODE", value)
+    assert judge_mode() == expected
 
 
-def test_judge_mode_reads_env(monkeypatch) -> None:
-    monkeypatch.setenv("MEETING_CONTEXT_GEMINI_MODE", "STUB")
-    assert judge_mode() == "stub"
+@pytest.mark.parametrize("value", ["live", "vertex", "custom"])
+def test_judge_mode_rejects_non_stub_values(monkeypatch, value: str) -> None:
+    monkeypatch.setenv("MEETING_CONTEXT_GEMINI_MODE", value)
+    with pytest.raises(ValueError, match="must be 'stub'"):
+        judge_mode()

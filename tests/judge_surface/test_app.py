@@ -69,6 +69,15 @@ def test_healthz_returns_ok(client: _TestClient) -> None:
     assert len(data["scenario_catalog_hash"]) == 64
 
 
+def test_healthz_rejects_non_stub_mode(monkeypatch) -> None:
+    monkeypatch.setenv("MEETING_CONTEXT_GEMINI_MODE", "live")
+    client = _TestClient(JudgeSurfaceApp())
+    code, data = client.request("GET", "/healthz")
+    assert code == 503
+    assert data["error"] == "judge_mode_rejected"
+    assert data["authorized_mode"] == "stub"
+
+
 def test_unknown_route_returns_404(client: _TestClient) -> None:
     code, data = client.request("GET", "/unknown")
     assert code == 404
