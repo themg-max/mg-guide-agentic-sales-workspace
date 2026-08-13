@@ -4,8 +4,8 @@ ARTIFACT_ID=MG_GUIDE_NW007_STAGE_B_CLOUD_DEPLOYMENT_PROOF_V1
 ARTIFACT_KIND=STAGE_B_B2_DEPLOYMENT_EXECUTION_PROOF
 OWNER_LANE=VS Code / Orchestrator Stage B B2 deployment lane
 CREATED_AT=2026-08-13
-UPDATED_AT=2026-08-13T18:30:00Z
-STATUS=B2_EXECUTION_COMPLETE_AWAITING_FINAL_PROOF_REVIEW
+UPDATED_AT=2026-08-13T19:30:00Z
+STATUS=B2_DEPLOYMENT_CORE_COMPLETE_PRE_JUDGE_GATE_PENDING
 
 This artifact is created before any B2 cloud mutation and is updated during
 bounded execution. It records the actual post-merge B2 cloud deployment for
@@ -470,6 +470,56 @@ This matches the activation's pre-judge gate
 judge access verification happens after the human attaches the custom OAuth
 client in the console.
 
+### Custom OAuth — post-console-action update (2026-08-13T19:23-19:30Z)
+
+The human operator completed the authorized console action (current Google
+Auth Platform / IAP flow; legacy IAP OAuth Admin API not used — it is shut
+down and forbidden). Observed evidence (read-only, no secrets recorded):
+
+- Unauthenticated browser-like `GET /` now returns `HTTP 302` with
+  `x-goog-iap-generated-response: true` redirecting to
+  `accounts.google.com/o/oauth2/v2/auth` using the operator-configured custom
+  OAuth client
+  (`client_id=369001918367-t5qrahnqdaasaifvk6akpqkpjk9vli58.apps.googleusercontent.com`;
+  OAuth client IDs are public identifiers, not secrets).
+- Unauthenticated `GET /healthz` still returns `HTTP 404` (generic Google
+  error page; no application content served). Unauthenticated access remains
+  denied on every observed path (302 → login, or 404).
+- Audience enforcement verified: a request bearing a valid Google-issued ID
+  token for `themg@themiliare-group.com` whose audience is the gcloud CLI
+  client (not the IAP client) still returns `HTTP 404` — IAP accepts only
+  tokens minted for the configured custom OAuth client.
+- Service IAM and IAP IAM policies are byte-identical to the B2 lane state
+  (etags `BwZY8c_rkQo=` / `BwZY8dEzOSw=`): the console action changed no IAM
+  bindings. No principals, roles, or scopes were loosened.
+- The console OAuth client belongs to the operator-managed Auth Platform
+  configuration; no OAuth client secret was requested, handled, or recorded
+  by this lane.
+
+```
+CUSTOM_OAUTH_CONFIGURATION_RESULT=COMPLETED_CURRENT_GOOGLE_AUTH_PLATFORM_OR_IAP_CONSOLE_FLOW
+CUSTOM_OAUTH_CLIENT_SECRET_RECORDED_IN_REPO=NO
+CUSTOM_OAUTH_CLIENT_ID_OBSERVED=369001918367-t5qrahnqdaasaifvk6akpqkpjk9vli58.apps.googleusercontent.com
+LEGACY_IAP_OAUTH_ADMIN_API_USED=NO
+UNAUTHENTICATED_ACCESS_STILL_DENIED=YES
+IAM_UNCHANGED_BY_CONSOLE_ACTION=YES
+IAP_AUDIENCE_ENFORCEMENT_VERIFIED=YES
+```
+
+Remaining pre-judge gate item: an authenticated run of the judge smoke by an
+actual confirmed member of `group:mg-mcp-developer-mg@themiliare-group.com`
+requires that member's interactive browser session (IAP accepts only tokens
+minted for the custom OAuth client via the interactive flow; this lane holds
+no OAuth client secret and will not impersonate judge identities). The
+orchestrator's integrated browser has no Google session and credential entry
+is out of lane bounds. Verification steps are scripted below for the human
+operator; the gate fields will be flipped to PASS with the observed evidence
+once completed.
+
+```
+IAP_AUTHENTICATED_ACCESS_VERIFICATION=PENDING_HUMAN_JUDGE_BROWSER_SESSION
+```
+
 ## 6. Authenticated smoke tests
 
 ### Through-IAP smoke (public URL)
@@ -485,6 +535,35 @@ AUTHENTICATED GET /healthz (runtime-SA impersonation ID token, aud=service URL) 
 Through-IAP authenticated smoke is **blocked by design** until the custom
 OAuth client is configured in the console (Section 5). No principal was added
 and no policy was loosened to force a green result.
+
+#### Post-console-action probes (2026-08-13T19:23-19:30Z)
+
+After the operator completed the console OAuth configuration:
+
+```
+UNAUTHENTICATED GET /         => HTTP 302 -> accounts.google.com (x-goog-iap-generated-response: true; custom OAuth client flow active)
+UNAUTHENTICATED GET /healthz  => HTTP 404 (denied; no application content)
+WRONG-AUDIENCE ID TOKEN (user themg@, aud=gcloud CLI client) GET /healthz => HTTP 404 (IAP audience enforcement)
+```
+
+Scripted judge verification (to be run by a confirmed member of
+`group:mg-mcp-developer-mg@themiliare-group.com` in their browser session; no
+credentials pass through this lane):
+
+```
+1. Open https://mg-guide-agentic-sales-workspace-judge-985566250549.us-east4.run.app/healthz
+   Sign in with the judge-group account => expect HTTP 200 JSON (status=ok,
+   judge_mode=stub, commit=14b97c5517e61733783d6b14facd8d33757c897d).
+2. POST /demo/meeting-follow-up {"scenario":"SUCCESS"}
+   => expect HTTP 200, workflow_status=completed.
+3. POST /demo/meeting-follow-up {"scenario":"STAGE_CHANGE_DENIED"}
+   => expect HTTP 200, workflow_status=completed_with_review,
+   policy_decision.stage_write=blocked.
+```
+
+```
+THROUGH_IAP_JUDGE_SMOKE=AWAITING_HUMAN_JUDGE_BROWSER_SESSION
+```
 
 ### Deployed-image smoke (exact digest, local container)
 
@@ -533,6 +612,31 @@ IMAGE_SMOKE_RESULT=PASS_ALL_SCENARIOS_ZERO_EXTERNAL_EFFECTS
 THROUGH_IAP_SMOKE_RESULT=BLOCKED_FAIL_CLOSED_PENDING_CUSTOM_OAUTH_CLIENT
 ```
 
+## 6b. Read-only configuration verification (2026-08-13T19:27Z)
+
+Post-console-action read-only capture of the actual Cloud Run state (no
+mutations; no rebuild, no redeploy — image digest and revision unchanged):
+
+```
+REVISION=mg-guide-agentic-sales-workspace-judge-00001-gjl (unchanged since deploy)
+IMAGE_DIGEST=sha256:0e5c67cd633006006135a2179f7c53c3e1250835956c3b793152adbf9b1583c0 (unchanged)
+RUNTIME_SERVICE_ACCOUNT=mg-guide-devpost-runtime@mg-devpost.iam.gserviceaccount.com
+MEETING_CONTEXT_GEMINI_MODE=stub (live Gemini NO)
+GIT_COMMIT=14b97c5517e61733783d6b14facd8d33757c897d
+CPU_ALLOCATION=REQUEST_BASED (run.googleapis.com/cpu-throttling unset; Cloud Run
+  default = CPU allocated only during request processing; container cpu limit 1000m)
+INGRESS=all (required for direct Cloud Run IAP fronting; no unauthenticated
+  invoker binding exists, IAP enforces access)
+MIN_INSTANCES=0 (revision minScale unset = 0; service minScale unset = 0)
+MAX_INSTANCES=1 (revision autoscaling.knative.dev/maxScale=1; service
+  run.googleapis.com/maxScale=1)
+IAP_ENABLED=true (run.googleapis.com/iap-enabled)
+SERVICE_IAM=roles/run.invoker -> serviceAccount:service-985566250549@gcp-sa-iap.iam.gserviceaccount.com ONLY (etag BwZY8c_rkQo=)
+IAP_IAM=roles/iap.httpsResourceAccessor -> group:mg-mcp-developer-MG@themiliare-group.com ONLY (etag BwZY8dEzOSw=)
+ALLUSERS_PRESENT=NO
+ALLAUTHENTICATEDUSERS_PRESENT=NO
+```
+
 ## 7. Prohibited-effect verification
 
 ```
@@ -549,6 +653,17 @@ NEW_AR_REPOSITORIES_CREATED=0       # exactly 1 repo (mg-guide-judge) before and
 NEW_SERVICE_ACCOUNTS_CREATED=0      # exactly the 2 Stage A SAs; observed 985566250549-compute default SA
                                     # is Google-auto-provisioned (audit log: created 2026-08-13T17:19:40Z
                                     # during Stage A API enablement, empty principal), not by this lane
+NEW_USER_MANAGED_SERVICE_ACCOUNTS_CREATED=0
+GOOGLE_MANAGED_IAP_SERVICE_AGENT_PROVISIONED=YES  # service-985566250549@gcp-sa-iap.iam.gserviceaccount.com,
+                                                  # auto-provisioned by Google when direct IAP was enabled
+IAP_SERVICE_AGENT_COUNTS_TOWARD_USER_MANAGED_SA_CAP=NO
+
+# Cloud Build staging bucket accounting (resource created during B2 build path):
+CLOUD_BUILD_STAGING_BUCKET_CREATED=YES
+CLOUD_BUILD_STAGING_BUCKET=gs://mg-devpost_cloudbuild
+CLOUD_BUILD_STAGING_BUCKET_LOCATION=US
+CLOUD_BUILD_STAGING_BUCKET_CREATION_MODE=GCLOUD_BUILDS_SUBMIT_AUTO_CREATE
+CLOSEOUT_STAGING_BUCKET_DECISION=PENDING
 NEW_PRINCIPALS_INTRODUCED=0         # bindings touch only grant-listed principals
 CLOUD_RUN_SERVICES_IN_US_EAST4=1    # exactly the authorized service
 IMAGES_BUILT=1
@@ -586,14 +701,30 @@ J1_RESULT=APPLIED_JUDGE_GROUP_ONLY
 DIRECT_CLOUD_RUN_IAP=ENABLED
 IAP_MODE=DIRECT_CLOUD_RUN
 LOAD_BALANCER_REQUIRED=NO
-CUSTOM_OAUTH_CONFIGURATION_RESULT=FAIL_CLOSED_PENDING_CONSOLE_FLOW
+CUSTOM_OAUTH_CONFIGURATION_RESULT=COMPLETED_CURRENT_GOOGLE_AUTH_PLATFORM_OR_IAP_CONSOLE_FLOW
+CUSTOM_OAUTH_CLIENT_SECRET_RECORDED_IN_REPO=NO
 LEGACY_IAP_OAUTH_ADMIN_API_USED=NO
 JUDGE_ACCESS_PRINCIPAL=group:mg-mcp-developer-mg@themiliare-group.com
 ALLUSERS_PRESENT=NO
 ALLAUTHENTICATEDUSERS_PRESENT=NO
 
-SMOKE_UNAUTHENTICATED_HEALTHZ=HTTP_404_FAIL_CLOSED
-SMOKE_THROUGH_IAP_AUTHENTICATED=BLOCKED_FAIL_CLOSED_PENDING_CUSTOM_OAUTH_CLIENT
+CPU_ALLOCATION=REQUEST_BASED
+INGRESS=all
+
+CLOUD_BUILD_STAGING_BUCKET_CREATED=YES
+CLOUD_BUILD_STAGING_BUCKET=gs://mg-devpost_cloudbuild
+CLOUD_BUILD_STAGING_BUCKET_LOCATION=US
+CLOUD_BUILD_STAGING_BUCKET_CREATION_MODE=GCLOUD_BUILDS_SUBMIT_AUTO_CREATE
+CLOSEOUT_STAGING_BUCKET_DECISION=PENDING
+
+NEW_USER_MANAGED_SERVICE_ACCOUNTS_CREATED=0
+GOOGLE_MANAGED_IAP_SERVICE_AGENT_PROVISIONED=YES
+IAP_SERVICE_AGENT_COUNTS_TOWARD_USER_MANAGED_SA_CAP=NO
+
+SMOKE_UNAUTHENTICATED_HEALTHZ=HTTP_404_DENIED
+SMOKE_UNAUTHENTICATED_ROOT=HTTP_302_TO_CUSTOM_OAUTH_LOGIN
+SMOKE_THROUGH_IAP_AUTHENTICATED=PENDING_HUMAN_JUDGE_BROWSER_SESSION
+IAP_AUTHENTICATED_ACCESS_VERIFICATION=PENDING_HUMAN_JUDGE_BROWSER_SESSION
 SMOKE_IMAGE_DIGEST_HEALTHZ=HTTP_200
 SMOKE_IMAGE_DIGEST_SUCCESS=HTTP_200_COMPLETED
 SMOKE_IMAGE_DIGEST_STAGE_CHANGE_DENIED=HTTP_200_COMPLETED_WITH_REVIEW_STAGE_BLOCKED
@@ -605,8 +736,17 @@ SECRET_MANAGER_MUTATIONS=0
 LIVE_GEMINI_MODE=NO
 PUBLIC_UNAUTHENTICATED_ACCESS=NO
 
-STAGE_B_B2_FINAL_DISPOSITION=DEPLOYED_FAIL_CLOSED_JUDGE_ACCESS_PENDING_CONSOLE_CUSTOM_OAUTH
+STAGE_B_B2_FINAL_DISPOSITION=DEPLOYED_OAUTH_CONFIGURED_AUTHENTICATED_JUDGE_VERIFICATION_PENDING
 ```
+
+> Note for reviewer: `STAGE_B_B2_FINAL_DISPOSITION` flips to
+> `DEPLOYED_AUTHENTICATED_JUDGE_ACCESS_VERIFIED`, `STATUS` flips to
+> `B2_EXECUTION_COMPLETE_READY_FOR_FINAL_PROOF_REVIEW`, and
+> `IAP_AUTHENTICATED_ACCESS_VERIFICATION` flips to `PASS` with observed
+> evidence as soon as a confirmed judge-group member completes the scripted
+> through-IAP smoke (Section 6) in their own browser session. No cloud
+> mutation remains for this lane; the only outstanding item is that human
+> interactive verification.
 
 ---
 
