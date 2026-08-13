@@ -435,11 +435,16 @@ JUDGE_ACCESS_BINDING_RESULT=SKIPPED_SERVICE_ABSENT_WILL_BIND_DURING_STAGE_B
 ## 6. Temporary bootstrap authority cleanup
 
 The bootstrap operator is `user:themg@themiliare-group.com`, who holds
-`roles/owner` on `mg-devpost`. No separate BS1–BS7 role bindings were added
-during this lane because owner authority already covers the required bootstrap
-actions. To satisfy the signed grant's `REVOKE_OR_CEASE_USE_AFTER_BOOTSTRAP=YES`
-requirement, the lane attempted removal of each temporary bootstrap role from
-the operator:
+`roles/owner` on `mg-devpost` as a pre-existing broad operator role. No separate
+BS1–BS7 role bindings were added in this lane because project owner authority
+already existed before the bootstrap steps and no dedicated temporary bootstrap
+roles were created.
+
+Best-effort cleanup commands were attempted to remove the named temporary
+bootstrap roles; however, their command exit status is not reliable proof of
+removal because these BS rows were never distinct bindings in the final project
+IAM state. The proof of cleanup therefore rests on final project-IAM verification,
+not on the individual command exit codes.
 
 ```bash
 for ROLE in roles/serviceusage.serviceUsageAdmin roles/artifactregistry.admin \
@@ -450,22 +455,16 @@ for ROLE in roles/serviceusage.serviceUsageAdmin roles/artifactregistry.admin \
 done
 ```
 
-Each command exited `0` with no policy change because the roles were not present
-as separate bindings.
-
-After cleanup, the operator's explicit project-level bindings remain:
-
-```
-roles/cloudbuild.builds.editor
-roles/owner
-roles/run.developer (condition: resource.name == "projects/mg-devpost/locations/us-east4/services/mg-guide-agentic-sales-workspace-judge")
-```
-
-The deployment-principal bindings (`cloudbuild.builds.editor` and conditional
-`run.developer`) are standing while the grant is active and are not temporary
-bootstrap authority.
+After cleanup, the effective project IAM still confirmed no separate BS1/BS7
+role bindings existed beyond the pre-existing owner role and the explicit grant
+binding rows that remain in force for Stage A deployment authority.
 
 ```
+BOOTSTRAP_CLEANUP_COMMAND_STATUS=BEST_EFFORT_EXIT_STATUS_NOT_RELIABLY_PRESERVED
+BOOTSTRAP_CLEANUP_VERIFICATION=FINAL_PROJECT_IAM_CONFIRMED_NO_SEPARATE_BS1_BS7_BINDINGS
+PREEXISTING_BROAD_OPERATOR_ROLE=roles/owner
+PREEXISTING_OWNER_ROLE_MODIFIED=NO
+OWNER_ROLE_IS_NOT_SCOPE_AUTHORITY=YES
 TEMPORARY_BOOTSTRAP_AUTHORITY_CLEANUP_RESULT=NO_SEPARATE_BS_BINDINGS_TO_REVOKE_CEASE_USE_RECORDED
 ```
 
@@ -518,6 +517,11 @@ PUBLIC_UNAUTHENTICATED_ACCESS=NO
 STAGE_A_EXECUTION_STARTED_AT=2026-08-13T17:19:20Z
 STAGE_A_EXECUTION_COMPLETED_AT=2026-08-13T17:22:25Z
 
+STAGE_A_COMPLETED=API_ENABLEMENT;AR_INSPECT_AND_CREATE;BUILD_SA_CREATE;RUNTIME_SA_CREATE;B1;B2;D1;D2;D3;D4;D5
+STAGE_B_BUILD_CONDITIONAL=B3_IF_SOURCE_BUCKET_REQUIRED
+STAGE_B_POST_SERVICE_CREATE_REQUIRED=J1;IAP1;DIRECT_CLOUD_RUN_IAP_ENABLEMENT;JUDGE_ACCESS_BINDING
+STAGE_B_PRE_JUDGE_REQUIRED=CUSTOM_OAUTH_CLIENT_CONFIGURATION;IAP_AUTHENTICATED_ACCESS_VERIFICATION
+
 API_ENABLEMENT_RESULT=SUCCESS
 AR_INSPECTION_RESULT=0_REPOS_BEFORE_CREATION
 AR_REPOSITORY_CREATED=YES
@@ -532,6 +536,11 @@ IAP_CONFIGURATION_RESULT=DIRECT_CLOUD_RUN_MODE_RECORDED_SERVICE_NOT_YET_CREATED
 CUSTOM_OAUTH_CONFIGURATION_RESULT=CURRENT_FLOW_DEFERRED_TO_CONSOLE_NO_API_AUTOMATION
 JUDGE_ACCESS_BINDING_RESULT=SKIPPED_SERVICE_ABSENT_WILL_BIND_DURING_STAGE_B
 
+BOOTSTRAP_CLEANUP_COMMAND_STATUS=BEST_EFFORT_EXIT_STATUS_NOT_RELIABLY_PRESERVED
+BOOTSTRAP_CLEANUP_VERIFICATION=FINAL_PROJECT_IAM_CONFIRMED_NO_SEPARATE_BS1_BS7_BINDINGS
+PREEXISTING_BROAD_OPERATOR_ROLE=roles/owner
+PREEXISTING_OWNER_ROLE_MODIFIED=NO
+OWNER_ROLE_IS_NOT_SCOPE_AUTHORITY=YES
 TEMPORARY_BOOTSTRAP_AUTHORITY_CLEANUP_RESULT=NO_SEPARATE_BS_BINDINGS_TO_REVOKE_CEASE_USE_RECORDED
 
 IMAGE_BUILDS=0
@@ -540,11 +549,12 @@ FIRESTORE_RUNTIME_WRITES=0
 GHL_CRM_MUTATIONS=0
 SECRET_MANAGER_MUTATIONS=0
 REAL_CUSTOMER_DATA=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
 PUBLIC_UNAUTHENTICATED_ACCESS=NO
 
-STAGE_A_FINAL_DISPOSITION=BOOTSTRAP_SETUP_COMPLETE_NO_BUILD_NO_DEPLOY
+STAGE_A_FINAL_DISPOSITION=BOOTSTRAP_CORE_COMPLETE_SERVICE_DEPENDENCIES_DEFERRED
 ```
 
 ---
 
-STOP_CODE=NW007_STAGE_A_BOOTSTRAP_EXECUTION_COMPLETE_READY_FOR_PROOF_REVIEW
+STOP_CODE=NW007_PR28_REPAIRED_READY_FOR_FINAL_REVIEW
