@@ -1,0 +1,103 @@
+{
+  "schema": "workflow_run_audit_v1",
+  "run_id": "run_nw006_ambiguous_contact_001",
+  "workflow_id": "meeting_follow_up_v1",
+  "started_at": "2026-08-12T18:10:00Z",
+  "completed_at": "2026-08-12T18:11:00Z",
+  "terminal_state": "blocked",
+  "recorded_at": "2026-08-12T20:00:00Z",
+  "provenance": {
+    "packet_schema": "meeting_follow_up_packet_v1",
+    "meeting_id": "meeting_nw006_003",
+    "meeting_source": "synthetic_demo",
+    "transcript_hash": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "fixture_id": "packet-ambiguous-contact.blocked.json",
+    "packet_run_status": "blocked",
+    "source_refs": [
+      "fixtures/nw005/packets/packet-ambiguous-contact.blocked.json"
+    ],
+    "writer": {
+      "component": "mg_guide.firestore_audit.project",
+      "component_version": "0.1.0-stage-a",
+      "projection_version": "workflow_run_audit_v1",
+      "mode": "local_fixture"
+    }
+  },
+  "agent_steps": {
+    "agents_used": [
+      "meeting_context_agent",
+      "relationship_context_agent",
+      "follow_up_planning_agent"
+    ],
+    "tools_used": []
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "blocked",
+    "stage_write": "blocked",
+    "reason_codes": [
+      "AMBIGUOUS_CONTACT"
+    ]
+  },
+  "reason_codes": [
+    "AMBIGUOUS_CONTACT"
+  ],
+  "tool_call_counts": {
+    "tools_listed_count": 0,
+    "ghl_mcp": {
+      "reads": 0,
+      "writes": 0
+    },
+    "other": 0
+  },
+  "mutation_intents": {
+    "note": [],
+    "stage": []
+  },
+  "mutations": {
+    "lifecycle": "not_attempted",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "verified": false,
+      "from_stage": null,
+      "to_stage": null
+    }
+  },
+  "crm_resolution": {
+    "lifecycle": "failed",
+    "status": "ambiguous",
+    "match_basis": "name",
+    "candidate_count": 2,
+    "contact_id": null,
+    "opportunity_id": null
+  },
+  "mg_guide_card": {
+    "card_state": "blocked",
+    "projection_source": "audit_status_mapper_v1"
+  },
+  "external_effects": {
+    "packet_external_effects": 0,
+    "counters": {
+      "GHL_READS": 0,
+      "GHL_WRITES": 0,
+      "EXTERNAL_EFFECTS": 0
+    }
+  },
+  "warnings": [],
+  "errors": [],
+  "final_disposition": "blocked",
+  "brief_headline": "Contact match blocked",
+  "idempotency": {
+    "key": "run_nw006_ambiguous_contact_001",
+    "strategy": "create_only_if_absent"
+  },
+  "integrity": {
+    "projection_input_fingerprint": "1774f303fb90c0d07b1c39a9a93c4f92f11e601e3305f7b27a641b7b9deeb021",
+    "content_fingerprint": "8d9ffd1d76a738110ab533ff56c68b45e001fb6c1844dd029e95b2fba56167ad"
+  }
+}

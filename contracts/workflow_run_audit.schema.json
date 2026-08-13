@@ -1,0 +1,386 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/workflow_run_audit.schema.json",
+  "title": "workflow_run_audit_v1",
+  "description": "Deterministic offline/online audit projection for meeting_follow_up_v1 workflow runs. Packet-derived operational proof only; never authorizes actions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run_id",
+    "workflow_id",
+    "started_at",
+    "completed_at",
+    "terminal_state",
+    "recorded_at",
+    "provenance",
+    "agent_steps",
+    "policy",
+    "reason_codes",
+    "tool_call_counts",
+    "mutation_intents",
+    "mutations",
+    "crm_resolution",
+    "mg_guide_card",
+    "external_effects",
+    "warnings",
+    "errors",
+    "final_disposition",
+    "brief_headline",
+    "idempotency",
+    "integrity"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "workflow_run_audit_v1"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workflow_id": {
+      "type": "string",
+      "const": "meeting_follow_up_v1"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "terminal_state": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "completed_with_review",
+        "blocked",
+        "failed",
+        "non_terminal"
+      ]
+    },
+    "recorded_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "packet_schema",
+        "meeting_id",
+        "meeting_source",
+        "transcript_hash",
+        "fixture_id",
+        "packet_run_status",
+        "source_refs",
+        "writer"
+      ],
+      "properties": {
+        "packet_schema": {
+          "type": "string",
+          "const": "meeting_follow_up_packet_v1"
+        },
+        "meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "meeting_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transcript_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "fixture_id": {
+          "type": ["string", "null"]
+        },
+        "packet_run_status": {
+          "type": "string",
+          "enum": [
+            "received",
+            "extracting",
+            "resolving",
+            "evaluating",
+            "writing",
+            "completed",
+            "completed_with_review",
+            "blocked",
+            "failed"
+          ]
+        },
+        "source_refs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "writer": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "component",
+            "component_version",
+            "projection_version",
+            "mode"
+          ],
+          "properties": {
+            "component": {
+              "type": "string",
+              "minLength": 1
+            },
+            "component_version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "projection_version": {
+              "type": "string",
+              "const": "workflow_run_audit_v1"
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "local_fixture",
+                "emulator",
+                "firestore_test_project"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "agent_steps": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agents_used", "tools_used"],
+      "properties": {
+        "agents_used": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tools_used": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lifecycle", "note_write", "stage_write", "reason_codes"],
+      "properties": {
+        "lifecycle": { "type": "string" },
+        "note_write": { "type": "string" },
+        "stage_write": { "type": "string" },
+        "reason_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "tool_call_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tools_listed_count", "ghl_mcp", "other"],
+      "properties": {
+        "tools_listed_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ghl_mcp": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["reads", "writes"],
+          "properties": {
+            "reads": { "type": "integer", "minimum": 0 },
+            "writes": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "other": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "mutation_intents": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["note", "stage"],
+      "properties": {
+        "note": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "status"],
+            "properties": {
+              "kind": { "type": "string" },
+              "status": { "type": "string" },
+              "body_ref": { "type": "string" }
+            }
+          }
+        },
+        "stage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "status"],
+            "properties": {
+              "kind": { "type": "string" },
+              "status": { "type": "string" },
+              "from_stage": { "type": ["string", "null"] },
+              "to_stage": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "mutations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lifecycle", "note", "opportunity_stage"],
+      "properties": {
+        "lifecycle": { "type": "string" },
+        "note": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attempted", "verified", "record_id"],
+          "properties": {
+            "attempted": { "type": "boolean" },
+            "verified": { "type": "boolean" },
+            "record_id": { "type": ["string", "null"] }
+          }
+        },
+        "opportunity_stage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["attempted", "verified", "from_stage", "to_stage"],
+          "properties": {
+            "attempted": { "type": "boolean" },
+            "verified": { "type": "boolean" },
+            "from_stage": { "type": ["string", "null"] },
+            "to_stage": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "crm_resolution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lifecycle",
+        "status",
+        "match_basis",
+        "candidate_count",
+        "contact_id",
+        "opportunity_id"
+      ],
+      "properties": {
+        "lifecycle": { "type": "string" },
+        "status": { "type": ["string", "null"] },
+        "match_basis": { "type": ["string", "null"] },
+        "candidate_count": { "type": ["integer", "null"] },
+        "contact_id": { "type": ["string", "null"] },
+        "opportunity_id": { "type": ["string", "null"] }
+      }
+    },
+    "mg_guide_card": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["card_state", "projection_source"],
+      "properties": {
+        "card_state": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "completed_with_review",
+            "blocked",
+            "failed",
+            "in_progress"
+          ]
+        },
+        "projection_source": {
+          "type": "string",
+          "const": "audit_status_mapper_v1"
+        }
+      }
+    },
+    "external_effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["packet_external_effects", "counters"],
+      "properties": {
+        "packet_external_effects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "counters": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["GHL_READS", "GHL_WRITES", "EXTERNAL_EFFECTS"],
+          "properties": {
+            "GHL_READS": { "type": "integer", "minimum": 0 },
+            "GHL_WRITES": { "type": "integer", "minimum": 0 },
+            "EXTERNAL_EFFECTS": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "errors": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "final_disposition": {
+      "type": ["string", "null"]
+    },
+    "brief_headline": {
+      "type": ["string", "null"]
+    },
+    "idempotency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "strategy"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "strategy": {
+          "type": "string",
+          "enum": [
+            "create_only_if_absent",
+            "reject_if_terminal_conflict"
+          ]
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "projection_input_fingerprint",
+        "content_fingerprint"
+      ],
+      "properties": {
+        "projection_input_fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "content_fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    }
+  }
+}

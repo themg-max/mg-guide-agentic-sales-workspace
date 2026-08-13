@@ -1,0 +1,112 @@
+{
+  "schema": "workflow_run_audit_v1",
+  "run_id": "run_nw006_success_001",
+  "workflow_id": "meeting_follow_up_v1",
+  "started_at": "2026-08-12T18:00:00Z",
+  "completed_at": "2026-08-12T18:01:00Z",
+  "terminal_state": "completed",
+  "recorded_at": "2026-08-12T20:00:00Z",
+  "provenance": {
+    "packet_schema": "meeting_follow_up_packet_v1",
+    "meeting_id": "meeting_nw006_001",
+    "meeting_source": "synthetic_demo",
+    "transcript_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "fixture_id": "packet-success.completed.json",
+    "packet_run_status": "completed",
+    "source_refs": [
+      "fixtures/nw005/packets/packet-success.completed.json"
+    ],
+    "writer": {
+      "component": "mg_guide.firestore_audit.project",
+      "component_version": "0.1.0-stage-a",
+      "projection_version": "workflow_run_audit_v1",
+      "mode": "local_fixture"
+    }
+  },
+  "agent_steps": {
+    "agents_used": [
+      "meeting_context_agent",
+      "relationship_context_agent",
+      "follow_up_planning_agent"
+    ],
+    "tools_used": []
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "allowed",
+    "stage_write": "allowed",
+    "reason_codes": []
+  },
+  "reason_codes": [],
+  "tool_call_counts": {
+    "tools_listed_count": 0,
+    "ghl_mcp": {
+      "reads": 0,
+      "writes": 0
+    },
+    "other": 0
+  },
+  "mutation_intents": {
+    "note": [
+      {
+        "kind": "note",
+        "status": "planned",
+        "body_ref": "extraction.summary"
+      }
+    ],
+    "stage": [
+      {
+        "kind": "stage",
+        "status": "planned",
+        "from_stage": "discovery_scheduled",
+        "to_stage": "discovery_complete"
+      }
+    ]
+  },
+  "mutations": {
+    "lifecycle": "intent_only",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "verified": false,
+      "from_stage": "discovery_scheduled",
+      "to_stage": "discovery_complete"
+    }
+  },
+  "crm_resolution": {
+    "lifecycle": "complete",
+    "status": "matched",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "contact_id": "contact_demo_taylor_001",
+    "opportunity_id": "opp_demo_taylor_001"
+  },
+  "mg_guide_card": {
+    "card_state": "completed",
+    "projection_source": "audit_status_mapper_v1"
+  },
+  "external_effects": {
+    "packet_external_effects": 0,
+    "counters": {
+      "GHL_READS": 0,
+      "GHL_WRITES": 0,
+      "EXTERNAL_EFFECTS": 0
+    }
+  },
+  "warnings": [],
+  "errors": [],
+  "final_disposition": "completed",
+  "brief_headline": "Follow-up ready for offline review",
+  "idempotency": {
+    "key": "run_nw006_success_001",
+    "strategy": "create_only_if_absent"
+  },
+  "integrity": {
+    "projection_input_fingerprint": "30b6835f0da1929bb3d9c8a1a2593fda0fde566d0c3208abd14bb53e44eb640e",
+    "content_fingerprint": "a822c398544952afee6037505f96a1e380f17117cd6888415fafb9e095042d47"
+  }
+}

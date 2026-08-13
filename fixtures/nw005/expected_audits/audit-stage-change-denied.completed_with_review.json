@@ -1,0 +1,109 @@
+{
+  "schema": "workflow_run_audit_v1",
+  "run_id": "run_nw006_stage_denied_001",
+  "workflow_id": "meeting_follow_up_v1",
+  "started_at": "2026-08-12T18:05:00Z",
+  "completed_at": "2026-08-12T18:06:00Z",
+  "terminal_state": "completed_with_review",
+  "recorded_at": "2026-08-12T20:00:00Z",
+  "provenance": {
+    "packet_schema": "meeting_follow_up_packet_v1",
+    "meeting_id": "meeting_nw006_002",
+    "meeting_source": "synthetic_demo",
+    "transcript_hash": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "fixture_id": "packet-stage-change-denied.completed_with_review.json",
+    "packet_run_status": "completed_with_review",
+    "source_refs": [
+      "fixtures/nw005/packets/packet-stage-change-denied.completed_with_review.json"
+    ],
+    "writer": {
+      "component": "mg_guide.firestore_audit.project",
+      "component_version": "0.1.0-stage-a",
+      "projection_version": "workflow_run_audit_v1",
+      "mode": "local_fixture"
+    }
+  },
+  "agent_steps": {
+    "agents_used": [
+      "meeting_context_agent",
+      "relationship_context_agent",
+      "follow_up_planning_agent"
+    ],
+    "tools_used": []
+  },
+  "policy": {
+    "lifecycle": "complete",
+    "note_write": "allowed",
+    "stage_write": "approval_required",
+    "reason_codes": [
+      "STAGE_TRANSITION_NOT_ALLOWED"
+    ]
+  },
+  "reason_codes": [
+    "STAGE_TRANSITION_NOT_ALLOWED"
+  ],
+  "tool_call_counts": {
+    "tools_listed_count": 0,
+    "ghl_mcp": {
+      "reads": 0,
+      "writes": 0
+    },
+    "other": 0
+  },
+  "mutation_intents": {
+    "note": [
+      {
+        "kind": "note",
+        "status": "planned",
+        "body_ref": "extraction.summary"
+      }
+    ],
+    "stage": []
+  },
+  "mutations": {
+    "lifecycle": "intent_only",
+    "note": {
+      "attempted": false,
+      "verified": false,
+      "record_id": null
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "verified": false,
+      "from_stage": "discovery_scheduled",
+      "to_stage": null
+    }
+  },
+  "crm_resolution": {
+    "lifecycle": "complete",
+    "status": "matched",
+    "match_basis": "email",
+    "candidate_count": 1,
+    "contact_id": "contact_demo_casey_001",
+    "opportunity_id": "opp_demo_casey_001"
+  },
+  "mg_guide_card": {
+    "card_state": "completed_with_review",
+    "projection_source": "audit_status_mapper_v1"
+  },
+  "external_effects": {
+    "packet_external_effects": 0,
+    "counters": {
+      "GHL_READS": 0,
+      "GHL_WRITES": 0,
+      "EXTERNAL_EFFECTS": 0
+    }
+  },
+  "warnings": [],
+  "errors": [],
+  "final_disposition": "completed_with_review",
+  "brief_headline": "Review required before stage movement",
+  "idempotency": {
+    "key": "run_nw006_stage_denied_001",
+    "strategy": "create_only_if_absent"
+  },
+  "integrity": {
+    "projection_input_fingerprint": "60358edc954eb0bc8f558267a957b2129f222d6b7a3e5a7f478ae79d19faaec0",
+    "content_fingerprint": "c8944972126a073431e24ba7d8730867ff66fa6cc84b8b1a634461c95e1a723f"
+  }
+}
