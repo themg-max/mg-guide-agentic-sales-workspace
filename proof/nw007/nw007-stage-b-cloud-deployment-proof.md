@@ -4,8 +4,8 @@ ARTIFACT_ID=MG_GUIDE_NW007_STAGE_B_CLOUD_DEPLOYMENT_PROOF_V1
 ARTIFACT_KIND=STAGE_B_B2_DEPLOYMENT_EXECUTION_PROOF
 OWNER_LANE=VS Code / Orchestrator Stage B B2 deployment lane
 CREATED_AT=2026-08-13
-UPDATED_AT=2026-08-13T19:30:00Z
-STATUS=B2_DEPLOYMENT_CORE_COMPLETE_PRE_JUDGE_GATE_PENDING
+UPDATED_AT=2026-08-13T19:45:00Z
+STATUS=B2_EXECUTION_COMPLETE_READY_FOR_FINAL_PROOF_REVIEW
 
 This artifact is created before any B2 cloud mutation and is updated during
 bounded execution. It records the actual post-merge B2 cloud deployment for
@@ -565,6 +565,68 @@ credentials pass through this lane):
 THROUGH_IAP_JUDGE_SMOKE=AWAITING_HUMAN_JUDGE_BROWSER_SESSION
 ```
 
+#### Through-IAP judge smoke — EXECUTED (2026-08-13T19:38-19:42Z)
+
+A human evaluator-session operator signed in through the IAP custom OAuth
+flow with an exact Google account confirmed as a member of
+`group:mg-mcp-developer-mg@themiliare-group.com` (fresh session; the fact that
+IAP authorized the requests below is itself proof of group membership — J1
+grants access to that group only). No OAuth client secret was used or
+recorded; no cookies/tokens were exported; requests were executed as
+credentialed same-origin fetches from the authenticated page context.
+
+Results:
+
+```
+GET / (authenticated) => HTTP 200, application reaches service
+  (app JSON 404 {"error":"not_found","path":"/"} — root not an app route; proves IAP pass-through)
+
+POST /demo/meeting-follow-up {"scenario":"SUCCESS"} => HTTP 200
+  workflow_status=completed
+  policy_decision.stage_write=allowed
+  external_effects=0  cloud_mutation=NONE
+  run_id=run_demo_success_001
+
+POST /demo/meeting-follow-up {"scenario":"STAGE_CHANGE_DENIED"} => HTTP 200
+  workflow_status=completed_with_review
+  policy_decision.stage_write=blocked  reason_codes=[STAGE_TRANSITION_NOT_ALLOWED]
+  external_effects=0  cloud_mutation=NONE
+  run_id=run_demo_no_stage_001
+```
+
+**Platform finding — `/healthz` is a Google Front End reserved path:**
+
+`GET /healthz` returns the GFE's own `HTTP 404` robot page and **never
+reaches IAP or Cloud Run**, for both unauthenticated and authenticated
+requests, on both service URLs (`…-985566250549.us-east4.run.app` and
+`…-nu73xamzbq-uk.a.run.app`). Proven by response shape: no
+`server: Google Frontend` header, no `x-cloud-trace-context`, no
+`x-goog-iap-generated-response` — unlike every other path, which reaches the
+app (JSON 404s from the app for GET `/demo/meeting-follow-up`,
+`/nonexistent-path`, `/healthzz`, `/healthz/`, `/HEALTHZ` all carry
+`server: Google Frontend` + trace context). Exact-path `/healthz` is answered
+by the edge itself. This is platform behavior, not an IAP denial and not a
+deployment defect; no cloud configuration change was made (per lane bounds:
+no rebuild, no redeploy).
+
+Compensating evidence for the healthz contract: the exact deployed image
+digest serves `GET /healthz` → HTTP 200 with `status=ok`, `judge_mode=stub`,
+`commit=14b97c5517e61733783d6b14facd8d33757c897d` (Section 6 local smoke),
+and through-IAP authenticated requests demonstrably reach that same
+application (above). Reviewer note: if a public liveness route is required,
+a future implementation PR should serve health on a non-GFE-reserved path
+(e.g. `/livez`); that requires a new build/deploy authorization and is out of
+this lane's scope.
+
+```
+SMOKE_THROUGH_IAP_AUTHENTICATED=PASS
+SMOKE_THROUGH_IAP_HEALTHZ=BLOCKED_GFE_RESERVED_PATH_NEVER_REACHES_SERVICE
+SMOKE_THROUGH_IAP_SUCCESS=HTTP_200_COMPLETED
+SMOKE_THROUGH_IAP_STAGE_CHANGE_DENIED=HTTP_200_COMPLETED_WITH_REVIEW_STAGE_BLOCKED
+JUDGE_IDENTITY_CLASS=CONFIRMED_GROUP_MEMBER
+IAP_AUTHENTICATED_ACCESS_VERIFICATION=PASS
+```
+
 ### Deployed-image smoke (exact digest, local container)
 
 The exact deployed image digest was pulled from `mg-guide-judge` (as
@@ -723,8 +785,12 @@ IAP_SERVICE_AGENT_COUNTS_TOWARD_USER_MANAGED_SA_CAP=NO
 
 SMOKE_UNAUTHENTICATED_HEALTHZ=HTTP_404_DENIED
 SMOKE_UNAUTHENTICATED_ROOT=HTTP_302_TO_CUSTOM_OAUTH_LOGIN
-SMOKE_THROUGH_IAP_AUTHENTICATED=PENDING_HUMAN_JUDGE_BROWSER_SESSION
-IAP_AUTHENTICATED_ACCESS_VERIFICATION=PENDING_HUMAN_JUDGE_BROWSER_SESSION
+SMOKE_THROUGH_IAP_AUTHENTICATED=PASS
+SMOKE_THROUGH_IAP_HEALTHZ=BLOCKED_GFE_RESERVED_PATH_NEVER_REACHES_SERVICE
+SMOKE_THROUGH_IAP_SUCCESS=HTTP_200_COMPLETED
+SMOKE_THROUGH_IAP_STAGE_CHANGE_DENIED=HTTP_200_COMPLETED_WITH_REVIEW_STAGE_BLOCKED
+JUDGE_IDENTITY_CLASS=CONFIRMED_GROUP_MEMBER
+IAP_AUTHENTICATED_ACCESS_VERIFICATION=PASS
 SMOKE_IMAGE_DIGEST_HEALTHZ=HTTP_200
 SMOKE_IMAGE_DIGEST_SUCCESS=HTTP_200_COMPLETED
 SMOKE_IMAGE_DIGEST_STAGE_CHANGE_DENIED=HTTP_200_COMPLETED_WITH_REVIEW_STAGE_BLOCKED
@@ -736,17 +802,18 @@ SECRET_MANAGER_MUTATIONS=0
 LIVE_GEMINI_MODE=NO
 PUBLIC_UNAUTHENTICATED_ACCESS=NO
 
-STAGE_B_B2_FINAL_DISPOSITION=DEPLOYED_OAUTH_CONFIGURED_AUTHENTICATED_JUDGE_VERIFICATION_PENDING
+STAGE_B_B2_FINAL_DISPOSITION=DEPLOYED_AUTHENTICATED_JUDGE_ACCESS_VERIFIED
 ```
 
-> Note for reviewer: `STAGE_B_B2_FINAL_DISPOSITION` flips to
-> `DEPLOYED_AUTHENTICATED_JUDGE_ACCESS_VERIFIED`, `STATUS` flips to
-> `B2_EXECUTION_COMPLETE_READY_FOR_FINAL_PROOF_REVIEW`, and
-> `IAP_AUTHENTICATED_ACCESS_VERIFICATION` flips to `PASS` with observed
-> evidence as soon as a confirmed judge-group member completes the scripted
-> through-IAP smoke (Section 6) in their own browser session. No cloud
-> mutation remains for this lane; the only outstanding item is that human
-> interactive verification.
+> Reviewer note: `SMOKE_THROUGH_IAP_HEALTHZ` is recorded as
+> `BLOCKED_GFE_RESERVED_PATH_NEVER_REACHES_SERVICE` — exact-path `/healthz` is
+> answered by the Google Front End itself (platform reservation; proven for
+> both auth states, both service URLs, by missing `server: Google Frontend` /
+> trace headers). The healthz contract is verified on the exact deployed
+> digest (local smoke, HTTP 200 with required fields) and authenticated
+> through-IAP reachability of the application is verified by the two POST
+> scenarios. Any remediation (non-reserved health path) requires a new
+> implementation/build/deploy authorization and is out of this lane's scope.
 
 ---
 
