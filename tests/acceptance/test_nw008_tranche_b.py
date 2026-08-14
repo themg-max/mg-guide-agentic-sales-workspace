@@ -161,6 +161,139 @@ def test_tranche_b_follow_up_planning_uses_confirmed_context_only(
     assert packet["policy"]["stage_write"] == "allowed"
 
 
+def test_tranche_b_proof_obligations_strict(
+    harness: Nw008TrancheBHarness,
+):
+    result = harness.run()
+    obligations = result.proof_obligations
+
+    # TB-06 derives from context_delta.new_facts, not merely current_confirmed_facts.
+    assert obligations["TB-06"].STATUS == "PASS"
+    new_fact_ids = {item["fact_id"] for item in result.context_delta["new_facts"]}
+    assert "fact.income.grant_end_month" in new_fact_ids
+
+    # TB-10 evidence coverage across all relevant confirmed-context claim classes.
+    for tb_id in (
+        "TB-06",
+        "TB-10",
+        "TB-12",
+        "TB-13",
+        "TB-17",
+    ):
+        assert obligations[tb_id].STATUS == "PASS", f"{tb_id} failed"
+
+    # TB-12 exact checks.
+    policy_eval = result.meeting_2_run["follow_up_proposal"]["policy_evaluation"]
+    assert policy_eval["invoked"] is True
+    assert policy_eval["context_supplied"] is True
+    assert policy_eval["context_source"] == "relationship_context.longitudinal_context"
+    assert policy_eval["deterministic_policy_bypass"] is False
+
+    # TB-13 exact checks.
+    assert result.decision_card
+    assert result.decision_card_text
+    assert result.decision_card_html
+    assert result.decision_card["external_effects"] == 0
+    assert result.decision_card["next_action"] in (
+        "REVIEW_FOLLOW_UP",
+        "KEEP_CURRENT_STAGE_AND_REVIEW",
+        "RESOLVE_CONTACT",
+        "REVIEW_REQUIRED_UNKNOWN_STATE",
+    )
+    assert result.decision_card["policy_state"] in {
+        "ALLOWED",
+        "BLOCKED",
+        "REVIEW_REQUIRED",
+    }
+
+
+def test_tranche_b_tb10_negative_uncited_commitment_fails(
+    harness: Nw008TrancheBHarness,
+):
+    """An uncited commitment must prevent TB-10 PASS."""
+    result = harness.run()
+    delta = deepcopy(result.context_delta)
+    if delta["commitments_completed"]:
+        delta["commitments_completed"][0]["current_evidence_refs"] = []
+        delta["commitments_completed"][0]["evidence_refs"] = []
+
+    from orchestration.nw008_tranche_b import (
+        Nw008TrancheBHarness as _Harness,
+        TrancheBResult,
+    )
+
+    patched = TrancheBResult(
+        implementation_subject_sha=result.implementation_subject_sha,
+        meeting_1_fixture=result.meeting_1_fixture,
+        meeting_2_fixture=result.meeting_2_fixture,
+        meeting_1_hash=result.meeting_1_hash,
+        meeting_2_hash=result.meeting_2_hash,
+        meeting_1_run=result.meeting_1_run,
+        meeting_2_run=result.meeting_2_run,
+        approved_prior_context=result.approved_prior_context,
+        context_delta=delta,
+        proof_obligations=result.proof_obligations,
+        decision_card=result.decision_card,
+        decision_card_text=result.decision_card_text,
+        decision_card_html=result.decision_card_html,
+        actual_agent_chain_executed=result.actual_agent_chain_executed,
+        prior_context_retrieved=result.prior_context_retrieved,
+        deterministic_replay=result.deterministic_replay,
+        historical_at_claims=result.historical_at_claims,
+        remaining_gaps=result.remaining_gaps,
+        effect_counters=result.effect_counters,
+    )
+    recomputed = _Harness(
+        repo_root=harness.repo_root,
+        fixtures_dir=harness.fixtures_dir,
+        proof_root=harness.proof_root,
+        crm_fixture_path=harness.crm_fixture_path,
+        commit_sha=harness.implementation_subject_sha,
+    )._proof_obligations(
+        execution={
+            "meeting_1_run": patched.meeting_1_run,
+            "meeting_2_run": patched.meeting_2_run,
+            "context_delta": patched.context_delta,
+            "decision_card": patched.decision_card,
+            "decision_card_text": patched.decision_card_text,
+            "decision_card_html": patched.decision_card_html,
+            "actual_agent_chain_executed": patched.actual_agent_chain_executed,
+            "prior_context_retrieved": patched.prior_context_retrieved,
+        },
+        deterministic_replay=patched.deterministic_replay,
+        fixture_errors=[],
+    )
+    assert recomputed["TB-10"].STATUS == "FAIL"
+
+
+def test_tranche_b_tb17_negative_non_synthetic_source_fails(
+    harness: Nw008TrancheBHarness,
+):
+    """A non-synthetic fixture source must prevent TB-17 PASS."""
+    result = harness.run()
+    run = deepcopy(result.meeting_1_run)
+    run["meeting_context"]["meeting"]["source"] = "real_customer_export"
+    run["meeting_context"]["participants"][0]["email"] = "taylor@customer.example"
+
+    from orchestration.nw008_tranche_b import _validate_synthetic_fixtures
+
+    errors = _validate_synthetic_fixtures(
+        [
+            {
+                "fixture_id": run["meeting_context"]["meeting"]["meeting_id"],
+                "meeting": run["meeting_context"]["meeting"],
+                "participants": run["meeting_context"]["participants"],
+            }
+        ],
+        [
+            result.meeting_1_run["relationship_context"]["crm_source"],
+        ],
+    )
+    assert errors
+    assert any("source" in err for err in errors)
+    assert any("customer.example" in err for err in errors)
+
+
 def test_tranche_b_proof_bundle_and_fail_closed_validation(
     harness: Nw008TrancheBHarness,
 ):

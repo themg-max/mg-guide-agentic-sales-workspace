@@ -37,6 +37,18 @@ CRM_FIXTURE = REPO_ROOT / "fixtures" / "ghl" / "relationship-context-crm.json"
 LONGITUDINAL_SCHEMA = REPO_ROOT / "contracts" / "nw008_longitudinal_context.schema.json"
 PROOF_RETURN_SCHEMA = REPO_ROOT / "contracts" / "nw008_tranche_b_proof_return.schema.json"
 
+APPROVED_SYNTHETIC_DOMAIN = ("example-demo.test",)
+APPROVED_SOURCE = "synthetic_demo"
+NW008_FIXTURE_NAMESPACE = "nw008"
+
+NEXT_ACTION_ENUM = (
+    "REVIEW_FOLLOW_UP",
+    "KEEP_CURRENT_STAGE_AND_REVIEW",
+    "RESOLVE_CONTACT",
+    "REVIEW_REQUIRED_UNKNOWN_STATE",
+)
+KNOWN_CARD_POLICY_STATES = {"ALLOWED", "BLOCKED", "REVIEW_REQUIRED"}
+
 ENTRYPOINTS = {
     "MEETING_CONTEXT_ENTRYPOINT": "agents.meeting_context.agent.MeetingContextAgent.run",
     "RELATIONSHIP_CONTEXT_ENTRYPOINT": "agents.relationship_context.agent.RelationshipContextAgent.run",
@@ -50,6 +62,63 @@ ENTRYPOINTS = {
 
 def _sha256_file(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+
+def _domain(email: Any) -> str:
+    if not isinstance(email, str):
+        return ""
+    parts = email.rsplit("@", 1)
+    return parts[-1].strip().lower() if len(parts) == 2 else ""
+
+
+def _validate_synthetic_fixtures(
+    meeting_contexts: list[Dict[str, Any]],
+    crm_sources: list[Dict[str, Any]],
+) -> list[str]:
+    """Deterministic fixture-safety validation for TB-17 (synthetic data only)."""
+    errors: list[str] = []
+    for idx, ctx in enumerate(meeting_contexts):
+        prefix = f"meeting[{idx}]"
+        meeting = ctx.get("meeting") or {}
+        if meeting.get("source") != APPROVED_SOURCE:
+            errors.append(
+                f"{prefix}: source must be {APPROVED_SOURCE!r}; got {meeting.get('source')!r}"
+            )
+        fixture_id = ctx.get("fixture_id")
+        if not isinstance(fixture_id, str) or not fixture_id.startswith(
+            NW008_FIXTURE_NAMESPACE
+        ):
+            errors.append(f"{prefix}: fixture_id must start with {NW008_FIXTURE_NAMESPACE!r}")
+        for p_idx, participant in enumerate(ctx.get("participants") or []):
+            email = participant.get("email")
+            domain = _domain(email)
+            if domain and domain not in APPROVED_SYNTHETIC_DOMAIN:
+                errors.append(
+                    f"{prefix}: participant[{p_idx}] email domain {domain!r} is not approved"
+                )
+    for idx, crm in enumerate(crm_sources):
+        prefix = f"crm_source[{idx}]"
+        if crm.get("mode") != "offline_synthetic":
+            errors.append(f"{prefix}: crm_source.mode must be offline_synthetic")
+        if crm.get("live_calls") != 0:
+            errors.append(f"{prefix}: crm_source.live_calls must be 0")
+        if crm.get("writes") != 0:
+            errors.append(f"{prefix}: crm_source.writes must be 0")
+        if crm.get("real_customer_data") != 0:
+            errors.append(f"{prefix}: crm_source.real_customer_data must be 0")
+    return errors
+
+
+def _extract_evidence_refs(item: Mapping[str, Any]) -> list[str]:
+    """Return current evidence refs when present; otherwise canonical refs."""
+    current = item.get("current_evidence_refs")
+    if isinstance(current, list) and current:
+        return list(current)
+    refs = item.get("evidence_refs")
+    if isinstance(refs, list):
+        return list(refs)
+    return []
 
 
 def _git_head(repo_root: Path) -> str:
@@ -137,9 +206,11 @@ class Nw008TrancheBHarness:
                 if self._normalized_snapshot(first) == self._normalized_snapshot(second)
                 else "FAIL"
             )
+        fixture_errors = self._validate_fixture_safety(first)
         proof_obligations = self._proof_obligations(
             execution=first,
             deterministic_replay=deterministic_replay,
+            fixture_errors=fixture_errors,
         )
         remaining_gaps = [
             f"{tb_id}:{result.REMAINING_GAP}"
@@ -192,6 +263,50 @@ class Nw008TrancheBHarness:
                 "DEPLOYMENT_PERFORMED": "NO",
             },
         )
+
+    def _validate_fixture_safety(self, execution: Mapping[str, Any]) -> list[str]:
+        meeting_1_ctx = {
+            "fixture_id": (
+                execution["meeting_1_run"]
+                .get("meeting_context", {})
+                .get("meeting", {})
+                .get("meeting_id")
+            ),
+            "meeting": (
+                execution["meeting_1_run"].get("meeting_context", {}).get("meeting")
+                or {}
+            ),
+            "participants": (
+                execution["meeting_1_run"].get("meeting_context", {}).get("participants")
+                or []
+            ),
+        }
+        meeting_2_ctx = {
+            "fixture_id": (
+                execution["meeting_2_run"]
+                .get("meeting_context", {})
+                .get("meeting", {})
+                .get("meeting_id")
+            ),
+            "meeting": (
+                execution["meeting_2_run"].get("meeting_context", {}).get("meeting")
+                or {}
+            ),
+            "participants": (
+                execution["meeting_2_run"].get("meeting_context", {}).get("participants")
+                or []
+            ),
+        }
+        crm_sources: list[Dict[str, Any]] = []
+        for run_key in ("meeting_1_run", "meeting_2_run"):
+            crm = (
+                execution[run_key]
+                .get("relationship_context", {})
+                .get("crm_source")
+                or {}
+            )
+            crm_sources.append(crm)
+        return _validate_synthetic_fixtures([meeting_1_ctx, meeting_2_ctx], crm_sources)
 
     def write_proof_artifacts(self, result: Optional[TrancheBResult] = None) -> Dict[str, Path]:
         result = result or self.run()
@@ -352,6 +467,7 @@ class Nw008TrancheBHarness:
         *,
         execution: Mapping[str, Any],
         deterministic_replay: str,
+        fixture_errors: list[str],
     ) -> Dict[str, ObligationResult]:
         run2 = dict(execution["meeting_2_run"])
         proposal = dict(run2.get("follow_up_proposal") or {})
@@ -359,6 +475,9 @@ class Nw008TrancheBHarness:
         context_delta = dict(execution["context_delta"])
         fact_ids = {
             str(item.get("fact_id")) for item in context_delta.get("current_confirmed_facts") or []
+        }
+        new_fact_ids = {
+            str(item.get("fact_id")) for item in context_delta.get("new_facts") or []
         }
         corrected_ids = {
             str(item.get("fact_id")) for item in context_delta.get("corrected_facts") or []
@@ -374,16 +493,37 @@ class Nw008TrancheBHarness:
         refined_ids = {
             str(item.get("fact_id")) for item in context_delta.get("goals_refined") or []
         }
-        every_claim_cited = all(
-            item.get("evidence_refs")
-            for item in context_delta.get("current_confirmed_facts") or []
-        ) and all(
-            item.get("evidence_refs")
-            for item in context_delta.get("unresolved_questions") or []
-        ) and (
-            context_delta.get("proposed_next_step") is None
-            or bool(context_delta["proposed_next_step"].get("evidence_refs"))
-        )
+        def every_claim_cited() -> bool:
+            claim_classes = {
+                "current_confirmed_facts": context_delta.get("current_confirmed_facts") or [],
+                "unresolved_questions": context_delta.get("unresolved_questions") or [],
+                "commitments_completed": context_delta.get("commitments_completed") or [],
+                "commitments_open": context_delta.get("commitments_open") or [],
+            }
+            proposed_next_step = context_delta.get("proposed_next_step")
+            if isinstance(proposed_next_step, Mapping):
+                claim_classes["proposed_next_step"] = [proposed_next_step]
+            for items in claim_classes.values():
+                for item in items:
+                    if not _extract_evidence_refs(item):
+                        return False
+            return bool(claim_classes["current_confirmed_facts"])
+
+        tb10_cited = every_claim_cited()
+        tb10_missing_detail = ""
+        if not tb10_cited:
+            missing: list[str] = []
+            for class_name, items in {
+                "current_confirmed_facts": context_delta.get("current_confirmed_facts") or [],
+                "unresolved_questions": context_delta.get("unresolved_questions") or [],
+                "commitments_completed": context_delta.get("commitments_completed") or [],
+                "commitments_open": context_delta.get("commitments_open") or [],
+            }.items():
+                for idx, item in enumerate(items):
+                    if not _extract_evidence_refs(item):
+                        label = item.get("fact_id") or item.get("label") or item.get("question") or f"item[{idx}]"
+                        missing.append(f"{class_name}.{label}")
+            tb10_missing_detail = "Missing evidence refs: " + ", ".join(missing)
 
         return {
             "TB-01": ObligationResult(
@@ -416,10 +556,10 @@ class Nw008TrancheBHarness:
                 "" if "fact.preference.flexible_monthly_savings_capacity" in corrected_ids else "Expected corrected fact missing.",
             ),
             "TB-06": ObligationResult(
-                "PASS" if "fact.income.grant_end_month" in fact_ids else "FAIL",
+                "PASS" if "fact.income.grant_end_month" in new_fact_ids else "FAIL",
                 "proof/nw008/tranche-b/context-delta.json",
                 "Meeting 2 added a new confirmed fact for the synthetic grant end month.",
-                "" if "fact.income.grant_end_month" in fact_ids else "Expected new fact missing.",
+                "" if "fact.income.grant_end_month" in new_fact_ids else "Expected new fact missing from context_delta.new_facts.",
             ),
             "TB-07": ObligationResult(
                 "PASS" if "commitment.prospect.provide_current_monthly_budget_worksheet" in completed_ids else "FAIL",
@@ -440,15 +580,15 @@ class Nw008TrancheBHarness:
                 "" if "goal.priority" in refined_ids else "Refined goal evidence missing.",
             ),
             "TB-10": ObligationResult(
-                "PASS" if every_claim_cited else "FAIL",
+                "PASS" if tb10_cited else "FAIL",
                 "proof/nw008/tranche-b/context-delta.json",
-                "Every confirmed current fact, unresolved question, and proposed next step retained evidence references.",
-                "" if every_claim_cited else "At least one confirmed claim lacks evidence.",
+                "Every confirmed-context claim class (current facts, unresolved questions, commitments completed/open, proposed next step) retains evidence references.",
+                "" if tb10_cited else tb10_missing_detail,
             ),
             "TB-11": ObligationResult(
                 "PASS"
-                if proposal.get("confirmed_context_used")
-                and proposal.get("note_proposal", {}).get("body_ref")
+                if isinstance(proposal.get("confirmed_context_used"), Mapping)
+                and proposal.get("confirmed_context_used", {}).get("source")
                 == "relationship_context.longitudinal_context"
                 and "fact.unsupported.inferred_risk_score"
                 not in set(proposal.get("confirmed_context_used", {}).get("confirmed_fact_ids") or [])
@@ -456,8 +596,8 @@ class Nw008TrancheBHarness:
                 "proof/nw008/tranche-b/meeting-2-run.json",
                 "Follow-Up Planning recorded confirmed_context_used from relationship_context.longitudinal_context and excluded unsupported inferences.",
                 ""
-                if proposal.get("confirmed_context_used")
-                and proposal.get("note_proposal", {}).get("body_ref")
+                if isinstance(proposal.get("confirmed_context_used"), Mapping)
+                and proposal.get("confirmed_context_used", {}).get("source")
                 == "relationship_context.longitudinal_context"
                 else "Confirmed-context-only planning evidence missing.",
             ),
@@ -465,23 +605,35 @@ class Nw008TrancheBHarness:
                 "PASS"
                 if proposal.get("policy_evaluation", {}).get("invoked") is True
                 and proposal.get("policy_evaluation", {}).get("context_supplied") is True
+                and proposal.get("policy_evaluation", {}).get("context_source")
+                == "relationship_context.longitudinal_context"
+                and proposal.get("policy_evaluation", {}).get("deterministic_policy_bypass") is False
                 else "FAIL",
                 "proof/nw008/tranche-b/meeting-2-run.json",
-                "The deterministic policy gate was invoked and received proposal context sourced from relationship_context.longitudinal_context.",
+                "Deterministic policy invoked, received relationship_context.longitudinal_context, and bypass was false.",
                 ""
-                if proposal.get("policy_evaluation", {}).get("context_supplied") is True
-                else "Policy-context receipt not recorded.",
+                if proposal.get("policy_evaluation", {}).get("invoked") is True
+                and proposal.get("policy_evaluation", {}).get("context_source")
+                == "relationship_context.longitudinal_context"
+                and proposal.get("policy_evaluation", {}).get("deterministic_policy_bypass") is False
+                else "Policy context source or bypass check failed.",
             ),
             "TB-13": ObligationResult(
                 "PASS"
                 if execution.get("decision_card")
+                and isinstance(execution.get("decision_card_text"), str)
+                and len(execution.get("decision_card_text", "")) > 0
+                and isinstance(execution.get("decision_card_html"), str)
+                and len(execution.get("decision_card_html", "")) > 0
                 and packet.get("external_effects") == 0
+                and execution.get("decision_card", {}).get("next_action") in NEXT_ACTION_ENUM
+                and execution.get("decision_card", {}).get("policy_state") in KNOWN_CARD_POLICY_STATES
                 else "FAIL",
                 "proof/nw008/tranche-b/decision-card.json",
-                "NW-007 decision card mapping and both text/html renderers completed without requiring new reason semantics.",
+                "NW-007 decision card rendered non-empty text/html, zero external effects, valid next_action, and known policy state.",
                 ""
                 if execution.get("decision_card")
-                else "Decision-card rendering evidence missing.",
+                else "Decision-card safe-rendering check failed.",
             ),
             "TB-14": ObligationResult(
                 "PASS",
@@ -500,9 +652,10 @@ class Nw008TrancheBHarness:
                 "" if packet.get("external_effects") == 0 else "External effects were non-zero.",
             ),
             "TB-17": ObligationResult(
-                "PASS",
+                "PASS" if not fixture_errors else "FAIL",
                 "proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json",
-                "Only synthetic identities, synthetic contact points, and synthetic amounts were used.",
+                "Synthetic fixture safety validation passed: source=synthetic_demo, approved test domain, NW008 namespace, zero live CRM calls/writes/real_customer_data.",
+                "" if not fixture_errors else "; ".join(fixture_errors),
             ),
             "TB-18": ObligationResult(
                 "PASS" if deterministic_replay == "PASS" else "PARTIAL",
