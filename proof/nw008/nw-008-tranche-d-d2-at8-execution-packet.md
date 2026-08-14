@@ -99,11 +99,18 @@ What AT-8 does **not** require:
 CAP_SOURCE=contracts/workflow_states.yaml
 CAP_NODE=invariants
 CAP_FIELDS=max_note_writes_per_run,max_stage_writes_per_run
-ENFORCEMENT_OWNER=OL3_ORCHESTRATION_POLICY
+LEDGER_STATE_OWNER=WRITE_ATTEMPT_LEDGER
+ENFORCEMENT_DECISION_OWNER=OL3_ORCHESTRATION_POLICY
+RUNNER_AUTHORITY=ORCHESTRATION_ONLY
 AGENT_CAP_AUTHORITY=NO
 HARNESS_CAP_AUTHORITY=NO
 OFFLINE_ADAPTER_AUTHORITY=SECONDARY_FAIL_CLOSED_ONLY
 ```
+
+The ledger owns only per-run note and stage counter state. It must not decide
+whether an attempt is permitted or refused. OL3 orchestration policy owns every
+`PERMIT` / `REFUSE` decision, and the runner invokes that policy decision before
+any transport path. A ledger-only refusal cannot be labeled as policy authority.
 
 Contractual numeric caps (unchanged; no policy numeric change authorized):
 
@@ -128,6 +135,11 @@ new policy semantics, because contracted values and meanings remain `1` / `1`.
 ```text
 LEDGER_SCOPE=RUN_SCOPED
 LEDGER_KEY=run_id
+LEDGER_LIFETIME=ONE_WORKFLOW_RUN_EXECUTION
+LEDGER_PERSISTENCE=NONE
+PROCESS_GLOBAL_LEDGER=NO
+FIRESTORE_LEDGER=NO
+RUN_ID_IS_SCOPE_IDENTITY=YES
 NOTE_COUNTER=INDEPENDENT
 STAGE_COUNTER=INDEPENDENT
 CONTRACTUAL_MAX_NOTE_WRITES_PER_RUN=1
@@ -175,7 +187,9 @@ REFUSAL_OWNER=OL3_ORCHESTRATION_POLICY
 ```text
 proposal requests note|stage write attempt
         ↓
-OL3 orchestration policy + run-scoped write-attempt ledger
+runner calls OL3 orchestration policy before any transport
+        ↓
+OL3 policy reads / updates run-scoped write-attempt ledger state
         ↓
 attempt #1 admitted locally (ledger AFTER=1); no transport
         ↓
@@ -196,8 +210,8 @@ new run_id → fresh ledger → attempt #1 admitted again
 | --- | --- | --- | --- |
 | Workflow contract | `contracts/workflow_states.yaml` `invariants` | Caps declared (`1`/`1`) | **CAP_SOURCE** (read-only) |
 | State machine | `src/orchestration/state_machine.py` | Hard-codes `max_note_intents=1`, `max_stage_intents=1`; write caps not loaded | Contract-loading repair target |
-| Policy | `src/orchestration/policy.py` `bound_intents()` | Intent-cardinality only | Not a substitute for write-attempt cap |
-| Runner | `src/orchestration/runner.py` | Orchestrates Phase 1 offline run | Integration host for ledger admission |
+| Policy | `src/orchestration/policy.py` `bound_intents()` | Intent-cardinality only | Planned OL3 decision owner for write-attempt `PERMIT` / `REFUSE` |
+| Runner | `src/orchestration/runner.py` | Orchestrates Phase 1 offline run | Calls policy before any transport; does not own cap decisions |
 | Attempt ledger | `src/orchestration/attempt_ledger.py` | **Absent** | Planned D2 surface |
 | D1 gate | `src/orchestration/manifest_gate.py` | Present (closed D1) | **Out of scope / do not mutate** |
 | D1 proof | `proof/nw008/tranche-d/at-09-*`, closeout | Present | **Do not mutate** |
@@ -222,6 +236,19 @@ new run_id → fresh ledger → attempt #1 admitted again
 | **TD2-11** | Zero GHL / Firestore / external effects | `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `EXTERNAL_EFFECTS=0` |
 | **TD2-12** | Durable proof bound to exact implementation SHA | Proof artifacts record `IMPLEMENTATION_SUBJECT_SHA=<A2>`; SHA is ancestor of proof commit |
 
+```text
+PROOF_STATUS_SOURCE=COMPUTED_RUNTIME_EVIDENCE
+HANDWRITTEN_CONTROL_PASS_FORBIDDEN=YES
+VALIDATOR_SELF_ASSERTION_FORBIDDEN=YES
+FINAL_ARTIFACT_REPLAY_HASH_COMPARISON=REQUIRED
+```
+
+TD2 and NC-D2 results must be computed from executed controls. A handwritten
+`PASS`, including one merely repeated by the validator without independently
+computed runtime evidence, is invalid. The generated final D2 proof artifacts
+must be deterministically replayed and compared by hash with the final committed
+artifacts; mismatch fails validation.
+
 ---
 
 ## 7. Required negative controls (frozen)
@@ -236,6 +263,8 @@ new run_id → fresh ledger → attempt #1 admitted again
 | **NC-D2-6** | Counters independent | Note and stage ledgers do not share exhaustion |
 | **NC-D2-7** | New `run_id` resets | Fresh ledger admits attempt #1 |
 | **NC-D2-8** | Nonzero effect forces validator FAIL | Any nonzero GHL/Firestore/external effect → proof validator FAIL |
+| **NC-D2-9** | Contract authority negative | Temporary test contract with note cap `2`: attempts #1/#2 permit and #3 refuses; production contract remains unchanged |
+| **NC-D2-10** | Malformed or missing write cap fails closed | Missing, malformed, or non-valid write cap refuses admission and fails proof validation |
 
 ---
 
@@ -245,13 +274,15 @@ new run_id → fresh ledger → attempt #1 admitted again
 PLANNED_ALLOWED_IMPLEMENTATION_FILES:
   src/orchestration/attempt_ledger.py          # run-scoped note/stage write-attempt ledger
   src/orchestration/state_machine.py           # CONTRACT_LOADING_REPAIR for write caps
-  src/orchestration/runner.py                  # integrate ledger admission before transport
+  src/orchestration/policy.py                  # OL3 owns PERMIT / REFUSE decisions
+  src/orchestration/runner.py                  # calls policy before any transport
   src/orchestration/nw008_tranche_d.py         # D2 offline harness / proof emitter (additive)
-  tests/test_write_attempt_ledger.py           # unit + NC-D2-1..8
+  tests/test_write_attempt_ledger.py           # unit + NC-D2-1..10
   tests/test_nw008_tranche_d_acceptance.py     # additive D2 acceptance / proof checks
-  proof/nw008/tranche-d/at-08-run.json         # durable D2 execution trace
-  proof/nw008/tranche-d/proof-manifest.md      # additive D2 fields only (no D1 mutation)
-  proof/nw008/tranche-d/proof-return.yaml      # additive D2 fields only (no D1 mutation)
+  proof/nw008/tranche-d/d2-at8/at-08-run.json
+  proof/nw008/tranche-d/d2-at8/at-08-attempt-trace.json
+  proof/nw008/tranche-d/d2-at8/proof-manifest.md
+  proof/nw008/tranche-d/d2-at8/proof-return.yaml
   proof/nw008/nw-008-tranche-d-d2-*-closeout*  # future governance closeout only
 
 PLANNED_BLOCKED_FILES_AND_SURFACES:
@@ -259,8 +290,11 @@ PLANNED_BLOCKED_FILES_AND_SURFACES:
   contracts/ghl_tool_manifest.yaml             # D1 surface — no change
   src/orchestration/manifest_gate.py           # D1 surface — no change
   proof/nw008/tranche-c/**                     # immutable
-  proof/nw008/tranche-d/at-09-*                # D1 proof — no mutation
-  proof/nw008/nw-008-tranche-d-d1-governance-closeout.md
+  proof/nw008/tranche-d/at-09-run.json         # D1 immutable
+  proof/nw008/tranche-d/at-09-workflow-run-audit.json # D1 immutable
+  proof/nw008/tranche-d/proof-manifest.md      # D1 immutable
+  proof/nw008/tranche-d/proof-return.yaml      # D1 immutable
+  proof/nw008/nw-008-tranche-d-d1-governance-closeout.md # D1 immutable
   deploy/**
   infra/**
   .github/workflows/**
@@ -284,13 +318,30 @@ Do not self-bind proof to the proof commit. Do not amend D1 subjects A1R2/P1R2.
 
 ## 9. Validation plan (future implementation)
 
-1. `pytest tests/test_write_attempt_ledger.py` — TD2-01..09 unit coverage + NC-D2-1..8
+1. `pytest tests/test_write_attempt_ledger.py` — TD2-01..12 unit coverage + NC-D2-1..10
 2. `pytest tests/test_nw008_tranche_d_acceptance.py` — D2 acceptance + durable proof assertions
 3. `pytest` — full suite green; D1 tests remain green (no D1 regression)
-4. Deterministic D2 proof replay + validator PASS
-5. Effect counters all zero
-6. Exact-head Phase 1 Deterministic CI PASS
-7. Confirm `git rev-parse HEAD:proof/nw008/tranche-c` unchanged from D1 baseline tree when D2 lands
+4. Deterministic D2 proof replay + computed-evidence validator PASS
+5. Compare deterministic-replay hashes to final committed D2 artifacts; any mismatch FAILS
+6. Effect counters all zero
+7. Exact-head Phase 1 Deterministic CI PASS
+8. Capture byte-identifying Git object IDs before targeted D2 tests, full
+   `pytest`, and D2 proof generation; after each operation, require exact
+   equality for:
+   - `proof/nw008/tranche-d/at-09-run.json`
+   - `proof/nw008/tranche-d/at-09-workflow-run-audit.json`
+   - `proof/nw008/tranche-d/proof-manifest.md`
+   - `proof/nw008/tranche-d/proof-return.yaml`
+   - `proof/nw008/nw-008-tranche-d-d1-governance-closeout.md`
+9. Confirm `git rev-parse HEAD:proof/nw008/tranche-c` remains
+   `33257929a2b16cf005fd5a95a914e2dc7389c71a` after each operation.
+
+```text
+D1_PROOF_IMMUTABLE=YES
+TRANCHE_C_PROOF_IMMUTABLE=YES
+IMMUTABILITY_CHECK_METHOD=EXACT_GIT_OBJECT_ID_COMPARISON
+IMMUTABILITY_CHECK_TIMES=AFTER_TARGETED_D2_TESTS,AFTER_FULL_PYTEST,AFTER_D2_PROOF_GENERATION
+```
 
 ---
 
@@ -303,7 +354,7 @@ STOP immediately and return for architecture review if implementation would requ
 3. Schema changes to packet or audit contracts
 4. Numeric policy cap changes in `contracts/workflow_states.yaml`
 5. D1 manifest-gate semantic changes
-6. Mutation of Tranche C proof or D1 AT-9 proof artifacts
+6. Mutation of Tranche C proof or any frozen D1 proof artifact
 7. Attribution of second-attempt refusal to agent choice or harness authority
 8. Non-zero external effects
 
@@ -326,12 +377,17 @@ D1_STATUS=CLOSED
 AT8_CRITERION_FROZEN=YES
 AT8_CAP_SEMANTIC=WRITE_ATTEMPT_CAP
 CAP_SOURCE=contracts/workflow_states.yaml
-ENFORCEMENT_OWNER=OL3_ORCHESTRATION_POLICY
+LEDGER_STATE_OWNER=WRITE_ATTEMPT_LEDGER
+ENFORCEMENT_DECISION_OWNER=OL3_ORCHESTRATION_POLICY
+RUNNER_AUTHORITY=ORCHESTRATION_ONLY
 AGENT_CAP_AUTHORITY=NO
 HARNESS_CAP_AUTHORITY=NO
 
 TD2_01..TD2_12=FROZEN
-NC_D2_1..NC_D2_8=FROZEN
+NC_D2_01..NC_D2_10=FROZEN
+D2_PROOF_NAMESPACE=proof/nw008/tranche-d/d2-at8
+D1_PROOF_IMMUTABLE=YES
+TRANCHE_C_PROOF_IMMUTABLE=YES
 
 PLANNING_ONLY=YES
 D2_IMPLEMENTATION_STARTED=NO
@@ -343,13 +399,13 @@ POLICY_NUMERIC_CAP_CHANGE=NO
 EXTERNAL_EFFECTS=0
 WORKTREE_CLEAN=YES
 
-STOP_CODE=NW008_D2_AT8_PLANNING_PACKET_READY
+STOP_CODE=NW008_D2_AT8_PLANNING_REPAIR_READY_FOR_IMPLEMENTATION_REVIEW
 ```
 
 ## STOP
 
 ```text
-STOP_CODE=NW008_D2_AT8_PLANNING_PACKET_READY
+STOP_CODE=NW008_D2_AT8_PLANNING_REPAIR_READY_FOR_IMPLEMENTATION_REVIEW
 ```
 
 This lane stops before D2 implementation. Implementation requires a separate authorized execution pass against this frozen packet.
