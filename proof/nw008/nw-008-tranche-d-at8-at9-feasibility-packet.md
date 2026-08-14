@@ -21,6 +21,7 @@ RUNTIME_CHANGED=NO
 POLICY_SEMANTICS_CHANGE=NO
 TOOL_MANIFEST_CHANGED=NO
 AUDIT_SCHEMA_CHANGED=NO
+MEETING_FOLLOW_UP_PACKET_SCHEMA_CHANGE=NO
 GHL_LIVE_CALLS=0
 GHL_WRITES=0
 FIRESTORE_WRITES=0
@@ -33,6 +34,8 @@ DEPLOYMENT=NO
 AT2_STATUS=HISTORICAL_COMPLETE
 AT4_STATUS=HISTORICAL_COMPLETE
 AT5_STATUS=HISTORICAL_COMPLETE
+AT8_STATUS=PARTIAL
+AT9_STATUS=PARTIAL
 NW008_OVERALL_STATUS=IN_PROGRESS
 ```
 
@@ -119,12 +122,33 @@ boundary fidelity):
 
 #### Q1 — Can attempt #1 be represented as policy-permitted / execution-attempted without a live external write?
 
-**YES (with implementation delta; no new authorization).**
+**YES (with implementation delta; no new authorization; no reuse of canonical
+`mutations.*.attempted`).**
 
-- Policy can already emit `note_write=allowed` / `stage_write=allowed` and bind a single planned intent (`bound_intents`).
-- Packet mutation records already distinguish `attempted` vs `verified` vs external effects.
-- Honest offline model: mark attempt #1 as **policy-permitted intent** and **execution-attempted** under a **synthetic offline executor** that performs **no** GHL transport, keeps `EXTERNAL_EFFECTS=0`, `GHL_WRITES=0`, and does **not** claim live verification.
-- This does **not** satisfy AT-1/AT-3 (verified live write). It only needs to show that a first write **attempt** was admitted by policy inside one run.
+Current Phase-1 packet semantics keep `mutations.note.attempted=false` and
+`mutations.opportunity_stage.attempted=false` whenever no external mutation
+transport occurs. We **do not** redefine those canonical fields to mean a
+purely local synthetic guard attempt.
+
+Instead, AT-8 offline proof uses a separate **execution/policy trace**:
+
+```text
+MUTATION_ATTEMPT_REQUESTED=true
+MUTATION_ATTEMPT_KIND=note|stage
+POLICY_CAP_CHECKED=true
+POLICY_CAP_DECISION=PERMITTED
+TRANSPORT_ATTEMPTED=false
+EXTERNAL_EFFECT=0
+CANONICAL_PACKET_MUTATION_ATTEMPTED=false
+```
+
+- Policy already emits `note_write=allowed` / `stage_write=allowed` and binds a
+  single planned intent (`bound_intents`).
+- The synthetic offline executor records an **attempt request** admitted by the
+  policy cap guard and performs **no** GHL transport.
+- This does **not** satisfy AT-1/AT-3 (verified live write); it only needs to
+  show that a first write **attempt** was admitted by policy inside one run,
+  with canonical packet mutation fields left untouched.
 
 #### Q2 — Can attempt #2 reach the actual execution/policy boundary and be refused specifically because the per-run cap is exhausted?
 
@@ -150,7 +174,7 @@ No live GHL grant is required for that refusal path.
 | --- | --- | --- |
 | `AGENT_PROPOSAL` | YES | Synthetic second proposal / oversized intent bag input |
 | `POLICY_PERMITTED_INTENT` | YES | Existing `PolicyDecision` + `mutation_intents` |
-| `EXECUTION_ATTEMPT` | YES (delta) | Set `mutations.*.attempted=true` via offline executor; must remain `GHL_WRITES=0` |
+| `EXECUTION_ATTEMPT_REQUEST` | YES (delta) | Separate trace marker `MUTATION_ATTEMPT_REQUESTED=true`/`TRANSPORT_ATTEMPTED=false`; canonical packet `mutations.*.attempted` stays `false` |
 | `POLICY_CAP_REFUSAL` | YES (delta) | Ledger/cap enforcer must be the refusing authority (not harness-local `if`) |
 | `EXTERNAL_EFFECT` | YES | Counter stays `0`; fail closed if non-zero |
 
@@ -161,8 +185,15 @@ Current partial evidence does **not** yet emit this full layer separation.
 Target proof markers (offline):
 
 ```text
+CAP_SOURCE=STATE_MACHINE_WORKFLOW_CONTRACT
+MAX_NOTE_ATTEMPTS_PER_RUN=1
+MAX_STAGE_ATTEMPTS_PER_RUN=1
+SECOND_ATTEMPT_REQUESTED=true
+SECOND_ATTEMPT_REFUSED=true
 SECOND_ATTEMPT_REFUSED_BY=DETERMINISTIC_POLICY
 SECOND_ATTEMPT_REFUSED_BY_AGENT=NO
+TRANSPORT_ATTEMPTED=false
+CANONICAL_PACKET_MUTATION_ATTEMPTED=false
 GHL_LIVE_CALLS=0
 GHL_WRITES=0
 EXTERNAL_EFFECTS=0
@@ -198,40 +229,49 @@ AT8_NEW_AUTHORIZATION_REQUIRED=NO
 **AT8_REASON=**
 
 Historical AT-8 is a **policy-cap enforcement** clause, not a live CRM success
-clause. Contractual caps, state-machine maxima, intent-binding helpers, and
-mutation attempt fields already exist offline. What is missing is an
-**authoritative per-run attempt ledger + sequential attempt path** that refuses
-attempt #2 at the deterministic policy/execution boundary (replacing harness
-simulation). That is an implementation gap on existing surfaces, not a missing
-external system and not a new authorization domain.
+clause. Contractual caps and state-machine maxima already exist offline.
+What is missing is an **authoritative per-run attempt ledger + sequential
+attempt path** that refuses attempt #2 at the deterministic policy/execution
+boundary (replacing harness simulation), while leaving canonical packet
+mutation fields unchanged. That is an implementation gap on existing surfaces,
+not a missing external system and not a new authorization domain.
 
 **AT8_REQUIRED_IMPLEMENTATION_DELTA=**
 
 1. Add a run-scoped mutation attempt ledger (note/stage counts) consulted at the
    orchestration execution/policy boundary.
-2. Provide an **offline / synthetic** mutation attempt path that can admit
-   attempt #1 as `POLICY_PERMITTED_INTENT` + `EXECUTION_ATTEMPT` with
-   `attempted=true` and **zero** external effects (no GHL transport).
-3. Route attempt #2 through the same boundary so refusal raises/records
+2. Derive numeric caps at runtime from the existing
+   **StateMachine / workflow contract** (`max_note_intents_per_run`,
+   `max_stage_intents_per_run`); do not duplicate literal cap values in harness
+   or proof code.
+3. Provide an **offline / synthetic** mutation attempt path that can admit
+   attempt #1 as `POLICY_PERMITTED_INTENT` + `EXECUTION_ATTEMPT_REQUESTED`
+   with `TRANSPORT_ATTEMPTED=false` and **zero** external effects (no GHL
+   transport). Canonical packet `mutations.*.attempted` remains `false`.
+4. Route attempt #2 through the same boundary so refusal raises/records
    **deterministic policy cap exhaustion** (`POLICY_CAP_REFUSAL`), not agent
    omission and not harness-only simulation.
-4. Ensure `bound_intents` / cap enforcer behavior is the authority cited in
+5. Ensure `bound_intents` / cap enforcer behavior is the authority cited in
    proof (align harness with production boundary; do not keep dual semantics).
-5. Emit structured proof distinguishing the five layers in §4.2 Q3.
-6. Acceptance tests + `proof/nw008/` artifacts with the Q4 markers.
-7. **Do not** change policy numeric caps, allow live GHL, or claim verified
-   external writes.
+6. Emit structured proof distinguishing the layers in §4.2 Q3 with the §4.2 Q4
+   markers.
+7. Acceptance tests + `proof/nw008/` artifacts with the §4.2 Q4 markers.
+8. **Do not** change policy numeric caps, allow live GHL, or claim verified
+   external writes; **do not** change `meeting_follow_up_packet.schema.json`.
 
 **AT8_REQUIRED_PROOF=**
 
 - Single offline run artifact showing:
-  - attempt #1: policy-permitted + execution-attempted (synthetic);
-  - attempt #2: refused at deterministic policy cap boundary;
+  - attempt #1: policy-permitted + `MUTATION_ATTEMPT_REQUESTED=true`,
+    `TRANSPORT_ATTEMPTED=false`, `CANONICAL_PACKET_MUTATION_ATTEMPTED=false`;
+  - attempt #2: `SECOND_ATTEMPT_REFUSED=true` at deterministic policy cap
+    boundary;
+  - `CAP_SOURCE=STATE_MACHINE_WORKFLOW_CONTRACT`;
+  - `MAX_NOTE_ATTEMPTS_PER_RUN=1`, `MAX_STAGE_ATTEMPTS_PER_RUN=1`;
   - `SECOND_ATTEMPT_REFUSED_BY=DETERMINISTIC_POLICY`;
   - `SECOND_ATTEMPT_REFUSED_BY_AGENT=NO`;
-  - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `EXTERNAL_EFFECTS=0`;
-  - layer map: `AGENT_PROPOSAL` / `POLICY_PERMITTED_INTENT` /
-    `EXECUTION_ATTEMPT` / `POLICY_CAP_REFUSAL` / `EXTERNAL_EFFECT=0`.
+  - `TRANSPORT_ATTEMPTED=false`;
+  - `GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `EXTERNAL_EFFECTS=0`.
 - Tests proving refusal still occurs if the agent **proposes** the second write
   (agent choice cannot bypass the ledger).
 - Update AT-8 evidence class only when the above is green (out of scope for
@@ -251,8 +291,8 @@ external system and not a new authorization domain.
 | Packet audit warnings | [`src/orchestration/models.py`](../../src/orchestration/models.py) `audit.warnings: []` | Field exists; runner does not populate on tool refusal |
 | `workflow_run_audit_v1.warnings` | [`contracts/workflow_run_audit.schema.json`](../../contracts/workflow_run_audit.schema.json) | Required `string[]`; schema-ready |
 | NW-005 Stage A projection | [`src/mg_guide/firestore_audit/project.py`](../../src/mg_guide/firestore_audit/project.py) `project_workflow_run_audit` | Copies `packet.audit.warnings` → audit `warnings` deterministically |
-| Offline durable sink | [`src/mg_guide/firestore_audit/memory_store.py`](../../src/mg_guide/firestore_audit/memory_store.py) `MemoryAuditStore` | Terminal-only in-memory persist; zero external effects |
-| Proof artifact persistence | NW-008 / NW-005 Stage A proof dirs | Disk JSON/MD proof is the established judge-visible offline pattern |
+| Supporting offline/test sink | [`src/mg_guide/firestore_audit/memory_store.py`](../../src/mg_guide/firestore_audit/memory_store.py) `MemoryAuditStore` | Terminal-only in-memory persist; zero external effects; supporting evidence only, not durable proof by itself |
+| Durable proof artifact | NW-008 / NW-005 Stage A proof dirs (projected `workflow_run_audit_v1` JSON/MD) | Disk JSON/MD proof is the established judge-visible offline durable artifact |
 | Stage B Firestore boundary | [`src/mg_guide/firestore_audit/firestore_store.py`](../../src/mg_guide/firestore_audit/firestore_store.py) + Stage B auth packets | **Not authorized** on current main; not required by §17 AT-9 wording |
 | Partial AT-9 harness | `nw008_harness._run_tool_manifest_refusal` | `durable_audit_warning_recorded: false`; remaining gap text still says “authorized audit sink” |
 
@@ -264,11 +304,13 @@ external system and not a new authorization domain.
 
 - Manifest already lists `contact_create` under `blocked_capability_classes`.
 - `OfflineGhlReadAdapter.build_request("create-contact")` refuses with zero
-  network/CRM effect.
-- Implementation delta should make a **first-class tool-manifest gate** the
-  cited `REFUSAL_LAYER=TOOL_MANIFEST` (load blocked classes from the contract,
-  refuse before transport), with the offline adapter remaining a fail-closed
-  secondary boundary — not a live MCP call.
+  network/CRM effect as a fail-closed secondary boundary.
+- Implementation delta must add/use a **runtime-owned tool-manifest gate** that
+  deterministically maps requested operation (`create-contact`) to capability
+  class (`contact_create`) and consults `contracts/ghl_tool_manifest.yaml`
+  **before** any adapter or network transport.
+- Harness-local operation→capability mapping is **forbidden**; the gate owns the
+  mapping so the refusal authority is the manifest contract.
 
 #### Q2 — Does that refusal currently emit/produce an audit warning?
 
@@ -320,11 +362,11 @@ AT-10 concern.
 
 **Merely one possible persistence sink.**
 
-| Sink | Authorized now? | Sufficient for AT-9 historical clause? |
-| --- | --- | --- |
-| Packet `audit.warnings` + Stage A `workflow_run_audit_v1` proof artifact | YES (Stage A merged) | **YES** |
-| `MemoryAuditStore` (in-process terminal) | YES (Stage A) | YES (supporting) |
-| Firestore Stage B `workflow_runs/{run_id}` | **NO** | Not required for AT-9 |
+| Sink | Authorized now? | Role | Sufficient for AT-9 historical clause? |
+| --- | --- | --- | --- |
+| Packet `audit.warnings` + Stage A `workflow_run_audit_v1` proof artifact | YES (Stage A merged) | Durable offline proof under `proof/nw008/` | **YES** |
+| `MemoryAuditStore` (in-process terminal) | YES (Stage A) | Supporting runtime/test sink only | Supporting evidence; not durable proof by itself |
+| Firestore Stage B `workflow_runs/{run_id}` | **NO** | Optional future online sink | Not required for AT-9 |
 
 Matrix text that still frames AT-9 as needing Stage B should be treated as a
 **readiness over-constraint** relative to §17; correcting that classification
@@ -334,11 +376,16 @@ to demand new authorization here.
 ### 5.3 Required proof shape (if executed offline)
 
 ```text
+REQUESTED_OPERATION=create-contact
+CAPABILITY_CLASS=contact_create
+BLOCKED=true
+BLOCKED_SOURCE=contracts/ghl_tool_manifest.yaml
 TOOL_INVOCATION_ATTEMPTED=true
 TOOL_MANIFEST_REFUSED=true
 REFUSAL_LAYER=TOOL_MANIFEST
 AUDIT_WARNING_RECORDED=true
-AUDIT_WARNING_ARTIFACT=<path under proof/nw008/…>
+AUDIT_WARNING_PROJECTED_STAGE_A=true
+AUDIT_WARNING_DURABLE_PROOF=<repo path under proof/nw008/…>
 GHL_LIVE_CALLS=0
 GHL_WRITES=0
 FIRESTORE_WRITES=0
@@ -360,33 +407,47 @@ Historical AT-9 requires (1) a blocked tool invocation refused at the
 **tool-manifest** layer and (2) that refusal **recorded in audit warnings**.
 Both building blocks exist offline: declarative blocked classes, offline
 refusal behavior, packet + `workflow_run_audit_v1` warning fields, Stage A
-projector, and proof-dir durability. The gap is **wiring** (invoke → manifest
-refuse → append warning → project/persist proof), not missing capability and
-not Stage B authorization.
+projector, and proof-dir durability. The gap is **wiring** (invoke → runtime
+manifest gate → classify → refuse → append warning → project/persist proof),
+not missing capability and not Stage B authorization.
+
+```text
+AT9_OPERATION_TO_CAPABILITY_MAPPING_REQUIRED=YES
+AT9_MAPPING_OWNER=RUNTIME_MANIFEST_GATE
+AT9_HARNESS_LOCAL_MAPPING=FORBIDDEN
+```
 
 **AT9_REQUIRED_IMPLEMENTATION_DELTA=**
 
-1. Introduce/use a tool-manifest gate that evaluates
+1. Introduce/use a runtime-owned tool-manifest gate that evaluates
    `blocked_capability_classes` (and related allowlisting) **before** any
-   external effect; refuse `contact_create` / `create-contact` with
-   `REFUSAL_LAYER=TOOL_MANIFEST`.
-2. On refusal, append a stable warning string to `packet.audit.warnings` (and
+   external effect.
+2. The gate must deterministically map requested operation
+   (`create-contact`) to capability class (`contact_create`) with authority
+   derived from `contracts/ghl_tool_manifest.yaml`; harness-local operation→
+   capability mapping is **forbidden**.
+3. Refuse the blocked class with `REFUSAL_LAYER=TOOL_MANIFEST` and
+   `BLOCKED_SOURCE=contracts/ghl_tool_manifest.yaml` before any adapter/network
+   transport.
+4. On refusal, append a stable warning string to `packet.audit.warnings` (and
    record tools/agents metadata as appropriate without live calls).
-3. Project via NW-005 Stage A to `workflow_run_audit_v1`; validate schema.
-4. Persist durable offline proof artifact path under `proof/nw008/` (optional
-   `MemoryAuditStore` assertion in tests).
-5. Acceptance tests asserting the §5.3 marker set; keep
+5. Project via NW-005 Stage A to `workflow_run_audit_v1`; validate schema.
+6. Persist durable offline proof artifact path under `proof/nw008/`.
+   `MemoryAuditStore` may be used as a supporting runtime/test sink only; it
+   is **not** the durable proof.
+7. Acceptance tests asserting the §5.3 marker set; keep
    `FIRESTORE_WRITES=0`, `NW005_STAGE_B_ACTIVATED=NO`.
-6. **Do not** activate Stage B, change manifest blocked semantics beyond
-   exercising existing classes, or claim AT-10 complete.
+8. **Do not** activate Stage B, change manifest blocked semantics beyond
+   exercising existing classes, or claim AT-10 complete; **do not** change
+   `meeting_follow_up_packet.schema.json`.
 
 **AT9_REQUIRED_PROOF=**
 
 - Offline run evidence with §5.3 markers all true/zero as specified.
 - Artifact file containing projected audit `warnings` including the
   tool-manifest refusal.
-- Explicit `REFUSAL_LAYER=TOOL_MANIFEST` (not merely “adapter denied” without
-  manifest authority citation).
+- Explicit `REFUSAL_LAYER=TOOL_MANIFEST` with runtime-owned
+  `REQUESTED_OPERATION` → `CAPABILITY_CLASS` → `BLOCKED=true` chain.
 - Effect counters all zero; no Firestore / GHL live calls.
 
 ---
@@ -397,11 +458,12 @@ not Stage B authorization.
 PLANNING_ONLY=YES          # this PR/pass
 FUTURE_OFFLINE_IMPL_OK=YES # recommended next lane; still zero external effects
 
-APPLICATION_CODE_CHANGED=NO   # this pass
+APPLICATION_CODE_CHANGED=NO                  # this pass
 RUNTIME_CHANGED=NO
-POLICY_SEMANTICS_CHANGE=NO    # caps and blocked classes stay as contracted
-TOOL_MANIFEST_CHANGED=NO
+POLICY_SEMANTICS_CHANGE=NO                   # caps stay as contracted
+TOOL_MANIFEST_CHANGED=NO                     # blocked classes stay as contracted
 AUDIT_SCHEMA_CHANGED=NO
+MEETING_FOLLOW_UP_PACKET_SCHEMA_CHANGE=NO
 
 GHL_LIVE_CALLS=0
 GHL_WRITES=0
@@ -430,31 +492,57 @@ Non-goals for AT-8/AT-9 offline completion:
 
 ```text
 AT8_FEASIBILITY=OFFLINE_EXECUTABLE
+AT8_CANONICAL_MUTATION_ATTEMPT_FIELDS_REUSED=NO
+AT8_CAP_SOURCE=STATE_MACHINE_WORKFLOW_CONTRACT
 AT8_NEW_AUTHORIZATION_REQUIRED=NO
 
 AT9_FEASIBILITY=OFFLINE_EXECUTABLE
+AT9_OPERATION_TO_CAPABILITY_MAPPING_REQUIRED=YES
+AT9_MAPPING_OWNER=RUNTIME_MANIFEST_GATE
+AT9_HARNESS_LOCAL_MAPPING=FORBIDDEN
 AT9_STAGE_A_AUDIT_SUFFICIENT=YES
 AT9_STAGE_B_FIRESTORE_REQUIRED=NO
 AT9_NEW_AUTHORIZATION_REQUIRED=NO
 
-RECOMMENDED_NEXT_IMPLEMENTATION_TARGET=AT-8+AT-9
+RECOMMENDED_NEXT_IMPLEMENTATION_TARGET=AT-9_THEN_AT-8_SAME_TRANCHE_IF_GREEN
+D1=AT-9
+D2=AT-8
 ```
 
-### 7.1 Why `AT-8+AT-9` (not NONE, not single-AT only)
+### 7.1 Why `AT-9_THEN_AT-8_SAME_TRANCHE_IF_GREEN`
 
 | Lens | Assessment |
 | --- | --- |
 | **Historical-clause fidelity** | Both clauses are satisfiable **without** live GHL mutation and **without** Firestore Stage B when read verbatim from §17. Neither requires weakening. |
 | **Authority** | No new authorization grant is required. Caps and blocked classes are already contracted. Stage A audit projection is already merged. |
-| **Implementation scope** | Both deltas are bounded offline orchestration/proof work: per-run attempt ledger + synthetic attempt path (AT-8); manifest gate → warning → Stage A proof (AT-9). Shared zero-effect harness, counters, and proof layout. |
-| **Judge-visible value** | Closes the only two remaining **PARTIAL / offline-executable** ATs after Tranche C, demonstrating (a) OL3 policy—not agent choice—enforces per-run caps and (b) tool-manifest refusals leave durable audit warnings — without entering the blocked write lane (AT-1/3/6/7) or deferred AT-10 Firestore lane. |
-| **Sequencing note** | If a single-AT slice is forced, prefer **AT-9 first** (smaller wiring surface, Stage A already copies warnings). Prefer **combined tranche** when capacity allows: one offline governance package, one proof return, maximal closure of PARTIAL rows. |
+| **Implementation scope** | Both deltas are bounded offline orchestration/proof work: manifest gate → warning → Stage A proof (AT-9); per-run attempt ledger + synthetic attempt path (AT-8). Shared zero-effect harness, counters, and proof layout. |
+| **Judge-visible value** | Closes the only two remaining **PARTIAL / offline-executable** ATs after Tranche C, demonstrating (a) tool-manifest refusals leave durable audit warnings and (b) OL3 policy—not agent choice—enforces per-run caps — without entering the blocked write lane (AT-1/3/6/7) or deferred AT-10 Firestore lane. |
+| **Sequencing note** | **AT-9 is smaller wiring surface** (manifest gate + Stage A warning projection). Start D1 with AT-9. Promote to D2 (AT-8) in the same future branch only if D1 stays green (see §7.3). |
 
-### 7.2 Explicit non-recommendations
+### 7.2 Tranche D planned subunits
+
+```text
+D1=AT-9
+D2=AT-8
+```
+
+Proceed to D2 in the same future implementation branch only if:
+
+```text
+D1_TESTS=PASS
+D1_EXTERNAL_EFFECTS=0
+D1_POLICY_SEMANTICS_CHANGE=NO
+D1_TOOL_MANIFEST_SEMANTICS_CHANGE=NO
+D1_MEETING_FOLLOW_UP_PACKET_SCHEMA_CHANGE=NO
+```
+
+### 7.3 Explicit non-recommendations
 
 - **Do not** wait for NW-005 Stage B to start AT-9 — that couples AT-9 to AT-10 incorrectly.
 - **Do not** wait for safe-environment GHL mutation grants to start AT-8 — that couples AT-8 to AT-1/3 incorrectly.
 - **Do not** mark either AT historically complete from Tranche A partial proofs alone.
+- **Do not** combine AT-8 with live-mutation work; keep it offline and canonical
+  packet schema intact.
 
 ---
 
@@ -465,25 +553,36 @@ BRANCH=chore/nw008-at8-at9-feasibility
 BASE_SHA=5cd9e32d5fa781dfbb879ff93037e5d0b9eb0772
 
 AT8_FEASIBILITY=OFFLINE_EXECUTABLE
+AT8_CANONICAL_MUTATION_ATTEMPT_FIELDS_REUSED=NO
+AT8_CAP_SOURCE=STATE_MACHINE_WORKFLOW_CONTRACT
 AT8_NEW_AUTHORIZATION_REQUIRED=NO
-AT8_REQUIRED_IMPLEMENTATION_DELTA=per-run mutation attempt ledger + offline synthetic first-attempt execution boundary + second-attempt POLICY_CAP_REFUSAL at deterministic OL3 boundary + layered proof (no live GHL)
+AT8_REQUIRED_IMPLEMENTATION_DELTA=per-run mutation attempt ledger + caps from StateMachine/workflow contract + offline synthetic first-attempt request trace (TRANSPORT_ATTEMPTED=false, CANONICAL_PACKET_MUTATION_ATTEMPTED=false) + second-attempt POLICY_CAP_REFUSAL at deterministic OL3 boundary + layered proof (no live GHL, no packet schema change)
 
 AT9_FEASIBILITY=OFFLINE_EXECUTABLE
+AT9_OPERATION_TO_CAPABILITY_MAPPING_REQUIRED=YES
+AT9_MAPPING_OWNER=RUNTIME_MANIFEST_GATE
+AT9_HARNESS_LOCAL_MAPPING=FORBIDDEN
 AT9_STAGE_A_AUDIT_SUFFICIENT=YES
 AT9_STAGE_B_FIRESTORE_REQUIRED=NO
 AT9_NEW_AUTHORIZATION_REQUIRED=NO
-AT9_REQUIRED_IMPLEMENTATION_DELTA=tool-manifest gate refusal for contact_create + emit packet.audit.warnings + NW-005 Stage A project/validate + offline proof artifact (no Firestore Stage B)
+AT9_REQUIRED_IMPLEMENTATION_DELTA=runtime-owned tool-manifest gate (op->capability->blocked) + emit packet.audit.warnings + NW-005 Stage A project/validate + durable offline proof artifact under proof/nw008 (MemoryAuditStore supporting only, no Stage B, no packet schema change)
 
-RECOMMENDED_NEXT_IMPLEMENTATION_TARGET=AT-8+AT-9
+RECOMMENDED_NEXT_IMPLEMENTATION_TARGET=AT-9_THEN_AT-8_SAME_TRANCHE_IF_GREEN
+D1=AT-9
+D2=AT-8
+D2_GATES=D1_TESTS=PASS, D1_EXTERNAL_EFFECTS=0, D1_POLICY_SEMANTICS_CHANGE=NO, D1_TOOL_MANIFEST_SEMANTICS_CHANGE=NO, D1_MEETING_FOLLOW_UP_PACKET_SCHEMA_CHANGE=NO
 
 PLANNING_ONLY=YES
 APPLICATION_CODE_CHANGED=NO
 RUNTIME_CHANGED=NO
 POLICY_SEMANTICS_CHANGE=NO
+TOOL_MANIFEST_CHANGED=NO
+AUDIT_SCHEMA_CHANGED=NO
+MEETING_FOLLOW_UP_PACKET_SCHEMA_CHANGE=NO
 EXTERNAL_EFFECTS=0
 
-READY_FOR_FEASIBILITY_REVIEW=YES
-STOP_CODE=NW008_AT8_AT9_FEASIBILITY_READY_FOR_REVIEW
+READY_FOR_FEASIBILITY_PR_REVIEW=YES
+STOP_CODE=NW008_AT8_AT9_FEASIBILITY_PR_READY_FOR_REVIEW
 ```
 
 ---
@@ -494,9 +593,13 @@ STOP_CODE=NW008_AT8_AT9_FEASIBILITY_READY_FOR_REVIEW
 - [x] Fresh branch `chore/nw008-at8-at9-feasibility` from that base
 - [x] Single docs artifact created under `proof/nw008/`
 - [x] Each AT ends in exactly one feasibility enum
+- [x] Canonical packet mutation semantics preserved (no schema change)
+- [x] AT-8 cap authority tied to StateMachine/workflow contract
+- [x] AT-9 operation→capability mapping assigned to runtime manifest gate (harness-local mapping forbidden)
+- [x] AT-9 audit durability distinguishes supporting MemoryAuditStore vs durable Stage-A proof artifact
 - [x] No application / runtime / test / policy / manifest / schema edits
 - [x] No external effects
 
 ```text
-STOP_CODE=NW008_AT8_AT9_FEASIBILITY_READY_FOR_REVIEW
+STOP_CODE=NW008_AT8_AT9_FEASIBILITY_PR_READY_FOR_REVIEW
 ```
