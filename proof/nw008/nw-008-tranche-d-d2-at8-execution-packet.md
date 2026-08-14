@@ -195,7 +195,11 @@ attempt #1 admitted locally (ledger AFTER=1); no transport
         ↓
 same run_id requests attempt #2 for same counter
         ↓
-ledger refuses (BEFORE=1 >= MAX=1); no transport
+OL3 policy reads ledger state: BEFORE=1, MAX=1
+        ↓
+OL3 policy evaluates BEFORE >= MAX and returns REFUSE
+        ↓
+ledger remains AFTER=1; runner does not enter transport
         ↓
 refusal attributed to OL3 policy, not agent choice / harness
         ↓
@@ -399,13 +403,13 @@ POLICY_NUMERIC_CAP_CHANGE=NO
 EXTERNAL_EFFECTS=0
 WORKTREE_CLEAN=YES
 
-STOP_CODE=NW008_D2_AT8_PLANNING_REPAIR_READY_FOR_IMPLEMENTATION_REVIEW
+STOP_CODE=NW008_D2_AT8_PLANNING_GREEN_READY_FOR_A2
 ```
 
 ## STOP
 
 ```text
-STOP_CODE=NW008_D2_AT8_PLANNING_REPAIR_READY_FOR_IMPLEMENTATION_REVIEW
+STOP_CODE=NW008_D2_AT8_PLANNING_GREEN_READY_FOR_A2
 ```
 
 This lane stops before D2 implementation. Implementation requires a separate authorized execution pass against this frozen packet.
