@@ -1,0 +1,345 @@
+execution_unit: TRANCHE_C
+purpose: HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY
+implementation_subject_sha: 49b567c35cc2923e6faa6829e9967b8c089f402b
+transcript_source_contract: TRANSCRIPT_SOURCE_ENVELOPE_V1
+authoritative_stop_source: STATE_MACHINE_WORKFLOW_CONTRACT
+targets:
+- AT-2
+- AT-4
+- AT-5
+excludes:
+- AT-8
+- AT-9
+scenarios:
+  AT-2:
+    envelope_path: fixtures/nw008/tranche_c/at-02-envelope.json
+    transcript_content_hash: 918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5
+    envelope_digest: 1367ab0f79b1d66c51da67d65fd0ff15efa9b0d2516f55816fd4b07361e0f410
+    run_id: nw008_tranche_c_at-02
+    run_path: proof/nw008/tranche-c/at-02-run.json
+    agents_started:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    agents_completed:
+    - meeting_context_agent
+    - relationship_context_agent
+    agent_statuses:
+      meeting_context_agent: ok
+      relationship_context_agent: BLOCK_ORIGIN
+      follow_up_planning_agent: SKIPPED_GOVERNED_STOP
+    agent_execution:
+      meeting_context_agent:
+        wrapper_status: EXECUTED
+        delegate_called: true
+        block_origin: false
+      relationship_context_agent:
+        wrapper_status: BLOCK_ORIGIN
+        delegate_called: true
+        block_origin: true
+      follow_up_planning_agent:
+        wrapper_status: SKIPPED_GOVERNED_STOP
+        delegate_called: false
+        block_origin: false
+        skipped_by: relationship_context_agent
+    stop_point: relationship_context_agent
+    stop_reason_code: AMBIGUOUS_CONTACT
+    stop_reason_source: contracts/workflow_states.yaml:transition[resolving->blocked:when=contact_ambiguous]:reason_code=AMBIGUOUS_CONTACT
+    policy_gate_invoked: false
+    policy_bypass: false
+    disposition: blocked
+    effect_counters:
+      GHL_LIVE_CALLS: 0
+      GHL_READS: 0
+      GHL_WRITES: 0
+      FIRESTORE_WRITES: 0
+      EXTERNAL_EFFECTS: 0
+      REAL_CUSTOMER_DATA: 0
+  AT-4:
+    envelope_path: fixtures/nw008/tranche_c/at-04-envelope.json
+    transcript_content_hash: c5b645af3f30d172928266483ea3a97ac90afb5de03f2fe0c2c8e69efcf63eae
+    envelope_digest: b4a73a5ce66256693e2c061310e85f73eac807eaa1971c03a5ff2bd70465c881
+    run_id: nw008_tranche_c_at-04
+    run_path: proof/nw008/tranche-c/at-04-run.json
+    agents_started:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    agents_completed:
+    - meeting_context_agent
+    - relationship_context_agent
+    agent_statuses:
+      meeting_context_agent: ok
+      relationship_context_agent: BLOCK_ORIGIN
+      follow_up_planning_agent: SKIPPED_GOVERNED_STOP
+    agent_execution:
+      meeting_context_agent:
+        wrapper_status: EXECUTED
+        delegate_called: true
+        block_origin: false
+      relationship_context_agent:
+        wrapper_status: BLOCK_ORIGIN
+        delegate_called: true
+        block_origin: true
+      follow_up_planning_agent:
+        wrapper_status: SKIPPED_GOVERNED_STOP
+        delegate_called: false
+        block_origin: false
+        skipped_by: relationship_context_agent
+    stop_point: relationship_context_agent
+    stop_reason_code: CONTACT_NOT_FOUND
+    stop_reason_source: contracts/workflow_states.yaml:transition[resolving->blocked:when=contact_not_found]:reason_code=CONTACT_NOT_FOUND
+    policy_gate_invoked: false
+    policy_bypass: false
+    disposition: blocked
+    effect_counters:
+      GHL_LIVE_CALLS: 0
+      GHL_READS: 0
+      GHL_WRITES: 0
+      FIRESTORE_WRITES: 0
+      EXTERNAL_EFFECTS: 0
+      REAL_CUSTOMER_DATA: 0
+  AT-5:
+    envelope_path: fixtures/nw008/tranche_c/at-05-envelope.json
+    transcript_content_hash: 775d6f0998b8421f44f094eb40570e61469c3d56135d1eb8125b8beb1275c67f
+    envelope_digest: 64020b28a755ad29ac2bbf1ffcc6be417b6ae03af6c8211e853b7904881b9d0a
+    run_id: nw008_tranche_c_at-05
+    run_path: proof/nw008/tranche-c/at-05-run.json
+    agents_started:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    agents_completed:
+    - meeting_context_agent
+    agent_statuses:
+      meeting_context_agent: BLOCK_ORIGIN
+      relationship_context_agent: SKIPPED_GOVERNED_STOP
+      follow_up_planning_agent: SKIPPED_GOVERNED_STOP
+    agent_execution:
+      meeting_context_agent:
+        wrapper_status: BLOCK_ORIGIN
+        delegate_called: true
+        block_origin: true
+      relationship_context_agent:
+        wrapper_status: SKIPPED_GOVERNED_STOP
+        delegate_called: false
+        block_origin: false
+        skipped_by: meeting_context_agent
+      follow_up_planning_agent:
+        wrapper_status: SKIPPED_GOVERNED_STOP
+        delegate_called: false
+        block_origin: false
+        skipped_by: meeting_context_agent
+    stop_point: meeting_context_agent
+    stop_reason_code: LOW_EXTRACTION_CONFIDENCE
+    stop_reason_source: contracts/workflow_states.yaml:transition[extracting->blocked:when=extraction_confidence_lt_extraction_abort_threshold]:reason_code=LOW_EXTRACTION_CONFIDENCE:threshold=0.7
+    policy_gate_invoked: false
+    policy_bypass: false
+    disposition: blocked
+    effect_counters:
+      GHL_LIVE_CALLS: 0
+      GHL_READS: 0
+      GHL_WRITES: 0
+      FIRESTORE_WRITES: 0
+      EXTERNAL_EFFECTS: 0
+      REAL_CUSTOMER_DATA: 0
+proof_obligations:
+  TC-01:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-02-envelope.json | fixtures/nw008/tranche_c/at-02-sidecar.json
+      | proof/nw008/tranche-c/at-02-run.json
+    DETAIL: AT-2 TRANSCRIPT_SOURCE_ENVELOPE_V1 accepted with TRANSCRIPT_CONTENT_HASH=918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5
+    REMAINING_GAP: ''
+  TC-02:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-02-envelope.json | fixtures/nw008/tranche_c/at-02-sidecar.json
+      | proof/nw008/tranche-c/at-02-run.json
+    DETAIL: AT-2 AGENTS_STARTED=['meeting_context_agent', 'relationship_context_agent',
+      'follow_up_planning_agent']
+    REMAINING_GAP: ''
+  TC-03:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-02-envelope.json | fixtures/nw008/tranche_c/at-02-sidecar.json
+      | proof/nw008/tranche-c/at-02-run.json
+    DETAIL: AT-2 STOP_POINT=relationship_context_agent, STOP_REASON_CODE=AMBIGUOUS_CONTACT,
+      DISPOSITION=blocked
+    REMAINING_GAP: ''
+  TC-04:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-02-envelope.json | fixtures/nw008/tranche_c/at-02-sidecar.json
+      | proof/nw008/tranche-c/at-02-run.json
+    DETAIL: 'AT-2 AGENT_STATUSES={''meeting_context_agent'': ''ok'', ''relationship_context_agent'':
+      ''BLOCK_ORIGIN'', ''follow_up_planning_agent'': ''SKIPPED_GOVERNED_STOP''},
+      AGENT_EXECUTION={''meeting_context_agent'': {''wrapper_status'': ''EXECUTED'',
+      ''delegate_called'': True, ''block_origin'': False}, ''relationship_context_agent'':
+      {''wrapper_status'': ''BLOCK_ORIGIN'', ''delegate_called'': True, ''block_origin'':
+      True}, ''follow_up_planning_agent'': {''wrapper_status'': ''SKIPPED_GOVERNED_STOP'',
+      ''delegate_called'': False, ''block_origin'': False, ''skipped_by'': ''relationship_context_agent''}}'
+    REMAINING_GAP: ''
+  TC-05:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-02-envelope.json | fixtures/nw008/tranche_c/at-02-sidecar.json
+      | proof/nw008/tranche-c/at-02-run.json
+    DETAIL: 'AT-2 PRE_POLICY_FAIL_CLOSED=true, POLICY_GATE_INVOKED=false, POLICY_BYPASS=False,
+      EFFECT_COUNTERS={''GHL_LIVE_CALLS'': 0, ''GHL_READS'': 0, ''GHL_WRITES'': 0,
+      ''FIRESTORE_WRITES'': 0, ''EXTERNAL_EFFECTS'': 0, ''REAL_CUSTOMER_DATA'': 0}'
+    REMAINING_GAP: ''
+  TC-06:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-04-envelope.json | fixtures/nw008/tranche_c/at-04-sidecar.json
+      | proof/nw008/tranche-c/at-04-run.json
+    DETAIL: AT-4 TRANSCRIPT_SOURCE_ENVELOPE_V1 accepted with TRANSCRIPT_CONTENT_HASH=c5b645af3f30d172928266483ea3a97ac90afb5de03f2fe0c2c8e69efcf63eae
+    REMAINING_GAP: ''
+  TC-07:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-04-envelope.json | fixtures/nw008/tranche_c/at-04-sidecar.json
+      | proof/nw008/tranche-c/at-04-run.json
+    DETAIL: AT-4 AGENTS_STARTED=['meeting_context_agent', 'relationship_context_agent',
+      'follow_up_planning_agent']
+    REMAINING_GAP: ''
+  TC-08:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-04-envelope.json | fixtures/nw008/tranche_c/at-04-sidecar.json
+      | proof/nw008/tranche-c/at-04-run.json
+    DETAIL: AT-4 STOP_POINT=relationship_context_agent, STOP_REASON_CODE=CONTACT_NOT_FOUND,
+      DISPOSITION=blocked
+    REMAINING_GAP: ''
+  TC-09:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-04-envelope.json | fixtures/nw008/tranche_c/at-04-sidecar.json
+      | proof/nw008/tranche-c/at-04-run.json
+    DETAIL: 'AT-4 AGENT_STATUSES={''meeting_context_agent'': ''ok'', ''relationship_context_agent'':
+      ''BLOCK_ORIGIN'', ''follow_up_planning_agent'': ''SKIPPED_GOVERNED_STOP''},
+      AGENT_EXECUTION={''meeting_context_agent'': {''wrapper_status'': ''EXECUTED'',
+      ''delegate_called'': True, ''block_origin'': False}, ''relationship_context_agent'':
+      {''wrapper_status'': ''BLOCK_ORIGIN'', ''delegate_called'': True, ''block_origin'':
+      True}, ''follow_up_planning_agent'': {''wrapper_status'': ''SKIPPED_GOVERNED_STOP'',
+      ''delegate_called'': False, ''block_origin'': False, ''skipped_by'': ''relationship_context_agent''}}'
+    REMAINING_GAP: ''
+  TC-10:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-04-envelope.json | fixtures/nw008/tranche_c/at-04-sidecar.json
+      | proof/nw008/tranche-c/at-04-run.json
+    DETAIL: 'AT-4 PRE_POLICY_FAIL_CLOSED=true, POLICY_GATE_INVOKED=false, POLICY_BYPASS=False,
+      EFFECT_COUNTERS={''GHL_LIVE_CALLS'': 0, ''GHL_READS'': 0, ''GHL_WRITES'': 0,
+      ''FIRESTORE_WRITES'': 0, ''EXTERNAL_EFFECTS'': 0, ''REAL_CUSTOMER_DATA'': 0}'
+    REMAINING_GAP: ''
+  TC-11:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-05-envelope.json | fixtures/nw008/tranche_c/at-05-sidecar.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: AT-5 TRANSCRIPT_SOURCE_ENVELOPE_V1 accepted with TRANSCRIPT_CONTENT_HASH=775d6f0998b8421f44f094eb40570e61469c3d56135d1eb8125b8beb1275c67f
+    REMAINING_GAP: ''
+  TC-12:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-05-envelope.json | fixtures/nw008/tranche_c/at-05-sidecar.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: AT-5 AGENTS_STARTED=['meeting_context_agent', 'relationship_context_agent',
+      'follow_up_planning_agent']
+    REMAINING_GAP: ''
+  TC-13:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-05-envelope.json | fixtures/nw008/tranche_c/at-05-sidecar.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: AT-5 STOP_POINT=meeting_context_agent, STOP_REASON_CODE=LOW_EXTRACTION_CONFIDENCE,
+      DISPOSITION=blocked
+    REMAINING_GAP: ''
+  TC-14:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-05-envelope.json | fixtures/nw008/tranche_c/at-05-sidecar.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: 'AT-5 AGENT_STATUSES={''meeting_context_agent'': ''BLOCK_ORIGIN'', ''relationship_context_agent'':
+      ''SKIPPED_GOVERNED_STOP'', ''follow_up_planning_agent'': ''SKIPPED_GOVERNED_STOP''},
+      AGENT_EXECUTION={''meeting_context_agent'': {''wrapper_status'': ''BLOCK_ORIGIN'',
+      ''delegate_called'': True, ''block_origin'': True}, ''relationship_context_agent'':
+      {''wrapper_status'': ''SKIPPED_GOVERNED_STOP'', ''delegate_called'': False,
+      ''block_origin'': False, ''skipped_by'': ''meeting_context_agent''}, ''follow_up_planning_agent'':
+      {''wrapper_status'': ''SKIPPED_GOVERNED_STOP'', ''delegate_called'': False,
+      ''block_origin'': False, ''skipped_by'': ''meeting_context_agent''}}'
+    REMAINING_GAP: ''
+  TC-15:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-05-envelope.json | fixtures/nw008/tranche_c/at-05-sidecar.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: 'AT-5 PRE_POLICY_FAIL_CLOSED=true, POLICY_GATE_INVOKED=false, POLICY_BYPASS=False,
+      EFFECT_COUNTERS={''GHL_LIVE_CALLS'': 0, ''GHL_READS'': 0, ''GHL_WRITES'': 0,
+      ''FIRESTORE_WRITES'': 0, ''EXTERNAL_EFFECTS'': 0, ''REAL_CUSTOMER_DATA'': 0}'
+    REMAINING_GAP: ''
+  TC-16:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-c/at-02-run.json | proof/nw008/tranche-c/at-04-run.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: Existing fleet entrypoints reused; no new runtime agent IDs observed
+    REMAINING_GAP: ''
+  TC-17:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-c/at-02-run.json | proof/nw008/tranche-c/at-04-run.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: Deterministic replay result=PASS
+    REMAINING_GAP: ''
+  TC-18:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-02-envelope.json | fixtures/nw008/tranche_c/at-04-envelope.json
+      | fixtures/nw008/tranche_c/at-05-envelope.json
+    DETAIL: Synthetic-only envelope invariants verified from fixture envelopes
+    REMAINING_GAP: ''
+  TC-19:
+    STATUS: PASS
+    EVIDENCE_PATH: docs/MEETING_FOLLOW_UP_FOUNDATION.md | contracts/workflow_states.yaml
+      | src/orchestration/nw008_tranche_c.py | contracts/nw008_tranche_c_proof_return.schema.json
+    DETAIL: FOUNDATION_DEFINITIONS_UNCHANGED=true (docs/MEETING_FOLLOW_UP_FOUNDATION.md
+      §17 AT-2/AT-4/AT-5 clauses exact); WORKFLOW_CONTRACT_ALIGNED=true (contracts/workflow_states.yaml
+      transitions carry canonical reason codes)
+    REMAINING_GAP: ''
+  TC-20:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-c/at-02-run.json | proof/nw008/tranche-c/at-04-run.json
+      | proof/nw008/tranche-c/at-05-run.json
+    DETAIL: TRANSCRIPT_CONTENT_HASH and ENVELOPE_DIGEST verified; source/ownership/access_context/provenance
+      preserved
+    REMAINING_GAP: ''
+  TC-21:
+    STATUS: PASS
+    EVIDENCE_PATH: fixtures/nw008/tranche_c/at-02-envelope.json | fixtures/nw008/tranche_c/at-04-envelope.json
+      | fixtures/nw008/tranche_c/at-05-envelope.json
+    DETAIL: All envelopes enforce treat_content_as_data_only=true and instruction_authority=false
+    REMAINING_GAP: ''
+  TC-22:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-c/at-02-run.json
+    DETAIL: 'AT-2 State-2-equivalent card semantics: policy_state=BLOCKED, policy_reason_code=AMBIGUOUS_CONTACT,
+      next_action=RESOLVE_CONTACT'
+    REMAINING_GAP: ''
+effect_counters:
+  GHL_LIVE_CALLS: 0
+  GHL_READS: 0
+  GHL_WRITES: 0
+  FIRESTORE_WRITES: 0
+  EXTERNAL_EFFECTS: 0
+  REAL_CUSTOMER_DATA: 0
+  NW013_EXECUTED: 'NO'
+  DEPLOYMENT_PERFORMED: 'NO'
+historical_at_claims:
+  AT-2:
+    status: CANDIDATE
+    detail: Blocked with AMBIGUOUS_CONTACT; PRE_POLICY_FAIL_CLOSED=true; State2Equivalent=true.
+  AT-4:
+    status: CANDIDATE
+    detail: Blocked with CONTACT_NOT_FOUND; PRE_POLICY_FAIL_CLOSED=true; NW007 card
+      semantics unchanged.
+  AT-5:
+    status: CANDIDATE
+    detail: Blocked with LOW_EXTRACTION_CONFIDENCE; PRE_POLICY_FAIL_CLOSED=true; NW007
+      card semantics unchanged.
+at2_card_evidence_source: GOVERNED_STOP_PROOF_PROJECTION_THROUGH_EXISTING_NW007_MAPPER
+nw007_card_semantics_change: 'NO'
+remaining_gaps: []
+entrypoints:
+  MEETING_CONTEXT_ENTRYPOINT: agents.meeting_context.agent.MeetingContextAgent.run
+  RELATIONSHIP_CONTEXT_ENTRYPOINT: agents.relationship_context.agent.RelationshipContextAgent.run
+  FOLLOW_UP_PLANNING_ENTRYPOINT: agents.follow_up_planning.agent.FollowUpPlanningAgent.run
+  ADK_RUNTIME_ENTRYPOINT: agents.follow_up_planning.runtime.Unit3FollowUpRuntime.run_unit3
+  POLICY_ENTRYPOINT: orchestration.policy.evaluate_policy
+  PACKET_ENTRYPOINT: agents.follow_up_planning.packet.FollowUpPacketAssembler.assemble
+  DECISION_CARD_ENTRYPOINT: mg_guide.meeting_follow_up_card.decision_mapper.map_packet_to_decision_card
+  TRANSCRIPT_SOURCE_ENTRYPOINT: orchestration.transcript_source.envelope_to_provider_request

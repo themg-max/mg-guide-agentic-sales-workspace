@@ -1,0 +1,275 @@
+{
+  "adk_integration_status": "RUNTIME_INTEGRATED",
+  "adk_runtime_backend": "google_adk_package",
+  "adk_runtime_primitive_used": true,
+  "agent_execution": {
+    "follow_up_planning_agent": {
+      "block_origin": false,
+      "delegate_called": false,
+      "skipped_by": "relationship_context_agent",
+      "wrapper_status": "SKIPPED_GOVERNED_STOP"
+    },
+    "meeting_context_agent": {
+      "block_origin": false,
+      "delegate_called": true,
+      "wrapper_status": "EXECUTED"
+    },
+    "relationship_context_agent": {
+      "block_origin": true,
+      "delegate_called": true,
+      "wrapper_status": "BLOCK_ORIGIN"
+    }
+  },
+  "deterministic_policy_bypass": false,
+  "deterministic_policy_gate_invoked": false,
+  "errors": [],
+  "external_effects": 0,
+  "follow_up_packet": null,
+  "follow_up_planning_agent_implemented": true,
+  "follow_up_proposal": null,
+  "follow_up_proposal_valid": false,
+  "google_adk_package_bound": true,
+  "google_adk_runtime_started": true,
+  "governed_stop": {
+    "boundary_agent_id": "relationship_context_agent",
+    "reason_code": "AMBIGUOUS_CONTACT",
+    "reason_source": "contracts/workflow_states.yaml:transition[resolving->blocked:when=contact_ambiguous]:reason_code=AMBIGUOUS_CONTACT",
+    "wrapper_status": "BLOCK_ORIGIN"
+  },
+  "local_adk_fallback_used": false,
+  "meeting_context": {
+    "agent": "meeting_context_agent",
+    "evidence": {
+      "extraction_confidence": 0.88,
+      "transcript_spans": [
+        {
+          "excerpt_id": "span_at02_ambiguous_summary",
+          "field": "summary"
+        }
+      ]
+    },
+    "external_effects": 0,
+    "extraction": {
+      "commitments": [],
+      "lifecycle": "complete",
+      "needs": [
+        "identify correct Jordan Lee contact"
+      ],
+      "next_step": {
+        "action": "Hold CRM changes until unique contact is identified",
+        "owner": "Advisor Demo",
+        "target_date": null
+      },
+      "objections": [
+        "ambiguous identity"
+      ],
+      "opportunity_signal": {
+        "rationale": "Cannot recommend stage movement while contact is ambiguous.",
+        "recommended_stage": null
+      },
+      "summary": "Two prospects share the name Jordan Lee; no unique contact identifier established; advisor will hold CRM changes."
+    },
+    "meeting": {
+      "meeting_id": "nw008_tc_at02_001",
+      "occurred_at": "2026-08-14T13:00:00Z",
+      "source": "synthetic_demo",
+      "transcript_hash": "918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5"
+    },
+    "participants": [
+      {
+        "email": "advisor@example-demo.test",
+        "name": "Advisor Demo",
+        "phone": "+1-555-0900",
+        "role": "agent"
+      },
+      {
+        "email": null,
+        "name": "Jordan Lee",
+        "phone": null,
+        "role": "prospect"
+      },
+      {
+        "email": null,
+        "name": "Jordan Lee",
+        "phone": null,
+        "role": "prospect"
+      }
+    ],
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Meeting Context Agent proposes structured context only; deterministic policy remains authoritative for any CRM mutation."
+    },
+    "provider": "fixture",
+    "schema": "meeting_context_v1"
+  },
+  "meeting_context_reused": true,
+  "ok": true,
+  "relationship_context": {
+    "agent": "relationship_context_agent",
+    "crm_source": {
+      "adapter": "phase2b_offline_ghl_read_adapter",
+      "live_calls": 0,
+      "mode": "offline_synthetic",
+      "operations_used": [
+        "search-contacts-advanced"
+      ],
+      "real_customer_data": 0,
+      "writes": 0
+    },
+    "evidence": {
+      "notes": "Ambiguous contact match: 2 synthetic candidates; fail-closed with zero CRM writes.",
+      "participant_keys": [
+        {
+          "email": null,
+          "name": "Jordan Lee",
+          "phone": null,
+          "role": "prospect"
+        },
+        {
+          "email": null,
+          "name": "Jordan Lee",
+          "phone": null,
+          "role": "prospect"
+        }
+      ],
+      "resolution_confidence": 0.45
+    },
+    "external_effects": 0,
+    "longitudinal_context": {
+      "commitments_completed": [],
+      "commitments_open": [],
+      "corrected_facts": [],
+      "current_confirmed_facts": [],
+      "evidence_references": [],
+      "goals_refined": [],
+      "new_facts": [],
+      "prior_confirmed_facts": [],
+      "proposed_next_step": null,
+      "schema": "relationship_longitudinal_context_v1",
+      "unchanged_facts": [],
+      "unresolved_questions": [],
+      "unsupported_inferences": []
+    },
+    "meeting_ref": {
+      "meeting_id": "nw008_tc_at02_001",
+      "run_id": "nw008_tranche_c_at-02",
+      "transcript_hash": "918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5"
+    },
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Relationship Context Agent proposes CRM resolution only; deterministic policy remains authoritative for any CRM mutation. Offline synthetic reads only (Phase 2B adapter)."
+    },
+    "provider": "offline_ghl_fixture",
+    "resolution": {
+      "candidate_count": 2,
+      "candidates": [
+        {
+          "contact_id": "contact_demo_jordan_a_001",
+          "display_name": "Jordan Lee",
+          "email": "jordan.lee.a@example-demo.test",
+          "match_basis": "name",
+          "phone": "+1-555-0201"
+        },
+        {
+          "contact_id": "contact_demo_jordan_b_002",
+          "display_name": "Jordan Lee",
+          "email": "jordan.lee.b@example-demo.test",
+          "match_basis": "name",
+          "phone": "+1-555-0202"
+        }
+      ],
+      "contact": null,
+      "contact_id": null,
+      "current_stage": null,
+      "lifecycle": "complete",
+      "match_basis": "name",
+      "opportunity": null,
+      "opportunity_id": null,
+      "status": "ambiguous"
+    },
+    "schema": "relationship_context_v1"
+  },
+  "relationship_context_reused": true,
+  "session": {
+    "agent_trace": [
+      {
+        "agent_id": "meeting_context_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "meeting_context_v1",
+        "status": "ok"
+      },
+      {
+        "agent_id": "relationship_context_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "relationship_context_v1",
+        "status": "BLOCK_ORIGIN"
+      },
+      {
+        "agent_id": "follow_up_planning_agent",
+        "error": "follow_up_planning_agent skipped after governed stop at relationship_context_agent",
+        "external_effects": 0,
+        "output_schema": null,
+        "status": "SKIPPED_GOVERNED_STOP"
+      }
+    ],
+    "backend": "google_adk_package",
+    "completed": true,
+    "external_effects": 0,
+    "run_id": "nw008_tranche_c_at-02",
+    "session_id": "49cb55bf-94ef-47e5-a902-dee6576d86f1",
+    "started": true,
+    "state_keys": [
+      "agent_execution",
+      "approved_prior_context",
+      "errors",
+      "follow_up_packet",
+      "follow_up_policy_gate_invoked",
+      "follow_up_proposal",
+      "governed_stop",
+      "meeting_context",
+      "mutation_execution",
+      "relationship_context",
+      "run_id",
+      "scenario_id",
+      "stop_after"
+    ],
+    "workflow": "meeting_follow_up_v1"
+  },
+  "transcript_content_hash": "918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5",
+  "transcript_source_envelope": {
+    "access_context": {
+      "grant_model": "synthetic_test_grant",
+      "owner_bound": true,
+      "resource_scope": "transcript",
+      "source_access_grant_ref": "synthetic-grant-nw008_tranche_c_at_02_ambiguous_contact",
+      "valid": true
+    },
+    "ownership": {
+      "owner_bound": true,
+      "resource_scope": "transcript",
+      "tenant_ref": "nw008-tranche-c-synthetic-tenant"
+    },
+    "provenance": {
+      "acquired_at": "2026-08-14T13:35:00Z",
+      "chain": [
+        {
+          "details": {
+            "source": "fixture"
+          },
+          "step": "synthetic_fixture_created",
+          "timestamp": "2026-08-14T13:35:00Z"
+        }
+      ],
+      "ingestion_status": "fixture"
+    },
+    "schema": "transcript_source_envelope_v1",
+    "source": {
+      "acquisition_mode": "fixture",
+      "provider": "synthetic",
+      "type": "synthetic_fixture"
+    }
+  },
+  "transcript_source_envelope_digest": "1367ab0f79b1d66c51da67d65fd0ff15efa9b0d2516f55816fd4b07361e0f410"
+}

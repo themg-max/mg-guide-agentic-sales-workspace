@@ -6,7 +6,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
 from agents.adk_runtime import (
     ADK_STATUS_RUNTIME_INTEGRATED,
@@ -44,6 +44,12 @@ DEFAULT_SCENARIOS: Dict[str, Dict[str, Any]] = {
         "expected_note_intents": 0,
         "expected_stage_intents": 0,
         "expected_policy_gate_invoked": False,
+        # The authoritative workflow contract (resolving->blocked when
+        # contact_ambiguous) stops the pipeline pre-policy; no packet.
+        "expected_governed_stop": {
+            "boundary_agent_id": "relationship_context_agent",
+            "reason_code": "AMBIGUOUS_CONTACT",
+        },
     },
     "AMBIGUOUS_OPPORTUNITY": {
         "transcript_fixture": "transcript-ambiguous-opportunity",
@@ -76,6 +82,13 @@ DEFAULT_SCENARIOS: Dict[str, Dict[str, Any]] = {
         "expected_note_intents": 0,
         "expected_stage_intents": 0,
         "expected_policy_gate_invoked": False,
+        # The authoritative workflow contract (extracting->blocked when
+        # extraction_confidence_lt_extraction_abort_threshold) stops the
+        # pipeline pre-policy; no packet.
+        "expected_governed_stop": {
+            "boundary_agent_id": "meeting_context_agent",
+            "reason_code": "LOW_EXTRACTION_CONFIDENCE",
+        },
     },
 }
 
@@ -98,6 +111,7 @@ class Unit3CaseResult:
     google_adk_package_bound: bool
     adk_runtime_primitive_used: bool
     local_adk_fallback_used: bool
+    governed_stop: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -327,9 +341,13 @@ class Unit3FollowUpHarness:
             errors.append("ADK_RUNTIME_PRIMITIVE_USED expected YES")
         if run.local_adk_fallback_used:
             errors.append("LOCAL_ADK_FALLBACK_USED expected NO")
+        expected_stop_meta = meta.get("expected_governed_stop") or {}
+        relationship_expected = (
+            expected_stop_meta.get("boundary_agent_id") != "meeting_context_agent"
+        )
         if not run.meeting_context_reused:
             errors.append("Meeting Context Agent must be reused")
-        if not run.relationship_context_reused:
+        if relationship_expected and not run.relationship_context_reused:
             errors.append("Relationship Context Agent must be reused")
         if run.errors:
             errors.extend(run.errors)
@@ -337,8 +355,52 @@ class Unit3FollowUpHarness:
         actual_status: Optional[str] = None
         proposal = run.follow_up_proposal
         packet = run.follow_up_packet
+        governed_stop = run.governed_stop
+        expected_stop = meta.get("expected_governed_stop")
 
-        if proposal is None or packet is None:
+        if expected_stop is not None:
+            # Governed stop path: the authoritative StateMachine/workflow
+            # contract blocks the pipeline pre-policy; no proposal/packet.
+            if governed_stop is None:
+                errors.append(
+                    "expected governed stop at "
+                    f"{expected_stop['boundary_agent_id']}"
+                )
+            else:
+                if (
+                    governed_stop.get("boundary_agent_id")
+                    != expected_stop["boundary_agent_id"]
+                ):
+                    errors.append(
+                        "expected governed stop boundary="
+                        f"{expected_stop['boundary_agent_id']}, got "
+                        f"{governed_stop.get('boundary_agent_id')}"
+                    )
+                if governed_stop.get("reason_code") != expected_stop["reason_code"]:
+                    errors.append(
+                        f"expected governed stop reason_code="
+                        f"{expected_stop['reason_code']}, got "
+                        f"{governed_stop.get('reason_code')}"
+                    )
+                actual_status = "blocked"
+                if actual_status != expected_status:
+                    errors.append(
+                        f"expected packet status={expected_status}, got "
+                        f"{actual_status}"
+                    )
+            if proposal is not None or packet is not None:
+                errors.append(
+                    "follow_up outputs must be absent after governed stop"
+                )
+            if run.deterministic_policy_gate_invoked != (
+                meta["expected_policy_gate_invoked"]
+            ):
+                errors.append(
+                    f"expected policy_gate_invoked="
+                    f"{meta['expected_policy_gate_invoked']}, got "
+                    f"{run.deterministic_policy_gate_invoked}"
+                )
+        elif proposal is None or packet is None:
             errors.append("follow_up_proposal/follow_up_packet missing")
         else:
             ok_schema, schema_errors = validate_follow_up_proposal(proposal)
@@ -409,6 +471,11 @@ class Unit3FollowUpHarness:
             google_adk_package_bound=run.google_adk_package_bound,
             adk_runtime_primitive_used=run.adk_runtime_primitive_used,
             local_adk_fallback_used=run.local_adk_fallback_used,
+            governed_stop=(
+                dict(governed_stop)
+                if isinstance(governed_stop, Mapping)
+                else None
+            ),
         )
 
     def run(
@@ -429,12 +496,14 @@ class Unit3FollowUpHarness:
         )
         fallback_used = any(c.local_adk_fallback_used for c in cases)
         backends = {c.runtime_backend for c in cases}
+        # Cases that reached the Follow-Up Planning agent (no governed stop).
+        proposal_cases = [c for c in cases if c.governed_stop is None]
         proposals_valid = all(
             c.follow_up_proposal is not None
             and c.follow_up_proposal.get("schema") == "follow_up_proposal_v1"
             and not validate_follow_up_proposal(c.follow_up_proposal)[1]
-            for c in cases
-        ) and bool(cases)
+            for c in proposal_cases
+        ) and bool(proposal_cases)
 
         # Fresh runtime telemetry sample (started + primitive use measured).
         sample_runtime = self._runtime()
@@ -481,15 +550,18 @@ class Unit3FollowUpHarness:
             adk_runtime_primitive_used=primitive_used,
             local_adk_fallback_used=fallback_used,
             follow_up_planning_agent_implemented=all(
-                c.follow_up_proposal is not None for c in cases
+                c.follow_up_proposal is not None for c in proposal_cases
             )
-            and bool(cases),
+            and bool(proposal_cases),
             meeting_context_reused=all(
-                (c.follow_up_packet or {}).get("meeting") for c in cases
+                (c.follow_up_packet or {}).get("meeting") for c in proposal_cases
             )
-            and bool(cases),
+            and bool(proposal_cases),
             relationship_context_reused=all(
-                c.relationship_context_reused for c in cases
+                c.relationship_context_reused
+                for c in cases
+                if (c.governed_stop or {}).get("boundary_agent_id")
+                != "meeting_context_agent"
             )
             and bool(cases),
             google_adk_runtime_reused=bool(runtime_started),

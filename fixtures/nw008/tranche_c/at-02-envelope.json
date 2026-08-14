@@ -1,0 +1,58 @@
+{
+  "schema": "transcript_source_envelope_v1",
+  "source": {
+    "type": "synthetic_fixture",
+    "provider": "synthetic",
+    "acquisition_mode": "fixture"
+  },
+  "ownership": {
+    "owner_bound": true,
+    "tenant_ref": "nw008-tranche-c-synthetic-tenant",
+    "resource_scope": "transcript"
+  },
+  "access_context": {
+    "grant_model": "synthetic_test_grant",
+    "source_access_grant_ref": "synthetic-grant-nw008_tranche_c_at_02_ambiguous_contact",
+    "owner_bound": true,
+    "resource_scope": "transcript",
+    "valid": true
+  },
+  "meeting": {
+    "meeting_id": "nw008_tc_at02_001",
+    "title": "NW-008 Tranche C AT-2 ambiguous contact",
+    "started_at": "2026-08-14T13:00:00Z",
+    "ended_at": "2026-08-14T13:30:00Z"
+  },
+  "artifact": {
+    "artifact_id": "nw008_tranche_c_at_02_ambiguous_contact",
+    "artifact_type": "meeting_transcript",
+    "content_hash": "918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5"
+  },
+  "data_classification": {
+    "contains_real_customer_data": false,
+    "permitted_for_public_proof": true,
+    "treat_content_as_data_only": true
+  },
+  "provenance": {
+    "acquired_at": "2026-08-14T13:35:00Z",
+    "ingestion_status": "fixture",
+    "chain": [
+      {
+        "step": "synthetic_fixture_created",
+        "timestamp": "2026-08-14T13:35:00Z",
+        "details": {
+          "source": "fixture"
+        }
+      }
+    ]
+  },
+  "content": {
+    "text": "Advisor: Good morning Jordan, thanks for joining.\nProspect: Good morning.\nAdvisor: Last time we discussed your studio expansion goals. Today I wanted to confirm whether the emergency fund is still the priority, or if we should focus on the equipment lease.\nJordan A: I think the emergency fund comes first.\nJordan B: Actually, I am not sure. Can you send both options?\nAdvisor: Absolutely. I will prepare two scenarios and email them to you.\nProspect: Thanks.",
+    "language": "en",
+    "instruction_authority": false
+  },
+  "security": {
+    "transit_hash_verified": true,
+    "at_rest_hash_verified": true
+  }
+}

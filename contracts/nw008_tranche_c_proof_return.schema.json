@@ -1,0 +1,445 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/nw008_tranche_c_proof_return.schema.json",
+  "title": "nw008_tranche_c_proof_return_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "execution_unit",
+    "purpose",
+    "implementation_subject_sha",
+    "transcript_source_contract",
+    "authoritative_stop_source",
+    "targets",
+    "excludes",
+    "scenarios",
+    "proof_obligations",
+    "effect_counters",
+    "historical_at_claims",
+    "at2_card_evidence_source",
+    "nw007_card_semantics_change",
+    "remaining_gaps",
+    "entrypoints"
+  ],
+  "properties": {
+    "execution_unit": {
+      "type": "string",
+      "const": "TRANCHE_C"
+    },
+    "purpose": {
+      "type": "string",
+      "const": "HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY"
+    },
+    "implementation_subject_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{7,40}$"
+    },
+    "transcript_source_contract": {
+      "type": "string",
+      "const": "TRANSCRIPT_SOURCE_ENVELOPE_V1"
+    },
+    "authoritative_stop_source": {
+      "type": "string",
+      "const": "STATE_MACHINE_WORKFLOW_CONTRACT"
+    },
+    "targets": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "AT-2" },
+        { "const": "AT-4" },
+        { "const": "AT-5" }
+      ],
+      "items": false,
+      "minItems": 3,
+      "maxItems": 3,
+      "uniqueItems": true
+    },
+    "excludes": {
+      "type": "array",
+      "prefixItems": [
+        { "const": "AT-8" },
+        { "const": "AT-9" }
+      ],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2,
+      "uniqueItems": true
+    },
+    "scenarios": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["AT-2", "AT-4", "AT-5"],
+      "properties": {
+        "AT-2": {
+          "$ref": "#/$defs/scenarioAT2"
+        },
+        "AT-4": {
+          "$ref": "#/$defs/scenarioAT4"
+        },
+        "AT-5": {
+          "$ref": "#/$defs/scenarioAT5"
+        }
+      }
+    },
+    "proof_obligations": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "TC-01",
+        "TC-02",
+        "TC-03",
+        "TC-04",
+        "TC-05",
+        "TC-06",
+        "TC-07",
+        "TC-08",
+        "TC-09",
+        "TC-10",
+        "TC-11",
+        "TC-12",
+        "TC-13",
+        "TC-14",
+        "TC-15",
+        "TC-16",
+        "TC-17",
+        "TC-18",
+        "TC-19",
+        "TC-20",
+        "TC-21",
+        "TC-22"
+      ],
+      "patternProperties": {
+        "^TC-(0[1-9]|1[0-9]|2[0-2])$": {
+          "$ref": "#/$defs/proofObligation"
+        }
+      }
+    },
+    "effect_counters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "GHL_LIVE_CALLS",
+        "GHL_READS",
+        "GHL_WRITES",
+        "FIRESTORE_WRITES",
+        "EXTERNAL_EFFECTS",
+        "REAL_CUSTOMER_DATA",
+        "NW013_EXECUTED",
+        "DEPLOYMENT_PERFORMED"
+      ],
+      "properties": {
+        "GHL_LIVE_CALLS": {
+          "type": "integer",
+          "const": 0
+        },
+        "GHL_READS": {
+          "type": "integer",
+          "const": 0
+        },
+        "GHL_WRITES": {
+          "type": "integer",
+          "const": 0
+        },
+        "FIRESTORE_WRITES": {
+          "type": "integer",
+          "const": 0
+        },
+        "EXTERNAL_EFFECTS": {
+          "type": "integer",
+          "const": 0
+        },
+        "REAL_CUSTOMER_DATA": {
+          "type": "integer",
+          "const": 0
+        },
+        "NW013_EXECUTED": {
+          "type": "string",
+          "const": "NO"
+        },
+        "DEPLOYMENT_PERFORMED": {
+          "type": "string",
+          "const": "NO"
+        }
+      }
+    },
+    "historical_at_claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["AT-2", "AT-4", "AT-5"],
+      "properties": {
+        "AT-2": {
+          "$ref": "#/$defs/historicalClaim"
+        },
+        "AT-4": {
+          "$ref": "#/$defs/historicalClaim"
+        },
+        "AT-5": {
+          "$ref": "#/$defs/historicalClaim"
+        }
+      }
+    },
+    "at2_card_evidence_source": {
+      "type": "string",
+      "const": "GOVERNED_STOP_PROOF_PROJECTION_THROUGH_EXISTING_NW007_MAPPER"
+    },
+    "nw007_card_semantics_change": {
+      "type": "string",
+      "const": "NO"
+    },
+    "remaining_gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "entrypoints": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "proofObligation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["STATUS", "EVIDENCE_PATH", "DETAIL", "REMAINING_GAP"],
+      "properties": {
+        "STATUS": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "PARTIAL", "BLOCKED"]
+        },
+        "EVIDENCE_PATH": {
+          "type": "string",
+          "minLength": 1
+        },
+        "DETAIL": {
+          "type": "string"
+        },
+        "REMAINING_GAP": {
+          "type": "string"
+        }
+      }
+    },
+    "zeroEffects": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "GHL_LIVE_CALLS",
+        "GHL_READS",
+        "GHL_WRITES",
+        "FIRESTORE_WRITES",
+        "EXTERNAL_EFFECTS",
+        "REAL_CUSTOMER_DATA"
+      ],
+      "properties": {
+        "GHL_LIVE_CALLS": {
+          "type": "integer",
+          "const": 0
+        },
+        "GHL_READS": {
+          "type": "integer",
+          "const": 0
+        },
+        "GHL_WRITES": {
+          "type": "integer",
+          "const": 0
+        },
+        "FIRESTORE_WRITES": {
+          "type": "integer",
+          "const": 0
+        },
+        "EXTERNAL_EFFECTS": {
+          "type": "integer",
+          "const": 0
+        },
+        "REAL_CUSTOMER_DATA": {
+          "type": "integer",
+          "const": 0
+        }
+      }
+    },
+    "agentStatusMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": ["ok", "BLOCK_ORIGIN", "SKIPPED_GOVERNED_STOP", "error"]
+      }
+    },
+    "agentExecutionMap": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["wrapper_status", "delegate_called", "block_origin"],
+        "properties": {
+          "wrapper_status": {
+            "type": "string",
+            "enum": [
+              "EXECUTED",
+              "BLOCK_ORIGIN",
+              "SKIPPED_GOVERNED_STOP",
+              "ERROR"
+            ]
+          },
+          "delegate_called": {
+            "type": "boolean"
+          },
+          "block_origin": {
+            "type": "boolean"
+          },
+          "skipped_by": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "scenarioCommon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "envelope_path",
+        "transcript_content_hash",
+        "envelope_digest",
+        "run_id",
+        "run_path",
+        "agents_started",
+        "agents_completed",
+        "agent_statuses",
+        "agent_execution",
+        "stop_point",
+        "stop_reason_code",
+        "stop_reason_source",
+        "policy_gate_invoked",
+        "policy_bypass",
+        "disposition",
+        "effect_counters"
+      ],
+      "properties": {
+        "envelope_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transcript_content_hash": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "envelope_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "run_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "agents_started": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "agents_completed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "agent_statuses": {
+          "$ref": "#/$defs/agentStatusMap"
+        },
+        "agent_execution": {
+          "$ref": "#/$defs/agentExecutionMap"
+        },
+        "stop_point": {
+          "type": "string"
+        },
+        "stop_reason_code": {
+          "type": "string"
+        },
+        "stop_reason_source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_gate_invoked": {
+          "type": "boolean",
+          "const": false
+        },
+        "policy_bypass": {
+          "type": "boolean",
+          "const": false
+        },
+        "disposition": {
+          "type": "string",
+          "const": "blocked"
+        },
+        "effect_counters": {
+          "$ref": "#/$defs/zeroEffects"
+        }
+      }
+    },
+    "scenarioAT2": {
+      "allOf": [
+        { "$ref": "#/$defs/scenarioCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "stop_point": {
+              "const": "relationship_context_agent"
+            },
+            "stop_reason_code": {
+              "const": "AMBIGUOUS_CONTACT"
+            }
+          }
+        }
+      ]
+    },
+    "scenarioAT4": {
+      "allOf": [
+        { "$ref": "#/$defs/scenarioCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "stop_point": {
+              "const": "relationship_context_agent"
+            },
+            "stop_reason_code": {
+              "const": "CONTACT_NOT_FOUND"
+            }
+          }
+        }
+      ]
+    },
+    "scenarioAT5": {
+      "allOf": [
+        { "$ref": "#/$defs/scenarioCommon" },
+        {
+          "type": "object",
+          "properties": {
+            "stop_point": {
+              "const": "meeting_context_agent"
+            },
+            "stop_reason_code": {
+              "const": "LOW_EXTRACTION_CONFIDENCE"
+            }
+          }
+        }
+      ]
+    },
+    "historicalClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "detail"],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": ["YES", "NO", "CANDIDATE", "EXCLUDED"]
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

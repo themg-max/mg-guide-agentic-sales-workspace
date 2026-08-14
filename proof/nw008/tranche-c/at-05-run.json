@@ -1,0 +1,170 @@
+{
+  "adk_integration_status": "RUNTIME_INTEGRATED",
+  "adk_runtime_backend": "google_adk_package",
+  "adk_runtime_primitive_used": true,
+  "agent_execution": {
+    "follow_up_planning_agent": {
+      "block_origin": false,
+      "delegate_called": false,
+      "skipped_by": "meeting_context_agent",
+      "wrapper_status": "SKIPPED_GOVERNED_STOP"
+    },
+    "meeting_context_agent": {
+      "block_origin": true,
+      "delegate_called": true,
+      "wrapper_status": "BLOCK_ORIGIN"
+    },
+    "relationship_context_agent": {
+      "block_origin": false,
+      "delegate_called": false,
+      "skipped_by": "meeting_context_agent",
+      "wrapper_status": "SKIPPED_GOVERNED_STOP"
+    }
+  },
+  "deterministic_policy_bypass": false,
+  "deterministic_policy_gate_invoked": false,
+  "errors": [],
+  "external_effects": 0,
+  "follow_up_packet": null,
+  "follow_up_planning_agent_implemented": true,
+  "follow_up_proposal": null,
+  "follow_up_proposal_valid": false,
+  "google_adk_package_bound": true,
+  "google_adk_runtime_started": true,
+  "governed_stop": {
+    "boundary_agent_id": "meeting_context_agent",
+    "reason_code": "LOW_EXTRACTION_CONFIDENCE",
+    "reason_source": "contracts/workflow_states.yaml:transition[extracting->blocked:when=extraction_confidence_lt_extraction_abort_threshold]:reason_code=LOW_EXTRACTION_CONFIDENCE:threshold=0.7",
+    "wrapper_status": "BLOCK_ORIGIN"
+  },
+  "local_adk_fallback_used": false,
+  "meeting_context": {
+    "agent": "meeting_context_agent",
+    "evidence": {
+      "extraction_confidence": 0.3,
+      "transcript_spans": []
+    },
+    "external_effects": 0,
+    "extraction": {
+      "commitments": [],
+      "lifecycle": "complete",
+      "needs": [],
+      "next_step": null,
+      "objections": [],
+      "opportunity_signal": null,
+      "summary": null
+    },
+    "meeting": {
+      "meeting_id": "nw008_tc_at05_001",
+      "occurred_at": "2026-08-14T13:00:00Z",
+      "source": "synthetic_demo",
+      "transcript_hash": "775d6f0998b8421f44f094eb40570e61469c3d56135d1eb8125b8beb1275c67f"
+    },
+    "participants": [
+      {
+        "email": "advisor@example-demo.test",
+        "name": "Advisor Demo",
+        "phone": "+1-555-0900",
+        "role": "agent"
+      },
+      {
+        "email": null,
+        "name": "Unknown Caller",
+        "phone": null,
+        "role": "prospect"
+      }
+    ],
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Meeting Context Agent proposes structured context only; deterministic policy remains authoritative for any CRM mutation."
+    },
+    "provider": "fixture",
+    "schema": "meeting_context_v1"
+  },
+  "meeting_context_reused": true,
+  "ok": true,
+  "relationship_context": null,
+  "relationship_context_reused": false,
+  "session": {
+    "agent_trace": [
+      {
+        "agent_id": "meeting_context_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "meeting_context_v1",
+        "status": "BLOCK_ORIGIN"
+      },
+      {
+        "agent_id": "relationship_context_agent",
+        "error": "relationship_context_agent skipped after governed stop at meeting_context_agent",
+        "external_effects": 0,
+        "output_schema": null,
+        "status": "SKIPPED_GOVERNED_STOP"
+      },
+      {
+        "agent_id": "follow_up_planning_agent",
+        "error": "follow_up_planning_agent skipped after governed stop at meeting_context_agent",
+        "external_effects": 0,
+        "output_schema": null,
+        "status": "SKIPPED_GOVERNED_STOP"
+      }
+    ],
+    "backend": "google_adk_package",
+    "completed": true,
+    "external_effects": 0,
+    "run_id": "nw008_tranche_c_at-05",
+    "session_id": "325c34d3-edd4-4fb7-afc7-f78e5528e6f1",
+    "started": true,
+    "state_keys": [
+      "agent_execution",
+      "approved_prior_context",
+      "errors",
+      "follow_up_packet",
+      "follow_up_policy_gate_invoked",
+      "follow_up_proposal",
+      "governed_stop",
+      "meeting_context",
+      "mutation_execution",
+      "relationship_context",
+      "run_id",
+      "scenario_id",
+      "stop_after"
+    ],
+    "workflow": "meeting_follow_up_v1"
+  },
+  "transcript_content_hash": "775d6f0998b8421f44f094eb40570e61469c3d56135d1eb8125b8beb1275c67f",
+  "transcript_source_envelope": {
+    "access_context": {
+      "grant_model": "synthetic_test_grant",
+      "owner_bound": true,
+      "resource_scope": "transcript",
+      "source_access_grant_ref": "synthetic-grant-nw008_tranche_c_at_05_low_extraction_confidence",
+      "valid": true
+    },
+    "ownership": {
+      "owner_bound": true,
+      "resource_scope": "transcript",
+      "tenant_ref": "nw008-tranche-c-synthetic-tenant"
+    },
+    "provenance": {
+      "acquired_at": "2026-08-14T13:35:00Z",
+      "chain": [
+        {
+          "details": {
+            "source": "fixture"
+          },
+          "step": "synthetic_fixture_created",
+          "timestamp": "2026-08-14T13:35:00Z"
+        }
+      ],
+      "ingestion_status": "fixture"
+    },
+    "schema": "transcript_source_envelope_v1",
+    "source": {
+      "acquisition_mode": "fixture",
+      "provider": "synthetic",
+      "type": "synthetic_fixture"
+    }
+  },
+  "transcript_source_envelope_digest": "64020b28a755ad29ac2bbf1ffcc6be417b6ae03af6c8211e853b7904881b9d0a"
+}

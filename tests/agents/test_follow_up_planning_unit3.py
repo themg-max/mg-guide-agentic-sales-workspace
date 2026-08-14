@@ -147,7 +147,23 @@ def test_unit3_scenarios(scenario_id):
     assert result.adk_runtime_primitive_used is True
     assert result.local_adk_fallback_used is False
     assert result.runtime_backend == RUNTIME_BACKEND_GOOGLE_ADK
-    assert result.relationship_context_reused is True
+
+    expected_stop = meta.get("expected_governed_stop")
+    if expected_stop is None or expected_stop["boundary_agent_id"] != (
+        "meeting_context_agent"
+    ):
+        assert result.relationship_context_reused is True
+    if expected_stop is not None:
+        assert result.governed_stop is not None
+        assert (
+            result.governed_stop["boundary_agent_id"]
+            == expected_stop["boundary_agent_id"]
+        )
+        assert result.governed_stop["reason_code"] == expected_stop["reason_code"]
+        assert result.follow_up_proposal is None
+        assert result.follow_up_packet is None
+        assert result.policy_gate_invoked is False
+        return
 
     proposal = result.follow_up_proposal
     packet = result.follow_up_packet
@@ -217,17 +233,22 @@ def test_stage_change_denied_by_policy_gate():
 
 
 def test_ambiguous_contact_no_mutation_authorized():
+    """Ambiguous contact resolution is blocked by the authoritative workflow
+    contract (resolving->blocked when=contact_ambiguous) before any proposal,
+    packet, or mutation intent exists."""
     result = Unit3FollowUpHarness().run_scenario("AMBIGUOUS_CONTACT")
     assert result.ok, result.errors
-    packet = result.follow_up_packet
-    proposal = result.follow_up_proposal
-    assert packet["run"]["status"] == "blocked"
-    assert packet["crm_resolution"]["status"] == "ambiguous"
-    assert "AMBIGUOUS_CONTACT" in packet["policy"]["reason_codes"]
-    assert packet["mutation_intents"] == {"note": [], "stage": []}
-    assert proposal["disposition"] == "needs_review"
-    assert proposal["authorized_mutation_intents"] == {"note": [], "stage": []}
-    assert proposal["policy_evaluation"]["invoked"] is False
+    assert result.actual_packet_status == "blocked"
+    stop = result.governed_stop
+    assert stop is not None
+    assert stop["boundary_agent_id"] == "relationship_context_agent"
+    assert stop["reason_code"] == "AMBIGUOUS_CONTACT"
+    # Pre-policy fail-closed: no proposal, no packet, no intents at all.
+    assert result.follow_up_proposal is None
+    assert result.follow_up_packet is None
+    assert result.policy_gate_invoked is False
+    assert result.external_effects == 0
+    assert result.deterministic_policy_bypass is False
 
 
 def test_ambiguous_opportunity_no_mutation_authorized():
@@ -257,22 +278,23 @@ def test_no_opportunity_blocks_before_policy():
 
 
 def test_insufficient_context_no_fabricated_crm_facts():
+    """Extraction confidence below the abort threshold is blocked by the
+    authoritative workflow contract (extracting->blocked) at the meeting
+    context boundary: no CRM resolution, proposal, or packet can fabricate
+    facts downstream."""
     result = Unit3FollowUpHarness().run_scenario("INSUFFICIENT_CONTEXT")
     assert result.ok, result.errors
-    packet = result.follow_up_packet
-    proposal = result.follow_up_proposal
-    assert packet["run"]["status"] == "blocked"
-    assert "LOW_EXTRACTION_CONFIDENCE" in packet["policy"]["reason_codes"]
-    # Extraction aborted: no fabricated facts propagate into the packet.
-    assert packet["extraction"]["lifecycle"] == "aborted"
-    assert packet["extraction"]["summary"] is None
-    assert packet["crm_resolution"]["lifecycle"] == "not_attempted"
-    assert packet["crm_resolution"]["status"] == "not_attempted"
-    assert packet["crm_resolution"]["contact_id"] is None
-    assert packet["crm_resolution"]["opportunity_id"] is None
-    assert packet["mutation_intents"] == {"note": [], "stage": []}
-    assert proposal["disposition"] == "no_op"
-    assert proposal["authorized_mutation_intents"] == {"note": [], "stage": []}
+    assert result.actual_packet_status == "blocked"
+    stop = result.governed_stop
+    assert stop is not None
+    assert stop["boundary_agent_id"] == "meeting_context_agent"
+    assert stop["reason_code"] == "LOW_EXTRACTION_CONFIDENCE"
+    # Extraction aborted: nothing propagates downstream at all.
+    assert result.follow_up_proposal is None
+    assert result.follow_up_packet is None
+    assert result.policy_gate_invoked is False
+    assert result.external_effects == 0
+    assert result.deterministic_policy_bypass is False
 
 
 def test_full_unit3_harness():

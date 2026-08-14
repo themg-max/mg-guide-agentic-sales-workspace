@@ -1,0 +1,209 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://themg-max.github.io/mg-guide-agentic-sales-workspace/contracts/transcript_source_envelope.schema.json",
+  "title": "TRANSCRIPT_SOURCE_ENVELOPE_V1",
+  "description": "Provider-neutral transcript source envelope consumed by meeting_follow_up_v1 fleet processing. Decouples acquisition from fleet execution.",
+  "type": "object",
+  "required": [
+    "schema",
+    "source",
+    "ownership",
+    "access_context",
+    "meeting",
+    "artifact",
+    "data_classification",
+    "provenance",
+    "content",
+    "security"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "transcript_source_envelope_v1"
+    },
+    "source": {
+      "type": "object",
+      "required": ["type", "provider", "acquisition_mode"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Logical source type, e.g. synthetic_fixture or google_workspace_meet_transcript."
+        },
+        "provider": {
+          "type": "string",
+          "description": "Logical provider namespace, e.g. synthetic or google_workspace."
+        },
+        "acquisition_mode": {
+          "type": "string",
+          "description": "How the transcript content was acquired, e.g. fixture or authorized_drive_read."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ownership": {
+      "type": "object",
+      "required": ["owner_bound", "tenant_ref", "resource_scope"],
+      "properties": {
+        "owner_bound": {
+          "type": "boolean",
+          "description": "True when the transcript resource is bound to an owning principal."
+        },
+        "tenant_ref": {
+          "type": "string",
+          "description": "Synthetic opaque tenant reference. No real domain or user ID."
+        },
+        "resource_scope": {
+          "type": "string",
+          "description": "Scope of the owned resource, e.g. transcript."
+        }
+      },
+      "additionalProperties": false
+    },
+    "access_context": {
+      "type": "object",
+      "required": ["grant_model", "source_access_grant_ref", "owner_bound", "resource_scope", "valid"],
+      "properties": {
+        "grant_model": {
+          "type": "string",
+          "description": "Logical grant model, e.g. synthetic_test_grant or future mg_guide_addon_scoped_grant."
+        },
+        "source_access_grant_ref": {
+          "type": "string",
+          "description": "Synthetic opaque grant reference. No live OAuth token or private grant contract."
+        },
+        "owner_bound": {
+          "type": "boolean"
+        },
+        "resource_scope": {
+          "type": "string"
+        },
+        "valid": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "meeting": {
+      "type": "object",
+      "required": ["meeting_id", "title", "started_at", "ended_at"],
+      "properties": {
+        "meeting_id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ended_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["artifact_id", "artifact_type", "content_hash"],
+      "properties": {
+        "artifact_id": {
+          "type": "string"
+        },
+        "artifact_type": {
+          "type": "string",
+          "const": "meeting_transcript"
+        },
+        "content_hash": {
+          "type": "string",
+          "description": "SHA-256 of the envelope content.text field."
+        }
+      },
+      "additionalProperties": false
+    },
+    "data_classification": {
+      "type": "object",
+      "required": ["contains_real_customer_data", "permitted_for_public_proof", "treat_content_as_data_only"],
+      "properties": {
+        "contains_real_customer_data": {
+          "type": "boolean"
+        },
+        "permitted_for_public_proof": {
+          "type": "boolean"
+        },
+        "treat_content_as_data_only": {
+          "type": "boolean",
+          "const": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["acquired_at", "ingestion_status", "chain"],
+      "properties": {
+        "acquired_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ingestion_status": {
+          "type": "string",
+          "enum": ["fixture", "pending", "ingested", "failed"]
+        },
+        "chain": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["step", "timestamp"],
+            "properties": {
+              "step": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "details": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "content": {
+      "type": "object",
+      "required": ["text", "language", "instruction_authority"],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "language": {
+          "type": "string"
+        },
+        "instruction_authority": {
+          "type": "boolean",
+          "const": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "security": {
+      "type": "object",
+      "required": ["transit_hash_verified", "at_rest_hash_verified"],
+      "properties": {
+        "transit_hash_verified": {
+          "type": "boolean"
+        },
+        "at_rest_hash_verified": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
