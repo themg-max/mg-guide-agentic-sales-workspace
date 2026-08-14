@@ -63,6 +63,7 @@ class PacketAssembly:
     )
     reason_codes: List[str] = field(default_factory=list)
     policy_gate_invoked: bool = False
+    policy_inputs_used: Dict[str, Any] = field(default_factory=dict)
     final_state: str = "received"
 
 
@@ -88,6 +89,7 @@ class FollowUpPacketAssembler:
         note_requested: bool,
         stage_requested: bool,
         recommended_stage: Optional[str],
+        policy_context: Optional[Mapping[str, Any]] = None,
         created_at: Optional[str] = None,
     ) -> PacketAssembly:
         meeting = deepcopy(dict(meeting_context.get("meeting") or {}))
@@ -197,6 +199,8 @@ class FollowUpPacketAssembler:
             "force_note_denied": False,
             "force_stage_denied": False,
         }
+        if policy_context is not None:
+            policy_inputs["proposal_context"] = deepcopy(dict(policy_context))
         decision = evaluate_policy(
             self.sm,
             extraction_confidence=float(confidence),
@@ -225,6 +229,7 @@ class FollowUpPacketAssembler:
             )
             assembly.decision = decision
             assembly.policy_gate_invoked = True
+            assembly.policy_inputs_used = deepcopy(policy_inputs)
             return assembly
 
         # evaluating -> writing: record policy-bounded intents only (no effects).
@@ -274,6 +279,7 @@ class FollowUpPacketAssembler:
         assembly.decision = decision
         assembly.intents = intents
         assembly.policy_gate_invoked = True
+        assembly.policy_inputs_used = deepcopy(policy_inputs)
         return assembly
 
     @staticmethod

@@ -24,7 +24,7 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from agents.adk_runtime.markers import (
     ADK_STATUS_RUNTIME_INTEGRATED,
@@ -139,6 +139,7 @@ def _build_unit3_adk_agents(
                         meeting_context=meeting_context,
                         run_id=ctx.session.state.get("run_id"),
                         scenario_id=ctx.session.state.get("scenario_id"),
+                        prior_context=ctx.session.state.get("approved_prior_context"),
                     )
                     result = self.delegate.run(request)
                     payload = {"relationship_context": result.to_dict()}
@@ -322,6 +323,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
         meeting_request: ProviderRequest,
         run_id: Optional[str],
         scenario_id: Optional[str],
+        approved_prior_context: Optional[Mapping[str, Any]],
     ) -> Tuple[Any, List[Any], List[str]]:
         """Execute the ADK Runner and return (final_session, events, errors)."""
         prim = self._prim
@@ -330,6 +332,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             "meeting_request": meeting_request,
             "run_id": run_id,
             "scenario_id": scenario_id,
+            "approved_prior_context": approved_prior_context,
             "errors": [],
             "meeting_context": None,
             "relationship_context": None,
@@ -377,6 +380,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
         meeting_request: ProviderRequest,
         run_id: Optional[str] = None,
         scenario_id: Optional[str] = None,
+        approved_prior_context: Optional[Mapping[str, Any]] = None,
     ) -> Unit3RunResult:
         """Execute the Unit 3 pipeline through the Google ADK Runner and stop."""
         self.ensure_started()
@@ -385,6 +389,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
                 meeting_request=meeting_request,
                 run_id=run_id,
                 scenario_id=scenario_id,
+                approved_prior_context=approved_prior_context,
             )
         )
 

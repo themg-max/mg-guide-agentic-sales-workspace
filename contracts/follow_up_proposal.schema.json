@@ -178,6 +178,15 @@
         "deterministic_policy_bypass": {
           "type": "boolean",
           "const": false
+        },
+        "context_supplied": {
+          "type": "boolean"
+        },
+        "context_source": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -264,6 +273,47 @@
     "external_effects": {
       "type": "integer",
       "const": 0
+    },
+    "confirmed_context_used": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "confirmed_fact_ids",
+        "unresolved_question_ids",
+        "proposed_next_step",
+        "evidence_excerpt_ids"
+      ],
+      "properties": {
+        "source": {
+          "type": "string",
+          "const": "relationship_context.longitudinal_context"
+        },
+        "confirmed_fact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "unresolved_question_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "proposed_next_step": {
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "evidence_excerpt_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
     },
     "policy_authority": {
       "type": "object",

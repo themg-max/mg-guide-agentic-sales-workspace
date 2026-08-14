@@ -107,6 +107,20 @@ No unsupported inference may be promoted to confirmed fact.
 Agents must **not** authorize consequential actions.
 Deterministic policy remains the sole action gate.
 
+## Implementation discovery clarifications
+
+- Reused callable entrypoints are bound to:
+  - `agents.meeting_context.agent.MeetingContextAgent.run`
+  - `agents.relationship_context.agent.RelationshipContextAgent.run`
+  - `agents.follow_up_planning.agent.FollowUpPlanningAgent.run`
+  - `agents.follow_up_planning.runtime.Unit3FollowUpRuntime.run_unit3`
+  - `orchestration.policy.evaluate_policy`
+  - `agents.follow_up_planning.packet.FollowUpPacketAssembler.assemble`
+  - `mg_guide.meeting_follow_up_card.decision_mapper.map_packet_to_decision_card`
+- Smallest orchestration change required: pass approved Meeting-1 prior context through the existing Unit 3 ADK runtime/session state into the existing `RelationshipRequest` surface for Meeting 2.
+- `meeting_follow_up_packet_v1` semantics remain unchanged in Tranche B; packet schema does not expand for longitudinal proof.
+- Follow-Up Planning proposal metadata may record confirmed-context usage / policy-context receipt for proof, but this does **not** change deterministic policy authorization semantics.
+
 ## Proof obligations
 
 Define Tranche B proof obligations before coding.

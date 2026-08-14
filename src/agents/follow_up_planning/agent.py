@@ -9,6 +9,7 @@ self-authorizes CRM mutation, never calls live GHL, and never writes CRM.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Dict, List, Optional
 
 from .models import FollowUpPlanningRequest, FollowUpPlanningResult
@@ -42,10 +43,20 @@ class FollowUpPlanningAgent:
         resolution_status = str(resolution.get("status") or "not_found")
 
         extraction = dict(meeting_context.get("extraction") or {})
-        summary = extraction.get("summary")
-        next_step = extraction.get("next_step") or {}
-        signal = extraction.get("opportunity_signal") or {}
-        recommended_stage = signal.get("recommended_stage")
+        longitudinal_context = relationship_context.get("longitudinal_context")
+        confirmed_context_used = self._confirmed_context_used(longitudinal_context)
+        summary = self._summary_for_proposal(
+            extraction=extraction,
+            longitudinal_context=longitudinal_context,
+        )
+        next_step = self._next_step_for_proposal(
+            extraction=extraction,
+            longitudinal_context=longitudinal_context,
+        )
+        recommended_stage = self._recommended_stage_for_proposal(
+            extraction=extraction,
+            longitudinal_context=longitudinal_context,
+        )
         matched = resolution_status == "matched"
 
         # Proposal only: the agent requests intents; it never authorizes them.
@@ -60,6 +71,7 @@ class FollowUpPlanningAgent:
             note_requested=note_requested,
             stage_requested=stage_requested,
             recommended_stage=recommended_stage,
+            policy_context=confirmed_context_used,
         )
         packet = assembly.packet
         decision = assembly.decision
@@ -74,6 +86,7 @@ class FollowUpPlanningAgent:
             recommended_stage=recommended_stage,
             note_requested=note_requested,
             stage_requested=stage_requested,
+            confirmed_context_used=confirmed_context_used,
             assembly=assembly,
         )
 
@@ -119,6 +132,7 @@ class FollowUpPlanningAgent:
         recommended_stage: Optional[str],
         note_requested: bool,
         stage_requested: bool,
+        confirmed_context_used: Optional[Dict[str, Any]],
         assembly: Any,
     ) -> Dict[str, Any]:
         packet = assembly.packet
@@ -152,9 +166,21 @@ class FollowUpPlanningAgent:
             "stage_write": decision.stage_write if gate_invoked else "not_attempted",
             "reason_codes": list(assembly.reason_codes),
             "deterministic_policy_bypass": False,
+            "context_supplied": bool(
+                gate_invoked and assembly.policy_inputs_used.get("proposal_context")
+            ),
+            "context_source": (
+                str(
+                    (
+                        assembly.policy_inputs_used.get("proposal_context") or {}
+                    ).get("source")
+                )
+                if gate_invoked and assembly.policy_inputs_used.get("proposal_context")
+                else None
+            ),
         }
 
-        return {
+        proposal = {
             "schema": "follow_up_proposal_v1",
             "agent": self.agent_id,
             "run_id": run_id,
@@ -164,7 +190,13 @@ class FollowUpPlanningAgent:
             "proposed_next_steps": proposed_next_steps,
             "note_proposal": {
                 "requested": bool(note_requested),
-                "body_ref": "extraction.summary" if note_requested else None,
+                "body_ref": (
+                    "relationship_context.longitudinal_context"
+                    if note_requested and confirmed_context_used is not None
+                    else "extraction.summary"
+                    if note_requested
+                    else None
+                ),
             },
             "stage_proposal": {
                 "requested": bool(stage_requested),
@@ -192,6 +224,103 @@ class FollowUpPlanningAgent:
                 ),
             },
         }
+        if confirmed_context_used is not None:
+            proposal["confirmed_context_used"] = confirmed_context_used
+        return proposal
+
+    @staticmethod
+    def _confirmed_context_used(longitudinal_context: Any) -> Optional[Dict[str, Any]]:
+        if not isinstance(longitudinal_context, dict):
+            return None
+        confirmed_fact_ids = [
+            str(item.get("fact_id"))
+            for item in (longitudinal_context.get("current_confirmed_facts") or [])
+            if isinstance(item, dict) and item.get("fact_id")
+        ]
+        unresolved_question_ids = [
+            str(item.get("question_id"))
+            for item in (longitudinal_context.get("unresolved_questions") or [])
+            if isinstance(item, dict) and item.get("question_id")
+        ]
+        evidence_ids = sorted(
+            {
+                str(excerpt_id)
+                for ref in (longitudinal_context.get("evidence_references") or [])
+                if isinstance(ref, dict)
+                for excerpt_id in (ref.get("excerpt_ids") or [])
+                if excerpt_id
+            }
+        )
+        return {
+            "source": "relationship_context.longitudinal_context",
+            "confirmed_fact_ids": confirmed_fact_ids,
+            "unresolved_question_ids": unresolved_question_ids,
+            "proposed_next_step": deepcopy(longitudinal_context.get("proposed_next_step")),
+            "evidence_excerpt_ids": evidence_ids,
+        }
+
+    @staticmethod
+    def _summary_for_proposal(
+        *,
+        extraction: Dict[str, Any],
+        longitudinal_context: Any,
+    ) -> Optional[str]:
+        if not isinstance(longitudinal_context, dict):
+            return extraction.get("summary")
+        facts = {
+            str(item.get("fact_id")): item
+            for item in (longitudinal_context.get("current_confirmed_facts") or [])
+            if isinstance(item, dict) and item.get("fact_id")
+        }
+        parts: List[str] = []
+        primary_goal = (facts.get("goal.primary") or {}).get("value")
+        if primary_goal:
+            parts.append(f"Primary goal: {primary_goal}.")
+        capacity = (
+            facts.get("fact.preference.flexible_monthly_savings_capacity") or {}
+        ).get("value")
+        if capacity is not None:
+            parts.append(f"Flexible monthly savings capacity: {capacity}.")
+        for item in (longitudinal_context.get("new_facts") or [])[:1]:
+            if isinstance(item, dict):
+                parts.append(
+                    f"New confirmed fact {item.get('fact_id')}: {item.get('value')}."
+                )
+        for item in (longitudinal_context.get("commitments_completed") or [])[:1]:
+            if isinstance(item, dict):
+                parts.append(f"Completed commitment: {item.get('action')}.")
+        for item in (longitudinal_context.get("commitments_open") or [])[:1]:
+            if isinstance(item, dict):
+                parts.append(f"Open commitment: {item.get('action')}.")
+        return " ".join(parts) if parts else extraction.get("summary")
+
+    @staticmethod
+    def _next_step_for_proposal(
+        *,
+        extraction: Dict[str, Any],
+        longitudinal_context: Any,
+    ) -> Dict[str, Any]:
+        if isinstance(longitudinal_context, dict):
+            next_step = longitudinal_context.get("proposed_next_step")
+            if isinstance(next_step, dict) and next_step.get("action"):
+                return dict(next_step)
+        return dict(extraction.get("next_step") or {})
+
+    @staticmethod
+    def _recommended_stage_for_proposal(
+        *,
+        extraction: Dict[str, Any],
+        longitudinal_context: Any,
+    ) -> Optional[str]:
+        if isinstance(longitudinal_context, dict):
+            for item in longitudinal_context.get("current_confirmed_facts") or []:
+                if (
+                    isinstance(item, dict)
+                    and item.get("fact_id") == "opportunity.recommended_stage"
+                ):
+                    return item.get("value")
+        signal = extraction.get("opportunity_signal") or {}
+        return signal.get("recommended_stage")
 
     def telemetry(self) -> Dict[str, Any]:
         return {

@@ -1,0 +1,101 @@
+{
+  "fixture_id": "nw008-tranche-b-meeting-1",
+  "run_id": "nw008_tb_run_meeting_1",
+  "meeting": {
+    "meeting_id": "nw008_tb_meeting_1",
+    "occurred_at": "2026-09-01T15:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "7694ec62ddeb06a82811b334c9891f69917bac379d52f676585c576ad1f82d90"
+  },
+  "participants": [
+    {
+      "name": "Taylor Morgan",
+      "email": "taylor.morgan@example-demo.test",
+      "phone": "+1-555-0100",
+      "role": "prospect"
+    },
+    {
+      "name": "Rowan Hale",
+      "email": "rowan.hale@example-demo.test",
+      "phone": "+1-555-0188",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "Initial synthetic planning meeting covering a studio reserve, liquidity concerns, and next-step commitments.",
+    "needs": [
+      "goal.primary=Build a studio acquisition reserve over the next 24 months",
+      "goal.secondary=Keep a travel buffer for two regional trade shows next year",
+      "fact.concern.liquidity_priority=Maintain immediate access to savings because freelance income can vary",
+      "fact.preference.flexible_monthly_savings_capacity=450",
+      "fact.planning.launch_window_months=24"
+    ],
+    "objections": [
+      "question.reserve_account_mix=Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?"
+    ],
+    "commitments": [
+      {
+        "owner": "Prospect",
+        "action": "Provide current monthly budget worksheet",
+        "due_date": "2026-09-05"
+      },
+      {
+        "owner": "Agent",
+        "action": "Send a draft two-bucket savings scenario",
+        "due_date": "2026-09-06"
+      }
+    ],
+    "next_step": {
+      "action": "Meet next week to review the draft reserve mix",
+      "owner": "Rowan Hale",
+      "target_date": "2026-09-08"
+    },
+    "opportunity_signal": {
+      "recommended_stage": "discovery_complete",
+      "rationale": "Discovery facts, commitments, and a concrete follow-up meeting were confirmed."
+    }
+  },
+  "extraction_confidence": 0.98,
+  "evidence_references": [
+    {
+      "field": "goal.primary",
+      "excerpt_id": "m1_goal_primary_01"
+    },
+    {
+      "field": "goal.secondary",
+      "excerpt_id": "m1_goal_secondary_01"
+    },
+    {
+      "field": "fact.concern.liquidity_priority",
+      "excerpt_id": "m1_liquidity_01"
+    },
+    {
+      "field": "fact.preference.flexible_monthly_savings_capacity",
+      "excerpt_id": "m1_capacity_01"
+    },
+    {
+      "field": "fact.planning.launch_window_months",
+      "excerpt_id": "m1_launch_window_01"
+    },
+    {
+      "field": "question.reserve_account_mix",
+      "excerpt_id": "m1_unresolved_01"
+    },
+    {
+      "field": "commitment.prospect.provide_current_monthly_budget_worksheet",
+      "excerpt_id": "m1_commitment_01"
+    },
+    {
+      "field": "commitment.agent.send_a_draft_two_bucket_savings_scenario",
+      "excerpt_id": "m1_commitment_02"
+    },
+    {
+      "field": "next_step.proposed",
+      "excerpt_id": "m1_next_step_01"
+    },
+    {
+      "field": "opportunity.recommended_stage",
+      "excerpt_id": "m1_stage_01"
+    }
+  ]
+}

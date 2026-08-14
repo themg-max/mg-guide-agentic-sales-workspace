@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from .crm_store import SyntheticCrmStore
+from .longitudinal import build_longitudinal_context
 from .models import RelationshipContextResult, RelationshipRequest
 from .resolver import resolve_relationship
 from .schema import validate_relationship_context
@@ -63,6 +64,10 @@ class RelationshipContextAgent:
                     "Offline synthetic reads only (Phase 2B adapter)."
                 ),
             },
+            longitudinal_context=build_longitudinal_context(
+                meeting_context,
+                prior_context=request.prior_context,
+            ),
         )
 
         payload = result.to_dict()

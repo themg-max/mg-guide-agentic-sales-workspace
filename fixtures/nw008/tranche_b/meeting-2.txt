@@ -1,0 +1,32 @@
+# FIXTURE: NW-008 Tranche B Meeting 2
+# SYNTHETIC DATA ONLY — fictional identities, fictional amounts, no real customer data
+
+MEETING_ID: nw008_tb_meeting_2
+OCCURRED_AT: 2026-09-15T15:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Taylor Morgan
+  email: taylor.morgan@example-demo.test
+  phone: +1-555-0100
+  role: prospect
+- name: Rowan Hale
+  email: rowan.hale@example-demo.test
+  phone: +1-555-0188
+  role: agent
+
+--- TRANSCRIPT ---
+
+Rowan Hale: Good to reconnect, Taylor. What changed after the first planning session?
+
+Taylor Morgan: The studio reserve goal is still the same, and I did send the monthly budget worksheet after our last meeting.
+
+Taylor Morgan: I was too optimistic on the monthly amount. With the coworking lease, the flexible savings number is really closer to three hundred twenty-five dollars instead of four hundred fifty.
+
+Taylor Morgan: Liquidity still matters most, and now I want the emergency buffer ahead of the studio reserve. Also, the small seasonal grant ends in October, so the cushion needs to hold up through year-end.
+
+Taylor Morgan: I am still unsure about the account mix for the reserve, and I also do not know whether equipment purchases should wait until replacement grant funding is clearer.
+
+Rowan Hale: Understood. I have not sent the two-bucket draft yet, so that commitment is still open. I will send a revised liquidity-first scenario and we can review it together next Tuesday.
+
+--- END ---

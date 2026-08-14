@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/nw008_tranche_b_proof_return.schema.json",
+  "title": "nw008_tranche_b_proof_return_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "execution_unit",
+    "purpose",
+    "implementation_subject_sha",
+    "meeting_1_hash",
+    "meeting_2_hash",
+    "actual_agent_chain_executed",
+    "prior_context_retrieved",
+    "context_delta",
+    "proof_obligations",
+    "effect_counters",
+    "historical_at_claims",
+    "remaining_gaps"
+  ],
+  "properties": {
+    "execution_unit": {
+      "type": "string",
+      "const": "TRANCHE_B"
+    },
+    "purpose": {
+      "type": "string",
+      "const": "LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY"
+    },
+    "implementation_subject_sha": {
+      "type": "string",
+      "minLength": 7
+    },
+    "meeting_1_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "meeting_2_hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "actual_agent_chain_executed": {
+      "type": "boolean"
+    },
+    "prior_context_retrieved": {
+      "type": "boolean"
+    },
+    "context_delta": {
+      "type": "string",
+      "minLength": 1
+    },
+    "proof_obligations": {
+      "type": "object",
+      "patternProperties": {
+        "^TB-[0-9]{2}$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "STATUS",
+            "EVIDENCE_PATH",
+            "DETAIL",
+            "REMAINING_GAP"
+          ],
+          "properties": {
+            "STATUS": {
+              "type": "string",
+              "enum": [
+                "PASS",
+                "FAIL",
+                "PARTIAL",
+                "BLOCKED"
+              ]
+            },
+            "EVIDENCE_PATH": {
+              "type": "string"
+            },
+            "DETAIL": {
+              "type": "string"
+            },
+            "REMAINING_GAP": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "effect_counters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "GHL_LIVE_CALLS",
+        "GHL_READS",
+        "GHL_WRITES",
+        "FIRESTORE_WRITES",
+        "EXTERNAL_EFFECTS",
+        "REAL_CUSTOMER_DATA",
+        "NW013_EXECUTED",
+        "DEPLOYMENT_PERFORMED"
+      ],
+      "properties": {
+        "GHL_LIVE_CALLS": {
+          "type": "integer",
+          "const": 0
+        },
+        "GHL_READS": {
+          "type": "integer",
+          "const": 0
+        },
+        "GHL_WRITES": {
+          "type": "integer",
+          "const": 0
+        },
+        "FIRESTORE_WRITES": {
+          "type": "integer",
+          "const": 0
+        },
+        "EXTERNAL_EFFECTS": {
+          "type": "integer",
+          "const": 0
+        },
+        "REAL_CUSTOMER_DATA": {
+          "type": "integer",
+          "const": 0
+        },
+        "NW013_EXECUTED": {
+          "type": "string",
+          "const": "NO"
+        },
+        "DEPLOYMENT_PERFORMED": {
+          "type": "string",
+          "const": "NO"
+        }
+      }
+    },
+    "historical_at_claims": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "AT-2",
+        "AT-4",
+        "AT-5",
+        "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP"
+      ],
+      "properties": {
+        "AT-2": {
+          "$ref": "#/$defs/historicalClaim"
+        },
+        "AT-4": {
+          "$ref": "#/$defs/historicalClaim"
+        },
+        "AT-5": {
+          "$ref": "#/$defs/historicalClaim"
+        },
+        "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP": {
+          "type": "string",
+          "enum": [
+            "CLOSED",
+            "OPEN"
+          ]
+        }
+      }
+    },
+    "remaining_gaps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "historicalClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "detail"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "YES",
+            "NO"
+          ]
+        },
+        "detail": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
