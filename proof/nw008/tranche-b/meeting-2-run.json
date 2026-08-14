@@ -1,0 +1,887 @@
+{
+  "adk_integration_status": "RUNTIME_INTEGRATED",
+  "adk_runtime_backend": "google_adk_package",
+  "adk_runtime_primitive_used": true,
+  "deterministic_policy_bypass": false,
+  "deterministic_policy_gate_invoked": true,
+  "errors": [],
+  "external_effects": 0,
+  "follow_up_packet": {
+    "audit": {
+      "agents_used": [
+        "meeting_context_agent",
+        "relationship_context_agent",
+        "follow_up_planning_agent"
+      ],
+      "completed_at": "2026-08-14T12:22:58Z",
+      "final_disposition": "completed",
+      "started_at": "2026-08-14T12:22:58Z",
+      "tools_used": [],
+      "warnings": []
+    },
+    "brief": {
+      "crm_actions": [
+        "plan_note_intent",
+        "plan_stage_intent"
+      ],
+      "headline": "Meeting follow-up proposal reviewed (Unit 3 intent-only)",
+      "lifecycle": "complete",
+      "meeting_summary": "Second synthetic planning meeting correcting savings capacity, confirming one completed commitment, and refining liquidity priorities.",
+      "next_action": "Review the revised liquidity-first scenario next Tuesday",
+      "salesperson_attention_required": false
+    },
+    "crm_resolution": {
+      "candidate_count": 1,
+      "contact_id": "contact_demo_taylor_001",
+      "current_stage": "discovery_scheduled",
+      "lifecycle": "complete",
+      "match_basis": "email",
+      "opportunity_id": "opp_demo_taylor_001",
+      "status": "matched"
+    },
+    "evidence": {
+      "extraction_confidence": 0.98,
+      "transcript_spans": [
+        {
+          "excerpt_id": "m2_goal_primary_01",
+          "field": "goal.primary"
+        },
+        {
+          "excerpt_id": "m2_goal_priority_01",
+          "field": "goal.priority"
+        },
+        {
+          "excerpt_id": "m2_liquidity_01",
+          "field": "fact.concern.liquidity_priority"
+        },
+        {
+          "excerpt_id": "m2_capacity_correction_01",
+          "field": "fact.preference.flexible_monthly_savings_capacity"
+        },
+        {
+          "excerpt_id": "m2_launch_window_01",
+          "field": "fact.planning.launch_window_months"
+        },
+        {
+          "excerpt_id": "m2_new_fact_01",
+          "field": "fact.income.grant_end_month"
+        },
+        {
+          "excerpt_id": "m2_unresolved_01",
+          "field": "question.reserve_account_mix"
+        },
+        {
+          "excerpt_id": "m2_unresolved_02",
+          "field": "question.equipment_timing"
+        },
+        {
+          "excerpt_id": "m2_commitment_complete_01",
+          "field": "commitment_status.commitment.prospect.provide_current_monthly_budget_worksheet"
+        },
+        {
+          "excerpt_id": "m2_commitment_open_01",
+          "field": "commitment_status.commitment.agent.send_a_draft_two_bucket_savings_scenario"
+        },
+        {
+          "excerpt_id": "m2_next_step_01",
+          "field": "next_step.proposed"
+        },
+        {
+          "excerpt_id": "m2_stage_01",
+          "field": "opportunity.recommended_stage"
+        }
+      ]
+    },
+    "external_effects": 0,
+    "extraction": {
+      "commitments": [],
+      "lifecycle": "complete",
+      "needs": [
+        "goal.primary=Build a studio acquisition reserve over the next 24 months",
+        "goal.priority=Prioritize emergency liquidity before studio reserve contributions",
+        "fact.concern.liquidity_priority=Maintain immediate access to savings because freelance income can vary",
+        "fact.preference.flexible_monthly_savings_capacity=325",
+        "fact.planning.launch_window_months=24",
+        "fact.income.grant_end_month=October",
+        "fact.unsupported.inferred_risk_score=high"
+      ],
+      "next_step": {
+        "action": "Review the revised liquidity-first scenario next Tuesday",
+        "owner": "Rowan Hale",
+        "target_date": "2026-09-22"
+      },
+      "objections": [
+        "question.reserve_account_mix=Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?",
+        "question.equipment_timing=Should equipment purchases wait until replacement grant funding is clearer?",
+        "commitment_status.commitment.prospect.provide_current_monthly_budget_worksheet=completed",
+        "commitment_status.commitment.agent.send_a_draft_two_bucket_savings_scenario=open"
+      ],
+      "opportunity_signal": {
+        "rationale": "Discovery follow-up clarified prior assumptions without authorizing any mutation.",
+        "recommended_stage": "discovery_complete"
+      },
+      "summary": "Second synthetic planning meeting correcting savings capacity, confirming one completed commitment, and refining liquidity priorities."
+    },
+    "meeting": {
+      "meeting_id": "nw008_tb_meeting_2",
+      "occurred_at": "2026-09-15T15:00:00Z",
+      "source": "synthetic_demo",
+      "transcript_hash": "f7272b32e6298c767a962caf9a443ebc1e4a28070adfb781d45709a963324496"
+    },
+    "mutation_intents": {
+      "note": [
+        {
+          "body_ref": "extraction.summary",
+          "kind": "note",
+          "status": "planned"
+        }
+      ],
+      "stage": [
+        {
+          "from_stage": "discovery_scheduled",
+          "kind": "stage",
+          "status": "planned",
+          "to_stage": "discovery_complete"
+        }
+      ]
+    },
+    "mutations": {
+      "lifecycle": "intent_only",
+      "note": {
+        "attempted": false,
+        "record_id": null,
+        "verified": false
+      },
+      "opportunity_stage": {
+        "attempted": false,
+        "from_stage": "discovery_scheduled",
+        "to_stage": "discovery_complete",
+        "verified": false
+      }
+    },
+    "participants": [
+      {
+        "email": "taylor.morgan@example-demo.test",
+        "name": "Taylor Morgan",
+        "phone": "+1-555-0100",
+        "role": "prospect"
+      },
+      {
+        "email": "rowan.hale@example-demo.test",
+        "name": "Rowan Hale",
+        "phone": "+1-555-0188",
+        "role": "agent"
+      }
+    ],
+    "policy": {
+      "lifecycle": "complete",
+      "note_write": "allowed",
+      "reason_codes": [],
+      "stage_write": "allowed"
+    },
+    "run": {
+      "created_at": "2026-08-14T12:22:58Z",
+      "run_id": "nw008_tranche_b_meeting_2",
+      "status": "completed",
+      "workflow": "meeting_follow_up_v1"
+    },
+    "schema": "meeting_follow_up_packet_v1"
+  },
+  "follow_up_planning_agent_implemented": true,
+  "follow_up_proposal": {
+    "agent": "follow_up_planning_agent",
+    "authorized_mutation_intents": {
+      "note": [
+        {
+          "body_ref": "extraction.summary",
+          "kind": "note",
+          "status": "planned"
+        }
+      ],
+      "stage": [
+        {
+          "from_stage": "discovery_scheduled",
+          "kind": "stage",
+          "status": "planned",
+          "to_stage": "discovery_complete"
+        }
+      ]
+    },
+    "confirmed_context_used": {
+      "confirmed_fact_ids": [
+        "goal.primary",
+        "goal.priority",
+        "fact.concern.liquidity_priority",
+        "fact.preference.flexible_monthly_savings_capacity",
+        "fact.planning.launch_window_months",
+        "fact.income.grant_end_month",
+        "opportunity.recommended_stage"
+      ],
+      "evidence_excerpt_ids": [
+        "m2_capacity_correction_01",
+        "m2_commitment_complete_01",
+        "m2_commitment_open_01",
+        "m2_goal_primary_01",
+        "m2_goal_priority_01",
+        "m2_launch_window_01",
+        "m2_liquidity_01",
+        "m2_new_fact_01",
+        "m2_next_step_01",
+        "m2_stage_01",
+        "m2_unresolved_01",
+        "m2_unresolved_02"
+      ],
+      "proposed_next_step": {
+        "action": "Review the revised liquidity-first scenario next Tuesday",
+        "evidence_refs": [
+          "m2_next_step_01"
+        ],
+        "owner": "Rowan Hale",
+        "source_meeting_id": "nw008_tb_meeting_2",
+        "target_date": "2026-09-22"
+      },
+      "source": "relationship_context.longitudinal_context",
+      "unresolved_question_ids": [
+        "question.reserve_account_mix",
+        "question.equipment_timing"
+      ]
+    },
+    "crm_targets": {
+      "contact_id": "contact_demo_taylor_001",
+      "opportunity_id": "opp_demo_taylor_001"
+    },
+    "disposition": "proposed",
+    "external_effects": 0,
+    "note_proposal": {
+      "body_ref": "relationship_context.longitudinal_context",
+      "requested": true
+    },
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Follow-Up Planning Agent proposes facts, next steps, and optional stage-change intent only; the deterministic policy gate evaluates and authorizes any mutation intent. No live GHL, no CRM writes, no policy bypass."
+    },
+    "policy_evaluation": {
+      "context_source": "relationship_context.longitudinal_context",
+      "context_supplied": true,
+      "deterministic_policy_bypass": false,
+      "evaluator": "orchestration.policy.evaluate_policy",
+      "invoked": true,
+      "note_write": "allowed",
+      "reason_codes": [],
+      "stage_write": "allowed"
+    },
+    "proposed_next_steps": [
+      "Review the revised liquidity-first scenario next Tuesday"
+    ],
+    "resolution_status": "matched",
+    "run_id": "nw008_tranche_b_meeting_2",
+    "scenario_id": "NW008_TRANCHE_B_M2",
+    "schema": "follow_up_proposal_v1",
+    "stage_proposal": {
+      "from_stage": "discovery_scheduled",
+      "requested": true,
+      "to_stage": "discovery_complete"
+    },
+    "summary": "Primary goal: Build a studio acquisition reserve over the next 24 months. Flexible monthly savings capacity: 325. New confirmed fact goal.priority: Prioritize emergency liquidity before studio reserve contributions. Completed commitment: Provide current monthly budget worksheet. Open commitment: Send a draft two-bucket savings scenario."
+  },
+  "follow_up_proposal_valid": true,
+  "google_adk_package_bound": true,
+  "google_adk_runtime_started": true,
+  "local_adk_fallback_used": false,
+  "meeting_context": {
+    "agent": "meeting_context_agent",
+    "evidence": {
+      "extraction_confidence": 0.98,
+      "transcript_spans": [
+        {
+          "excerpt_id": "m2_goal_primary_01",
+          "field": "goal.primary"
+        },
+        {
+          "excerpt_id": "m2_goal_priority_01",
+          "field": "goal.priority"
+        },
+        {
+          "excerpt_id": "m2_liquidity_01",
+          "field": "fact.concern.liquidity_priority"
+        },
+        {
+          "excerpt_id": "m2_capacity_correction_01",
+          "field": "fact.preference.flexible_monthly_savings_capacity"
+        },
+        {
+          "excerpt_id": "m2_launch_window_01",
+          "field": "fact.planning.launch_window_months"
+        },
+        {
+          "excerpt_id": "m2_new_fact_01",
+          "field": "fact.income.grant_end_month"
+        },
+        {
+          "excerpt_id": "m2_unresolved_01",
+          "field": "question.reserve_account_mix"
+        },
+        {
+          "excerpt_id": "m2_unresolved_02",
+          "field": "question.equipment_timing"
+        },
+        {
+          "excerpt_id": "m2_commitment_complete_01",
+          "field": "commitment_status.commitment.prospect.provide_current_monthly_budget_worksheet"
+        },
+        {
+          "excerpt_id": "m2_commitment_open_01",
+          "field": "commitment_status.commitment.agent.send_a_draft_two_bucket_savings_scenario"
+        },
+        {
+          "excerpt_id": "m2_next_step_01",
+          "field": "next_step.proposed"
+        },
+        {
+          "excerpt_id": "m2_stage_01",
+          "field": "opportunity.recommended_stage"
+        }
+      ]
+    },
+    "external_effects": 0,
+    "extraction": {
+      "commitments": [],
+      "lifecycle": "complete",
+      "needs": [
+        "goal.primary=Build a studio acquisition reserve over the next 24 months",
+        "goal.priority=Prioritize emergency liquidity before studio reserve contributions",
+        "fact.concern.liquidity_priority=Maintain immediate access to savings because freelance income can vary",
+        "fact.preference.flexible_monthly_savings_capacity=325",
+        "fact.planning.launch_window_months=24",
+        "fact.income.grant_end_month=October",
+        "fact.unsupported.inferred_risk_score=high"
+      ],
+      "next_step": {
+        "action": "Review the revised liquidity-first scenario next Tuesday",
+        "owner": "Rowan Hale",
+        "target_date": "2026-09-22"
+      },
+      "objections": [
+        "question.reserve_account_mix=Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?",
+        "question.equipment_timing=Should equipment purchases wait until replacement grant funding is clearer?",
+        "commitment_status.commitment.prospect.provide_current_monthly_budget_worksheet=completed",
+        "commitment_status.commitment.agent.send_a_draft_two_bucket_savings_scenario=open"
+      ],
+      "opportunity_signal": {
+        "rationale": "Discovery follow-up clarified prior assumptions without authorizing any mutation.",
+        "recommended_stage": "discovery_complete"
+      },
+      "summary": "Second synthetic planning meeting correcting savings capacity, confirming one completed commitment, and refining liquidity priorities."
+    },
+    "meeting": {
+      "meeting_id": "nw008_tb_meeting_2",
+      "occurred_at": "2026-09-15T15:00:00Z",
+      "source": "synthetic_demo",
+      "transcript_hash": "f7272b32e6298c767a962caf9a443ebc1e4a28070adfb781d45709a963324496"
+    },
+    "participants": [
+      {
+        "email": "taylor.morgan@example-demo.test",
+        "name": "Taylor Morgan",
+        "phone": "+1-555-0100",
+        "role": "prospect"
+      },
+      {
+        "email": "rowan.hale@example-demo.test",
+        "name": "Rowan Hale",
+        "phone": "+1-555-0188",
+        "role": "agent"
+      }
+    ],
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Meeting Context Agent proposes structured context only; deterministic policy remains authoritative for any CRM mutation."
+    },
+    "provider": "fixture",
+    "schema": "meeting_context_v1"
+  },
+  "meeting_context_reused": true,
+  "ok": true,
+  "relationship_context": {
+    "agent": "relationship_context_agent",
+    "crm_source": {
+      "adapter": "phase2b_offline_ghl_read_adapter",
+      "live_calls": 0,
+      "mode": "offline_synthetic",
+      "operations_used": [
+        "search-contacts-advanced",
+        "get-contact",
+        "search-opportunity",
+        "get-pipelines"
+      ],
+      "real_customer_data": 0,
+      "writes": 0
+    },
+    "evidence": {
+      "notes": "Unique synthetic contact and opportunity matched via offline GHL adapter.",
+      "participant_keys": [
+        {
+          "email": "taylor.morgan@example-demo.test",
+          "name": "Taylor Morgan",
+          "phone": "+1-555-0100",
+          "role": "prospect"
+        }
+      ],
+      "resolution_confidence": 0.95
+    },
+    "external_effects": 0,
+    "longitudinal_context": {
+      "commitments_completed": [
+        {
+          "action": "Provide current monthly budget worksheet",
+          "commitment_id": "commitment.prospect.provide_current_monthly_budget_worksheet",
+          "current_evidence_refs": [
+            "m2_commitment_complete_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "due_date": "2026-09-05",
+          "owner": "Prospect",
+          "prior_evidence_refs": [
+            "m1_commitment_01"
+          ],
+          "prior_meeting_id": "nw008_tb_meeting_1"
+        }
+      ],
+      "commitments_open": [
+        {
+          "action": "Send a draft two-bucket savings scenario",
+          "commitment_id": "commitment.agent.send_a_draft_two_bucket_savings_scenario",
+          "current_evidence_refs": [
+            "m2_commitment_open_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "due_date": "2026-09-06",
+          "evidence_refs": [
+            "m1_commitment_02"
+          ],
+          "owner": "Agent",
+          "source_meeting_id": "nw008_tb_meeting_1"
+        }
+      ],
+      "corrected_facts": [
+        {
+          "current_evidence_refs": [
+            "m2_capacity_correction_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "fact_id": "fact.preference.flexible_monthly_savings_capacity",
+          "new_value": 325,
+          "prior_evidence_refs": [
+            "m1_capacity_01"
+          ],
+          "prior_meeting_id": "nw008_tb_meeting_1",
+          "prior_value": 450,
+          "superseded": true
+        }
+      ],
+      "current_confirmed_facts": [
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m2_goal_primary_01"
+          ],
+          "fact_id": "goal.primary",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": "Build a studio acquisition reserve over the next 24 months"
+        },
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m2_goal_priority_01"
+          ],
+          "fact_id": "goal.priority",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": "Prioritize emergency liquidity before studio reserve contributions"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m2_liquidity_01"
+          ],
+          "fact_id": "fact.concern.liquidity_priority",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": "Maintain immediate access to savings because freelance income can vary"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m2_capacity_correction_01"
+          ],
+          "fact_id": "fact.preference.flexible_monthly_savings_capacity",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": 325
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m2_launch_window_01"
+          ],
+          "fact_id": "fact.planning.launch_window_months",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": 24
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m2_new_fact_01"
+          ],
+          "fact_id": "fact.income.grant_end_month",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": "October"
+        },
+        {
+          "category": "opportunity",
+          "evidence_refs": [
+            "m2_stage_01"
+          ],
+          "fact_id": "opportunity.recommended_stage",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": "discovery_complete"
+        }
+      ],
+      "evidence_references": [
+        {
+          "claim_id": "goal.primary",
+          "excerpt_ids": [
+            "m2_goal_primary_01"
+          ]
+        },
+        {
+          "claim_id": "goal.priority",
+          "excerpt_ids": [
+            "m2_goal_priority_01"
+          ]
+        },
+        {
+          "claim_id": "fact.concern.liquidity_priority",
+          "excerpt_ids": [
+            "m2_liquidity_01"
+          ]
+        },
+        {
+          "claim_id": "fact.preference.flexible_monthly_savings_capacity",
+          "excerpt_ids": [
+            "m2_capacity_correction_01"
+          ]
+        },
+        {
+          "claim_id": "fact.planning.launch_window_months",
+          "excerpt_ids": [
+            "m2_launch_window_01"
+          ]
+        },
+        {
+          "claim_id": "fact.income.grant_end_month",
+          "excerpt_ids": [
+            "m2_new_fact_01"
+          ]
+        },
+        {
+          "claim_id": "opportunity.recommended_stage",
+          "excerpt_ids": [
+            "m2_stage_01"
+          ]
+        },
+        {
+          "claim_id": "question.reserve_account_mix",
+          "excerpt_ids": [
+            "m2_unresolved_01"
+          ]
+        },
+        {
+          "claim_id": "question.equipment_timing",
+          "excerpt_ids": [
+            "m2_unresolved_02"
+          ]
+        },
+        {
+          "claim_id": "commitment.prospect.provide_current_monthly_budget_worksheet",
+          "excerpt_ids": [
+            "m2_commitment_complete_01"
+          ]
+        },
+        {
+          "claim_id": "commitment.agent.send_a_draft_two_bucket_savings_scenario",
+          "excerpt_ids": [
+            "m2_commitment_open_01"
+          ]
+        },
+        {
+          "claim_id": "next_step.proposed",
+          "excerpt_ids": [
+            "m2_next_step_01"
+          ]
+        }
+      ],
+      "goals_refined": [
+        {
+          "current_evidence_refs": [
+            "m2_goal_priority_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "fact_id": "goal.priority",
+          "kind": "new",
+          "new_value": "Prioritize emergency liquidity before studio reserve contributions"
+        }
+      ],
+      "new_facts": [
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m2_goal_priority_01"
+          ],
+          "fact_id": "goal.priority",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": "Prioritize emergency liquidity before studio reserve contributions"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m2_new_fact_01"
+          ],
+          "fact_id": "fact.income.grant_end_month",
+          "source_meeting_id": "nw008_tb_meeting_2",
+          "value": "October"
+        }
+      ],
+      "prior_confirmed_facts": [
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m1_goal_primary_01"
+          ],
+          "fact_id": "goal.primary",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Build a studio acquisition reserve over the next 24 months"
+        },
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m1_goal_secondary_01"
+          ],
+          "fact_id": "goal.secondary",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Keep a travel buffer for two regional trade shows next year"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_liquidity_01"
+          ],
+          "fact_id": "fact.concern.liquidity_priority",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Maintain immediate access to savings because freelance income can vary"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_capacity_01"
+          ],
+          "fact_id": "fact.preference.flexible_monthly_savings_capacity",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": 450
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_launch_window_01"
+          ],
+          "fact_id": "fact.planning.launch_window_months",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": 24
+        },
+        {
+          "category": "opportunity",
+          "evidence_refs": [
+            "m1_stage_01"
+          ],
+          "fact_id": "opportunity.recommended_stage",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "discovery_complete"
+        }
+      ],
+      "proposed_next_step": {
+        "action": "Review the revised liquidity-first scenario next Tuesday",
+        "evidence_refs": [
+          "m2_next_step_01"
+        ],
+        "owner": "Rowan Hale",
+        "source_meeting_id": "nw008_tb_meeting_2",
+        "target_date": "2026-09-22"
+      },
+      "schema": "relationship_longitudinal_context_v1",
+      "unchanged_facts": [
+        {
+          "current_evidence_refs": [
+            "m2_goal_primary_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "fact_id": "goal.primary",
+          "prior_evidence_refs": [
+            "m1_goal_primary_01"
+          ],
+          "prior_meeting_id": "nw008_tb_meeting_1",
+          "value": "Build a studio acquisition reserve over the next 24 months"
+        },
+        {
+          "current_evidence_refs": [
+            "m2_liquidity_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "fact_id": "fact.concern.liquidity_priority",
+          "prior_evidence_refs": [
+            "m1_liquidity_01"
+          ],
+          "prior_meeting_id": "nw008_tb_meeting_1",
+          "value": "Maintain immediate access to savings because freelance income can vary"
+        },
+        {
+          "current_evidence_refs": [
+            "m2_launch_window_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "fact_id": "fact.planning.launch_window_months",
+          "prior_evidence_refs": [
+            "m1_launch_window_01"
+          ],
+          "prior_meeting_id": "nw008_tb_meeting_1",
+          "value": 24
+        },
+        {
+          "current_evidence_refs": [
+            "m2_stage_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_2",
+          "fact_id": "opportunity.recommended_stage",
+          "prior_evidence_refs": [
+            "m1_stage_01"
+          ],
+          "prior_meeting_id": "nw008_tb_meeting_1",
+          "value": "discovery_complete"
+        }
+      ],
+      "unresolved_questions": [
+        {
+          "evidence_refs": [
+            "m2_unresolved_01"
+          ],
+          "question": "Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?",
+          "question_id": "question.reserve_account_mix",
+          "source_meeting_id": "nw008_tb_meeting_2"
+        },
+        {
+          "evidence_refs": [
+            "m2_unresolved_02"
+          ],
+          "question": "Should equipment purchases wait until replacement grant funding is clearer?",
+          "question_id": "question.equipment_timing",
+          "source_meeting_id": "nw008_tb_meeting_2"
+        }
+      ],
+      "unsupported_inferences": [
+        {
+          "claim_id": "fact.unsupported.inferred_risk_score",
+          "reason": "missing_evidence_reference"
+        }
+      ]
+    },
+    "meeting_ref": {
+      "meeting_id": "nw008_tb_meeting_2",
+      "run_id": "nw008_tranche_b_meeting_2",
+      "transcript_hash": "f7272b32e6298c767a962caf9a443ebc1e4a28070adfb781d45709a963324496"
+    },
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Relationship Context Agent proposes CRM resolution only; deterministic policy remains authoritative for any CRM mutation. Offline synthetic reads only (Phase 2B adapter)."
+    },
+    "provider": "offline_ghl_fixture",
+    "resolution": {
+      "candidate_count": 1,
+      "candidates": [
+        {
+          "contact_id": "contact_demo_taylor_001",
+          "display_name": "Taylor Morgan",
+          "email": "taylor.morgan@example-demo.test",
+          "match_basis": "email",
+          "phone": "+1-555-0100"
+        }
+      ],
+      "contact": {
+        "company_name": "Demo Prospect Co",
+        "email": "taylor.morgan@example-demo.test",
+        "first_name": "Taylor",
+        "id": "contact_demo_taylor_001",
+        "last_name": "Morgan",
+        "phone": "+1-555-0100"
+      },
+      "contact_id": "contact_demo_taylor_001",
+      "current_stage": "discovery_scheduled",
+      "lifecycle": "complete",
+      "match_basis": "email",
+      "opportunity": {
+        "contact_id": "contact_demo_taylor_001",
+        "id": "opp_demo_taylor_001",
+        "monetary_value": 12000,
+        "name": "Taylor Morgan discovery",
+        "pipeline_id": "demo-pipeline-001",
+        "pipeline_stage_id": "demo-stage-discovery-scheduled",
+        "stage_name": "discovery_scheduled",
+        "status": "open"
+      },
+      "opportunity_id": "opp_demo_taylor_001",
+      "status": "matched"
+    },
+    "schema": "relationship_context_v1"
+  },
+  "relationship_context_reused": true,
+  "session": {
+    "agent_trace": [
+      {
+        "agent_id": "meeting_context_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "meeting_context_v1",
+        "status": "ok"
+      },
+      {
+        "agent_id": "relationship_context_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "relationship_context_v1",
+        "status": "ok"
+      },
+      {
+        "agent_id": "follow_up_planning_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "follow_up_proposal_v1",
+        "status": "ok"
+      }
+    ],
+    "backend": "google_adk_package",
+    "completed": true,
+    "external_effects": 0,
+    "run_id": "nw008_tranche_b_meeting_2",
+    "session_id": "b5aa95f7-a3ff-4d11-83ef-4a8567870d7c",
+    "started": true,
+    "state_keys": [
+      "approved_prior_context",
+      "errors",
+      "follow_up_packet",
+      "follow_up_policy_gate_invoked",
+      "follow_up_proposal",
+      "meeting_context",
+      "mutation_execution",
+      "relationship_context",
+      "run_id",
+      "scenario_id",
+      "stop_after"
+    ],
+    "workflow": "meeting_follow_up_v1"
+  }
+}

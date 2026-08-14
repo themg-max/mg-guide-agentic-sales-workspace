@@ -1,0 +1,135 @@
+execution_unit: TRANCHE_B
+purpose: LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY
+implementation_subject_sha: 27edac20756518257a54492487fb09bfb3b88576
+meeting_1_hash: 7694ec62ddeb06a82811b334c9891f69917bac379d52f676585c576ad1f82d90
+meeting_2_hash: f7272b32e6298c767a962caf9a443ebc1e4a28070adfb781d45709a963324496
+actual_agent_chain_executed: true
+prior_context_retrieved: true
+context_delta: proof/nw008/tranche-b/context-delta.json
+proof_obligations:
+  TB-01:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: Both synthetic meetings were accepted through the real Unit 3 runtime
+      path.
+    REMAINING_GAP: ''
+  TB-02:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: Each run recorded Meeting Context Agent -> Relationship Context Agent
+      -> Follow-Up Planning Agent under the Google ADK backend.
+    REMAINING_GAP: ''
+  TB-03:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: Meeting 2 session state included approved_prior_context and the resulting
+      context delta retained prior_confirmed_facts.
+    REMAINING_GAP: ''
+  TB-04:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
+    DETAIL: The primary goal stayed unchanged across both meetings.
+    REMAINING_GAP: ''
+  TB-05:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
+    DETAIL: Flexible monthly savings capacity was corrected from 450 to 325 with prior/current
+      evidence retained and superseded=true.
+    REMAINING_GAP: ''
+  TB-06:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
+    DETAIL: Meeting 2 added a new confirmed fact for the synthetic grant end month.
+    REMAINING_GAP: ''
+  TB-07:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
+    DETAIL: The prospect budget worksheet commitment moved to completed.
+    REMAINING_GAP: ''
+  TB-08:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
+    DETAIL: The advisor draft scenario commitment remained open with current-meeting
+      evidence.
+    REMAINING_GAP: ''
+  TB-09:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
+    DETAIL: Meeting 2 refined priorities by explicitly elevating emergency liquidity
+      ahead of studio funding.
+    REMAINING_GAP: ''
+  TB-10:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
+    DETAIL: Every confirmed current fact, unresolved question, and proposed next step
+      retained evidence references.
+    REMAINING_GAP: ''
+  TB-11:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: Follow-Up Planning recorded confirmed_context_used from relationship_context.longitudinal_context
+      and excluded unsupported inferences.
+    REMAINING_GAP: ''
+  TB-12:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: The deterministic policy gate was invoked and received proposal context
+      sourced from relationship_context.longitudinal_context.
+    REMAINING_GAP: ''
+  TB-13:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/decision-card.json
+    DETAIL: NW-007 decision card mapping and both text/html renderers completed without
+      requiring new reason semantics.
+    REMAINING_GAP: ''
+  TB-14:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: GHL writes remained zero throughout the bounded replay.
+    REMAINING_GAP: ''
+  TB-15:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: Firestore writes remained zero throughout the bounded replay.
+    REMAINING_GAP: ''
+  TB-16:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: External effects stayed at zero for the complete replay.
+    REMAINING_GAP: ''
+  TB-17:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: Only synthetic identities, synthetic contact points, and synthetic amounts
+      were used.
+    REMAINING_GAP: ''
+  TB-18:
+    STATUS: PASS
+    EVIDENCE_PATH: proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json
+    DETAIL: Normalized semantic replay snapshots were compared across two bounded
+      runs.
+    REMAINING_GAP: ''
+effect_counters:
+  GHL_LIVE_CALLS: 0
+  GHL_READS: 0
+  GHL_WRITES: 0
+  FIRESTORE_WRITES: 0
+  EXTERNAL_EFFECTS: 0
+  REAL_CUSTOMER_DATA: 0
+  NW013_EXECUTED: 'NO'
+  DEPLOYMENT_PERFORMED: 'NO'
+historical_at_claims:
+  AT-2:
+    status: 'NO'
+    detail: Synthetic tranche B scenario is not the historical ambiguous-contact AT-2
+      scenario.
+  AT-4:
+    status: 'NO'
+    detail: Synthetic tranche B scenario is not the historical contact-not-found AT-4
+      scenario.
+  AT-5:
+    status: 'NO'
+    detail: Synthetic tranche B scenario is not the historical low-confidence AT-5
+      scenario.
+  FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP: CLOSED
+remaining_gaps: []
