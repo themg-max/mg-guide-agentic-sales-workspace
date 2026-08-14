@@ -1,7 +1,8 @@
 execution_unit: TRANCHE_C
 purpose: HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY
-implementation_subject_sha: 9745f9a703b8878abde04d003cdcf1e8b376e4b1
+implementation_subject_sha: a8715dcdeaa58f8404766f39db4e4dea289f951e
 transcript_source_contract: TRANSCRIPT_SOURCE_ENVELOPE_V1
+authoritative_stop_source: STATE_MACHINE_WORKFLOW_CONTRACT
 targets:
 - AT-2
 - AT-4
@@ -43,8 +44,7 @@ scenarios:
         skipped_by: relationship_context_agent
     stop_point: relationship_context_agent
     stop_reason_code: AMBIGUOUS_CONTACT
-    stop_reason_source: agents.relationship_context.resolver.resolve_relationship
-      (crm_status=ambiguous -> governed stop)
+    stop_reason_source: contracts/workflow_states.yaml:transition[resolving->blocked:when=contact_ambiguous]:reason_code=AMBIGUOUS_CONTACT
     policy_gate_invoked: false
     policy_bypass: false
     disposition: blocked
@@ -88,8 +88,7 @@ scenarios:
         skipped_by: relationship_context_agent
     stop_point: relationship_context_agent
     stop_reason_code: CONTACT_NOT_FOUND
-    stop_reason_source: agents.relationship_context.resolver.resolve_relationship
-      (crm_status=not_found -> governed stop)
+    stop_reason_source: contracts/workflow_states.yaml:transition[resolving->blocked:when=contact_not_found]:reason_code=CONTACT_NOT_FOUND
     policy_gate_invoked: false
     policy_bypass: false
     disposition: blocked
@@ -133,8 +132,7 @@ scenarios:
         skipped_by: meeting_context_agent
     stop_point: meeting_context_agent
     stop_reason_code: LOW_EXTRACTION_CONFIDENCE
-    stop_reason_source: orchestration.state_machine.StateMachine.extraction_abort_threshold
-      (confidence < 0.70 -> governed stop)
+    stop_reason_source: contracts/workflow_states.yaml:transition[extracting->blocked:when=extraction_confidence_lt_extraction_abort_threshold]:reason_code=LOW_EXTRACTION_CONFIDENCE:threshold=0.7
     policy_gate_invoked: false
     policy_bypass: false
     disposition: blocked
@@ -287,8 +285,9 @@ proof_obligations:
     REMAINING_GAP: ''
   TC-19:
     STATUS: PASS
-    EVIDENCE_PATH: src/orchestration/nw008_tranche_c.py | contracts/nw008_tranche_c_proof_return.schema.json
-    DETAIL: 'Historical AT target set unchanged: AT-2, AT-4, AT-5 only'
+    EVIDENCE_PATH: contracts/workflow_states.yaml | src/orchestration/nw008_tranche_c.py
+      | contracts/nw008_tranche_c_proof_return.schema.json
+    DETAIL: canonical AT-2/AT-4/AT-5 definitions verified in contracts/workflow_states.yaml
     REMAINING_GAP: ''
   TC-20:
     STATUS: PASS
@@ -321,15 +320,17 @@ effect_counters:
 historical_at_claims:
   AT-2:
     status: CANDIDATE
-    detail: Blocked with AMBIGUOUS_CONTACT; PRE_POLICY_FAIL_CLOSED=True; State2Equivalent=True.
+    detail: Blocked with AMBIGUOUS_CONTACT; PRE_POLICY_FAIL_CLOSED=true; State2Equivalent=true.
   AT-4:
     status: CANDIDATE
-    detail: Blocked with CONTACT_NOT_FOUND; PRE_POLICY_FAIL_CLOSED=True; NW007 card
+    detail: Blocked with CONTACT_NOT_FOUND; PRE_POLICY_FAIL_CLOSED=true; NW007 card
       semantics unchanged.
   AT-5:
     status: CANDIDATE
-    detail: Blocked with LOW_EXTRACTION_CONFIDENCE; PRE_POLICY_FAIL_CLOSED=True; NW007
+    detail: Blocked with LOW_EXTRACTION_CONFIDENCE; PRE_POLICY_FAIL_CLOSED=true; NW007
       card semantics unchanged.
+at2_card_evidence_source: GOVERNED_STOP_PROOF_PROJECTION_THROUGH_EXISTING_NW007_MAPPER
+nw007_card_semantics_change: 'NO'
 remaining_gaps: []
 entrypoints:
   MEETING_CONTEXT_ENTRYPOINT: agents.meeting_context.agent.MeetingContextAgent.run

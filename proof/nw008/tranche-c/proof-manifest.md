@@ -4,7 +4,7 @@
 | --- | --- |
 | Execution unit | TRANCHE_C |
 | Purpose | HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY |
-| Implementation subject SHA | `9745f9a703b8878abde04d003cdcf1e8b376e4b1` |
+| Implementation subject SHA | `a8715dcdeaa58f8404766f39db4e4dea289f951e` |
 | Transcript source contract | TRANSCRIPT_SOURCE_ENVELOPE_V1 |
 | Targets | AT-2, AT-4, AT-5 |
 | Excludes | AT-8, AT-9 |
@@ -43,7 +43,7 @@
 | TC-16 | PASS | Existing fleet entrypoints reused; no new runtime agent IDs observed |
 | TC-17 | PASS | Deterministic replay result=PASS |
 | TC-18 | PASS | Synthetic-only envelope invariants verified from fixture envelopes |
-| TC-19 | PASS | Historical AT target set unchanged: AT-2, AT-4, AT-5 only |
+| TC-19 | PASS | canonical AT-2/AT-4/AT-5 definitions verified in contracts/workflow_states.yaml |
 | TC-20 | PASS | TRANSCRIPT_CONTENT_HASH and ENVELOPE_DIGEST verified; source/ownership/access_context/provenance preserved |
 | TC-21 | PASS | All envelopes enforce treat_content_as_data_only=true and instruction_authority=false |
 | TC-22 | PASS | AT-2 State-2-equivalent card semantics: policy_state=BLOCKED, policy_reason_code=AMBIGUOUS_CONTACT, next_action=RESOLVE_CONTACT |
@@ -61,6 +61,11 @@
 
 ## Historical AT claims
 
-- **AT-2**: CANDIDATE — Blocked with AMBIGUOUS_CONTACT; PRE_POLICY_FAIL_CLOSED=True; State2Equivalent=True.
-- **AT-4**: CANDIDATE — Blocked with CONTACT_NOT_FOUND; PRE_POLICY_FAIL_CLOSED=True; NW007 card semantics unchanged.
-- **AT-5**: CANDIDATE — Blocked with LOW_EXTRACTION_CONFIDENCE; PRE_POLICY_FAIL_CLOSED=True; NW007 card semantics unchanged.
+- **AT-2**: CANDIDATE — Blocked with AMBIGUOUS_CONTACT; PRE_POLICY_FAIL_CLOSED=true; State2Equivalent=true.
+- **AT-4**: CANDIDATE — Blocked with CONTACT_NOT_FOUND; PRE_POLICY_FAIL_CLOSED=true; NW007 card semantics unchanged.
+- **AT-5**: CANDIDATE — Blocked with LOW_EXTRACTION_CONFIDENCE; PRE_POLICY_FAIL_CLOSED=true; NW007 card semantics unchanged.
+
+## Card evidence source
+
+- `AT2_CARD_EVIDENCE_SOURCE` = `GOVERNED_STOP_PROOF_PROJECTION_THROUGH_EXISTING_NW007_MAPPER`
+- `NW007_CARD_SEMANTICS_CHANGE` = `NO`

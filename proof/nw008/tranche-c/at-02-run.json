@@ -25,7 +25,7 @@
   "errors": [],
   "external_effects": 0,
   "follow_up_packet": null,
-  "follow_up_planning_agent_implemented": false,
+  "follow_up_planning_agent_implemented": true,
   "follow_up_proposal": null,
   "follow_up_proposal_valid": false,
   "google_adk_package_bound": true,
@@ -33,7 +33,7 @@
   "governed_stop": {
     "boundary_agent_id": "relationship_context_agent",
     "reason_code": "AMBIGUOUS_CONTACT",
-    "reason_source": "agents.relationship_context.resolver.resolve_relationship (crm_status=ambiguous -> governed stop)",
+    "reason_source": "contracts/workflow_states.yaml:transition[resolving->blocked:when=contact_ambiguous]:reason_code=AMBIGUOUS_CONTACT",
     "wrapper_status": "BLOCK_ORIGIN"
   },
   "local_adk_fallback_used": false,
@@ -218,7 +218,7 @@
     "completed": true,
     "external_effects": 0,
     "run_id": "nw008_tranche_c_at-02",
-    "session_id": "1321c99a-f485-4e87-ae95-6f5a831ecebf",
+    "session_id": "d0d4f129-6e45-45a9-91ac-8cbfaff65e19",
     "started": true,
     "state_keys": [
       "agent_execution",

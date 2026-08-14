@@ -25,7 +25,7 @@
   "errors": [],
   "external_effects": 0,
   "follow_up_packet": null,
-  "follow_up_planning_agent_implemented": false,
+  "follow_up_planning_agent_implemented": true,
   "follow_up_proposal": null,
   "follow_up_proposal_valid": false,
   "google_adk_package_bound": true,
@@ -33,7 +33,7 @@
   "governed_stop": {
     "boundary_agent_id": "relationship_context_agent",
     "reason_code": "CONTACT_NOT_FOUND",
-    "reason_source": "agents.relationship_context.resolver.resolve_relationship (crm_status=not_found -> governed stop)",
+    "reason_source": "contracts/workflow_states.yaml:transition[resolving->blocked:when=contact_not_found]:reason_code=CONTACT_NOT_FOUND",
     "wrapper_status": "BLOCK_ORIGIN"
   },
   "local_adk_fallback_used": false,
@@ -189,7 +189,7 @@
     "completed": true,
     "external_effects": 0,
     "run_id": "nw008_tranche_c_at-04",
-    "session_id": "3cf18e69-c072-44d7-a644-74cc3b715629",
+    "session_id": "460b3b59-9380-4db6-9390-8a803053b867",
     "started": true,
     "state_keys": [
       "agent_execution",

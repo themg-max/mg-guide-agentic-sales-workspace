@@ -26,7 +26,7 @@
   "errors": [],
   "external_effects": 0,
   "follow_up_packet": null,
-  "follow_up_planning_agent_implemented": false,
+  "follow_up_planning_agent_implemented": true,
   "follow_up_proposal": null,
   "follow_up_proposal_valid": false,
   "google_adk_package_bound": true,
@@ -34,7 +34,7 @@
   "governed_stop": {
     "boundary_agent_id": "meeting_context_agent",
     "reason_code": "LOW_EXTRACTION_CONFIDENCE",
-    "reason_source": "orchestration.state_machine.StateMachine.extraction_abort_threshold (confidence < 0.70 -> governed stop)",
+    "reason_source": "contracts/workflow_states.yaml:transition[extracting->blocked:when=extraction_confidence_lt_extraction_abort_threshold]:reason_code=LOW_EXTRACTION_CONFIDENCE:threshold=0.7",
     "wrapper_status": "BLOCK_ORIGIN"
   },
   "local_adk_fallback_used": false,
@@ -113,7 +113,7 @@
     "completed": true,
     "external_effects": 0,
     "run_id": "nw008_tranche_c_at-05",
-    "session_id": "6424fcff-273d-46cd-a8c4-e106b5d586e3",
+    "session_id": "a13d9be0-85a1-42b2-8172-b4c1e50df3bb",
     "started": true,
     "state_keys": [
       "agent_execution",
