@@ -61,8 +61,8 @@ proof_obligations:
   TB-10:
     STATUS: PASS
     EVIDENCE_PATH: proof/nw008/tranche-b/context-delta.json
-    DETAIL: Every confirmed current fact, unresolved question, and proposed next step
-      retained evidence references.
+    DETAIL: Every confirmed-context claim class (current facts, unresolved questions,
+      commitments completed/open, proposed next step) retains evidence references.
     REMAINING_GAP: ''
   TB-11:
     STATUS: PASS
@@ -73,14 +73,14 @@ proof_obligations:
   TB-12:
     STATUS: PASS
     EVIDENCE_PATH: proof/nw008/tranche-b/meeting-2-run.json
-    DETAIL: The deterministic policy gate was invoked and received proposal context
-      sourced from relationship_context.longitudinal_context.
+    DETAIL: Deterministic policy invoked, received relationship_context.longitudinal_context,
+      and bypass was false.
     REMAINING_GAP: ''
   TB-13:
     STATUS: PASS
     EVIDENCE_PATH: proof/nw008/tranche-b/decision-card.json
-    DETAIL: NW-007 decision card mapping and both text/html renderers completed without
-      requiring new reason semantics.
+    DETAIL: NW-007 decision card rendered non-empty text/html, zero external effects,
+      valid next_action, and known policy state.
     REMAINING_GAP: ''
   TB-14:
     STATUS: PASS
@@ -100,8 +100,8 @@ proof_obligations:
   TB-17:
     STATUS: PASS
     EVIDENCE_PATH: proof/nw008/tranche-b/meeting-1-run.json + proof/nw008/tranche-b/meeting-2-run.json
-    DETAIL: Only synthetic identities, synthetic contact points, and synthetic amounts
-      were used.
+    DETAIL: 'Synthetic fixture safety validation passed: source=synthetic_demo, approved
+      test domain, NW008 namespace, zero live CRM calls/writes/real_customer_data.'
     REMAINING_GAP: ''
   TB-18:
     STATUS: PASS

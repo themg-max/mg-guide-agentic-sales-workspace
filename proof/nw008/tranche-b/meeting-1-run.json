@@ -13,9 +13,9 @@
         "relationship_context_agent",
         "follow_up_planning_agent"
       ],
-      "completed_at": "2026-08-14T12:22:58Z",
+      "completed_at": "2026-08-14T12:53:05Z",
       "final_disposition": "completed",
-      "started_at": "2026-08-14T12:22:58Z",
+      "started_at": "2026-08-14T12:53:05Z",
       "tools_used": [],
       "warnings": []
     },
@@ -178,7 +178,7 @@
       "stage_write": "allowed"
     },
     "run": {
-      "created_at": "2026-08-14T12:22:58Z",
+      "created_at": "2026-08-14T12:53:05Z",
       "run_id": "nw008_tranche_b_meeting_1",
       "status": "completed",
       "workflow": "meeting_follow_up_v1"
@@ -742,7 +742,7 @@
     "completed": true,
     "external_effects": 0,
     "run_id": "nw008_tranche_b_meeting_1",
-    "session_id": "1dfe9259-dfb4-4ab7-8d78-3b0dc2138fee",
+    "session_id": "d7cd1724-a2e8-4354-af50-8361a66b7d7c",
     "started": true,
     "state_keys": [
       "approved_prior_context",
