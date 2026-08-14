@@ -1,50 +1,75 @@
 {
-  "schema": "meeting_follow_up_packet_v1",
-  "run": {
-    "run_id": "at-09-run",
-    "workflow": "meeting_follow_up_v1",
-    "created_at": "2026-08-14T17:25:47.027704Z",
-    "status": "completed"
+  "audit": {
+    "agents_used": [],
+    "completed_at": "2026-08-14T17:30:00Z",
+    "final_disposition": "failed",
+    "started_at": "2026-08-14T17:30:00Z",
+    "tools_used": [],
+    "warnings": [
+      "TOOL_MANIFEST_REFUSED:contact_create"
+    ]
   },
-  "meeting": {
-    "transcript_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-    "call_id": "test"
-  },
-  "participants": [],
-  "extraction": {
+  "brief": {
+    "crm_actions": [],
+    "headline": null,
     "lifecycle": "not_attempted",
-    "summary": null,
-    "needs": [],
-    "objections": [],
-    "commitments": [],
-    "next_step": null,
-    "opportunity_signal": null
-  },
-  "evidence": {
-    "transcript_spans": [],
-    "extraction_confidence": null
+    "meeting_summary": null,
+    "next_action": null,
+    "salesperson_attention_required": null
   },
   "crm_resolution": {
-    "lifecycle": "not_attempted",
-    "status": "not_attempted",
-    "contact_id": null,
-    "opportunity_id": null,
-    "match_basis": "not_attempted",
     "candidate_count": 0,
-    "current_stage": null
-  },
-  "policy": {
+    "contact_id": null,
+    "current_stage": null,
     "lifecycle": "not_attempted",
-    "note_write": "not_attempted",
-    "stage_write": "not_attempted",
-    "reason_codes": []
+    "match_basis": "not_attempted",
+    "opportunity_id": null,
+    "status": "not_attempted"
+  },
+  "d1_execution": {
+    "CAPABILITY_CLASS": "contact_create",
+    "DOWNSTREAM_EXECUTOR_CALLED": false,
+    "EXTERNAL_EFFECTS": 0,
+    "FIRESTORE_STAGE_B_CALLED": false,
+    "FIRESTORE_STAGE_B_INSTANTIATED": false,
+    "FIRESTORE_WRITES": 0,
+    "GHL_LIVE_CALLS": 0,
+    "GHL_WRITES": 0,
+    "MANIFEST_BLOCKED": true,
+    "MANIFEST_NODE": "ghl_mcp.blocked_capability_classes",
+    "REFUSAL_LAYER": "TOOL_MANIFEST",
+    "REQUESTED_OPERATION": "create-contact",
+    "TOOL_MANIFEST_REFUSED": true,
+    "TRANSPORT_ATTEMPTED": false
+  },
+  "evidence": {
+    "extraction_confidence": null,
+    "transcript_spans": []
+  },
+  "external_effects": 0,
+  "extraction": {
+    "commitments": [],
+    "lifecycle": "not_attempted",
+    "needs": [],
+    "next_step": null,
+    "objections": [],
+    "opportunity_signal": null,
+    "summary": null
+  },
+  "meeting": {
+    "call_id": "synthetic-at-09",
+    "transcript_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "mutation_intents": {
+    "note": [],
+    "stage": []
   },
   "mutations": {
     "lifecycle": "not_attempted",
     "note": {
       "attempted": false,
-      "verified": false,
-      "record_id": null
+      "record_id": null,
+      "verified": false
     },
     "opportunity_stage": {
       "attempted": false,
@@ -53,25 +78,18 @@
       "verified": false
     }
   },
-  "mutation_intents": {
-    "note": [],
-    "stage": []
-  },
-  "brief": {
+  "participants": [],
+  "policy": {
     "lifecycle": "not_attempted",
-    "headline": null,
-    "meeting_summary": null,
-    "crm_actions": [],
-    "next_action": null,
-    "salesperson_attention_required": null
+    "note_write": "not_attempted",
+    "reason_codes": [],
+    "stage_write": "not_attempted"
   },
-  "audit": {
-    "started_at": "2026-08-14T17:25:47.027714Z",
-    "completed_at": "2026-08-14T17:25:47.027729Z",
-    "agents_used": [],
-    "tools_used": [],
-    "warnings": [],
-    "final_disposition": "completed"
+  "run": {
+    "created_at": "2026-08-14T17:30:00Z",
+    "run_id": "at-09-run",
+    "status": "failed",
+    "workflow": "meeting_follow_up_v1"
   },
-  "external_effects": 0
+  "schema": "meeting_follow_up_packet_v1"
 }

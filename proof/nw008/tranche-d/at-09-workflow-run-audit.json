@@ -1,44 +1,41 @@
 {
-  "schema": "workflow_run_audit_v1",
-  "run_id": "at-09-run",
-  "workflow_id": "meeting_follow_up_v1",
-  "started_at": "2026-08-14T17:25:47.027714Z",
-  "completed_at": "2026-08-14T17:25:47.027729Z",
-  "terminal_state": "completed",
-  "recorded_at": "2026-08-14T17:25:47.028063Z",
-  "provenance": {
-    "packet_schema": "meeting_follow_up_packet_v1",
-    "meeting_id": null,
-    "meeting_source": null,
-    "transcript_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-    "fixture_id": "at-09-d1-proof",
-    "packet_run_status": "completed",
-    "source_refs": [],
-    "writer": {
-      "component": "nw008_tranche_d",
-      "component_version": "v1",
-      "projection_version": "workflow_run_audit_v1",
-      "mode": "local_fixture"
-    }
-  },
   "agent_steps": {
     "agents_used": [],
     "tools_used": []
   },
-  "policy": {
+  "brief_headline": null,
+  "completed_at": "2026-08-14T17:30:00Z",
+  "crm_resolution": {
+    "candidate_count": 0,
+    "contact_id": null,
     "lifecycle": "not_attempted",
-    "note_write": "not_attempted",
-    "stage_write": "not_attempted",
-    "reason_codes": []
+    "match_basis": "not_attempted",
+    "opportunity_id": null,
+    "status": "not_attempted"
   },
-  "reason_codes": [],
-  "tool_call_counts": {
-    "tools_listed_count": 0,
-    "ghl_mcp": {
-      "reads": 0,
-      "writes": 0
+  "errors": [
+    "final_disposition=failed"
+  ],
+  "external_effects": {
+    "counters": {
+      "EXTERNAL_EFFECTS": 0,
+      "GHL_READS": 0,
+      "GHL_WRITES": 0
     },
-    "other": 0
+    "packet_external_effects": 0
+  },
+  "final_disposition": "failed",
+  "idempotency": {
+    "key": "at-09-run",
+    "strategy": "create_only_if_absent"
+  },
+  "integrity": {
+    "content_fingerprint": "5f63991bd7dfb69e620efd91f1575ba3a17cfa18e311213044cf0ce5600c1b7b",
+    "projection_input_fingerprint": "92ba2a6af674ea10477fd1567e22ba87eea87848c66075379da03ddc6435f99a"
+  },
+  "mg_guide_card": {
+    "card_state": "failed",
+    "projection_source": "audit_status_mapper_v1"
   },
   "mutation_intents": {
     "note": [],
@@ -48,46 +45,53 @@
     "lifecycle": "not_attempted",
     "note": {
       "attempted": false,
-      "verified": false,
-      "record_id": null
+      "record_id": null,
+      "verified": false
     },
     "opportunity_stage": {
       "attempted": false,
-      "verified": false,
       "from_stage": null,
-      "to_stage": null
+      "to_stage": null,
+      "verified": false
     }
   },
-  "crm_resolution": {
+  "policy": {
     "lifecycle": "not_attempted",
-    "status": "not_attempted",
-    "match_basis": "not_attempted",
-    "candidate_count": 0,
-    "contact_id": null,
-    "opportunity_id": null
+    "note_write": "not_attempted",
+    "reason_codes": [],
+    "stage_write": "not_attempted"
   },
-  "mg_guide_card": {
-    "card_state": "completed",
-    "projection_source": "audit_status_mapper_v1"
-  },
-  "external_effects": {
-    "packet_external_effects": 0,
-    "counters": {
-      "GHL_READS": 0,
-      "GHL_WRITES": 0,
-      "EXTERNAL_EFFECTS": 0
+  "provenance": {
+    "fixture_id": "at-09-d1-proof",
+    "meeting_id": null,
+    "meeting_source": null,
+    "packet_run_status": "failed",
+    "packet_schema": "meeting_follow_up_packet_v1",
+    "source_refs": [],
+    "transcript_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "writer": {
+      "component": "nw008_tranche_d",
+      "component_version": "v2",
+      "mode": "local_fixture",
+      "projection_version": "workflow_run_audit_v1"
     }
   },
-  "warnings": [],
-  "errors": [],
-  "final_disposition": "completed",
-  "brief_headline": null,
-  "idempotency": {
-    "key": "at-09-run",
-    "strategy": "create_only_if_absent"
+  "reason_codes": [],
+  "recorded_at": "2026-08-14T17:30:00Z",
+  "run_id": "at-09-run",
+  "schema": "workflow_run_audit_v1",
+  "started_at": "2026-08-14T17:30:00Z",
+  "terminal_state": "failed",
+  "tool_call_counts": {
+    "ghl_mcp": {
+      "reads": 0,
+      "writes": 0
+    },
+    "other": 0,
+    "tools_listed_count": 0
   },
-  "integrity": {
-    "projection_input_fingerprint": "d927c1842b9030d92ace760e63a40d6ea8eb4fef05ef62a1cfac93e64f5fa78c",
-    "content_fingerprint": "1a2afcfe56245d9e74cac7549598afcee19f1cf4eda1c78d776fa56cbfbc8cd6"
-  }
+  "warnings": [
+    "TOOL_MANIFEST_REFUSED:contact_create"
+  ],
+  "workflow_id": "meeting_follow_up_v1"
 }
