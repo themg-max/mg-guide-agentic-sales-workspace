@@ -1,0 +1,28 @@
+{
+  "fixture_id": "nw008_tranche_c_at_05_low_extraction_confidence",
+  "scenario": "AT-5",
+  "participants": [
+    {
+      "role": "agent",
+      "name": "Advisor Demo",
+      "email": "advisor@example-demo.test",
+      "phone": "+1-555-0900"
+    },
+    {
+      "role": "prospect",
+      "name": "Unknown Caller",
+      "email": null,
+      "phone": null
+    }
+  ],
+  "extraction_result": {
+    "summary": null,
+    "needs": [],
+    "objections": [],
+    "commitments": [],
+    "next_step": null,
+    "opportunity_signal": null
+  },
+  "extraction_confidence": 0.3,
+  "evidence_references": []
+}

@@ -1,0 +1,50 @@
+{
+  "fixture_id": "nw008_tranche_c_at_02_ambiguous_contact",
+  "scenario": "AT-2",
+  "participants": [
+    {
+      "role": "agent",
+      "name": "Advisor Demo",
+      "email": "advisor@example-demo.test",
+      "phone": "+1-555-0900"
+    },
+    {
+      "role": "prospect",
+      "name": "Jordan Lee",
+      "email": null,
+      "phone": null
+    },
+    {
+      "role": "prospect",
+      "name": "Jordan Lee",
+      "email": null,
+      "phone": null
+    }
+  ],
+  "extraction_result": {
+    "summary": "Two prospects share the name Jordan Lee; no unique contact identifier established; advisor will hold CRM changes.",
+    "needs": [
+      "identify correct Jordan Lee contact"
+    ],
+    "objections": [
+      "ambiguous identity"
+    ],
+    "commitments": [],
+    "next_step": {
+      "action": "Hold CRM changes until unique contact is identified",
+      "owner": "Advisor Demo",
+      "target_date": null
+    },
+    "opportunity_signal": {
+      "recommended_stage": null,
+      "rationale": "Cannot recommend stage movement while contact is ambiguous."
+    }
+  },
+  "extraction_confidence": 0.88,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_at02_ambiguous_summary"
+    }
+  ]
+}

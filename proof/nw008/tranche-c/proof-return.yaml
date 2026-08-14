@@ -1,0 +1,251 @@
+execution_unit: TRANCHE_C
+purpose: HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY
+implementation_subject_sha: 06aee0392b30bf1515bf9c59a07b1463a8ec23cd
+transcript_source_contract: TRANSCRIPT_SOURCE_ENVELOPE_V1
+targets:
+- AT-2
+- AT-4
+- AT-5
+excludes:
+- AT-8
+- AT-9
+scenarios:
+  AT-2:
+    envelope_path: fixtures/nw008/tranche_c/at-02-envelope.json
+    envelope_hash: 918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5
+    run_id: nw008_tranche_c_at-02
+    run_path: proof/nw008/tranche-c/at-02-run.json
+    agents_started:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    agents_completed:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    stop_point: relationship_context_agent
+    stop_reason_code: AMBIGUOUS_CONTACT
+    stop_reason_source: agents.follow_up_planning.packet.FollowUpPacketAssembler (crm_status=ambiguous
+      from agents.relationship_context.resolver.resolve_relationship)
+    policy_bypass: false
+    disposition: blocked
+    effect_counters:
+      GHL_LIVE_CALLS: 0
+      GHL_READS: 0
+      GHL_WRITES: 0
+      FIRESTORE_WRITES: 0
+      EXTERNAL_EFFECTS: 0
+      REAL_CUSTOMER_DATA: 0
+  AT-4:
+    envelope_path: fixtures/nw008/tranche_c/at-04-envelope.json
+    envelope_hash: c5b645af3f30d172928266483ea3a97ac90afb5de03f2fe0c2c8e69efcf63eae
+    run_id: nw008_tranche_c_at-04
+    run_path: proof/nw008/tranche-c/at-04-run.json
+    agents_started:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    agents_completed:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    stop_point: relationship_context_agent
+    stop_reason_code: CONTACT_NOT_FOUND
+    stop_reason_source: agents.follow_up_planning.packet.FollowUpPacketAssembler (crm_status=not_found
+      from agents.relationship_context.resolver.resolve_relationship)
+    policy_bypass: false
+    disposition: blocked
+    effect_counters:
+      GHL_LIVE_CALLS: 0
+      GHL_READS: 0
+      GHL_WRITES: 0
+      FIRESTORE_WRITES: 0
+      EXTERNAL_EFFECTS: 0
+      REAL_CUSTOMER_DATA: 0
+  AT-5:
+    envelope_path: fixtures/nw008/tranche_c/at-05-envelope.json
+    envelope_hash: 775d6f0998b8421f44f094eb40570e61469c3d56135d1eb8125b8beb1275c67f
+    run_id: nw008_tranche_c_at-05
+    run_path: proof/nw008/tranche-c/at-05-run.json
+    agents_started:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    agents_completed:
+    - meeting_context_agent
+    - relationship_context_agent
+    - follow_up_planning_agent
+    stop_point: meeting_context_agent
+    stop_reason_code: LOW_EXTRACTION_CONFIDENCE
+    stop_reason_source: orchestration.state_machine.StateMachine.extraction_abort_threshold
+      (contracts/workflow_states.yaml) via agents.follow_up_planning.packet.FollowUpPacketAssembler
+    policy_bypass: false
+    disposition: blocked
+    effect_counters:
+      GHL_LIVE_CALLS: 0
+      GHL_READS: 0
+      GHL_WRITES: 0
+      FIRESTORE_WRITES: 0
+      EXTERNAL_EFFECTS: 0
+      REAL_CUSTOMER_DATA: 0
+proof_obligations:
+  TC-01:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-2 envelope entered fleet via TRANSCRIPT_SOURCE_ENVELOPE_V1; envelope
+      hash 918490426de1f35b2a70b117dab878ef10fed926a359fb3816d28c5b19895dc5
+    REMAINING_GAP: ''
+  TC-02:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: 'AT-2 AGENTS_STARTED: [''meeting_context_agent'', ''relationship_context_agent'',
+      ''follow_up_planning_agent'']'
+    REMAINING_GAP: ''
+  TC-03:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-2 STOP_POINT=relationship_context_agent, STOP_REASON_CODE=AMBIGUOUS_CONTACT,
+      disposition=blocked, CRM_WRITES=0
+    REMAINING_GAP: ''
+  TC-04:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: 'AT-2 AGENTS_COMPLETED: [''meeting_context_agent'', ''relationship_context_agent'',
+      ''follow_up_planning_agent'']; downstream agents completed but produced no actionable
+      output after the governed boundary'
+    REMAINING_GAP: ''
+  TC-05:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-2 POLICY_BYPASS=False, GHL_WRITES=0, FIRESTORE_WRITES=0, EXTERNAL_EFFECTS=0
+    REMAINING_GAP: ''
+  TC-06:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-4 envelope entered fleet via TRANSCRIPT_SOURCE_ENVELOPE_V1; envelope
+      hash c5b645af3f30d172928266483ea3a97ac90afb5de03f2fe0c2c8e69efcf63eae
+    REMAINING_GAP: ''
+  TC-07:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: 'AT-4 AGENTS_STARTED: [''meeting_context_agent'', ''relationship_context_agent'',
+      ''follow_up_planning_agent'']'
+    REMAINING_GAP: ''
+  TC-08:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-4 STOP_POINT=relationship_context_agent, STOP_REASON_CODE=CONTACT_NOT_FOUND,
+      disposition=blocked, CRM_WRITES=0
+    REMAINING_GAP: ''
+  TC-09:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: 'AT-4 AGENTS_COMPLETED: [''meeting_context_agent'', ''relationship_context_agent'',
+      ''follow_up_planning_agent'']; downstream agents completed but produced no actionable
+      output after the governed boundary'
+    REMAINING_GAP: ''
+  TC-10:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-4 POLICY_BYPASS=False, GHL_WRITES=0, FIRESTORE_WRITES=0, EXTERNAL_EFFECTS=0
+    REMAINING_GAP: ''
+  TC-11:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-5 envelope entered fleet via TRANSCRIPT_SOURCE_ENVELOPE_V1; envelope
+      hash 775d6f0998b8421f44f094eb40570e61469c3d56135d1eb8125b8beb1275c67f
+    REMAINING_GAP: ''
+  TC-12:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: 'AT-5 AGENTS_STARTED: [''meeting_context_agent'', ''relationship_context_agent'',
+      ''follow_up_planning_agent'']'
+    REMAINING_GAP: ''
+  TC-13:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-5 STOP_POINT=meeting_context_agent, STOP_REASON_CODE=LOW_EXTRACTION_CONFIDENCE,
+      disposition=blocked, CRM_WRITES=0
+    REMAINING_GAP: ''
+  TC-14:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: 'AT-5 AGENTS_COMPLETED: [''meeting_context_agent'', ''relationship_context_agent'',
+      ''follow_up_planning_agent'']; downstream agents completed but produced no actionable
+      output after the governed boundary'
+    REMAINING_GAP: ''
+  TC-15:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: AT-5 POLICY_BYPASS=False, GHL_WRITES=0, FIRESTORE_WRITES=0, EXTERNAL_EFFECTS=0
+    REMAINING_GAP: ''
+  TC-16:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: Existing fleet entrypoints reused; no new agent or parallel orchestration
+      engine
+    REMAINING_GAP: ''
+  TC-17:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: Deterministic fixture/provider mode; replay produces identical agent trace
+      and reason codes
+    REMAINING_GAP: ''
+  TC-18:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: 'Synthetic-only envelopes: contains_real_customer_data=false, permitted_for_public_proof=true,
+      approved example-demo.test domain'
+    REMAINING_GAP: ''
+  TC-19:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: Historical AT definitions unchanged (foundation §17 verbatim)
+    REMAINING_GAP: ''
+  TC-20:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: source, ownership, access_context, and provenance preserved in proof record
+    REMAINING_GAP: ''
+  TC-21:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: All envelopes set treat_content_as_data_only=true and instruction_authority=false
+    REMAINING_GAP: ''
+  TC-22:
+    STATUS: PASS
+    EVIDENCE_PATH: ''
+    DETAIL: Historical completion claims match unchanged AT clauses; no over-claim
+    REMAINING_GAP: ''
+effect_counters:
+  GHL_LIVE_CALLS: 0
+  GHL_READS: 0
+  GHL_WRITES: 0
+  FIRESTORE_WRITES: 0
+  EXTERNAL_EFFECTS: 0
+  REAL_CUSTOMER_DATA: 0
+  NW013_EXECUTED: 'NO'
+  DEPLOYMENT_PERFORMED: 'NO'
+historical_at_claims:
+  AT-2:
+    status: CANDIDATE
+    detail: Blocked with AMBIGUOUS_CONTACT; 0 CRM writes; MG Guide card State 2 rendered=True.
+      Historical completion candidacy pending review.
+  AT-4:
+    status: CANDIDATE
+    detail: Blocked with CONTACT_NOT_FOUND; 0 CRM writes; NW007 card semantics unchanged.
+      Historical completion candidacy pending review.
+  AT-5:
+    status: CANDIDATE
+    detail: Blocked with LOW_EXTRACTION_CONFIDENCE; 0 CRM writes; NW007 card semantics
+      unchanged. Historical completion candidacy pending review.
+remaining_gaps: []
+entrypoints:
+  MEETING_CONTEXT_ENTRYPOINT: agents.meeting_context.agent.MeetingContextAgent.run
+  RELATIONSHIP_CONTEXT_ENTRYPOINT: agents.relationship_context.agent.RelationshipContextAgent.run
+  FOLLOW_UP_PLANNING_ENTRYPOINT: agents.follow_up_planning.agent.FollowUpPlanningAgent.run
+  ADK_RUNTIME_ENTRYPOINT: agents.follow_up_planning.runtime.Unit3FollowUpRuntime.run_unit3
+  POLICY_ENTRYPOINT: orchestration.policy.evaluate_policy
+  PACKET_ENTRYPOINT: agents.follow_up_planning.packet.FollowUpPacketAssembler.assemble
+  DECISION_CARD_ENTRYPOINT: mg_guide.meeting_follow_up_card.decision_mapper.map_packet_to_decision_card
+  TRANSCRIPT_SOURCE_ENTRYPOINT: orchestration.transcript_source.envelope_to_provider_request

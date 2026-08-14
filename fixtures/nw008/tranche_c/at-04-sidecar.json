@@ -1,0 +1,42 @@
+{
+  "fixture_id": "nw008_tranche_c_at_04_contact_not_found",
+  "scenario": "AT-4",
+  "participants": [
+    {
+      "role": "agent",
+      "name": "Advisor Demo",
+      "email": "advisor@example-demo.test",
+      "phone": "+1-555-0900"
+    },
+    {
+      "role": "prospect",
+      "name": "Morgan Unknown",
+      "email": "morgan.unknown.not.in.crm@example-demo.test",
+      "phone": null
+    }
+  ],
+  "extraction_result": {
+    "summary": "Prospect indicates identity mismatch; no matching synthetic CRM contact exists.",
+    "needs": [],
+    "objections": [
+      "identity mismatch"
+    ],
+    "commitments": [],
+    "next_step": {
+      "action": "Confirm correct contact before any follow-up",
+      "owner": "Advisor Demo",
+      "target_date": null
+    },
+    "opportunity_signal": {
+      "recommended_stage": null,
+      "rationale": "No contact match; no stage movement."
+    }
+  },
+  "extraction_confidence": 0.85,
+  "evidence_references": [
+    {
+      "field": "summary",
+      "excerpt_id": "span_at04_not_found_summary"
+    }
+  ]
+}
