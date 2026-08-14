@@ -3,9 +3,11 @@
 | Field | Value |
 | --- | --- |
 | Work item | NW-008 |
-| Status | **PLANNED** (readiness classification only — no acceptance execution in this unit) |
+| Status | **IN_PROGRESS** (Tranche A **MERGED_COMPLETE** PR #40; Tranche B **MERGED_COMPLETE** PR #42; Tranche C **PLANNED** — no acceptance execution in this unit) |
 | Source of historical criteria | [`docs/MEETING_FOLLOW_UP_FOUNDATION.md`](../../docs/MEETING_FOLLOW_UP_FOUNDATION.md) §17 |
-| Companion packet | [`nw-008-implementation-packet.md`](./nw-008-implementation-packet.md) |
+| Companion packets | [`nw-008-implementation-packet.md`](./nw-008-implementation-packet.md) (Tranche A), [`nw-008-tranche-b-implementation-packet.md`](./nw-008-tranche-b-implementation-packet.md) (Tranche B), [`nw-008-tranche-c-implementation-packet.md`](./nw-008-tranche-c-implementation-packet.md) (Tranche C) |
+| Tranche B closeout | [`nw-008-tranche-b-merge-closeout.md`](./nw-008-tranche-b-merge-closeout.md) — `FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED` |
+| Tranche C transcript source contract | **TRANSCRIPT_SOURCE_ENVELOPE_V1** (provider-neutral; Google Workspace adapter `FUTURE_NOT_IMPLEMENTED`) |
 | NW-006 dependency | **MERGED_COMPLETE** (PR #15) — card surface available offline |
 | NW-007 dependency | **MERGED_COMPLETE** (PR #37 merged; Stage B2 deployment evidence exists; proof closeout merged via PR #38) |
 | Mutation / write posture | **No GHL writes authorized**; no isolated GHL test location |
@@ -48,7 +50,7 @@
 
 ---
 
-## Current readiness matrix (post NW-007 merge + NW-007 closeout)
+## Current readiness matrix (post Tranche B merge / PR #42)
 
 | AT | Historical expected outcome | Current readiness | Current evidence | Remaining gap | Authorization dependency | Recommended next action |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -83,9 +85,24 @@ This tranche is preferred because it:
 - avoids AT-6 / AT-7 write-path behavior;
 - does not imply Firestore writes without NW-005 Stage B authorization.
 
+**Tranche C (PLANNED — not started):** historical failure-path agent-fleet
+acceptance replay of `AT-2, AT-4, AT-5` entering through the provider-neutral
+`TRANSCRIPT_SOURCE_ENVELOPE_V1` boundary
+([`nw-008-tranche-c-implementation-packet.md`](./nw-008-tranche-c-implementation-packet.md)).
+AT-8 / AT-9 partial proof and the future Google Workspace transcript adapter
+(`FUTURE_NOT_IMPLEMENTED`, `NOT_AUTHORIZED_IN_TRANCHE_C`) are out of Tranche C
+scope.
+
 ```text
 NW008_FIRST_EXECUTABLE_TRANCHE=AT-2,AT-4,AT-5,AT-8,AT-9
 NW008_TRANCHE_REQUIRES_NEW_AUTHORIZATION=NO
+NW008_TRANCHE_B_STATUS=MERGED_COMPLETE
+FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED
+NW008_OVERALL_STATUS=IN_PROGRESS
+TRANCHE_C_STATUS=PLANNED
+TRANCHE_C_EXECUTION_STARTED=NO
+TRANSCRIPT_SOURCE_CONTRACT=TRANSCRIPT_SOURCE_ENVELOPE_V1
+GOOGLE_WORKSPACE_TRANSCRIPT_ADAPTER=FUTURE_NOT_IMPLEMENTED
 NW005_STAGE_B_STATUS=PLANNED_NOT_AUTHORIZED
 NW013_STATUS=AUTHORIZED_NOT_EXECUTED
 GHL_WRITES_AUTHORIZED=NO
@@ -160,5 +177,5 @@ For each AT marked for execution under a future authorized unit:
 ## STOP
 
 ```text
-STOP_CODE=NW007_MERGED_COMPLETE_NW008_READINESS_REFRESH_READY_FOR_REVIEW
+STOP_CODE=NW008_REVISED_TRANCHE_C_TRANSCRIPT_SOURCE_PLAN_READY_FOR_REVIEW
 ```

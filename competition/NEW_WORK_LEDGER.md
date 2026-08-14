@@ -25,7 +25,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 | NW-005 | 2026-08-13 | Firestore audit writer | STAGE_A_MERGED_COMPLETE / STAGE_B_PLANNING_NOT_AUTHORIZED | `workflow_runs/{run_id}`; required before honest AT-10. Stage A (offline `workflow_run_audit_v1` projection) **MERGED_COMPLETE**: PR #18 MERGED; final head `695bf3dcae3c9a82ef3af9be9cf264a669485939`; merge SHA `63aadc5c90569cfa119af7cc7e30fbac62f8544b`; merged_at `2026-08-13T01:15:44Z`. Stage B (Firestore smoke proof) = PLANNING / NOT_AUTHORIZED; authorization packet `proof/nw005/stage-b/nw-005-stage-b-authorization-packet.md` (proposed grant `MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1`, all environment fields `UNKNOWN`); `FIRESTORE_NETWORK_OPERATIONS=0`; no Firestore writes authorized under completed lanes |
 | NW-006 | 2026-08-12 | MG Guide Meeting Follow-Up card experience | MERGED_COMPLETE | PR #15 **MERGED**; final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627`; exact-head CI **31630399411** SUCCESS; merge SHA `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; merged_at `2026-08-12T19:12:33Z`; competition-local host-agnostic deterministic card renderer/reference component; no private host wiring; no mutation execution; `EXTERNAL_EFFECTS=0`; closeout `proof/nw006/nw-006-merge-closeout.md` |
 | NW-007 | 2026-08-14 | Cloud Run deployment (test) + demo-grade decision card | MERGED_COMPLETE | PR #37 **MERGED** at `2026-08-14T09:35:35Z` via merge SHA `f0fe64f1ed1ddab7adb0252ccd4aabb74fe65aa6`; final reviewed head `22a3b0b3c20373100ca0158cda7a74b4fbc1fb76`. Governance closeout PR #38 **MERGED** at `2026-08-14T09:36:28Z` via merge SHA `89302057a7dddf2410f8aedbfb1f6c4e0ea88238`. Stage B2 deployment evidence exists, but `DEPLOYMENT_AUTHORIZATION=NO`. Decision-card implementation remains bounded and merged; `EXTERNAL_EFFECTS=0`; `POLICY_SEMANTICS_CHANGE=NO`; `PACKET_SCHEMA_CHANGE=NO`; `ADK_ORCHESTRATION_CHANGE=NO`; `NEW_AGENT=NO`; `NEW_LLM_CALL=NO`; application repair required `NO`; final closeout `proof/nw007/nw007-merge-closeout.md` |
-| NW-008 | 2026-08-14 | Acceptance tests AT-1…AT-10 + demo proof | MERGED_COMPLETE (Tranche A) | PR #40 **MERGED** at `2026-08-14T11:30:36Z` via merge SHA `10347c709e86dfbca83cdf8c9ffd1a9a8491ce87`; final reviewed head `b61a4b02e0dae8c14701ccc8184c205d6bdcd29d`. Tranche A status `MERGED_COMPLETE`, purpose `DETERMINISTIC_ACCEPTANCE_EVIDENCE_SUBSTRATE`, historical AT complete `NONE`; proof bundle under `proof/nw008/tranche-a/**`, implementation packet under `proof/nw008/nw-008-implementation-packet.md`; no live GHL/Firestore/CRM mutation; dependency order unchanged (NW-006 → optional NW-013 → NW-005 → NW-007 → NW-008 → future safe-env mutation lane) |
+| NW-008 | 2026-08-14 | Acceptance tests AT-1…AT-10 + demo proof | IN_PROGRESS (Tranches A+B MERGED_COMPLETE; Tranche C PLANNED) | Tranche A: PR #40 **MERGED** at `2026-08-14T11:30:36Z` via merge SHA `10347c709e86dfbca83cdf8c9ffd1a9a8491ce87`; final reviewed head `b61a4b02e0dae8c14701ccc8184c205d6bdcd29d`; purpose `DETERMINISTIC_ACCEPTANCE_EVIDENCE_SUBSTRATE`. Tranche B: PR #42 **MERGED** at `2026-08-14T13:06:06Z` via merge SHA `1ee6647d7e8284cb165c7ac8063582c6769d0a79`; final reviewed head `4da7e3fd25937e5cd90c241443ec1badbbf94e3b`; purpose `LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY`; `FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED`; historical AT complete `NONE`. Tranche C **PLANNED** (`TRANCHE_C_EXECUTION_STARTED=NO`): historical failure-path fleet replay of AT-2/AT-4/AT-5 via provider-neutral `TRANSCRIPT_SOURCE_ENVELOPE_V1`; packet `proof/nw008/nw-008-tranche-c-implementation-packet.md`; no live GHL/Firestore/CRM mutation; dependency order unchanged (NW-006 → optional NW-013 → NW-005 → NW-007 → NW-008 → future safe-env mutation lane) |
 | NW-011 | 2026-08-11 | Phase 1 deterministic CI workflow proof | DONE | Branch `chore/phase1-deterministic-ci`; Python-only deterministic verification; no secrets or runtime dependencies |
 | NW-012 | 2026-08-11 | Isolated GHL test-account record-read compatibility probe | NOT_PURSUIED_ENVIRONMENT_UNAVAILABLE | No isolated GHL hackathon/test location can be provided; path retired. Proposed `MG_GUIDE_PHASE2A_GHL_TEST_ACCOUNT_READ_PROBE_V1` never activated; zero record reads; zero writes |
 | NW-013 | 2026-08-12 | Canonical GHL location synthetic-record read proof | AUTHORIZED_NOT_EXECUTED | Grant `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1`; human binding complete; `HUMAN_SIGNATURE=APPROVED`; `CURRENT_GRANT_STATE=AUTHORIZED_FOR_EXECUTION`; private allowlist complete (IDs not public); PIT canonical location verified; IAM change not required; branch `gov/mg-guide-ghl-canonical-synthetic-read-binding-v1`; **GHL_LIVE_CALLS=0**, **GHL_WRITES=0**; live reads still unexecuted |
@@ -44,7 +44,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Phase 2B live GHL access has **not** started. NW-014 closed the offline adapter only (`network=NONE`); no live GHL claim is made by this closeout.
 - Gemini/ADK implementation is **authorized and closed** under NW-004 (`NW004_STATUS=DONE`, `NW004_CLOSEOUT_STATUS=CLOSED_SUCCESS`, `PHASE3_UNIT1_STATUS=MERGED_COMPLETE`, `PHASE3_UNIT2_STATUS=MERGED_COMPLETE`, `PHASE3_UNIT3_STATUS=MERGED_COMPLETE`, `GEMINI_ADK_AUTHORIZED=YES`). Unit 1 provider surface remains `COMPATIBLE_SURFACE_ONLY`. Unit 2 runtime truth: `GOOGLE_ADK_RUNTIME_STARTED=YES`, `ADK_INTEGRATION_STATUS=RUNTIME_INTEGRATED`. Unit 3 runtime truth: `FOLLOW_UP_PLANNING_AGENT_IMPLEMENTED=YES`, `GOOGLE_ADK_RUNTIME_REUSED=YES`, `DETERMINISTIC_POLICY_GATE_INVOKED=YES`, `DETERMINISTIC_POLICY_BYPASS=NO`, `EXTERNAL_EFFECTS=0`. At NW-004 closeout the remaining vertical-slice layers (mutation execution, Firestore audit, MG Guide card experience, and deployment) stayed out of scope; **NW-006 is now MERGED_COMPLETE** (PR #15 / head `c7d25b447db0a961c17ae26e326ada230b7e4627` / CI 31630399411 SUCCESS / merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`), while mutation execution, Firestore audit (NW-005), deployment (NW-007), and acceptance/demo proof (NW-008) remain separately governed.
 - NW-006 MERGED_COMPLETE does **not** complete AT-1…AT-10, authorize CRM mutation, authorize Firestore writes, execute NW-013 live reads, or deploy (NW-007). Synthetic card tests are not a substitute for historical acceptance criteria.
-- NW-008 Tranche A is **MERGED_COMPLETE** (PR #40); Tranche B is **PLANNED** with `TRANCHE_B_EXECUTION_STARTED=NO`. Historical AT complete remains `NONE`. Readiness snapshot (historical AT criteria, not Tranche A status): READY=none; PARTIAL=AT-2,AT-4,AT-5,AT-8,AT-9; BLOCKED=AT-1,AT-3,AT-6,AT-7; DEFERRED=AT-10.
+- NW-008 Tranche A is **MERGED_COMPLETE** (PR #40); Tranche B is **MERGED_COMPLETE** (PR #42) with `FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED`; Tranche C is **PLANNED** with `TRANCHE_C_EXECUTION_STARTED=NO`. Historical AT complete remains `NONE`. Readiness snapshot (historical AT criteria, not tranche execution status): READY=none; PARTIAL=AT-2,AT-4,AT-5,AT-8,AT-9; BLOCKED=AT-1,AT-3,AT-6,AT-7; DEFERRED=AT-10.
 - NW-004 does **not** authorize live GHL, GHL writes, real customer data, L3A promotion, Firestore writes, or deployment (`GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `L3A_RUNTIME_STATUS=DEFERRED_RUNTIME_NOT_PROMOTED`, `FIRESTORE_WRITES=0`, `DEPLOYMENT=NO`).
 
 
@@ -105,12 +105,12 @@ EXTERNAL_EFFECTS=0
 - Explicit non-delivery: private authenticated MG Guide host integration; CRM mutation; GHL live calls/writes; Firestore writer; deployment; AT-1…AT-10 completion claims
 - Artifacts: `proof/nw006/nw-006-merge-closeout.md`, `proof/nw006/nw-006-implementation-packet.md`, `proof/nw006/proof-return.yaml`, `src/mg_guide/meeting_follow_up_card/**`, `contracts/mg_guide_meeting_follow_up_card.schema.json`, `fixtures/nw006/**`, `tests/mg_guide/meeting_follow_up_card/**`
 
-## NW-008 acceptance readiness (Tranche A MERGED_COMPLETE; Tranche B PLANNED)
+## NW-008 acceptance readiness (Tranches A+B MERGED_COMPLETE; Tranche C PLANNED)
 
 - Date (UTC): 2026-08-14
-- Overall NW-008: Tranche A closed; full historical AT-1…AT-10 closeout not claimed
+- Overall NW-008: **IN_PROGRESS** — Tranches A and B closed; Tranche C planned; full historical AT-1…AT-10 closeout not claimed
 - Historical criteria source: `docs/MEETING_FOLLOW_UP_FOUNDATION.md` §17 (AT-1…AT-10 verbatim; not silently revised)
-- Artifacts: `proof/nw008/nw008-tranche-a-merge-closeout.md`, `proof/nw008/nw-008-readiness-matrix.md`, `proof/nw008/nw-008-implementation-packet.md`, `proof/nw008/nw-008-tranche-b-implementation-packet.md`, `proof/nw008/tranche-a/**`, `proof/nw008/at-0{2,4,5,8,9}/**`, `src/orchestration/nw008_harness.py`, `tests/acceptance/test_nw008_tranche_a.py`
+- Artifacts: `proof/nw008/nw008-tranche-a-merge-closeout.md`, `proof/nw008/nw-008-tranche-b-merge-closeout.md`, `proof/nw008/nw-008-readiness-matrix.md`, `proof/nw008/nw-008-implementation-packet.md`, `proof/nw008/nw-008-tranche-b-implementation-packet.md`, `proof/nw008/nw-008-tranche-c-implementation-packet.md`, `proof/nw008/tranche-a/**`, `proof/nw008/tranche-b/**`, `proof/nw008/at-0{2,4,5,8,9}/**`, `src/orchestration/nw008_harness.py`, `tests/acceptance/test_nw008_tranche_a.py`
 - Readiness snapshot (historical AT criteria matrix; not a Tranche A execution-status claim): READY=none; PARTIAL=AT-2,AT-4,AT-5,AT-8,AT-9; BLOCKED=AT-1,AT-3,AT-6,AT-7; DEFERRED=AT-10
 - Recommended dependency order: NW-006 closeout → optional NW-013 bounded synthetic live-read → NW-005 Firestore audit auth/impl → NW-007 bounded Cloud Run/test deploy → NW-008 final acceptance/demo proof → CRM mutation only under a future separately authorized safe-environment lane
 - Constraints retained: no isolated GHL test location; canonical GHL location is not a test environment; NW-013 AUTHORIZED_NOT_EXECUTED; no GHL writes authorized; no Firestore writes authorized under completed lanes; production/customer data forbidden; raw REST forbidden; deterministic policy sole consequential-action authorization surface; NW-005 Stage B not activated
@@ -140,18 +140,69 @@ DEFERRED_NOT_EXECUTED=AT-10
 
 - Explicit non-claim: no historical AT-1…AT-10 marked complete by Tranche A; AT definitions unchanged
 
-### Tranche B (PLANNED only — not started)
+### Tranche B (MERGED_COMPLETE)
 
-- Status: planning freeze only; no fixtures created, no agents executed, no proof obligations passed, no runtime changed in this ledger repair
+- Public PR: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/42 (**MERGED**)
+- Purpose: longitudinal synthetic agent-fleet replay (offline/synthetic only)
+- Merge closeout: `proof/nw008/nw-008-tranche-b-merge-closeout.md`
 - Durable markers:
 
 ```text
-NW008_TRANCHE_B_STATUS=PLANNED
+PR42_MERGED=YES
+PR42_FINAL_REVIEWED_HEAD=4da7e3fd25937e5cd90c241443ec1badbbf94e3b
+PR42_MERGE_SHA=1ee6647d7e8284cb165c7ac8063582c6769d0a79
+PR42_MERGED_AT=2026-08-14T13:06:06Z
+PR42_IMPLEMENTATION_SUBJECT_SHA=27edac20756518257a54492487fb09bfb3b88576
+
+NW008_TRANCHE_B_STATUS=MERGED_COMPLETE
 NW008_TRANCHE_B_PURPOSE=LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY
-NW008_TRANCHE_B_EXECUTION_STARTED=NO
+FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED
+
+TB_PROOF_OBLIGATIONS=TB-01..TB-18
+TB_PROOF_RESULT=ALL_PASS
+
+GHL_LIVE_CALLS=0
+GHL_READS=0
+GHL_WRITES=0
+FIRESTORE_WRITES=0
+EXTERNAL_EFFECTS=0
+REAL_CUSTOMER_DATA=0
+NW013_EXECUTED=NO
+DEPLOYMENT_PERFORMED=NO
 ```
 
-- Planning artifact: `proof/nw008/nw-008-tranche-b-implementation-packet.md`
+- Explicit non-claim: Tranche B closed the fleet-replay evidence gap only; no historical AT-1…AT-10 marked complete (`HISTORICAL_AT_COMPLETE=NONE`); AT definitions unchanged
+
+### Tranche C (PLANNED only — not started)
+
+- Status: planning freeze only; no envelope implementation, no fixtures created, no agents executed, no proof obligations passed, no runtime changed in this planning pass
+- Purpose: historical failure-path agent-fleet acceptance replay of AT-2 / AT-4 / AT-5 through the provider-neutral transcript source boundary
+- Reusability objective: prove failure paths through `TRANSCRIPT_SOURCE_ENVELOPE_V1` so the same replay later runs unchanged against an authorized operational source
+- Durable markers:
+
+```text
+NW008_EXECUTION_UNIT=TRANCHE_C
+TRANCHE_C_STATUS=PLANNED
+TRANCHE_C_EXECUTION_STARTED=NO
+TRANCHE_C_PURPOSE=HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY
+REUSABILITY_OBJECTIVE=PROVE_FAILURE_PATHS_THROUGH_PROVIDER_NEUTRAL_TRANSCRIPT_SOURCE_BOUNDARY
+
+TRANSCRIPT_SOURCE_CONTRACT=TRANSCRIPT_SOURCE_ENVELOPE_V1
+COMPETITION_SOURCE=synthetic_fixture/synthetic/fixture
+FUTURE_OPERATIONAL_SOURCE=google_workspace_meet_transcript/google_workspace/authorized_drive_read
+GOOGLE_WORKSPACE_TRANSCRIPT_ADAPTER=FUTURE_NOT_IMPLEMENTED
+GOOGLE_WORKSPACE_RUNTIME=NOT_AUTHORIZED_IN_TRANCHE_C
+
+NEW_AGENT=NO
+POLICY_SEMANTICS_CHANGE=NO
+GHL_WRITES_AUTHORIZED=NO
+FIRESTORE_WRITES_AUTHORIZED=NO
+DEPLOYMENT_AUTHORIZED=NO
+REAL_CUSTOMER_DATA=FORBIDDEN
+```
+
+- Planning artifact: `proof/nw008/nw-008-tranche-c-implementation-packet.md`
+- Future domain workspace note (planning only): Google Meet → authorized domain-user Drive transcript location → future Google Workspace transcript intake adapter → `TRANSCRIPT_SOURCE_ENVELOPE_V1` → `meeting_follow_up_v1`; the adapter will later own file discovery, authenticated Drive read, tenant/user ownership binding, transcript file identity, timestamps, transcript hashing, and ingestion status; agents will **not** own Google Drive discovery or credentials
 
 
 ## NW-013 canonical synthetic-read binding (AUTHORIZED_NOT_EXECUTED)
