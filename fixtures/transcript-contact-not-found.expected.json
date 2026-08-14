@@ -1,16 +1,16 @@
 {
-  "fixture_id": "transcript-insufficient-context",
-  "run_id": "run_demo_insufficient_001",
+  "fixture_id": "transcript-contact-not-found",
+  "run_id": "run_demo_contact_not_found_001",
   "meeting": {
-    "meeting_id": "demo_meeting_006",
-    "occurred_at": "2026-08-11T16:00:00Z",
+    "meeting_id": "demo_meeting_cnf_001",
+    "occurred_at": "2026-08-11T15:30:00Z",
     "source": "synthetic_demo",
     "transcript_hash": null
   },
   "participants": [
     {
-      "name": "Sam Unlisted",
-      "email": null,
+      "name": "Casey Unknown",
+      "email": "casey.unknown@example-demo.test",
       "phone": null,
       "role": "prospect"
     },
@@ -22,34 +22,39 @@
     }
   ],
   "extraction_result": {
-    "summary": "Partial capture only; conversation content insufficient for a reliable follow-up summary.",
-    "needs": [],
+    "summary": "Synthetic discovery conversation for a contact email with no CRM match.",
+    "needs": [
+      "identity confirmation before CRM write"
+    ],
     "objections": [],
     "commitments": [],
     "next_step": {
-      "action": "Reconvene when audio is clear; record no CRM changes",
+      "action": "Block CRM writes until contact is created or matched offline",
       "owner": "Alex Rivera",
       "target_date": null
     },
-    "opportunity_signal": null
+    "opportunity_signal": {
+      "recommended_stage": null,
+      "rationale": "No stage movement requested."
+    }
   },
-  "extraction_confidence": 0.55,
+  "extraction_confidence": 0.91,
   "evidence_references": [
     {
       "field": "summary",
-      "excerpt_id": "span_insufficient_summary"
+      "excerpt_id": "span_contact_not_found_summary"
     }
   ],
   "crm_resolution_stub": {
     "status": "not_found",
     "contact_id": null,
     "opportunity_id": null,
-    "match_basis": "none",
+    "match_basis": "email",
     "candidate_count": 0,
     "current_stage": null
   },
   "policy_inputs": {
-    "transcript_file": "transcript-insufficient-context.txt",
+    "transcript_file": "transcript-contact-not-found.txt",
     "note_write_request": true,
     "stage_write_request": false,
     "force_note_denied": false,
@@ -58,21 +63,10 @@
   "expected": {
     "terminal_state": "blocked",
     "reason_codes": [
-      "LOW_EXTRACTION_CONFIDENCE"
+      "CONTACT_NOT_FOUND"
     ],
     "note_intent": 0,
     "stage_intent": 0,
-    "external_effects": 0
-  },
-  "unit3_expectation": {
-    "scenario_id": "INSUFFICIENT_CONTEXT",
-    "expected_packet_status": "blocked",
-    "expected_reason_codes": [
-      "LOW_EXTRACTION_CONFIDENCE"
-    ],
-    "expected_note_intents": 0,
-    "expected_stage_intents": 0,
-    "expected_policy_gate_invoked": false,
     "external_effects": 0
   }
 }

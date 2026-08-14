@@ -1,0 +1,38 @@
+# FIXTURE: transcript-contact-not-found
+# SYNTHETIC DATA ONLY — not a real person, meeting, or CRM record
+# Expected disposition: blocked
+# Expected reason code: CONTACT_NOT_FOUND
+# Expected CRM writes: 0
+# Resolution setup: synthetic email has zero CRM matches (offline stub only).
+
+MEETING_ID: demo_meeting_cnf_001
+OCCURRED_AT: 2026-08-11T15:30:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Casey Unknown
+  email: casey.unknown@example-demo.test
+  phone: null
+  role: prospect
+- name: Alex Rivera
+  email: alex.rivera@example-demo.test
+  phone: +1-555-0199
+  role: agent
+
+--- TRANSCRIPT ---
+
+Alex Rivera: Hi Casey, thanks for joining. I have casey.unknown@example-demo.test on the invite.
+
+Casey Unknown: That's right. I have not worked with your team before.
+
+Alex Rivera: Understood. I will look up that email before any CRM note. If there is no match, I will block writes and escalate.
+
+Casey Unknown: Sounds good. No stage change needed today.
+
+Alex Rivera: Perfect. Holding all CRM changes until identity is confirmed.
+
+--- END ---
+
+# POLICY INTENT:
+# - Contact lookup yields not_found (synthetic stub)
+# - blocked + CONTACT_NOT_FOUND + 0 writes

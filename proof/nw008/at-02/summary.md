@@ -1,0 +1,27 @@
+# AT-2 evidence summary
+
+- EVIDENCE_CLASS: `COMPLETION_CANDIDATE`
+- HISTORICAL_AT_COMPLETE: `YES`
+- TEST_RESULT: `PASS`
+- SOURCE_FIXTURE: `transcript-ambiguous-contact.expected.json`
+- INPUT_HASH: `a0a49c3b8df4eec7eb1c7587371d29c3659e74df3c2dd63ea52caea50496e5e9`
+- ACTUAL_WORKFLOW_STATUS: `blocked`
+- AUTHORITATIVE_REASON_CODES: `['AMBIGUOUS_CONTACT']`
+- CARD_POLICY_STATE / CARD_REASON_CODE / CARD_NEXT_ACTION: `BLOCKED` / `AMBIGUOUS_CONTACT` / `RESOLVE_CONTACT`
+- REMAINING_GAP: (none)
+
+## Clause coverage
+
+- `blocked`: **PASS**
+- `AMBIGUOUS_CONTACT`: **PASS**
+- `0_CRM_writes`: **PASS**
+- `MG_Guide_blocked_State_2_equivalent_decision_card`: **PASS**
+
+## Effect counters
+
+- GHL_LIVE_CALLS=0
+- GHL_READS=0
+- GHL_WRITES=0
+- FIRESTORE_WRITES=0
+- EXTERNAL_EFFECTS=0
+- REAL_CUSTOMER_DATA=0

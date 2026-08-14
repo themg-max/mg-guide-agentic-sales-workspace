@@ -1,0 +1,61 @@
+{
+  "ACTUAL_WORKFLOW_STATUS": "blocked",
+  "AT_ID": "AT-5",
+  "AUTHORITATIVE_REASON_CODES": [
+    "LOW_EXTRACTION_CONFIDENCE"
+  ],
+  "CARD_NEXT_ACTION": "REVIEW_REQUIRED_UNKNOWN_STATE",
+  "CARD_POLICY_STATE": "REVIEW_REQUIRED",
+  "CARD_REASON_CODE": "NONE",
+  "COMMIT_SHA": "b45495ffe455604cda8153462889740baad134f5",
+  "EVIDENCE_CLASS": "COMPLETION_CANDIDATE",
+  "EXTERNAL_EFFECTS": 0,
+  "FIRESTORE_WRITES": 0,
+  "GHL_LIVE_CALLS": 0,
+  "GHL_READS": 0,
+  "GHL_WRITES": 0,
+  "HISTORICAL_AT_COMPLETE": "YES",
+  "HISTORICAL_CLAUSE_COVERAGE": {
+    "0_writes": "PASS",
+    "LOW_EXTRACTION_CONFIDENCE": "PASS",
+    "blocked": "PASS",
+    "extraction_below_threshold": "PASS"
+  },
+  "HISTORICAL_EXPECTED_OUTCOME": "Extraction confidence below threshold \u2192 blocked with LOW_EXTRACTION_CONFIDENCE; 0 writes",
+  "INPUT_HASH": "bd9f7e1dc2e9ee3b1d8f8311e67630226f80424b2f980da37908d61f23157388",
+  "REAL_CUSTOMER_DATA": 0,
+  "REMAINING_GAP": "",
+  "RUN_ID": "run_demo_insufficient_001",
+  "SOURCE_FIXTURE": "transcript-insufficient-context.expected.json",
+  "TEST_RESULT": "PASS",
+  "details": {
+    "authoritative_workflow_reason": {
+      "final_state": "blocked",
+      "reason_codes": [
+        "LOW_EXTRACTION_CONFIDENCE"
+      ],
+      "source": "orchestration.WorkflowRunner + contracts/workflow_states.yaml",
+      "validation_ok": true
+    },
+    "card_note": "NW-007 decision card does not name LOW_EXTRACTION_CONFIDENCE as a scenario; fail-closed presentation is preserved and is not required for historical AT-5 completion.",
+    "decision_card_presentation": {
+      "agent_contributions": [],
+      "external_effects": 0,
+      "human_review_required": true,
+      "next_action": "REVIEW_REQUIRED_UNKNOWN_STATE",
+      "policy_explanation": "An unrecognized workflow or policy state requires human review.",
+      "policy_reason_code": "NONE",
+      "policy_state": "REVIEW_REQUIRED",
+      "workflow_status": "blocked"
+    },
+    "extraction_abort_threshold": 0.7,
+    "extraction_confidence": 0.55,
+    "mg_guide_card_state": "blocked",
+    "mutation_intents": {
+      "note": [],
+      "stage": []
+    },
+    "note": "AUTHORITATIVE_WORKFLOW_REASON is separate from DECISION_CARD_PRESENTATION and HISTORICAL_AT_COMPLETION.",
+    "packet_external_effects": 0
+  }
+}
