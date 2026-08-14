@@ -53,7 +53,7 @@ EVIDENCE_RESULT_FIELDS = (
     "REAL_CUSTOMER_DATA",
     "HISTORICAL_AT_COMPLETE",
     "REMAINING_GAP",
-    "COMMIT_SHA",
+    "IMPLEMENTATION_SUBJECT_SHA",
     "TEST_RESULT",
 )
 
@@ -78,7 +78,7 @@ AT_SPECS: Dict[str, Dict[str, Any]] = {
             "transcript-ambiguous-contact.txt → blocked with AMBIGUOUS_CONTACT; "
             "0 CRM writes; MG Guide card State 2"
         ),
-        "evidence_class": "COMPLETION_CANDIDATE",
+        "evidence_class": "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF",
         "source_fixture": "transcript-ambiguous-contact.expected.json",
         "mode": "workflow_fixture",
         "required_clauses": (
@@ -87,12 +87,15 @@ AT_SPECS: Dict[str, Dict[str, Any]] = {
             "0_CRM_writes",
             "MG_Guide_blocked_State_2_equivalent_decision_card",
         ),
+        "remaining_gap_default": (
+            "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED"
+        ),
     },
     "AT-4": {
         "historical_expected_outcome": (
             "Contact not found → blocked with CONTACT_NOT_FOUND; 0 writes"
         ),
-        "evidence_class": "COMPLETION_CANDIDATE",
+        "evidence_class": "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF",
         "source_fixture": "transcript-contact-not-found.expected.json",
         "mode": "workflow_fixture",
         "required_clauses": (
@@ -100,13 +103,16 @@ AT_SPECS: Dict[str, Dict[str, Any]] = {
             "blocked",
             "0_writes",
         ),
+        "remaining_gap_default": (
+            "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED"
+        ),
     },
     "AT-5": {
         "historical_expected_outcome": (
             "Extraction confidence below threshold → blocked with "
             "LOW_EXTRACTION_CONFIDENCE; 0 writes"
         ),
-        "evidence_class": "COMPLETION_CANDIDATE",
+        "evidence_class": "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF",
         "source_fixture": "transcript-insufficient-context.expected.json",
         "mode": "workflow_fixture",
         "required_clauses": (
@@ -114,6 +120,9 @@ AT_SPECS: Dict[str, Dict[str, Any]] = {
             "LOW_EXTRACTION_CONFIDENCE",
             "blocked",
             "0_writes",
+        ),
+        "remaining_gap_default": (
+            "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED"
         ),
     },
     "AT-8": {
@@ -124,9 +133,14 @@ AT_SPECS: Dict[str, Dict[str, Any]] = {
         "evidence_class": "PARTIAL_SUPPORTING_PROOF",
         "source_fixture": "contracts/workflow_states.yaml#policy_thresholds+max_intents",
         "mode": "policy_cap",
-        "required_clauses": ("deterministic_policy_cap_enforced",),
+        "required_clauses": (
+            "policy_cap_configuration_verified",
+            "single_intent_bound_behavior_verified",
+            "offline_second_attempt_model",
+        ),
         "remaining_gap_default": (
-            "active mutation-execution trace showing second attempt refusal by policy"
+            "active authoritative mutation-execution trace showing the second attempt "
+            "is refused by policy rather than agent choice or harness simulation"
         ),
     },
     "AT-9": {
@@ -139,8 +153,7 @@ AT_SPECS: Dict[str, Dict[str, Any]] = {
         "mode": "tool_manifest_refusal",
         "required_clauses": ("tool_manifest_refusal_offline",),
         "remaining_gap_default": (
-            "durable audit warning under authorized audit sink "
-            "(NW-005 Stage B not activated)"
+            "durable audit warning under an authorized audit sink"
         ),
     },
 }
@@ -176,7 +189,7 @@ class EvidenceResult:
     REAL_CUSTOMER_DATA: int = 0
     HISTORICAL_AT_COMPLETE: str = "NO"
     REMAINING_GAP: str = ""
-    COMMIT_SHA: str = "UNKNOWN"
+    IMPLEMENTATION_SUBJECT_SHA: str = "UNKNOWN"
     TEST_RESULT: str = "FAIL"
     details: Dict[str, Any] = field(default_factory=dict)
 
@@ -290,7 +303,7 @@ def _finalize_completion(
     remaining_gap_default: str = "",
 ) -> Tuple[str, str, str]:
     missing = [name for name, status in coverage.items() if status != "PASS"]
-    if evidence_class == "PARTIAL_SUPPORTING_PROOF":
+    if evidence_class in {"PARTIAL_SUPPORTING_PROOF", "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF"}:
         gap = remaining_gap_default or (
             "historical AT remains incomplete by design for this tranche"
         )
@@ -311,12 +324,15 @@ class Nw008EvidenceHarness:
         fixtures_dir: Optional[Path] = None,
         proof_root: Optional[Path] = None,
         commit_sha: Optional[str] = None,
+        implementation_subject_sha: Optional[str] = None,
         created_at: str = "2026-08-14T12:00:00Z",
     ) -> None:
         self.repo_root = repo_root or REPO_ROOT
         self.fixtures_dir = fixtures_dir or (self.repo_root / "fixtures")
         self.proof_root = proof_root or (self.repo_root / "proof" / "nw008")
-        self.commit_sha = commit_sha or _git_commit_sha(self.repo_root)
+        chosen_sha = implementation_subject_sha or commit_sha or _git_commit_sha(self.repo_root)
+        self.implementation_subject_sha = chosen_sha
+        self.commit_sha = chosen_sha
         self.created_at = created_at
         self.runner = WorkflowRunner(fixtures_dir=self.fixtures_dir)
         self.state_machine = StateMachine.from_yaml(
@@ -481,7 +497,9 @@ class Nw008EvidenceHarness:
             raise AssertionError(f"unexpected workflow AT: {at_id}")
 
         complete, gap, test_result = _finalize_completion(
-            coverage=coverage, evidence_class=str(spec["evidence_class"])
+            coverage=coverage,
+            evidence_class=str(spec["evidence_class"]),
+            remaining_gap_default=str(spec.get("remaining_gap_default") or ""),
         )
         if real_customer:
             external_effects = max(external_effects, 1)
@@ -510,7 +528,7 @@ class Nw008EvidenceHarness:
             REAL_CUSTOMER_DATA=real_customer,
             HISTORICAL_AT_COMPLETE=complete,
             REMAINING_GAP=gap,
-            COMMIT_SHA=self.commit_sha,
+            IMPLEMENTATION_SUBJECT_SHA=self.implementation_subject_sha,
             TEST_RESULT=test_result,
             details=details,
         )
@@ -585,15 +603,15 @@ class Nw008EvidenceHarness:
             oversized_note_blocked = True
 
         coverage = {
-            "deterministic_policy_cap_enforced": _clause_status(
-                sm.max_note_intents == 1
-                and sm.max_stage_intents == 1
-                and len(first["note"]) <= 1
-                and len(first["stage"]) <= 1
-                and second_note_refused
-                and second_stage_refused
-                and oversized_note_blocked
-            )
+            "policy_cap_configuration_verified": _clause_status(
+                sm.max_note_intents == 1 and sm.max_stage_intents == 1
+            ),
+            "single_intent_bound_behavior_verified": _clause_status(
+                len(first["note"]) <= 1 and len(first["stage"]) <= 1
+            ),
+            "offline_second_attempt_model": _clause_status(
+                second_note_refused and second_stage_refused and oversized_note_blocked
+            ),
         }
         complete, gap, test_result = _finalize_completion(
             coverage=coverage,
@@ -615,6 +633,7 @@ class Nw008EvidenceHarness:
             },
             "authority": "OL3 deterministic policy / bound_intents cardinality",
             "not_agent_choice": True,
+            "historical_policy_refusal_trace": "NOT_PROVEN",
         }
         return EvidenceResult(
             AT_ID=at_id,
@@ -631,7 +650,7 @@ class Nw008EvidenceHarness:
             HISTORICAL_CLAUSE_COVERAGE=coverage,
             HISTORICAL_AT_COMPLETE=complete,
             REMAINING_GAP=gap,
-            COMMIT_SHA=self.commit_sha,
+            IMPLEMENTATION_SUBJECT_SHA=self.implementation_subject_sha,
             TEST_RESULT=test_result,
             details=details,
         )
@@ -696,7 +715,7 @@ class Nw008EvidenceHarness:
             HISTORICAL_CLAUSE_COVERAGE=coverage,
             HISTORICAL_AT_COMPLETE=complete,
             REMAINING_GAP=gap,
-            COMMIT_SHA=self.commit_sha,
+            IMPLEMENTATION_SUBJECT_SHA=self.implementation_subject_sha,
             TEST_RESULT=test_result,
             details=details,
         )
@@ -745,9 +764,10 @@ class Nw008EvidenceHarness:
             "| Field | Value |",
             "| --- | --- |",
             "| Work item | NW-008 |",
+            "| Purpose | DETERMINISTIC_ACCEPTANCE_EVIDENCE_SUBSTRATE |",
             "| Execution unit | TRANCHE_A |",
             "| Execution mode | OFFLINE_SYNTHETIC_ACCEPTANCE_EVIDENCE |",
-            f"| Commit SHA | `{self.commit_sha}` |",
+            f"| Implementation subject SHA | `{self.implementation_subject_sha}` |",
             f"| Generated at (fixture clock) | `{self.created_at}` |",
             "| GHL_LIVE_CALLS_AUTHORIZED | NO |",
             "| GHL_WRITES_AUTHORIZED | NO |",
@@ -756,6 +776,10 @@ class Nw008EvidenceHarness:
             "| DEPLOYMENT_AUTHORIZED | NO |",
             "| REAL_CUSTOMER_DATA | FORBIDDEN |",
             "| RAW_REST | FORBIDDEN |",
+            "| DETERMINISTIC_SUPPORTING_PROOFS | AT-2, AT-4, AT-5 |",
+            "| PARTIAL_SUPPORTING_PROOFS | AT-8, AT-9 |",
+            "| HISTORICAL_AT_COMPLETE | NONE |",
+            "| NEXT_FUTURE_TRANCHE | LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY |",
             "",
             "## AT map",
             "",
@@ -813,8 +837,12 @@ class Nw008EvidenceHarness:
             "work_item": "NW-008",
             "execution_unit": "TRANCHE_A",
             "execution_mode": "OFFLINE_SYNTHETIC_ACCEPTANCE_EVIDENCE",
-            "commit_sha": self.commit_sha,
+            "implementation_subject_sha": self.implementation_subject_sha,
             "generated_at_fixture_clock": self.created_at,
+            "purpose": "DETERMINISTIC_ACCEPTANCE_EVIDENCE_SUBSTRATE",
+            "deterministic_supporting_proofs": ["AT-2", "AT-4", "AT-5"],
+            "partial_supporting_proofs": ["AT-8", "AT-9"],
+            "historical_at_complete": "NONE",
             "authority": {
                 "GHL_LIVE_CALLS_AUTHORIZED": "NO",
                 "GHL_WRITES_AUTHORIZED": "NO",
@@ -832,10 +860,9 @@ class Nw008EvidenceHarness:
                 "EXTERNAL_EFFECTS": 0,
                 "REAL_CUSTOMER_DATA": 0,
             },
-            "completion_candidates": ["AT-2", "AT-4", "AT-5"],
-            "supporting_partial_proofs": ["AT-8", "AT-9"],
             "blocked_not_executed": ["AT-1", "AT-3", "AT-6", "AT-7"],
             "deferred_not_executed": ["AT-10"],
+            "next_future_tranche": "LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY",
             "results": {},
             "non_claims": {
                 "POLICY_SEMANTICS_CHANGE": "NO",
@@ -862,6 +889,7 @@ class Nw008EvidenceHarness:
                 "CARD_NEXT_ACTION": result.CARD_NEXT_ACTION,
                 "HISTORICAL_CLAUSE_COVERAGE": result.HISTORICAL_CLAUSE_COVERAGE,
                 "REMAINING_GAP": result.REMAINING_GAP,
+                "implementation_subject_sha": result.IMPLEMENTATION_SUBJECT_SHA,
                 "evidence_path": f"proof/nw008/at-{at_id.split('-')[1].zfill(2)}/evidence.json"
                 if "-" in at_id
                 else "",

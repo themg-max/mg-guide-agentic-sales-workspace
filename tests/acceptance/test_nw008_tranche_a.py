@@ -32,7 +32,9 @@ def harness(repo_root: Path) -> Nw008EvidenceHarness:
 def test_at2_blocked_ambiguous_contact_zero_writes_and_card(harness: Nw008EvidenceHarness):
     result = harness.run_at("AT-2")
     assert result.TEST_RESULT == "PASS"
-    assert result.HISTORICAL_AT_COMPLETE == "YES"
+    assert result.EVIDENCE_CLASS == "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF"
+    assert result.HISTORICAL_AT_COMPLETE == "NO"
+    assert result.REMAINING_GAP == "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED"
     assert result.ACTUAL_WORKFLOW_STATUS == "blocked"
     assert "AMBIGUOUS_CONTACT" in result.AUTHORITATIVE_REASON_CODES
     assert result.GHL_WRITES == 0
@@ -52,12 +54,13 @@ def test_at2_blocked_ambiguous_contact_zero_writes_and_card(harness: Nw008Eviden
 def test_at4_contact_not_found_blocked_zero_writes(harness: Nw008EvidenceHarness):
     result = harness.run_at("AT-4")
     assert result.TEST_RESULT == "PASS"
-    assert result.HISTORICAL_AT_COMPLETE == "YES"
+    assert result.EVIDENCE_CLASS == "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF"
+    assert result.HISTORICAL_AT_COMPLETE == "NO"
+    assert result.REMAINING_GAP == "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED"
     assert result.ACTUAL_WORKFLOW_STATUS == "blocked"
     assert result.AUTHORITATIVE_REASON_CODES == ["CONTACT_NOT_FOUND"]
     assert result.GHL_WRITES == 0
     assert result.EXTERNAL_EFFECTS == 0
-    # Presentation may fail closed; historical completion uses workflow authority.
     assert result.CARD_POLICY_STATE in {"BLOCKED", "REVIEW_REQUIRED"}
     assert result.HISTORICAL_CLAUSE_COVERAGE == {
         "CONTACT_NOT_FOUND": "PASS",
@@ -69,7 +72,9 @@ def test_at4_contact_not_found_blocked_zero_writes(harness: Nw008EvidenceHarness
 def test_at5_low_extraction_confidence_blocked_zero_writes(harness: Nw008EvidenceHarness):
     result = harness.run_at("AT-5")
     assert result.TEST_RESULT == "PASS"
-    assert result.HISTORICAL_AT_COMPLETE == "YES"
+    assert result.EVIDENCE_CLASS == "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF"
+    assert result.HISTORICAL_AT_COMPLETE == "NO"
+    assert result.REMAINING_GAP == "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED"
     assert result.ACTUAL_WORKFLOW_STATUS == "blocked"
     assert "LOW_EXTRACTION_CONFIDENCE" in result.AUTHORITATIVE_REASON_CODES
     assert result.GHL_WRITES == 0
@@ -88,12 +93,15 @@ def test_at8_deterministic_cap_refusal_supporting_proof(harness: Nw008EvidenceHa
     assert result.EVIDENCE_CLASS == "PARTIAL_SUPPORTING_PROOF"
     assert result.HISTORICAL_AT_COMPLETE == "NO"
     assert result.TEST_RESULT == "PASS"
-    assert result.HISTORICAL_CLAUSE_COVERAGE["deterministic_policy_cap_enforced"] == "PASS"
-    assert "mutation-execution trace" in result.REMAINING_GAP
+    assert result.HISTORICAL_CLAUSE_COVERAGE["policy_cap_configuration_verified"] == "PASS"
+    assert result.HISTORICAL_CLAUSE_COVERAGE["single_intent_bound_behavior_verified"] == "PASS"
+    assert result.HISTORICAL_CLAUSE_COVERAGE["offline_second_attempt_model"] == "PASS"
+    assert "active authoritative mutation-execution trace" in result.REMAINING_GAP
     assert result.details["max_note_intents"] == 1
     assert result.details["max_stage_intents"] == 1
     assert result.details["second_note_refusal"]["refused"] is True
     assert result.details["second_stage_refusal"]["refused"] is True
+    assert result.details["historical_policy_refusal_trace"] == "NOT_PROVEN"
 
 
 def test_at9_tool_manifest_refusal_supporting_proof(harness: Nw008EvidenceHarness):
@@ -127,7 +135,12 @@ def test_no_network_live_crm_or_firestore_markers(harness: Nw008EvidenceHarness)
         blob = json.dumps(result.to_dict(), sort_keys=True)
         assert "services.leadconnectorhq.com" not in blob
         assert "firestore.googleapis.com" not in blob
-        assert result.details.get("nw005_stage_b_activated", False) in {False, None} or True
+        assert result.details.get("nw005_stage_b_activated", False) is False
+        assert result.GHL_LIVE_CALLS == 0
+        assert result.GHL_WRITES == 0
+        assert result.FIRESTORE_WRITES == 0
+        assert result.EXTERNAL_EFFECTS == 0
+        assert result.REAL_CUSTOMER_DATA == 0
 
 
 def test_deterministic_replay(harness: Nw008EvidenceHarness, repo_root: Path):
@@ -168,8 +181,9 @@ def test_malformed_evidence_fails_closed(harness: Nw008EvidenceHarness):
         assert_zero_external_effects(bad)
 
     payload = result.to_dict()
-    payload.pop("COMMIT_SHA")
-    assert validate_evidence_result(payload)
+    payload.pop("IMPLEMENTATION_SUBJECT_SHA")
+    errors = validate_evidence_result(payload)
+    assert errors
 
 
 def test_write_proof_artifacts(harness: Nw008EvidenceHarness, tmp_path: Path, repo_root: Path):
@@ -186,15 +200,19 @@ def test_write_proof_artifacts(harness: Nw008EvidenceHarness, tmp_path: Path, re
     for key in ("AT-2", "AT-4", "AT-5", "AT-8", "AT-9"):
         evidence = json.loads(paths[f"{key}_evidence"].read_text(encoding="utf-8"))
         assert evidence["AT_ID"] == key
+        assert evidence["IMPLEMENTATION_SUBJECT_SHA"] == "TEST_COMMIT_SHA"
         assert validate_evidence_result(evidence) == []
     ret = yaml.safe_load(paths["proof_return"].read_text(encoding="utf-8"))
     assert ret["execution_unit"] == "TRANCHE_A"
+    assert ret["implementation_subject_sha"] == "TEST_COMMIT_SHA"
     assert ret["effect_counters"]["EXTERNAL_EFFECTS"] == 0
     assert set(ret["results"]) == {"AT-2", "AT-4", "AT-5", "AT-8", "AT-9"}
 
 
 def test_at_specs_cover_tranche_a_only():
     assert set(AT_SPECS) == {"AT-2", "AT-4", "AT-5", "AT-8", "AT-9"}
-    assert AT_SPECS["AT-2"]["evidence_class"] == "COMPLETION_CANDIDATE"
+    assert AT_SPECS["AT-2"]["evidence_class"] == "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF"
+    assert AT_SPECS["AT-4"]["evidence_class"] == "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF"
+    assert AT_SPECS["AT-5"]["evidence_class"] == "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF"
     assert AT_SPECS["AT-8"]["evidence_class"] == "PARTIAL_SUPPORTING_PROOF"
     assert AT_SPECS["AT-9"]["evidence_class"] == "PARTIAL_SUPPORTING_PROOF"

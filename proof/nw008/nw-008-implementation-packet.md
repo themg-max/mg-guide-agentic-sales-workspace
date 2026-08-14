@@ -16,17 +16,20 @@
 ## Tranche A execution freeze
 
 ```text
+NW008_TRANCHE_A_PURPOSE=DETERMINISTIC_ACCEPTANCE_EVIDENCE_SUBSTRATE
 NW008_EXECUTION_UNIT=TRANCHE_A
 NW008_EXECUTION_MODE=OFFLINE_SYNTHETIC_ACCEPTANCE_EVIDENCE
 
-COMPLETION_CANDIDATES:
+DETERMINISTIC_SUPPORTING_PROOFS:
 AT-2
 AT-4
 AT-5
 
-SUPPORTING_PARTIAL_PROOFS:
+PARTIAL_SUPPORTING_PROOFS:
 AT-8
 AT-9
+
+HISTORICAL_AT_COMPLETE=NONE
 
 BLOCKED_NOT_EXECUTED:
 AT-1
@@ -36,6 +39,8 @@ AT-7
 
 DEFERRED_NOT_EXECUTED:
 AT-10
+
+NEXT_FUTURE_TRANCHE=LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY
 ```
 
 Historical AT definitions are **unchanged** (foundation §17 verbatim). This unit
@@ -152,7 +157,7 @@ EXTERNAL_EFFECTS
 REAL_CUSTOMER_DATA
 HISTORICAL_AT_COMPLETE
 REMAINING_GAP
-COMMIT_SHA
+IMPLEMENTATION_SUBJECT_SHA
 TEST_RESULT
 ```
 
@@ -186,23 +191,26 @@ Any non-zero external effect → **FAIL CLOSED and STOP**.
 
 ## Tranche A AT plan
 
-### AT-2 — COMPLETION_CANDIDATE
+### AT-2 — DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF
 
 - Fixture: `fixtures/transcript-ambiguous-contact.expected.json`
 - Required clauses: `blocked`, `AMBIGUOUS_CONTACT`, `0 CRM writes`, MG Guide blocked / State-2-equivalent decision card
+- Remaining gap: `FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED`
 - Evidence: `proof/nw008/at-02/`
 
-### AT-4 — COMPLETION_CANDIDATE
+### AT-4 — DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF
 
 - Fixture: `fixtures/transcript-contact-not-found.expected.json` (synthetic only; no live CRM lookup)
 - Required clauses: `CONTACT_NOT_FOUND`, `blocked`, `0 writes`
+- Remaining gap: `FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED`
 - Authoritative reason from workflow/policy — not invented card semantics
 - Evidence: `proof/nw008/at-04/`
 
-### AT-5 — COMPLETION_CANDIDATE
+### AT-5 — DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF
 
 - Fixture: `fixtures/transcript-insufficient-context.expected.json`
 - Required clauses: extraction below threshold, `LOW_EXTRACTION_CONFIDENCE`, `blocked`, `0 writes`
+- Remaining gap: `FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED`
 - Authoritative reason from workflow/policy — do not alter policy to force PASS
 - Evidence: `proof/nw008/at-05/`
 
