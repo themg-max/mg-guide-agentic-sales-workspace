@@ -9,10 +9,10 @@ import yaml
 from orchestration.manifest_gate import UnknownOperationError
 from orchestration.nw008_tranche_d import (
     PROOF_TIMESTAMP,
-    build_d1_evidence,
+    StageBWriterSpy,
     execute_d1_run,
+    generate_final_proof,
     validate_d1_proof,
-    write_proof,
 )
 
 
@@ -37,17 +37,29 @@ def test_nc_d1_1_harness_cannot_inject_classifier_mapping(
         execute_d1_run(base_manifest_path, classifier_map={})  # type: ignore[call-arg]
 
 
-def test_blocked_operation_is_refused_before_downstream(
+def test_blocked_operation_is_refused_before_downstream_or_stage_b(
     base_manifest_path: Path,
 ) -> None:
     downstream_calls = []
-    packet = execute_d1_run(base_manifest_path, downstream_executor=downstream_calls.append)
+    stage_b_spy = StageBWriterSpy()
+    packet = execute_d1_run(
+        base_manifest_path,
+        downstream_executor=downstream_calls.append,
+        stage_b_spy=stage_b_spy,
+    )
 
     assert packet["run"]["status"] == "failed"
     assert packet["audit"]["final_disposition"] == "failed"
     assert packet["audit"]["warnings"] == ["TOOL_MANIFEST_REFUSED:contact_create"]
     assert packet["d1_execution"]["DOWNSTREAM_EXECUTOR_CALLED"] is False
     assert packet["d1_execution"]["TRANSPORT_ATTEMPTED"] is False
+    assert packet["d1_execution"]["STAGE_B_SPY_INSTANTIATED"] is True
+    assert packet["d1_execution"]["STAGE_B_SPY_CALLED"] is False
+    assert packet["d1_execution"]["FIRESTORE_STAGE_B_INSTANTIATED"] is False
+    assert packet["d1_execution"]["FIRESTORE_STAGE_B_CALLED"] is False
+    assert stage_b_spy.client_instantiations == 0
+    assert stage_b_spy.calls == []
+    assert stage_b_spy.writes == 0
     assert downstream_calls == []
 
 
@@ -94,25 +106,32 @@ def test_nc_d1_4_manifest_data_owns_blocking(tmp_path: Path) -> None:
     assert downstream_calls == ["contact_create"]
 
 
-def test_nc_d1_6_7_and_8_audit_and_validator(
+def test_nc_d1_statuses_are_computed_from_observations(
     base_manifest_path: Path, tmp_path: Path
 ) -> None:
     packet = execute_d1_run(base_manifest_path)
-    paths = write_proof(packet, tmp_path / "proof", "a" * 40)
+    audit_path = tmp_path / "proof"
+    paths = generate_final_proof(base_manifest_path, audit_path, "a" * 40)
     audit = json.loads(paths["audit"].read_text(encoding="utf-8"))
     proof_return = yaml.safe_load(paths["return"].read_text(encoding="utf-8"))
     evidence = proof_return["evidence"]
 
     assert audit["warnings"] == ["TOOL_MANIFEST_REFUSED:contact_create"]
-    assert audit["external_effects"]["counters"] == {
-        "EXTERNAL_EFFECTS": 0,
-        "GHL_READS": 0,
-        "GHL_WRITES": 0,
-    }
-    assert evidence["FIRESTORE_STAGE_B_INSTANTIATED"] is False
-    assert evidence["FIRESTORE_STAGE_B_CALLED"] is False
-    assert evidence["FIRESTORE_WRITES"] == 0
+    assert evidence["PROOF_STATUS"] == "PASS"
+    assert evidence["DETERMINISTIC_PROOF_REPLAY"] == "PASS"
+    assert all(evidence[f"NC_D1_{number}"] == "PASS" for number in range(1, 9))
     assert validate_d1_proof(evidence) == "PASS"
+    assert packet["d1_execution"]["FIRESTORE_WRITES"] == 0
+
+
+def test_nc_d1_7_validator_rejects_nonzero_effect_observations(
+    base_manifest_path: Path, tmp_path: Path
+) -> None:
+    evidence = yaml.safe_load(
+        generate_final_proof(base_manifest_path, tmp_path / "proof", "b" * 40)[
+            "return"
+        ].read_text(encoding="utf-8")
+    )["evidence"]
 
     bad_ghl = deepcopy(evidence)
     bad_ghl["GHL_WRITES"] = 1
@@ -124,12 +143,11 @@ def test_nc_d1_6_7_and_8_audit_and_validator(
     assert validate_d1_proof(bad_effects) == "FAIL"
 
 
-def test_proof_replay_is_byte_deterministic(
+def test_proof_replay_is_computed_and_byte_deterministic(
     base_manifest_path: Path, tmp_path: Path
 ) -> None:
-    packet = execute_d1_run(base_manifest_path)
-    first = write_proof(packet, tmp_path / "first", "b" * 40)
-    second = write_proof(packet, tmp_path / "second", "b" * 40)
+    first = generate_final_proof(base_manifest_path, tmp_path / "first", "c" * 40)
+    second = generate_final_proof(base_manifest_path, tmp_path / "second", "c" * 40)
 
     assert PROOF_TIMESTAMP == "2026-08-14T17:30:00Z"
     for key in ("run", "audit", "manifest", "return"):
