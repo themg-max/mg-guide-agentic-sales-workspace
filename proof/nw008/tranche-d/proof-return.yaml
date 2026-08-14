@@ -1,0 +1,7 @@
+proof_id: "NW008-D1-AT9"
+implementation_commit: "3be4309c02e2fc5e0685eadaba5a997b3cb8d81a"
+external_effects: 0
+ghl_live_calls: 0
+ghl_writes: 0
+firestore_writes: 0
+status: "PASS"
