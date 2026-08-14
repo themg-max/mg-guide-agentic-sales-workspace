@@ -2,180 +2,40 @@
   "adk_integration_status": "RUNTIME_INTEGRATED",
   "adk_runtime_backend": "google_adk_package",
   "adk_runtime_primitive_used": true,
+  "agent_execution": {
+    "follow_up_planning_agent": {
+      "block_origin": false,
+      "delegate_called": false,
+      "skipped_by": "relationship_context_agent",
+      "wrapper_status": "SKIPPED_GOVERNED_STOP"
+    },
+    "meeting_context_agent": {
+      "block_origin": false,
+      "delegate_called": true,
+      "wrapper_status": "EXECUTED"
+    },
+    "relationship_context_agent": {
+      "block_origin": true,
+      "delegate_called": true,
+      "wrapper_status": "BLOCK_ORIGIN"
+    }
+  },
   "deterministic_policy_bypass": false,
   "deterministic_policy_gate_invoked": false,
   "errors": [],
   "external_effects": 0,
-  "follow_up_packet": {
-    "audit": {
-      "agents_used": [
-        "meeting_context_agent",
-        "relationship_context_agent",
-        "follow_up_planning_agent"
-      ],
-      "completed_at": "2026-08-14T14:27:21Z",
-      "final_disposition": "blocked",
-      "started_at": "2026-08-14T14:27:21Z",
-      "tools_used": [],
-      "warnings": []
-    },
-    "brief": {
-      "crm_actions": [],
-      "headline": "Run blocked",
-      "lifecycle": "complete",
-      "meeting_summary": "Prospect indicates identity mismatch; no matching synthetic CRM contact exists.",
-      "next_action": "Human review required",
-      "salesperson_attention_required": true
-    },
-    "crm_resolution": {
-      "candidate_count": 0,
-      "contact_id": null,
-      "current_stage": null,
-      "lifecycle": "complete",
-      "match_basis": "none",
-      "opportunity_id": null,
-      "status": "not_found"
-    },
-    "evidence": {
-      "extraction_confidence": 0.85,
-      "transcript_spans": [
-        {
-          "excerpt_id": "span_at04_not_found_summary",
-          "field": "summary"
-        }
-      ]
-    },
-    "external_effects": 0,
-    "extraction": {
-      "commitments": [],
-      "lifecycle": "complete",
-      "needs": [],
-      "next_step": {
-        "action": "Confirm correct contact before any follow-up",
-        "owner": "Advisor Demo",
-        "target_date": null
-      },
-      "objections": [
-        "identity mismatch"
-      ],
-      "opportunity_signal": {
-        "rationale": "No contact match; no stage movement.",
-        "recommended_stage": null
-      },
-      "summary": "Prospect indicates identity mismatch; no matching synthetic CRM contact exists."
-    },
-    "meeting": {
-      "meeting_id": "nw008_tc_at04_001",
-      "occurred_at": "2026-08-14T13:00:00Z",
-      "source": "synthetic_demo",
-      "transcript_hash": "c5b645af3f30d172928266483ea3a97ac90afb5de03f2fe0c2c8e69efcf63eae"
-    },
-    "mutation_intents": {
-      "note": [],
-      "stage": []
-    },
-    "mutations": {
-      "lifecycle": "not_attempted",
-      "note": {
-        "attempted": false,
-        "record_id": null,
-        "verified": false
-      },
-      "opportunity_stage": {
-        "attempted": false,
-        "from_stage": null,
-        "to_stage": null,
-        "verified": false
-      }
-    },
-    "participants": [
-      {
-        "email": "advisor@example-demo.test",
-        "name": "Advisor Demo",
-        "phone": "+1-555-0900",
-        "role": "agent"
-      },
-      {
-        "email": "morgan.unknown.not.in.crm@example-demo.test",
-        "name": "Morgan Unknown",
-        "phone": null,
-        "role": "prospect"
-      }
-    ],
-    "policy": {
-      "lifecycle": "not_attempted",
-      "note_write": "not_attempted",
-      "reason_codes": [
-        "CONTACT_NOT_FOUND"
-      ],
-      "stage_write": "not_attempted"
-    },
-    "run": {
-      "created_at": "2026-08-14T14:27:21Z",
-      "run_id": "nw008_tranche_c_at-04",
-      "status": "blocked",
-      "workflow": "meeting_follow_up_v1"
-    },
-    "schema": "meeting_follow_up_packet_v1"
-  },
-  "follow_up_planning_agent_implemented": true,
-  "follow_up_proposal": {
-    "agent": "follow_up_planning_agent",
-    "authorized_mutation_intents": {
-      "note": [],
-      "stage": []
-    },
-    "confirmed_context_used": {
-      "confirmed_fact_ids": [],
-      "evidence_excerpt_ids": [],
-      "proposed_next_step": null,
-      "source": "relationship_context.longitudinal_context",
-      "unresolved_question_ids": []
-    },
-    "crm_targets": {
-      "contact_id": null,
-      "opportunity_id": null
-    },
-    "disposition": "needs_review",
-    "external_effects": 0,
-    "note_proposal": {
-      "body_ref": null,
-      "requested": false
-    },
-    "policy_authority": {
-      "deterministic_policy_bypass": false,
-      "notes": "Follow-Up Planning Agent proposes facts, next steps, and optional stage-change intent only; the deterministic policy gate evaluates and authorizes any mutation intent. No live GHL, no CRM writes, no policy bypass."
-    },
-    "policy_evaluation": {
-      "context_source": null,
-      "context_supplied": false,
-      "deterministic_policy_bypass": false,
-      "evaluator": "orchestration.policy.evaluate_policy",
-      "invoked": false,
-      "note_write": "not_attempted",
-      "reason_codes": [
-        "CONTACT_NOT_FOUND"
-      ],
-      "stage_write": "not_attempted"
-    },
-    "proposed_next_steps": [
-      "Confirm correct contact before any follow-up",
-      "Human review required before any CRM mutation"
-    ],
-    "resolution_status": "not_found",
-    "run_id": "nw008_tranche_c_at-04",
-    "scenario_id": "NW008_TC_AT-4",
-    "schema": "follow_up_proposal_v1",
-    "stage_proposal": {
-      "from_stage": null,
-      "requested": false,
-      "to_stage": null
-    },
-    "summary": "Prospect indicates identity mismatch; no matching synthetic CRM contact exists."
-  },
-  "follow_up_proposal_valid": true,
+  "follow_up_packet": null,
+  "follow_up_planning_agent_implemented": false,
+  "follow_up_proposal": null,
+  "follow_up_proposal_valid": false,
   "google_adk_package_bound": true,
   "google_adk_runtime_started": true,
+  "governed_stop": {
+    "boundary_agent_id": "relationship_context_agent",
+    "reason_code": "CONTACT_NOT_FOUND",
+    "reason_source": "agents.relationship_context.resolver.resolve_relationship (crm_status=not_found -> governed stop)",
+    "wrapper_status": "BLOCK_ORIGIN"
+  },
   "local_adk_fallback_used": false,
   "meeting_context": {
     "agent": "meeting_context_agent",
@@ -315,28 +175,31 @@
         "error": null,
         "external_effects": 0,
         "output_schema": "relationship_context_v1",
-        "status": "ok"
+        "status": "BLOCK_ORIGIN"
       },
       {
         "agent_id": "follow_up_planning_agent",
-        "error": null,
+        "error": "follow_up_planning_agent skipped after governed stop at relationship_context_agent",
         "external_effects": 0,
-        "output_schema": "follow_up_proposal_v1",
-        "status": "ok"
+        "output_schema": null,
+        "status": "SKIPPED_GOVERNED_STOP"
       }
     ],
     "backend": "google_adk_package",
     "completed": true,
     "external_effects": 0,
     "run_id": "nw008_tranche_c_at-04",
-    "session_id": "b30c70d5-0f19-46ae-8cb6-140cb20bb201",
+    "session_id": "3cf18e69-c072-44d7-a644-74cc3b715629",
     "started": true,
     "state_keys": [
+      "agent_execution",
       "approved_prior_context",
       "errors",
       "follow_up_packet",
       "follow_up_policy_gate_invoked",
       "follow_up_proposal",
+      "governed_stop",
+      "governed_stop_profile",
       "meeting_context",
       "mutation_execution",
       "relationship_context",
@@ -346,6 +209,7 @@
     ],
     "workflow": "meeting_follow_up_v1"
   },
+  "transcript_content_hash": "c5b645af3f30d172928266483ea3a97ac90afb5de03f2fe0c2c8e69efcf63eae",
   "transcript_source_envelope": {
     "access_context": {
       "grant_model": "synthetic_test_grant",
@@ -379,5 +243,5 @@
       "type": "synthetic_fixture"
     }
   },
-  "transcript_source_envelope_hash": "c5b645af3f30d172928266483ea3a97ac90afb5de03f2fe0c2c8e69efcf63eae"
+  "transcript_source_envelope_digest": "b4a73a5ce66256693e2c061310e85f73eac807eaa1971c03a5ff2bd70465c881"
 }
