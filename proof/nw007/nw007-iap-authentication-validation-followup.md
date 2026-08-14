@@ -4,10 +4,12 @@
 OBJECTIVE=PROVE_FRESH_SESSION_EVALUATOR_AUTHENTICATION_AND_AUTHORIZATION
 EVALUATOR_ACCOUNT=buildweek-evaluator@themiliare-group.com
 JUDGE_GROUP=mg-mcp-developer-mg@themiliare-group.com
-EVALUATOR_JUDGE_GROUP_MEMBERSHIP=TO_BE_CONFIRMED_BEFORE_TEST
-AUTHENTICATION_RESULT=UNRESOLVED
-AUTHORIZATION_RESULT=UNRESOLVED
-ROOT_CAUSE=UNKNOWN
+EVALUATOR_JUDGE_GROUP_MEMBERSHIP=CONFIRMED
+AUTHENTICATION_RESULT=PASS
+AUTHORIZATION_RESULT=PASS
+ROOT_CAUSE=NONE_OBSERVED_IN_FINAL_CONTROLLED_VALIDATION
+PRIOR_ERROR_9_FINAL_DISPOSITION=NOT_REPRODUCED_IN_FINAL_CONTROLLED_VALIDATION
+PRIOR_HTTP_400_CAUSE=INVALID_SCENARIO_SELECTOR_TYPO
 SUCCESS_CRITERIA=FRESH_PRIVATE_SESSION;PROTECTED_SERVICE_INITIATES_IAP_AUTH_FLOW;EXPLICIT_EVALUATOR_ACCOUNT_SELECTED;GOOGLE_SIGN_IN_COMPLETED;IAP_REDIRECT_RETURN_COMPLETED;GET_/health_HTTP_200;HEALTH_STATUS_OK;HEALTH_JUDGE_MODE_STUB;SAME_SESSION_POST_SUCCESS_HTTP_200;SAME_SESSION_POST_SUCCESS_WORKFLOW_COMPLETED;NEGATIVE_CONTROL_REQUIRES_IAP_AUTH
 CONTROLLED_SMOKE_METHOD=BROWSER_DRIVEN_SAME_SESSION_VALIDATION
 DEPLOYED_CODE_CHANGE=NO
@@ -31,14 +33,14 @@ Without both, the service remains unresolved. The validator must confirm the acc
 R2_DEPLOYMENT=COMPLETE
 APPLICATION_RUNTIME=PASS
 EXACT_IMAGE_SCENARIOS=PASS
-AUTHENTICATED_JUDGE_ACCESS=UNRESOLVED
-HUMAN_OAUTH_FLOW=UNRESOLVED
-ERROR_9_JUDGE_ACCESS_BLOCKER=OPEN
+AUTHENTICATED_JUDGE_ACCESS=PASS
+HUMAN_OAUTH_FLOW=PASS
+ERROR_9_JUDGE_ACCESS_BLOCKER=NO
 ACTIVE_PRODUCT_DEVELOPMENT=YES
 FINAL_SUBMISSION_PACKET=DEFER
 ```
 
-This follow-up is intentionally bounded. We are re-opening the judge-access validation lane without mutating the live service, app code, IAM, IAP, OAuth configuration, or secrets. The goal is to prove the live browser-level authentication and authorization path with a fresh evaluator session before any final submission packaging begins.
+This follow-up has reached the final evidence phase. The evaluator session authenticated successfully, the judge-group authorization prerequisite was confirmed, and the protected service was shown to reject direct unauthenticated access. The validation remains intentionally bounded and does not mutate the live service, app code, IAM, IAP, OAuth configuration, or secrets.
 
 ## Hard constraints
 
@@ -148,6 +150,7 @@ The following options are the highest-value work streams that can realistically 
 ### Option 1: Judge-authentication and authorization investigation
 
 ```text
+OPTION_1_STATUS=COMPLETE
 COMPETITION_VALUE=VERY_HIGH
 GOOGLE_TECH_VALUE=HIGH
 MG_REUSABLE_VALUE=HIGH
@@ -193,18 +196,34 @@ Why it matters: this option creates durable proof hygiene and reviewer clarity w
 ## Recommended next work item
 
 ```text
-RECOMMENDED_NEXT_WORK_ITEM=AUTH_VALIDATION_1
+RECOMMENDED_NEXT_WORK_ITEM=SEE_ACTIVE_COMPETITION_WORK_LANE
 ```
 
-The highest-value immediate work item is the fresh-session authentication-and-authorization validation. That is the gating issue for final judge-facing confidence and should be closed before broader demo polish expands scope.
+The auth-validation proof is complete. The next step is to hand off into the active competition work lane for broader product demo narrative and policy clarity rather than continuing infrastructure auth work.
+
+## Final validation evidence
+
+```text
+AUTHENTICATION_RESULT=PASS
+AUTHORIZATION_RESULT=PASS
+HEALTH_HTTP_STATUS=200
+SUCCESS_HTTP_STATUS=200
+SUCCESS_WORKFLOW_STATUS=completed
+SUCCESS_EXTERNAL_EFFECTS=0
+SUCCESS_CLOUD_MUTATION=NONE
+NEGATIVE_CONTROL_RESULT=PROTECTED
+CLOUD_MUTATION=NONE
+```
+
+The same authenticated evaluator session produced a successful `SUCCESS` request with HTTP 200 and `workflow_status=completed`, while a brand-new unauthenticated private window was protected by the IAP sign-in challenge and did not return app JSON directly. No cloud mutation occurred during the validation.
 
 ## Closeout signal
 
 ```text
 AUTH_VALIDATION_PLAN_READY=YES
 TOP_COMPETITION_WORK_OPTIONS=3
-RECOMMENDED_NEXT_WORK_ITEM=AUTH_VALIDATION_1
-STOP_CODE=NW007_AUTH_VALIDATION_CONTRACT_READY_FOR_HUMAN_BROWSER_TEST
+RECOMMENDED_NEXT_WORK_ITEM=SEE_ACTIVE_COMPETITION_WORK_LANE
+STOP_CODE=NW007_AUTH_VALIDATION_PROOF_READY_FOR_HUMAN_MERGE
 ```
 
-The lane remains open for focused validation and active feature work, but no infrastructure mutation is allowed until the browser-driven evidence shows both successful evaluator authentication and the required judge-group authorization path.
+The lane is ready for human merge review. All validation evidence is complete, the judge-group authorization requirement is confirmed, and no infrastructure mutation is allowed beyond this documented proof state.
