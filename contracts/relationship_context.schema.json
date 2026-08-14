@@ -213,6 +213,9 @@
         }
       }
     },
+    "longitudinal_context": {
+      "type": "object"
+    },
     "external_effects": {
       "type": "integer",
       "const": 0

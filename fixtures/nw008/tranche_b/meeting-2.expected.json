@@ -1,0 +1,103 @@
+{
+  "fixture_id": "nw008-tranche-b-meeting-2",
+  "run_id": "nw008_tb_run_meeting_2",
+  "meeting": {
+    "meeting_id": "nw008_tb_meeting_2",
+    "occurred_at": "2026-09-15T15:00:00Z",
+    "source": "synthetic_demo",
+    "transcript_hash": "f7272b32e6298c767a962caf9a443ebc1e4a28070adfb781d45709a963324496"
+  },
+  "participants": [
+    {
+      "name": "Taylor Morgan",
+      "email": "taylor.morgan@example-demo.test",
+      "phone": "+1-555-0100",
+      "role": "prospect"
+    },
+    {
+      "name": "Rowan Hale",
+      "email": "rowan.hale@example-demo.test",
+      "phone": "+1-555-0188",
+      "role": "agent"
+    }
+  ],
+  "extraction_result": {
+    "summary": "Second synthetic planning meeting correcting savings capacity, confirming one completed commitment, and refining liquidity priorities.",
+    "needs": [
+      "goal.primary=Build a studio acquisition reserve over the next 24 months",
+      "goal.priority=Prioritize emergency liquidity before studio reserve contributions",
+      "fact.concern.liquidity_priority=Maintain immediate access to savings because freelance income can vary",
+      "fact.preference.flexible_monthly_savings_capacity=325",
+      "fact.planning.launch_window_months=24",
+      "fact.income.grant_end_month=October",
+      "fact.unsupported.inferred_risk_score=high"
+    ],
+    "objections": [
+      "question.reserve_account_mix=Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?",
+      "question.equipment_timing=Should equipment purchases wait until replacement grant funding is clearer?",
+      "commitment_status.commitment.prospect.provide_current_monthly_budget_worksheet=completed",
+      "commitment_status.commitment.agent.send_a_draft_two_bucket_savings_scenario=open"
+    ],
+    "commitments": [],
+    "next_step": {
+      "action": "Review the revised liquidity-first scenario next Tuesday",
+      "owner": "Rowan Hale",
+      "target_date": "2026-09-22"
+    },
+    "opportunity_signal": {
+      "recommended_stage": "discovery_complete",
+      "rationale": "Discovery follow-up clarified prior assumptions without authorizing any mutation."
+    }
+  },
+  "extraction_confidence": 0.98,
+  "evidence_references": [
+    {
+      "field": "goal.primary",
+      "excerpt_id": "m2_goal_primary_01"
+    },
+    {
+      "field": "goal.priority",
+      "excerpt_id": "m2_goal_priority_01"
+    },
+    {
+      "field": "fact.concern.liquidity_priority",
+      "excerpt_id": "m2_liquidity_01"
+    },
+    {
+      "field": "fact.preference.flexible_monthly_savings_capacity",
+      "excerpt_id": "m2_capacity_correction_01"
+    },
+    {
+      "field": "fact.planning.launch_window_months",
+      "excerpt_id": "m2_launch_window_01"
+    },
+    {
+      "field": "fact.income.grant_end_month",
+      "excerpt_id": "m2_new_fact_01"
+    },
+    {
+      "field": "question.reserve_account_mix",
+      "excerpt_id": "m2_unresolved_01"
+    },
+    {
+      "field": "question.equipment_timing",
+      "excerpt_id": "m2_unresolved_02"
+    },
+    {
+      "field": "commitment_status.commitment.prospect.provide_current_monthly_budget_worksheet",
+      "excerpt_id": "m2_commitment_complete_01"
+    },
+    {
+      "field": "commitment_status.commitment.agent.send_a_draft_two_bucket_savings_scenario",
+      "excerpt_id": "m2_commitment_open_01"
+    },
+    {
+      "field": "next_step.proposed",
+      "excerpt_id": "m2_next_step_01"
+    },
+    {
+      "field": "opportunity.recommended_stage",
+      "excerpt_id": "m2_stage_01"
+    }
+  ]
+}

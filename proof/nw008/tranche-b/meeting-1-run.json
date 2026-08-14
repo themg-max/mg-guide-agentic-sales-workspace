@@ -1,0 +1,762 @@
+{
+  "adk_integration_status": "RUNTIME_INTEGRATED",
+  "adk_runtime_backend": "google_adk_package",
+  "adk_runtime_primitive_used": true,
+  "deterministic_policy_bypass": false,
+  "deterministic_policy_gate_invoked": true,
+  "errors": [],
+  "external_effects": 0,
+  "follow_up_packet": {
+    "audit": {
+      "agents_used": [
+        "meeting_context_agent",
+        "relationship_context_agent",
+        "follow_up_planning_agent"
+      ],
+      "completed_at": "2026-08-14T12:53:05Z",
+      "final_disposition": "completed",
+      "started_at": "2026-08-14T12:53:05Z",
+      "tools_used": [],
+      "warnings": []
+    },
+    "brief": {
+      "crm_actions": [
+        "plan_note_intent",
+        "plan_stage_intent"
+      ],
+      "headline": "Meeting follow-up proposal reviewed (Unit 3 intent-only)",
+      "lifecycle": "complete",
+      "meeting_summary": "Initial synthetic planning meeting covering a studio reserve, liquidity concerns, and next-step commitments.",
+      "next_action": "Meet next week to review the draft reserve mix",
+      "salesperson_attention_required": false
+    },
+    "crm_resolution": {
+      "candidate_count": 1,
+      "contact_id": "contact_demo_taylor_001",
+      "current_stage": "discovery_scheduled",
+      "lifecycle": "complete",
+      "match_basis": "email",
+      "opportunity_id": "opp_demo_taylor_001",
+      "status": "matched"
+    },
+    "evidence": {
+      "extraction_confidence": 0.98,
+      "transcript_spans": [
+        {
+          "excerpt_id": "m1_goal_primary_01",
+          "field": "goal.primary"
+        },
+        {
+          "excerpt_id": "m1_goal_secondary_01",
+          "field": "goal.secondary"
+        },
+        {
+          "excerpt_id": "m1_liquidity_01",
+          "field": "fact.concern.liquidity_priority"
+        },
+        {
+          "excerpt_id": "m1_capacity_01",
+          "field": "fact.preference.flexible_monthly_savings_capacity"
+        },
+        {
+          "excerpt_id": "m1_launch_window_01",
+          "field": "fact.planning.launch_window_months"
+        },
+        {
+          "excerpt_id": "m1_unresolved_01",
+          "field": "question.reserve_account_mix"
+        },
+        {
+          "excerpt_id": "m1_commitment_01",
+          "field": "commitment.prospect.provide_current_monthly_budget_worksheet"
+        },
+        {
+          "excerpt_id": "m1_commitment_02",
+          "field": "commitment.agent.send_a_draft_two_bucket_savings_scenario"
+        },
+        {
+          "excerpt_id": "m1_next_step_01",
+          "field": "next_step.proposed"
+        },
+        {
+          "excerpt_id": "m1_stage_01",
+          "field": "opportunity.recommended_stage"
+        }
+      ]
+    },
+    "external_effects": 0,
+    "extraction": {
+      "commitments": [
+        {
+          "action": "Provide current monthly budget worksheet",
+          "due_date": "2026-09-05",
+          "owner": "Prospect"
+        },
+        {
+          "action": "Send a draft two-bucket savings scenario",
+          "due_date": "2026-09-06",
+          "owner": "Agent"
+        }
+      ],
+      "lifecycle": "complete",
+      "needs": [
+        "goal.primary=Build a studio acquisition reserve over the next 24 months",
+        "goal.secondary=Keep a travel buffer for two regional trade shows next year",
+        "fact.concern.liquidity_priority=Maintain immediate access to savings because freelance income can vary",
+        "fact.preference.flexible_monthly_savings_capacity=450",
+        "fact.planning.launch_window_months=24"
+      ],
+      "next_step": {
+        "action": "Meet next week to review the draft reserve mix",
+        "owner": "Rowan Hale",
+        "target_date": "2026-09-08"
+      },
+      "objections": [
+        "question.reserve_account_mix=Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?"
+      ],
+      "opportunity_signal": {
+        "rationale": "Discovery facts, commitments, and a concrete follow-up meeting were confirmed.",
+        "recommended_stage": "discovery_complete"
+      },
+      "summary": "Initial synthetic planning meeting covering a studio reserve, liquidity concerns, and next-step commitments."
+    },
+    "meeting": {
+      "meeting_id": "nw008_tb_meeting_1",
+      "occurred_at": "2026-09-01T15:00:00Z",
+      "source": "synthetic_demo",
+      "transcript_hash": "7694ec62ddeb06a82811b334c9891f69917bac379d52f676585c576ad1f82d90"
+    },
+    "mutation_intents": {
+      "note": [
+        {
+          "body_ref": "extraction.summary",
+          "kind": "note",
+          "status": "planned"
+        }
+      ],
+      "stage": [
+        {
+          "from_stage": "discovery_scheduled",
+          "kind": "stage",
+          "status": "planned",
+          "to_stage": "discovery_complete"
+        }
+      ]
+    },
+    "mutations": {
+      "lifecycle": "intent_only",
+      "note": {
+        "attempted": false,
+        "record_id": null,
+        "verified": false
+      },
+      "opportunity_stage": {
+        "attempted": false,
+        "from_stage": "discovery_scheduled",
+        "to_stage": "discovery_complete",
+        "verified": false
+      }
+    },
+    "participants": [
+      {
+        "email": "taylor.morgan@example-demo.test",
+        "name": "Taylor Morgan",
+        "phone": "+1-555-0100",
+        "role": "prospect"
+      },
+      {
+        "email": "rowan.hale@example-demo.test",
+        "name": "Rowan Hale",
+        "phone": "+1-555-0188",
+        "role": "agent"
+      }
+    ],
+    "policy": {
+      "lifecycle": "complete",
+      "note_write": "allowed",
+      "reason_codes": [],
+      "stage_write": "allowed"
+    },
+    "run": {
+      "created_at": "2026-08-14T12:53:05Z",
+      "run_id": "nw008_tranche_b_meeting_1",
+      "status": "completed",
+      "workflow": "meeting_follow_up_v1"
+    },
+    "schema": "meeting_follow_up_packet_v1"
+  },
+  "follow_up_planning_agent_implemented": true,
+  "follow_up_proposal": {
+    "agent": "follow_up_planning_agent",
+    "authorized_mutation_intents": {
+      "note": [
+        {
+          "body_ref": "extraction.summary",
+          "kind": "note",
+          "status": "planned"
+        }
+      ],
+      "stage": [
+        {
+          "from_stage": "discovery_scheduled",
+          "kind": "stage",
+          "status": "planned",
+          "to_stage": "discovery_complete"
+        }
+      ]
+    },
+    "confirmed_context_used": {
+      "confirmed_fact_ids": [
+        "goal.primary",
+        "goal.secondary",
+        "fact.concern.liquidity_priority",
+        "fact.preference.flexible_monthly_savings_capacity",
+        "fact.planning.launch_window_months",
+        "opportunity.recommended_stage"
+      ],
+      "evidence_excerpt_ids": [
+        "m1_capacity_01",
+        "m1_commitment_01",
+        "m1_commitment_02",
+        "m1_goal_primary_01",
+        "m1_goal_secondary_01",
+        "m1_launch_window_01",
+        "m1_liquidity_01",
+        "m1_next_step_01",
+        "m1_stage_01",
+        "m1_unresolved_01"
+      ],
+      "proposed_next_step": {
+        "action": "Meet next week to review the draft reserve mix",
+        "evidence_refs": [
+          "m1_next_step_01"
+        ],
+        "owner": "Rowan Hale",
+        "source_meeting_id": "nw008_tb_meeting_1",
+        "target_date": "2026-09-08"
+      },
+      "source": "relationship_context.longitudinal_context",
+      "unresolved_question_ids": [
+        "question.reserve_account_mix"
+      ]
+    },
+    "crm_targets": {
+      "contact_id": "contact_demo_taylor_001",
+      "opportunity_id": "opp_demo_taylor_001"
+    },
+    "disposition": "proposed",
+    "external_effects": 0,
+    "note_proposal": {
+      "body_ref": "relationship_context.longitudinal_context",
+      "requested": true
+    },
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Follow-Up Planning Agent proposes facts, next steps, and optional stage-change intent only; the deterministic policy gate evaluates and authorizes any mutation intent. No live GHL, no CRM writes, no policy bypass."
+    },
+    "policy_evaluation": {
+      "context_source": "relationship_context.longitudinal_context",
+      "context_supplied": true,
+      "deterministic_policy_bypass": false,
+      "evaluator": "orchestration.policy.evaluate_policy",
+      "invoked": true,
+      "note_write": "allowed",
+      "reason_codes": [],
+      "stage_write": "allowed"
+    },
+    "proposed_next_steps": [
+      "Meet next week to review the draft reserve mix"
+    ],
+    "resolution_status": "matched",
+    "run_id": "nw008_tranche_b_meeting_1",
+    "scenario_id": "NW008_TRANCHE_B_M1",
+    "schema": "follow_up_proposal_v1",
+    "stage_proposal": {
+      "from_stage": "discovery_scheduled",
+      "requested": true,
+      "to_stage": "discovery_complete"
+    },
+    "summary": "Primary goal: Build a studio acquisition reserve over the next 24 months. Flexible monthly savings capacity: 450. New confirmed fact goal.primary: Build a studio acquisition reserve over the next 24 months. Open commitment: Provide current monthly budget worksheet."
+  },
+  "follow_up_proposal_valid": true,
+  "google_adk_package_bound": true,
+  "google_adk_runtime_started": true,
+  "local_adk_fallback_used": false,
+  "meeting_context": {
+    "agent": "meeting_context_agent",
+    "evidence": {
+      "extraction_confidence": 0.98,
+      "transcript_spans": [
+        {
+          "excerpt_id": "m1_goal_primary_01",
+          "field": "goal.primary"
+        },
+        {
+          "excerpt_id": "m1_goal_secondary_01",
+          "field": "goal.secondary"
+        },
+        {
+          "excerpt_id": "m1_liquidity_01",
+          "field": "fact.concern.liquidity_priority"
+        },
+        {
+          "excerpt_id": "m1_capacity_01",
+          "field": "fact.preference.flexible_monthly_savings_capacity"
+        },
+        {
+          "excerpt_id": "m1_launch_window_01",
+          "field": "fact.planning.launch_window_months"
+        },
+        {
+          "excerpt_id": "m1_unresolved_01",
+          "field": "question.reserve_account_mix"
+        },
+        {
+          "excerpt_id": "m1_commitment_01",
+          "field": "commitment.prospect.provide_current_monthly_budget_worksheet"
+        },
+        {
+          "excerpt_id": "m1_commitment_02",
+          "field": "commitment.agent.send_a_draft_two_bucket_savings_scenario"
+        },
+        {
+          "excerpt_id": "m1_next_step_01",
+          "field": "next_step.proposed"
+        },
+        {
+          "excerpt_id": "m1_stage_01",
+          "field": "opportunity.recommended_stage"
+        }
+      ]
+    },
+    "external_effects": 0,
+    "extraction": {
+      "commitments": [
+        {
+          "action": "Provide current monthly budget worksheet",
+          "due_date": "2026-09-05",
+          "owner": "Prospect"
+        },
+        {
+          "action": "Send a draft two-bucket savings scenario",
+          "due_date": "2026-09-06",
+          "owner": "Agent"
+        }
+      ],
+      "lifecycle": "complete",
+      "needs": [
+        "goal.primary=Build a studio acquisition reserve over the next 24 months",
+        "goal.secondary=Keep a travel buffer for two regional trade shows next year",
+        "fact.concern.liquidity_priority=Maintain immediate access to savings because freelance income can vary",
+        "fact.preference.flexible_monthly_savings_capacity=450",
+        "fact.planning.launch_window_months=24"
+      ],
+      "next_step": {
+        "action": "Meet next week to review the draft reserve mix",
+        "owner": "Rowan Hale",
+        "target_date": "2026-09-08"
+      },
+      "objections": [
+        "question.reserve_account_mix=Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?"
+      ],
+      "opportunity_signal": {
+        "rationale": "Discovery facts, commitments, and a concrete follow-up meeting were confirmed.",
+        "recommended_stage": "discovery_complete"
+      },
+      "summary": "Initial synthetic planning meeting covering a studio reserve, liquidity concerns, and next-step commitments."
+    },
+    "meeting": {
+      "meeting_id": "nw008_tb_meeting_1",
+      "occurred_at": "2026-09-01T15:00:00Z",
+      "source": "synthetic_demo",
+      "transcript_hash": "7694ec62ddeb06a82811b334c9891f69917bac379d52f676585c576ad1f82d90"
+    },
+    "participants": [
+      {
+        "email": "taylor.morgan@example-demo.test",
+        "name": "Taylor Morgan",
+        "phone": "+1-555-0100",
+        "role": "prospect"
+      },
+      {
+        "email": "rowan.hale@example-demo.test",
+        "name": "Rowan Hale",
+        "phone": "+1-555-0188",
+        "role": "agent"
+      }
+    ],
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Meeting Context Agent proposes structured context only; deterministic policy remains authoritative for any CRM mutation."
+    },
+    "provider": "fixture",
+    "schema": "meeting_context_v1"
+  },
+  "meeting_context_reused": true,
+  "ok": true,
+  "relationship_context": {
+    "agent": "relationship_context_agent",
+    "crm_source": {
+      "adapter": "phase2b_offline_ghl_read_adapter",
+      "live_calls": 0,
+      "mode": "offline_synthetic",
+      "operations_used": [
+        "search-contacts-advanced",
+        "get-contact",
+        "search-opportunity",
+        "get-pipelines"
+      ],
+      "real_customer_data": 0,
+      "writes": 0
+    },
+    "evidence": {
+      "notes": "Unique synthetic contact and opportunity matched via offline GHL adapter.",
+      "participant_keys": [
+        {
+          "email": "taylor.morgan@example-demo.test",
+          "name": "Taylor Morgan",
+          "phone": "+1-555-0100",
+          "role": "prospect"
+        }
+      ],
+      "resolution_confidence": 0.95
+    },
+    "external_effects": 0,
+    "longitudinal_context": {
+      "commitments_completed": [],
+      "commitments_open": [
+        {
+          "action": "Provide current monthly budget worksheet",
+          "commitment_id": "commitment.prospect.provide_current_monthly_budget_worksheet",
+          "due_date": "2026-09-05",
+          "evidence_refs": [
+            "m1_commitment_01"
+          ],
+          "owner": "Prospect",
+          "source_meeting_id": "nw008_tb_meeting_1"
+        },
+        {
+          "action": "Send a draft two-bucket savings scenario",
+          "commitment_id": "commitment.agent.send_a_draft_two_bucket_savings_scenario",
+          "due_date": "2026-09-06",
+          "evidence_refs": [
+            "m1_commitment_02"
+          ],
+          "owner": "Agent",
+          "source_meeting_id": "nw008_tb_meeting_1"
+        }
+      ],
+      "corrected_facts": [],
+      "current_confirmed_facts": [
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m1_goal_primary_01"
+          ],
+          "fact_id": "goal.primary",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Build a studio acquisition reserve over the next 24 months"
+        },
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m1_goal_secondary_01"
+          ],
+          "fact_id": "goal.secondary",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Keep a travel buffer for two regional trade shows next year"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_liquidity_01"
+          ],
+          "fact_id": "fact.concern.liquidity_priority",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Maintain immediate access to savings because freelance income can vary"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_capacity_01"
+          ],
+          "fact_id": "fact.preference.flexible_monthly_savings_capacity",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": 450
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_launch_window_01"
+          ],
+          "fact_id": "fact.planning.launch_window_months",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": 24
+        },
+        {
+          "category": "opportunity",
+          "evidence_refs": [
+            "m1_stage_01"
+          ],
+          "fact_id": "opportunity.recommended_stage",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "discovery_complete"
+        }
+      ],
+      "evidence_references": [
+        {
+          "claim_id": "goal.primary",
+          "excerpt_ids": [
+            "m1_goal_primary_01"
+          ]
+        },
+        {
+          "claim_id": "goal.secondary",
+          "excerpt_ids": [
+            "m1_goal_secondary_01"
+          ]
+        },
+        {
+          "claim_id": "fact.concern.liquidity_priority",
+          "excerpt_ids": [
+            "m1_liquidity_01"
+          ]
+        },
+        {
+          "claim_id": "fact.preference.flexible_monthly_savings_capacity",
+          "excerpt_ids": [
+            "m1_capacity_01"
+          ]
+        },
+        {
+          "claim_id": "fact.planning.launch_window_months",
+          "excerpt_ids": [
+            "m1_launch_window_01"
+          ]
+        },
+        {
+          "claim_id": "opportunity.recommended_stage",
+          "excerpt_ids": [
+            "m1_stage_01"
+          ]
+        },
+        {
+          "claim_id": "question.reserve_account_mix",
+          "excerpt_ids": [
+            "m1_unresolved_01"
+          ]
+        },
+        {
+          "claim_id": "commitment.prospect.provide_current_monthly_budget_worksheet",
+          "excerpt_ids": [
+            "m1_commitment_01"
+          ]
+        },
+        {
+          "claim_id": "commitment.agent.send_a_draft_two_bucket_savings_scenario",
+          "excerpt_ids": [
+            "m1_commitment_02"
+          ]
+        },
+        {
+          "claim_id": "next_step.proposed",
+          "excerpt_ids": [
+            "m1_next_step_01"
+          ]
+        }
+      ],
+      "goals_refined": [
+        {
+          "current_evidence_refs": [
+            "m1_goal_primary_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_1",
+          "fact_id": "goal.primary",
+          "kind": "new",
+          "new_value": "Build a studio acquisition reserve over the next 24 months"
+        },
+        {
+          "current_evidence_refs": [
+            "m1_goal_secondary_01"
+          ],
+          "current_meeting_id": "nw008_tb_meeting_1",
+          "fact_id": "goal.secondary",
+          "kind": "new",
+          "new_value": "Keep a travel buffer for two regional trade shows next year"
+        }
+      ],
+      "new_facts": [
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m1_goal_primary_01"
+          ],
+          "fact_id": "goal.primary",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Build a studio acquisition reserve over the next 24 months"
+        },
+        {
+          "category": "goal",
+          "evidence_refs": [
+            "m1_goal_secondary_01"
+          ],
+          "fact_id": "goal.secondary",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Keep a travel buffer for two regional trade shows next year"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_liquidity_01"
+          ],
+          "fact_id": "fact.concern.liquidity_priority",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "Maintain immediate access to savings because freelance income can vary"
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_capacity_01"
+          ],
+          "fact_id": "fact.preference.flexible_monthly_savings_capacity",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": 450
+        },
+        {
+          "category": "fact",
+          "evidence_refs": [
+            "m1_launch_window_01"
+          ],
+          "fact_id": "fact.planning.launch_window_months",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": 24
+        },
+        {
+          "category": "opportunity",
+          "evidence_refs": [
+            "m1_stage_01"
+          ],
+          "fact_id": "opportunity.recommended_stage",
+          "source_meeting_id": "nw008_tb_meeting_1",
+          "value": "discovery_complete"
+        }
+      ],
+      "prior_confirmed_facts": [],
+      "proposed_next_step": {
+        "action": "Meet next week to review the draft reserve mix",
+        "evidence_refs": [
+          "m1_next_step_01"
+        ],
+        "owner": "Rowan Hale",
+        "source_meeting_id": "nw008_tb_meeting_1",
+        "target_date": "2026-09-08"
+      },
+      "schema": "relationship_longitudinal_context_v1",
+      "unchanged_facts": [],
+      "unresolved_questions": [
+        {
+          "evidence_refs": [
+            "m1_unresolved_01"
+          ],
+          "question": "Should the reserve stay entirely in high-yield cash or use a small brokerage ladder?",
+          "question_id": "question.reserve_account_mix",
+          "source_meeting_id": "nw008_tb_meeting_1"
+        }
+      ],
+      "unsupported_inferences": []
+    },
+    "meeting_ref": {
+      "meeting_id": "nw008_tb_meeting_1",
+      "run_id": "nw008_tranche_b_meeting_1",
+      "transcript_hash": "7694ec62ddeb06a82811b334c9891f69917bac379d52f676585c576ad1f82d90"
+    },
+    "policy_authority": {
+      "deterministic_policy_bypass": false,
+      "notes": "Relationship Context Agent proposes CRM resolution only; deterministic policy remains authoritative for any CRM mutation. Offline synthetic reads only (Phase 2B adapter)."
+    },
+    "provider": "offline_ghl_fixture",
+    "resolution": {
+      "candidate_count": 1,
+      "candidates": [
+        {
+          "contact_id": "contact_demo_taylor_001",
+          "display_name": "Taylor Morgan",
+          "email": "taylor.morgan@example-demo.test",
+          "match_basis": "email",
+          "phone": "+1-555-0100"
+        }
+      ],
+      "contact": {
+        "company_name": "Demo Prospect Co",
+        "email": "taylor.morgan@example-demo.test",
+        "first_name": "Taylor",
+        "id": "contact_demo_taylor_001",
+        "last_name": "Morgan",
+        "phone": "+1-555-0100"
+      },
+      "contact_id": "contact_demo_taylor_001",
+      "current_stage": "discovery_scheduled",
+      "lifecycle": "complete",
+      "match_basis": "email",
+      "opportunity": {
+        "contact_id": "contact_demo_taylor_001",
+        "id": "opp_demo_taylor_001",
+        "monetary_value": 12000,
+        "name": "Taylor Morgan discovery",
+        "pipeline_id": "demo-pipeline-001",
+        "pipeline_stage_id": "demo-stage-discovery-scheduled",
+        "stage_name": "discovery_scheduled",
+        "status": "open"
+      },
+      "opportunity_id": "opp_demo_taylor_001",
+      "status": "matched"
+    },
+    "schema": "relationship_context_v1"
+  },
+  "relationship_context_reused": true,
+  "session": {
+    "agent_trace": [
+      {
+        "agent_id": "meeting_context_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "meeting_context_v1",
+        "status": "ok"
+      },
+      {
+        "agent_id": "relationship_context_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "relationship_context_v1",
+        "status": "ok"
+      },
+      {
+        "agent_id": "follow_up_planning_agent",
+        "error": null,
+        "external_effects": 0,
+        "output_schema": "follow_up_proposal_v1",
+        "status": "ok"
+      }
+    ],
+    "backend": "google_adk_package",
+    "completed": true,
+    "external_effects": 0,
+    "run_id": "nw008_tranche_b_meeting_1",
+    "session_id": "d7cd1724-a2e8-4354-af50-8361a66b7d7c",
+    "started": true,
+    "state_keys": [
+      "approved_prior_context",
+      "errors",
+      "follow_up_packet",
+      "follow_up_policy_gate_invoked",
+      "follow_up_proposal",
+      "meeting_context",
+      "mutation_execution",
+      "relationship_context",
+      "run_id",
+      "scenario_id",
+      "stop_after"
+    ],
+    "workflow": "meeting_follow_up_v1"
+  }
+}

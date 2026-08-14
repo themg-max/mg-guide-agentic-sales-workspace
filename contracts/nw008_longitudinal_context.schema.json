@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/themg-max/mg-guide-agentic-sales-workspace/contracts/nw008_longitudinal_context.schema.json",
+  "title": "relationship_longitudinal_context_v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "prior_confirmed_facts",
+    "current_confirmed_facts",
+    "unchanged_facts",
+    "corrected_facts",
+    "new_facts",
+    "commitments_completed",
+    "commitments_open",
+    "goals_refined",
+    "unresolved_questions",
+    "proposed_next_step",
+    "evidence_references",
+    "unsupported_inferences"
+  ],
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "relationship_longitudinal_context_v1"
+    },
+    "prior_confirmed_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/confirmedFact"
+      }
+    },
+    "current_confirmed_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/confirmedFact"
+      }
+    },
+    "unchanged_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unchangedFact"
+      }
+    },
+    "corrected_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/correctedFact"
+      }
+    },
+    "new_facts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/confirmedFact"
+      }
+    },
+    "commitments_completed": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/completedCommitment"
+      }
+    },
+    "commitments_open": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/openCommitment"
+      }
+    },
+    "goals_refined": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/goalRefinement"
+      }
+    },
+    "unresolved_questions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/question"
+      }
+    },
+    "proposed_next_step": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/proposedNextStep"
+        }
+      ]
+    },
+    "evidence_references": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/evidenceReference"
+      }
+    },
+    "unsupported_inferences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/unsupportedInference"
+      }
+    }
+  },
+  "$defs": {
+    "evidenceRefList": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "confirmedFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact_id",
+        "category",
+        "value",
+        "source_meeting_id",
+        "evidence_refs"
+      ],
+      "properties": {
+        "fact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {},
+        "source_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "unchangedFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact_id",
+        "value",
+        "prior_meeting_id",
+        "prior_evidence_refs",
+        "current_meeting_id",
+        "current_evidence_refs"
+      ],
+      "properties": {
+        "fact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {},
+        "prior_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        },
+        "current_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "correctedFact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact_id",
+        "prior_value",
+        "prior_meeting_id",
+        "prior_evidence_refs",
+        "new_value",
+        "current_meeting_id",
+        "current_evidence_refs",
+        "superseded"
+      ],
+      "properties": {
+        "fact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_value": {},
+        "prior_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        },
+        "new_value": {},
+        "current_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        },
+        "superseded": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "openCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commitment_id",
+        "owner",
+        "action",
+        "due_date",
+        "source_meeting_id"
+      ],
+      "properties": {
+        "commitment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "due_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        },
+        "current_meeting_id": {
+          "type": "string"
+        },
+        "current_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "completedCommitment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "commitment_id",
+        "owner",
+        "action",
+        "due_date",
+        "prior_meeting_id",
+        "prior_evidence_refs",
+        "current_meeting_id",
+        "current_evidence_refs"
+      ],
+      "properties": {
+        "commitment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "due_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prior_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "prior_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        },
+        "current_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "goalRefinement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fact_id",
+        "kind",
+        "new_value",
+        "current_meeting_id",
+        "current_evidence_refs"
+      ],
+      "properties": {
+        "fact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "new",
+            "corrected"
+          ]
+        },
+        "prior_value": {},
+        "new_value": {},
+        "current_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "question": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_id",
+        "question",
+        "source_meeting_id",
+        "evidence_refs"
+      ],
+      "properties": {
+        "question_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "proposedNextStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "action",
+        "owner",
+        "target_date",
+        "source_meeting_id",
+        "evidence_refs"
+      ],
+      "properties": {
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target_date": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source_meeting_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_refs": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "evidenceReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "excerpt_ids"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "excerpt_ids": {
+          "$ref": "#/$defs/evidenceRefList"
+        }
+      }
+    },
+    "unsupportedInference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "reason"
+      ],
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

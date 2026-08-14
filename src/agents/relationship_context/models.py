@@ -13,6 +13,7 @@ class RelationshipRequest:
     meeting_context: Mapping[str, Any]
     run_id: Optional[str] = None
     scenario_id: Optional[str] = None
+    prior_context: Optional[Mapping[str, Any]] = None
 
 
 @dataclass(frozen=True)
@@ -28,9 +29,10 @@ class RelationshipContextResult:
     evidence: Dict[str, Any]
     external_effects: int
     policy_authority: Dict[str, Any]
+    longitudinal_context: Optional[Dict[str, Any]] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        payload = {
             "schema": self.schema,
             "agent": self.agent,
             "provider": self.provider,
@@ -41,6 +43,9 @@ class RelationshipContextResult:
             "external_effects": self.external_effects,
             "policy_authority": dict(self.policy_authority),
         }
+        if self.longitudinal_context is not None:
+            payload["longitudinal_context"] = dict(self.longitudinal_context)
+        return payload
 
     def to_crm_resolution_overlay(self) -> Dict[str, Any]:
         """Map into meeting_follow_up_packet_v1 crm_resolution shape."""

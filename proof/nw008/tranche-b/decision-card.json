@@ -1,0 +1,18 @@
+{
+  "card": {
+    "agent_contributions": [
+      "Meeting Context Agent \u2014 present in packet audit",
+      "Relationship Context Agent \u2014 present in packet audit",
+      "Follow-Up Planning Agent \u2014 present in packet audit"
+    ],
+    "external_effects": 0,
+    "human_review_required": false,
+    "next_action": "REVIEW_FOLLOW_UP",
+    "policy_explanation": "Policy evaluation completed with no blocking reason code.",
+    "policy_reason_code": "NONE",
+    "policy_state": "ALLOWED",
+    "workflow_status": "completed"
+  },
+  "html": "<section class='mg-guide-decision-card'><h1>MG Guide Decision Card</h1><p><strong>Workflow status:</strong> completed</p><p><strong>Agent contributions:</strong></p><ul><li>Meeting Context Agent \u2014 present in packet audit</li><li>Relationship Context Agent \u2014 present in packet audit</li><li>Follow-Up Planning Agent \u2014 present in packet audit</li></ul><p><strong>Policy state:</strong> ALLOWED</p><p><strong>Policy reason code:</strong> NONE</p><p><strong>Policy explanation:</strong> Policy evaluation completed with no blocking reason code.</p><p><strong>Human review required:</strong> false</p><p><strong>External effects:</strong> 0</p><p><strong>Next action:</strong> Review follow-up</p></section>",
+  "text": "MG Guide Decision Card\nWorkflow status: completed\nAgent contributions: Meeting Context Agent \u2014 present in packet audit; Relationship Context Agent \u2014 present in packet audit; Follow-Up Planning Agent \u2014 present in packet audit\nPolicy state: ALLOWED\nPolicy reason code: NONE\nPolicy explanation: Policy evaluation completed with no blocking reason code.\nHuman review required: false\nExternal effects: 0\nNext action: Review follow-up"
+}

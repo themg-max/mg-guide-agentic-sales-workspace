@@ -1,0 +1,36 @@
+# FIXTURE: NW-008 Tranche B Meeting 1
+# SYNTHETIC DATA ONLY — fictional identities, fictional amounts, no real customer data
+
+MEETING_ID: nw008_tb_meeting_1
+OCCURRED_AT: 2026-09-01T15:00:00Z
+SOURCE: synthetic_demo
+
+PARTICIPANTS:
+- name: Taylor Morgan
+  email: taylor.morgan@example-demo.test
+  phone: +1-555-0100
+  role: prospect
+- name: Rowan Hale
+  email: rowan.hale@example-demo.test
+  phone: +1-555-0188
+  role: agent
+
+--- TRANSCRIPT ---
+
+Rowan Hale: Thanks for making time today, Taylor. What do you want this planning work to help with first?
+
+Taylor Morgan: The main goal is building a reserve so I can open a small design studio in about twenty-four months.
+
+Taylor Morgan: I also want a separate travel buffer for two regional trade shows next year, but I do not want to lose easy access to cash because my freelance income can bounce around.
+
+Rowan Hale: If we set this up in stages, what do you think is realistic each month?
+
+Taylor Morgan: I think I can set aside about four hundred fifty dollars a month after the normal bills.
+
+Taylor Morgan: One thing I still have not settled is whether the reserve should stay entirely in high-yield cash or whether part of it belongs in a simple brokerage ladder.
+
+Rowan Hale: Great. For follow-up, please send me your current monthly budget worksheet, and I will send a draft two-bucket savings scenario before we meet again.
+
+Taylor Morgan: Perfect. Let's meet again next week to review the draft and decide on the reserve mix.
+
+--- END ---
