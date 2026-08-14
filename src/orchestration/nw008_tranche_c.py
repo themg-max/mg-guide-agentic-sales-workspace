@@ -53,11 +53,12 @@ ENTRYPOINTS = {
     "TRANSCRIPT_SOURCE_ENTRYPOINT": "orchestration.transcript_source.envelope_to_provider_request",
 }
 
+# The harness supplies assertion-only expectations. It has NO enforcement
+# authority: the Unit 3 runtime always evaluates the authoritative
+# StateMachine/workflow contract after each applicable domain-agent result,
+# and successful paths naturally return no governed stop.
 SCENARIOS = {
     "AT-02": {
-        "governed_stop_profile": {
-            "boundary_agent_id": "relationship_context_agent",
-        },
         "expected_reason_code": "AMBIGUOUS_CONTACT",
         "expected_stop_point": "relationship_context_agent",
         "expected_disposition": "blocked",
@@ -65,9 +66,6 @@ SCENARIOS = {
         "historical_card_required": True,
     },
     "AT-04": {
-        "governed_stop_profile": {
-            "boundary_agent_id": "relationship_context_agent",
-        },
         "expected_reason_code": "CONTACT_NOT_FOUND",
         "expected_stop_point": "relationship_context_agent",
         "expected_disposition": "blocked",
@@ -75,9 +73,6 @@ SCENARIOS = {
         "historical_card_required": False,
     },
     "AT-05": {
-        "governed_stop_profile": {
-            "boundary_agent_id": "meeting_context_agent",
-        },
         "expected_reason_code": "LOW_EXTRACTION_CONFIDENCE",
         "expected_stop_point": "meeting_context_agent",
         "expected_disposition": "blocked",
@@ -191,6 +186,45 @@ def _git_head(repo_root: Path) -> str:
         )
     except Exception:  # pragma: no cover - defensive
         return "UNKNOWN"
+
+
+def verify_proof_subject_sha(
+    sha: str, repo_root: Optional[Path] = None
+) -> Tuple[bool, str]:
+    """Verify a proof ``implementation_subject_sha`` resolves to a real commit
+    that is an ancestor of the current HEAD.
+
+    Uses ``git cat-file -e "<sha>^{commit}"`` and
+    ``git merge-base --is-ancestor "<sha>" HEAD``.
+    """
+    root = str(repo_root or REPO_ROOT)
+    try:
+        subprocess.run(
+            ["git", "cat-file", "-e", f"{sha}^{{commit}}"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        return False, (
+            f"PROOF_SUBJECT_SHA_EXISTS=false: {sha!r} does not resolve to a "
+            f"commit ({exc})"
+        )
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", sha, "HEAD"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+    )
+    if ancestor.returncode != 0:
+        return False, (
+            f"PROOF_SUBJECT_SHA_IS_ANCESTOR=false: {sha!r} is not an ancestor "
+            "of HEAD"
+        )
+    return True, (
+        "PROOF_SUBJECT_SHA_EXISTS=true; PROOF_SUBJECT_SHA_IS_ANCESTOR=true"
+    )
 
 
 def _canonical_json_text(data: Mapping[str, Any]) -> str:
@@ -320,6 +354,13 @@ class Nw008TrancheCHarness:
         self, result: Optional[TrancheCResult] = None
     ) -> Dict[str, Path]:
         result = result or self.run()
+        sha_ok, sha_detail = verify_proof_subject_sha(
+            result.implementation_subject_sha, self.repo_root
+        )
+        if not sha_ok:
+            raise TrancheCReplayError(
+                "proof subject SHA integrity check failed: " + sha_detail
+            )
         self.proof_root.mkdir(parents=True, exist_ok=True)
         paths: Dict[str, Path] = {}
         for scenario, run in result.scenarios.items():
@@ -387,7 +428,6 @@ class Nw008TrancheCHarness:
             meeting_request=request,
             run_id=run_id,
             scenario_id=f"NW008_TC_{label}",
-            governed_stop_profile=spec["governed_stop_profile"],
         )
         if not unit3_result.ok:
             raise TrancheCReplayError(
@@ -576,6 +616,61 @@ class Nw008TrancheCHarness:
         )
 
     @staticmethod
+    def _foundation_acceptance_section(foundation_text: str) -> str:
+        """Extract docs/MEETING_FOLLOW_UP_FOUNDATION.md §17 (acceptance tests)."""
+        start = foundation_text.find("## 17. Acceptance tests")
+        if start < 0:
+            return ""
+        next_section = foundation_text.find("\n## ", start + 1)
+        return (
+            foundation_text[start:next_section]
+            if next_section > 0
+            else foundation_text[start:]
+        )
+
+    # Exact canonical clauses from
+    # docs/MEETING_FOLLOW_UP_FOUNDATION.md §17 that must remain unchanged.
+    FOUNDATION_AT_CLAUSES: Tuple[Tuple[str, str], ...] = (
+        (
+            "AT-2",
+            "`blocked` with `AMBIGUOUS_CONTACT`; **0 CRM writes**; "
+            "MG Guide card State 2",
+        ),
+        ("AT-4", "`blocked` with `CONTACT_NOT_FOUND`; 0 writes"),
+        (
+            "AT-5",
+            "`blocked` with `LOW_EXTRACTION_CONFIDENCE`; 0 writes",
+        ),
+    )
+
+    @classmethod
+    def _verify_foundation_definitions(
+        cls, foundation_text: Optional[str] = None
+    ) -> Tuple[bool, str]:
+        foundation_path = REPO_ROOT / "docs" / "MEETING_FOLLOW_UP_FOUNDATION.md"
+        if foundation_text is None:
+            foundation_text = foundation_path.read_text(encoding="utf-8")
+        section17 = cls._foundation_acceptance_section(foundation_text)
+        checks: List[Tuple[bool, str]] = [
+            (bool(section17), "docs/MEETING_FOLLOW_UP_FOUNDATION.md §17 present"),
+        ]
+        for at_label, clause in cls.FOUNDATION_AT_CLAUSES:
+            checks.append(
+                (
+                    bool(section17) and clause in section17,
+                    f"FOUNDATION §17 {at_label} clause unchanged: {clause}",
+                )
+            )
+        failed = [desc for ok, desc in checks if not ok]
+        if failed:
+            return False, "FOUNDATION_DEFINITIONS_UNCHANGED=false: " + "; ".join(failed)
+        return (
+            True,
+            "FOUNDATION_DEFINITIONS_UNCHANGED=true "
+            "(docs/MEETING_FOLLOW_UP_FOUNDATION.md §17 AT-2/AT-4/AT-5 clauses exact)",
+        )
+
+    @staticmethod
     def _verify_historical_definitions() -> Tuple[bool, str]:
         contract_path = REPO_ROOT / "contracts" / "workflow_states.yaml"
         contract = yaml.safe_load(contract_path.read_text(encoding="utf-8"))
@@ -588,31 +683,27 @@ class Nw008TrancheCHarness:
         checks: List[Tuple[bool, str]] = [
             (sm.is_terminal("blocked"), "blocked state is terminal"),
             (
-                any(
-                    tr.source == "extracting"
-                    and tr.target == "blocked"
-                    and tr.reason_code == "LOW_EXTRACTION_CONFIDENCE"
-                    for tr in sm.transitions
-                ),
-                "AT-5 extracting->blocked LOW_EXTRACTION_CONFIDENCE",
+                sm.validate_transition(
+                    "extracting",
+                    "blocked",
+                    when="extraction_confidence_lt_extraction_abort_threshold",
+                ).reason_code
+                == "LOW_EXTRACTION_CONFIDENCE",
+                "AT-5 extracting->blocked transition reason_code=LOW_EXTRACTION_CONFIDENCE",
             ),
             (
-                any(
-                    tr.source == "resolving"
-                    and tr.target == "blocked"
-                    and tr.reason_code == "AMBIGUOUS_CONTACT"
-                    for tr in sm.transitions
-                ),
-                "AT-2 resolving->blocked AMBIGUOUS_CONTACT",
+                sm.validate_transition(
+                    "resolving", "blocked", when="contact_ambiguous"
+                ).reason_code
+                == "AMBIGUOUS_CONTACT",
+                "AT-2 resolving->blocked transition reason_code=AMBIGUOUS_CONTACT",
             ),
             (
-                any(
-                    tr.source == "resolving"
-                    and tr.target == "blocked"
-                    and tr.reason_code == "CONTACT_NOT_FOUND"
-                    for tr in sm.transitions
-                ),
-                "AT-4 resolving->blocked CONTACT_NOT_FOUND",
+                sm.validate_transition(
+                    "resolving", "blocked", when="contact_not_found"
+                ).reason_code
+                == "CONTACT_NOT_FOUND",
+                "AT-4 resolving->blocked transition reason_code=CONTACT_NOT_FOUND",
             ),
             (
                 invariants.get("production_crm_writes") == "forbidden",
@@ -625,10 +716,11 @@ class Nw008TrancheCHarness:
         ]
         failed = [desc for ok, desc in checks if not ok]
         if failed:
-            return False, "historical definition mismatch: " + "; ".join(failed)
+            return False, "WORKFLOW_CONTRACT_ALIGNED=false: " + "; ".join(failed)
         return (
             True,
-            "canonical AT-2/AT-4/AT-5 definitions verified in contracts/workflow_states.yaml",
+            "WORKFLOW_CONTRACT_ALIGNED=true "
+            "(contracts/workflow_states.yaml transitions carry canonical reason codes)",
         )
 
     @staticmethod
@@ -923,14 +1015,17 @@ class Nw008TrancheCHarness:
             ),
             remaining_gap="tc18_synthetic_source_violation",
         )
-        historical_defs_ok, historical_defs_detail = self._verify_historical_definitions()
+        foundation_ok, foundation_detail = self._verify_foundation_definitions()
+        contract_ok, contract_detail = self._verify_historical_definitions()
         obligations["TC-19"] = self._obligation(
             ok=(
                 set(SCENARIO_LABELS.values()) == {"AT-2", "AT-4", "AT-5"}
-                and historical_defs_ok
+                and foundation_ok
+                and contract_ok
             ),
-            detail=historical_defs_detail,
+            detail=f"{foundation_detail}; {contract_detail}",
             evidence_path=(
+                "docs/MEETING_FOLLOW_UP_FOUNDATION.md | "
                 "contracts/workflow_states.yaml | "
                 "src/orchestration/nw008_tranche_c.py | "
                 "contracts/nw008_tranche_c_proof_return.schema.json"
@@ -1122,7 +1217,24 @@ class Nw008TrancheCHarness:
         for key, value in ENTRYPOINTS.items():
             lines.append(f"- `{key}` = `{value}`")
         lines.extend(
-            ["", "## Proof obligations", "", "| ID | Status | Detail |", "| --- | --- | --- |"]
+            [
+                "",
+                "## Trace semantics",
+                "",
+                "- `AGENTS_STARTED` = ADK wrapper visitation (each sub-agent "
+                "wrapper was entered by the SequentialAgent).",
+                "- `agent_execution[<agent_id>].delegate_called` = actual "
+                "business-agent execution truth.",
+                "- `AUTHORITATIVE_STOP_SOURCE` = `STATE_MACHINE_WORKFLOW_CONTRACT`; "
+                "the harness has no enforcement authority (`governed_stop_profile` "
+                "input removed); reason codes are derived from the StateMachine "
+                "transition contract.",
+                "",
+                "## Proof obligations",
+                "",
+                "| ID | Status | Detail |",
+                "| --- | --- | --- |",
+            ]
         )
         for tc_id, obligation in result.proof_obligations.items():
             lines.append(f"| {tc_id} | {obligation.STATUS} | {obligation.DETAIL} |")

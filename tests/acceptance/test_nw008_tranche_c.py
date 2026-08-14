@@ -3,25 +3,26 @@
 from __future__ import annotations
 
 import copy
+import inspect
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 import yaml
 
+from agents.follow_up_planning.runtime import Unit3FollowUpRuntime
 from orchestration.nw008_tranche_c import (
     Nw008TrancheCHarness,
+    TrancheCReplayError,
     _sha256_dict,
     _validate_proof_return,
+    verify_proof_subject_sha,
 )
 
 
 @pytest.fixture
 def harness(repo_root: Path) -> Nw008TrancheCHarness:
-    return Nw008TrancheCHarness(
-        repo_root=repo_root,
-        commit_sha="deadbeef",
-    )
+    return Nw008TrancheCHarness(repo_root=repo_root)
 
 
 @pytest.fixture
@@ -195,25 +196,134 @@ def test_negative_control_at2_card_semantics_mismatch_fails(
     assert obligations["TC-22"].STATUS == "FAIL"
 
 
-def test_negative_control_harness_threshold_reason_cannot_override_authority(
-    harness: Nw008TrancheCHarness, monkeypatch
-):
+def test_negative_control_harness_boundary_input_eliminated():
+    """The harness cannot choose the authoritative enforcement boundary.
+
+    The boundary input is eliminated entirely: no scenario supplies a
+    governed_stop_profile and run_unit3 no longer accepts one. Runtime
+    enforcement is derived only from the StateMachine/workflow contract.
+    """
     from orchestration import nw008_tranche_c as tc_mod
 
-    tampered = copy.deepcopy(tc_mod.SCENARIOS)
-    tampered["AT-05"]["governed_stop_profile"]["extraction_abort_threshold"] = 0.99
-    tampered["AT-05"]["governed_stop_profile"]["reason_code"] = "FORCED_REASON"
-    tampered["AT-05"]["governed_stop_profile"][
-        "reason_source"
-    ] = "harness.override.authority"
-    monkeypatch.setattr(tc_mod, "SCENARIOS", tampered)
+    params = inspect.signature(Unit3FollowUpRuntime.run_unit3).parameters
+    assert "governed_stop_profile" not in params
+    for spec in tc_mod.SCENARIOS.values():
+        assert "governed_stop_profile" not in spec
 
-    result = harness.run()
-    at5 = result.scenarios["AT-05"]
-    assert at5.stop_reason_code == "LOW_EXTRACTION_CONFIDENCE"
-    assert "FORCED" not in at5.stop_reason_source
-    assert "harness.override" not in at5.stop_reason_source
-    assert "workflow_states.yaml" in at5.stop_reason_source
+
+def test_negative_control_reason_derived_from_state_machine_transition(
+    harness: Nw008TrancheCHarness, monkeypatch
+):
+    """Monkeypatch the authoritative StateMachine transition and prove the
+    runtime reason_code derives from the transition, not a hard-coded string."""
+    from agents.follow_up_planning import runtime as rt_mod
+    from agents.follow_up_planning import FollowUpPlanningAgent
+    from agents.meeting_context import MeetingContextAgent
+    from agents.relationship_context import RelationshipContextAgent
+    from agents.relationship_context.crm_store import SyntheticCrmStore
+    from orchestration import nw008_tranche_c as tc_mod
+    from orchestration.state_machine import StateMachine
+    from orchestration.transcript_source import (
+        envelope_from_dict,
+        envelope_to_provider_request,
+    )
+
+    contract = yaml.safe_load(
+        (tc_mod.REPO_ROOT / "contracts" / "workflow_states.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    tampered_reason = "TAMPERED_CONTRACT_REASON"
+    for transition in contract["transitions"]:
+        if (
+            transition["from"] == "resolving"
+            and transition["to"] == "blocked"
+            and transition["when"] == "contact_ambiguous"
+        ):
+            transition["reason_code"] = tampered_reason
+    tampered_sm = StateMachine(contract)
+    monkeypatch.setattr(rt_mod, "_unit3_state_machine", lambda: tampered_sm)
+
+    envelope_raw = tc_mod._load_json(harness.fixtures_dir / "at-02-envelope.json")
+    sidecar = tc_mod._load_json(harness.fixtures_dir / "at-02-sidecar.json")
+    request = envelope_to_provider_request(
+        envelope_from_dict(envelope_raw),
+        extraction_result=sidecar["extraction_result"],
+        extraction_confidence=sidecar["extraction_confidence"],
+        evidence_references=sidecar.get("evidence_references"),
+        participants=sidecar["participants"],
+    )
+    store = SyntheticCrmStore.from_fixture_path(harness.crm_fixture_path)
+    runtime = Unit3FollowUpRuntime(
+        meeting_agent=MeetingContextAgent.for_fixture_mode(),
+        relationship_agent=RelationshipContextAgent(store=store),
+        follow_up_agent=FollowUpPlanningAgent(),
+    )
+    runtime.start()
+    run = runtime.run_unit3(
+        meeting_request=request,
+        run_id="neg_reason_derivation",
+        scenario_id="NEG_REASON",
+    )
+    assert run.governed_stop is not None
+    assert run.governed_stop["reason_code"] == tampered_reason
+    assert tampered_reason in run.governed_stop["reason_source"]
+
+
+def test_negative_control_nonexistent_subject_sha_fails(
+    harness: Nw008TrancheCHarness, result
+):
+    nonexistent = "0" * 40
+    ok, detail = verify_proof_subject_sha(nonexistent, harness.repo_root)
+    assert not ok
+    assert "PROOF_SUBJECT_SHA_EXISTS=false" in detail
+
+    tampered = replace(result, implementation_subject_sha=nonexistent)
+    with pytest.raises(
+        TrancheCReplayError, match="proof subject SHA integrity"
+    ):
+        harness.write_proof_artifacts(tampered)
+
+
+def test_proof_subject_sha_integrity(repo_root: Path):
+    """The committed proof-return's implementation_subject_sha resolves to a
+    commit that is an ancestor of the current HEAD."""
+    payload = yaml.safe_load(
+        (repo_root / "proof" / "nw008" / "tranche-c" / "proof-return.yaml").read_text(
+            encoding="utf-8"
+        )
+    )
+    ok, detail = verify_proof_subject_sha(
+        payload["implementation_subject_sha"], repo_root
+    )
+    assert ok, detail
+
+
+def test_negative_control_foundation_clause_mismatch_fails_tc19(
+    result, harness: Nw008TrancheCHarness, monkeypatch
+):
+    # Direct: tampered §17 text is detected.
+    ok, detail = Nw008TrancheCHarness._verify_foundation_definitions(
+        foundation_text="## 17. Acceptance tests\n\n| AT-2 | tampered |\n"
+    )
+    assert not ok
+    assert "FOUNDATION_DEFINITIONS_UNCHANGED=false" in detail
+
+    # Bounded: a Foundation clause mismatch makes TC-19 FAIL.
+    monkeypatch.setattr(
+        Nw008TrancheCHarness,
+        "_verify_foundation_definitions",
+        classmethod(
+            lambda cls, foundation_text=None: (
+                False,
+                "FOUNDATION_DEFINITIONS_UNCHANGED=false: tampered",
+            )
+        ),
+    )
+    obligations = harness._proof_obligations(
+        result.scenarios, deterministic_replay="PASS"
+    )
+    assert obligations["TC-19"].STATUS == "FAIL"
 
 
 def test_negative_control_historical_claim_fails_closed(
