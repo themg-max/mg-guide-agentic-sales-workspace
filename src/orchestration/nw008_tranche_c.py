@@ -54,33 +54,49 @@ ENTRYPOINTS = {
 
 SCENARIOS = {
     "AT-02": {
+        "governed_stop_profile": {
+            "boundary_agent_id": "relationship_context_agent",
+            "reason_code": "AMBIGUOUS_CONTACT",
+            "reason_source": (
+                "agents.relationship_context.resolver.resolve_relationship "
+                "(crm_status=ambiguous -> governed stop)"
+            ),
+        },
         "expected_reason_code": "AMBIGUOUS_CONTACT",
+        "expected_stop_point": "relationship_context_agent",
         "expected_disposition": "blocked",
-        "stop_point": "relationship_context_agent",
-        "stop_reason_source": (
-            "agents.follow_up_planning.packet.FollowUpPacketAssembler "
-            "(crm_status=ambiguous from agents.relationship_context.resolver.resolve_relationship)"
-        ),
+        "expected_policy_gate_invoked": False,
         "historical_card_required": True,
     },
     "AT-04": {
+        "governed_stop_profile": {
+            "boundary_agent_id": "relationship_context_agent",
+            "reason_code": "CONTACT_NOT_FOUND",
+            "reason_source": (
+                "agents.relationship_context.resolver.resolve_relationship "
+                "(crm_status=not_found -> governed stop)"
+            ),
+        },
         "expected_reason_code": "CONTACT_NOT_FOUND",
+        "expected_stop_point": "relationship_context_agent",
         "expected_disposition": "blocked",
-        "stop_point": "relationship_context_agent",
-        "stop_reason_source": (
-            "agents.follow_up_planning.packet.FollowUpPacketAssembler "
-            "(crm_status=not_found from agents.relationship_context.resolver.resolve_relationship)"
-        ),
+        "expected_policy_gate_invoked": False,
         "historical_card_required": False,
     },
     "AT-05": {
+        "governed_stop_profile": {
+            "boundary_agent_id": "meeting_context_agent",
+            "reason_code": "LOW_EXTRACTION_CONFIDENCE",
+            "reason_source": (
+                "orchestration.state_machine.StateMachine.extraction_abort_threshold "
+                "(confidence < 0.70 -> governed stop)"
+            ),
+            "extraction_abort_threshold": 0.70,
+        },
         "expected_reason_code": "LOW_EXTRACTION_CONFIDENCE",
+        "expected_stop_point": "meeting_context_agent",
         "expected_disposition": "blocked",
-        "stop_point": "meeting_context_agent",
-        "stop_reason_source": (
-            "orchestration.state_machine.StateMachine.extraction_abort_threshold "
-            "(contracts/workflow_states.yaml) via agents.follow_up_planning.packet.FollowUpPacketAssembler"
-        ),
+        "expected_policy_gate_invoked": False,
         "historical_card_required": False,
     },
 }
@@ -95,6 +111,20 @@ SCENARIO_STEMS = {
     "AT-02": "at-02",
     "AT-04": "at-04",
     "AT-05": "at-05",
+}
+
+STOP_BOUNDARY_DOWNSTREAM = {
+    "meeting_context_agent": (
+        "relationship_context_agent",
+        "follow_up_planning_agent",
+    ),
+    "relationship_context_agent": ("follow_up_planning_agent",),
+}
+
+STATE_2_EQUIVALENT_AT2 = {
+    "policy_state": "BLOCKED",
+    "policy_reason_code": "AMBIGUOUS_CONTACT",
+    "next_action": "RESOLVE_CONTACT",
 }
 
 
@@ -122,19 +152,26 @@ class ObligationResult:
 class ScenarioRun:
     scenario: str
     envelope: Dict[str, Any]
-    envelope_hash: str
+    transcript_content_hash: str
+    envelope_digest: str
     sidecar: Dict[str, Any]
     run_id: str
+    run_path: str
+    envelope_path: str
     result: Dict[str, Any]
     agents_started: List[str]
     agents_completed: List[str]
+    agent_statuses: Dict[str, str]
+    agent_execution: Dict[str, Any]
     stop_point: str
     stop_reason_code: str
     stop_reason_source: str
     policy_bypass: bool
+    policy_gate_invoked: bool
+    disposition: str
     effect_counters: Dict[str, Any]
-    packet: Dict[str, Any]
-    proposal: Dict[str, Any]
+    packet: Optional[Dict[str, Any]]
+    proposal: Optional[Dict[str, Any]]
     decision_card: Optional[Dict[str, Any]]
     decision_card_text: str
     decision_card_html: str
@@ -149,6 +186,7 @@ class TrancheCResult:
     effect_counters: Dict[str, Any]
     historical_at_claims: Dict[str, Any]
     remaining_gaps: List[str]
+    deterministic_replay: str
 
 
 def _git_head(repo_root: Path) -> str:
@@ -164,10 +202,17 @@ def _git_head(repo_root: Path) -> str:
         return "UNKNOWN"
 
 
+def _canonical_json_text(data: Mapping[str, Any]) -> str:
+    return json.dumps(
+        data,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+
+
 def _sha256_dict(data: Mapping[str, Any]) -> str:
-    return hashlib.sha256(
-        json.dumps(data, sort_keys=True, ensure_ascii=False).encode("utf-8")
-    ).hexdigest()
+    return hashlib.sha256(_canonical_json_text(data).encode("utf-8")).hexdigest()
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
@@ -206,12 +251,22 @@ class Nw008TrancheCHarness:
         self.crm_fixture_path = crm_fixture_path or CRM_FIXTURE
         self.implementation_subject_sha = commit_sha or _git_head(self.repo_root)
 
-    def run(self) -> TrancheCResult:
-        scenarios: Dict[str, ScenarioRun] = {}
-        for scenario in SCENARIOS:
-            scenarios[scenario] = self._run_scenario(scenario)
+    def run(self, *, verify_replay: bool = True) -> TrancheCResult:
+        scenarios = self._execute_replay()
+        deterministic_replay = "NOT_RUN"
+        if verify_replay:
+            replay_scenarios = self._execute_replay()
+            deterministic_replay = (
+                "PASS"
+                if self._normalized_snapshot(scenarios)
+                == self._normalized_snapshot(replay_scenarios)
+                else "FAIL"
+            )
 
-        proof_obligations = self._proof_obligations(scenarios)
+        proof_obligations = self._proof_obligations(
+            scenarios,
+            deterministic_replay=deterministic_replay,
+        )
         remaining_gaps = [
             f"{tc_id}:{result.REMAINING_GAP}"
             for tc_id, result in proof_obligations.items()
@@ -227,9 +282,52 @@ class Nw008TrancheCHarness:
             effect_counters=effect_counters,
             historical_at_claims=historical_at_claims,
             remaining_gaps=remaining_gaps,
+            deterministic_replay=deterministic_replay,
         )
 
-    def write_proof_artifacts(self, result: Optional[TrancheCResult] = None) -> Dict[str, Path]:
+    def _execute_replay(self) -> Dict[str, ScenarioRun]:
+        scenarios: Dict[str, ScenarioRun] = {}
+        for scenario in SCENARIOS:
+            scenarios[scenario] = self._run_scenario(scenario)
+        return scenarios
+
+    @staticmethod
+    def _normalized_snapshot(
+        scenarios: Mapping[str, ScenarioRun],
+    ) -> Dict[str, Any]:
+        snapshot: Dict[str, Any] = {}
+        for scenario, run in scenarios.items():
+            run_dict = deepcopy(run.result)
+            session = run_dict.get("session") or {}
+            if isinstance(session, dict):
+                session.pop("session_id", None)
+                for trace_entry in session.get("agent_trace") or []:
+                    if isinstance(trace_entry, dict):
+                        trace_entry.pop("error", None)
+            for key in ("run", "audit"):
+                section = ((run_dict.get("follow_up_packet") or {}).get(key) or {})
+                if isinstance(section, dict):
+                    section.pop("created_at", None)
+                    section.pop("started_at", None)
+                    section.pop("completed_at", None)
+            snapshot[scenario] = {
+                "result": run_dict,
+                "transcript_content_hash": run.transcript_content_hash,
+                "envelope_digest": run.envelope_digest,
+                "stop_point": run.stop_point,
+                "stop_reason_code": run.stop_reason_code,
+                "stop_reason_source": run.stop_reason_source,
+                "policy_bypass": run.policy_bypass,
+                "policy_gate_invoked": run.policy_gate_invoked,
+                "disposition": run.disposition,
+                "effect_counters": dict(run.effect_counters),
+                "agent_statuses": dict(run.agent_statuses),
+            }
+        return snapshot
+
+    def write_proof_artifacts(
+        self, result: Optional[TrancheCResult] = None
+    ) -> Dict[str, Path]:
         result = result or self.run()
         self.proof_root.mkdir(parents=True, exist_ok=True)
         paths: Dict[str, Path] = {}
@@ -264,6 +362,8 @@ class Nw008TrancheCHarness:
         label = SCENARIO_LABELS[scenario]
         envelope_path = self.fixtures_dir / f"{stem}-envelope.json"
         sidecar_path = self.fixtures_dir / f"{stem}-sidecar.json"
+        run_path = f"proof/nw008/tranche-c/{stem}-run.json"
+        envelope_path_public = f"fixtures/nw008/tranche_c/{stem}-envelope.json"
 
         envelope_raw = _load_json(envelope_path)
         ok, errors = validate_envelope(envelope_raw)
@@ -272,7 +372,8 @@ class Nw008TrancheCHarness:
                 f"{scenario} envelope validation failed: " + "; ".join(errors)
             )
         envelope = envelope_from_dict(envelope_raw)
-        envelope_hash = envelope.content_hash
+        transcript_content_hash = envelope.content_hash
+        envelope_digest = _sha256_dict(envelope_raw)
         sidecar = _load_json(sidecar_path)
 
         request = envelope_to_provider_request(
@@ -295,41 +396,98 @@ class Nw008TrancheCHarness:
             meeting_request=request,
             run_id=run_id,
             scenario_id=f"NW008_TC_{label}",
+            governed_stop_profile=spec["governed_stop_profile"],
         )
-
-        result_dict = unit3_result.to_dict()
-        packet = dict(unit3_result.follow_up_packet or {})
-        proposal = dict(unit3_result.follow_up_proposal or {})
-
-        if not packet:
-            raise TrancheCReplayError(f"{scenario}: follow_up_packet missing")
-        if proposal.get("external_effects", 0) != 0 or packet.get("external_effects", 0) != 0:
-            raise TrancheCReplayError(f"{scenario}: external_effects must be 0")
-
-        trace = list(result_dict["session"].get("agent_trace") or [])
-        agents_started = [a["agent_id"] for a in trace]
-        agents_completed = [
-            a["agent_id"] for a in trace if a.get("status") == "ok"
-        ]
-
-        reason_codes = list(
-            (proposal.get("policy_evaluation") or {}).get("reason_codes") or []
-        )
-        if not reason_codes and packet.get("reason_codes"):
-            reason_codes = list(packet["reason_codes"])
-
-        if spec["expected_reason_code"] not in reason_codes:
+        if not unit3_result.ok:
             raise TrancheCReplayError(
-                f"{scenario}: expected reason {spec['expected_reason_code']!r} not in {reason_codes}"
+                f"{scenario} runtime failed: " + "; ".join(unit3_result.errors)
             )
 
-        card = map_packet_to_decision_card(packet)
+        result_dict = unit3_result.to_dict()
+        packet = (
+            dict(unit3_result.follow_up_packet)
+            if isinstance(unit3_result.follow_up_packet, Mapping)
+            else None
+        )
+        proposal = (
+            dict(unit3_result.follow_up_proposal)
+            if isinstance(unit3_result.follow_up_proposal, Mapping)
+            else None
+        )
+
+        packet_effects = int((packet or {}).get("external_effects", 0))
+        proposal_effects = int((proposal or {}).get("external_effects", 0))
+        if proposal_effects != 0 or packet_effects != 0:
+            raise TrancheCReplayError(f"{scenario}: external_effects must be 0")
+
+        trace = list((result_dict.get("session") or {}).get("agent_trace") or [])
+        agents_started = [str(a.get("agent_id")) for a in trace if a.get("agent_id")]
+        agents_completed = [
+            str(a.get("agent_id"))
+            for a in trace
+            if a.get("agent_id")
+            and a.get("status") in {"ok", "BLOCK_ORIGIN"}
+        ]
+        agent_statuses = {
+            str(a.get("agent_id")): str(a.get("status"))
+            for a in trace
+            if a.get("agent_id")
+        }
+
+        governed_stop = (
+            dict(unit3_result.governed_stop)
+            if isinstance(unit3_result.governed_stop, Mapping)
+            else {}
+        )
+        stop_point = str(governed_stop.get("boundary_agent_id") or "")
+        stop_reason_code = str(governed_stop.get("reason_code") or "")
+        stop_reason_source = str(governed_stop.get("reason_source") or "")
+
+        if not stop_reason_code and proposal is not None:
+            reason_codes = list(
+                (proposal.get("policy_evaluation") or {}).get("reason_codes") or []
+            )
+            if reason_codes:
+                stop_reason_code = str(reason_codes[0])
+        if not stop_reason_code and packet is not None:
+            reason_codes = list((packet.get("policy") or {}).get("reason_codes") or [])
+            if reason_codes:
+                stop_reason_code = str(reason_codes[0])
+
+        disposition = (
+            str((packet.get("run") or {}).get("status"))
+            if packet is not None
+            else "blocked"
+        )
+        if stop_point != spec["expected_stop_point"]:
+            raise TrancheCReplayError(
+                f"{scenario}: expected stop_point={spec['expected_stop_point']} got {stop_point}"
+            )
+        if stop_reason_code != spec["expected_reason_code"]:
+            raise TrancheCReplayError(
+                f"{scenario}: expected reason_code={spec['expected_reason_code']} got {stop_reason_code}"
+            )
+        if disposition != spec["expected_disposition"]:
+            raise TrancheCReplayError(
+                f"{scenario}: expected disposition={spec['expected_disposition']} got {disposition}"
+            )
+
+        policy_bypass = bool(unit3_result.deterministic_policy_bypass)
+        policy_gate_invoked = bool(unit3_result.deterministic_policy_gate_invoked)
+        if policy_gate_invoked != spec["expected_policy_gate_invoked"]:
+            raise TrancheCReplayError(
+                f"{scenario}: expected policy_gate_invoked={spec['expected_policy_gate_invoked']} "
+                f"got {policy_gate_invoked}"
+            )
+
+        decision_packet = packet or self._decision_card_packet_for_governed_stop(
+            run_id=run_id,
+            reason_code=stop_reason_code,
+            agents_started=agents_started,
+        )
+        card = map_packet_to_decision_card(decision_packet)
         decision_card = card.to_dict()
 
-        # Envelope preservation check: source/ownership/access_context/provenance
-        # must be recoverable from the run record.
-        # Embed the original envelope into the run record so TC-20 can verify
-        # source/ownership/access_context/provenance preservation.
         result_dict["transcript_source_envelope"] = {
             "schema": envelope_raw.get("schema"),
             "source": deepcopy(envelope_raw.get("source")),
@@ -337,22 +495,34 @@ class Nw008TrancheCHarness:
             "access_context": deepcopy(envelope_raw.get("access_context")),
             "provenance": deepcopy(envelope_raw.get("provenance")),
         }
-        result_dict["transcript_source_envelope_hash"] = envelope_hash
-        envelope_preserved = self._envelope_preserved(result_dict, envelope_raw)
+        result_dict["transcript_content_hash"] = transcript_content_hash
+        result_dict["transcript_source_envelope_digest"] = envelope_digest
+        envelope_preserved = self._envelope_preserved(
+            result_dict=result_dict,
+            envelope_raw=envelope_raw,
+            envelope_digest=envelope_digest,
+        )
 
         return ScenarioRun(
             scenario=scenario,
             envelope=envelope_raw,
-            envelope_hash=envelope_hash,
+            transcript_content_hash=transcript_content_hash,
+            envelope_digest=envelope_digest,
             sidecar=sidecar,
             run_id=run_id,
+            run_path=run_path,
+            envelope_path=envelope_path_public,
             result=result_dict,
             agents_started=agents_started,
             agents_completed=agents_completed,
-            stop_point=spec["stop_point"],
-            stop_reason_code=spec["expected_reason_code"],
-            stop_reason_source=spec["stop_reason_source"],
-            policy_bypass=bool(proposal.get("policy_authority", {}).get("deterministic_policy_bypass")),
+            agent_statuses=agent_statuses,
+            agent_execution=dict(unit3_result.agent_execution),
+            stop_point=stop_point,
+            stop_reason_code=stop_reason_code,
+            stop_reason_source=stop_reason_source,
+            policy_bypass=policy_bypass,
+            policy_gate_invoked=policy_gate_invoked,
+            disposition=disposition,
             effect_counters={
                 "GHL_LIVE_CALLS": 0,
                 "GHL_READS": 0,
@@ -369,137 +539,403 @@ class Nw008TrancheCHarness:
             envelope_preserved=envelope_preserved,
         )
 
+    @staticmethod
+    def _decision_card_packet_for_governed_stop(
+        *, run_id: str, reason_code: str, agents_started: List[str]
+    ) -> Dict[str, Any]:
+        return {
+            "schema": "meeting_follow_up_packet_v1",
+            "run": {"run_id": run_id, "status": "blocked"},
+            "policy": {
+                "reason_codes": [reason_code] if reason_code else [],
+            },
+            "external_effects": 0,
+            "audit": {
+                "agents_used": list(agents_started),
+            },
+        }
+
+    @staticmethod
     def _envelope_preserved(
-        self, result_dict: Dict[str, Any], envelope_raw: Dict[str, Any]
+        *,
+        result_dict: Dict[str, Any],
+        envelope_raw: Dict[str, Any],
+        envelope_digest: str,
     ) -> bool:
         preserved = result_dict.get("transcript_source_envelope") or {}
         required_keys = ("source", "ownership", "access_context", "provenance")
         for key in required_keys:
             if preserved.get(key) != envelope_raw.get(key):
                 return False
+        if result_dict.get("transcript_content_hash") != (
+            (envelope_raw.get("artifact") or {}).get("content_hash")
+        ):
+            return False
+        if result_dict.get("transcript_source_envelope_digest") != envelope_digest:
+            return False
+        return True
+
+    @staticmethod
+    def _scenario_evidence_paths(scenario: str) -> str:
+        stem = SCENARIO_STEMS[scenario]
+        return (
+            f"fixtures/nw008/tranche_c/{stem}-envelope.json | "
+            f"fixtures/nw008/tranche_c/{stem}-sidecar.json | "
+            f"proof/nw008/tranche-c/{stem}-run.json"
+        )
+
+    @staticmethod
+    def _zero_effects(run: ScenarioRun) -> bool:
+        return all(
+            int(run.effect_counters.get(key, 0)) == 0
+            for key in (
+                "GHL_LIVE_CALLS",
+                "GHL_READS",
+                "GHL_WRITES",
+                "FIRESTORE_WRITES",
+                "EXTERNAL_EFFECTS",
+                "REAL_CUSTOMER_DATA",
+            )
+        )
+
+    @staticmethod
+    def _obligation(
+        *,
+        ok: bool,
+        detail: str,
+        evidence_path: str,
+        remaining_gap: str = "",
+    ) -> ObligationResult:
+        return ObligationResult(
+            STATUS="PASS" if ok else "FAIL",
+            EVIDENCE_PATH=evidence_path,
+            DETAIL=detail,
+            REMAINING_GAP="" if ok else remaining_gap,
+        )
+
+    def _short_circuit_valid(
+        self,
+        *,
+        run: ScenarioRun,
+        boundary_agent: str,
+    ) -> bool:
+        boundary_execution = run.agent_execution.get(boundary_agent) or {}
+        if (
+            boundary_execution.get("wrapper_status") != "BLOCK_ORIGIN"
+            or boundary_execution.get("delegate_called") is not True
+        ):
+            return False
+        for downstream in STOP_BOUNDARY_DOWNSTREAM.get(boundary_agent, ()):
+            entry = run.agent_execution.get(downstream) or {}
+            if (
+                entry.get("wrapper_status") != "SKIPPED_GOVERNED_STOP"
+                or entry.get("delegate_called") is not False
+            ):
+                return False
+            if downstream in run.agents_completed:
+                return False
         return True
 
     def _proof_obligations(
-        self, scenarios: Mapping[str, ScenarioRun]
+        self,
+        scenarios: Mapping[str, ScenarioRun],
+        *,
+        deterministic_replay: str,
     ) -> Dict[str, ObligationResult]:
         obligations: Dict[str, ObligationResult] = {}
 
-        def _pass(detail: str) -> ObligationResult:
-            return ObligationResult(STATUS="PASS", EVIDENCE_PATH="", DETAIL=detail)
-
-        def _fail(detail: str, gap: str) -> ObligationResult:
-            return ObligationResult(STATUS="FAIL", EVIDENCE_PATH="", DETAIL=detail, REMAINING_GAP=gap)
-
-        # TC-01..TC-05: AT-2
         at2 = scenarios["AT-02"]
-        envelope_path = self.proof_root / "at-02-run.json"
-        obligations["TC-01"] = _pass(
-            f"AT-2 envelope entered fleet via TRANSCRIPT_SOURCE_ENVELOPE_V1; envelope hash {at2.envelope_hash}"
-        )
-        obligations["TC-02"] = _pass(
-            f"AT-2 AGENTS_STARTED: {at2.agents_started}"
-        )
-        obligations["TC-03"] = (
-            _pass(
-                f"AT-2 STOP_POINT={at2.stop_point}, STOP_REASON_CODE={at2.stop_reason_code}, disposition=blocked, CRM_WRITES=0"
-            )
-            if at2.stop_reason_code == "AMBIGUOUS_CONTACT"
-            and at2.result["follow_up_packet"]["run"]["status"] == "blocked"
-            else _fail("AT-2 did not block with AMBIGUOUS_CONTACT", "wrong_reason")
-        )
-        obligations["TC-04"] = _pass(
-            f"AT-2 AGENTS_COMPLETED: {at2.agents_completed}; downstream agents completed but produced no actionable output after the governed boundary"
-        )
-        obligations["TC-05"] = _pass(
-            f"AT-2 POLICY_BYPASS={at2.policy_bypass}, GHL_WRITES=0, FIRESTORE_WRITES=0, EXTERNAL_EFFECTS={at2.effect_counters['EXTERNAL_EFFECTS']}"
-        )
-
-        # TC-06..TC-10: AT-4
         at4 = scenarios["AT-04"]
-        obligations["TC-06"] = _pass(
-            f"AT-4 envelope entered fleet via TRANSCRIPT_SOURCE_ENVELOPE_V1; envelope hash {at4.envelope_hash}"
-        )
-        obligations["TC-07"] = _pass(
-            f"AT-4 AGENTS_STARTED: {at4.agents_started}"
-        )
-        obligations["TC-08"] = (
-            _pass(
-                f"AT-4 STOP_POINT={at4.stop_point}, STOP_REASON_CODE={at4.stop_reason_code}, disposition=blocked, CRM_WRITES=0"
-            )
-            if at4.stop_reason_code == "CONTACT_NOT_FOUND"
-            and at4.result["follow_up_packet"]["run"]["status"] == "blocked"
-            else _fail("AT-4 did not block with CONTACT_NOT_FOUND", "wrong_reason")
-        )
-        obligations["TC-09"] = _pass(
-            f"AT-4 AGENTS_COMPLETED: {at4.agents_completed}; downstream agents completed but produced no actionable output after the governed boundary"
-        )
-        obligations["TC-10"] = _pass(
-            f"AT-4 POLICY_BYPASS={at4.policy_bypass}, GHL_WRITES=0, FIRESTORE_WRITES=0, EXTERNAL_EFFECTS={at4.effect_counters['EXTERNAL_EFFECTS']}"
-        )
-
-        # TC-11..TC-15: AT-5
         at5 = scenarios["AT-05"]
-        obligations["TC-11"] = _pass(
-            f"AT-5 envelope entered fleet via TRANSCRIPT_SOURCE_ENVELOPE_V1; envelope hash {at5.envelope_hash}"
+
+        obligations["TC-01"] = self._obligation(
+            ok=at2.transcript_content_hash
+            == str((at2.envelope.get("artifact") or {}).get("content_hash") or ""),
+            detail=(
+                "AT-2 TRANSCRIPT_SOURCE_ENVELOPE_V1 accepted with "
+                f"TRANSCRIPT_CONTENT_HASH={at2.transcript_content_hash}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-02"),
+            remaining_gap="tc01_content_hash_mismatch",
         )
-        obligations["TC-12"] = _pass(
-            f"AT-5 AGENTS_STARTED: {at5.agents_started}"
+        obligations["TC-02"] = self._obligation(
+            ok=all(
+                agent in at2.agents_started
+                for agent in (
+                    "meeting_context_agent",
+                    "relationship_context_agent",
+                    "follow_up_planning_agent",
+                )
+            ),
+            detail=f"AT-2 AGENTS_STARTED={at2.agents_started}",
+            evidence_path=self._scenario_evidence_paths("AT-02"),
+            remaining_gap="tc02_agent_trace_missing",
         )
-        obligations["TC-13"] = (
-            _pass(
-                f"AT-5 STOP_POINT={at5.stop_point}, STOP_REASON_CODE={at5.stop_reason_code}, disposition=blocked, CRM_WRITES=0"
-            )
-            if at5.stop_reason_code == "LOW_EXTRACTION_CONFIDENCE"
-            and at5.result["follow_up_packet"]["run"]["status"] == "blocked"
-            and at5.result["follow_up_packet"]["extraction"]["lifecycle"] == "aborted"
-            else _fail("AT-5 did not block with LOW_EXTRACTION_CONFIDENCE", "wrong_reason")
+        obligations["TC-03"] = self._obligation(
+            ok=(
+                at2.stop_reason_code == "AMBIGUOUS_CONTACT"
+                and at2.stop_point == "relationship_context_agent"
+                and at2.disposition == "blocked"
+            ),
+            detail=(
+                f"AT-2 STOP_POINT={at2.stop_point}, STOP_REASON_CODE={at2.stop_reason_code}, "
+                f"DISPOSITION={at2.disposition}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-02"),
+            remaining_gap="tc03_at2_stop_reason_or_disposition",
         )
-        obligations["TC-14"] = _pass(
-            f"AT-5 AGENTS_COMPLETED: {at5.agents_completed}; downstream agents completed but produced no actionable output after the governed boundary"
+        obligations["TC-04"] = self._obligation(
+            ok=self._short_circuit_valid(
+                run=at2,
+                boundary_agent="relationship_context_agent",
+            ),
+            detail=(
+                f"AT-2 AGENT_STATUSES={at2.agent_statuses}, AGENT_EXECUTION={at2.agent_execution}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-02"),
+            remaining_gap="tc04_downstream_execution_after_governed_stop",
         )
-        obligations["TC-15"] = _pass(
-            f"AT-5 POLICY_BYPASS={at5.policy_bypass}, GHL_WRITES=0, FIRESTORE_WRITES=0, EXTERNAL_EFFECTS={at5.effect_counters['EXTERNAL_EFFECTS']}"
+        obligations["TC-05"] = self._obligation(
+            ok=(
+                at2.policy_gate_invoked is False
+                and at2.policy_bypass is False
+                and self._zero_effects(at2)
+            ),
+            detail=(
+                "AT-2 PRE_POLICY_FAIL_CLOSED=true, POLICY_GATE_INVOKED=false, "
+                f"POLICY_BYPASS={at2.policy_bypass}, EFFECT_COUNTERS={at2.effect_counters}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-02"),
+            remaining_gap="tc05_pre_policy_fail_closed_violation",
         )
 
-        # TC-16..TC-19
-        all_completed = all(
-            set(run.agents_completed) >= {
-                "meeting_context_agent",
-                "relationship_context_agent",
-                "follow_up_planning_agent",
-            }
-            for run in scenarios.values()
+        obligations["TC-06"] = self._obligation(
+            ok=at4.transcript_content_hash
+            == str((at4.envelope.get("artifact") or {}).get("content_hash") or ""),
+            detail=(
+                "AT-4 TRANSCRIPT_SOURCE_ENVELOPE_V1 accepted with "
+                f"TRANSCRIPT_CONTENT_HASH={at4.transcript_content_hash}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-04"),
+            remaining_gap="tc06_content_hash_mismatch",
         )
-        obligations["TC-16"] = _pass(
-            "Existing fleet entrypoints reused; no new agent or parallel orchestration engine"
+        obligations["TC-07"] = self._obligation(
+            ok=all(
+                agent in at4.agents_started
+                for agent in (
+                    "meeting_context_agent",
+                    "relationship_context_agent",
+                    "follow_up_planning_agent",
+                )
+            ),
+            detail=f"AT-4 AGENTS_STARTED={at4.agents_started}",
+            evidence_path=self._scenario_evidence_paths("AT-04"),
+            remaining_gap="tc07_agent_trace_missing",
         )
-        obligations["TC-17"] = _pass(
-            "Deterministic fixture/provider mode; replay produces identical agent trace and reason codes"
+        obligations["TC-08"] = self._obligation(
+            ok=(
+                at4.stop_reason_code == "CONTACT_NOT_FOUND"
+                and at4.stop_point == "relationship_context_agent"
+                and at4.disposition == "blocked"
+            ),
+            detail=(
+                f"AT-4 STOP_POINT={at4.stop_point}, STOP_REASON_CODE={at4.stop_reason_code}, "
+                f"DISPOSITION={at4.disposition}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-04"),
+            remaining_gap="tc08_at4_stop_reason_or_disposition",
         )
-        obligations["TC-18"] = _pass(
-            "Synthetic-only envelopes: contains_real_customer_data=false, permitted_for_public_proof=true, approved example-demo.test domain"
+        obligations["TC-09"] = self._obligation(
+            ok=self._short_circuit_valid(
+                run=at4,
+                boundary_agent="relationship_context_agent",
+            ),
+            detail=(
+                f"AT-4 AGENT_STATUSES={at4.agent_statuses}, AGENT_EXECUTION={at4.agent_execution}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-04"),
+            remaining_gap="tc09_downstream_execution_after_governed_stop",
         )
-        obligations["TC-19"] = _pass(
-            "Historical AT definitions unchanged (foundation §17 verbatim)"
+        obligations["TC-10"] = self._obligation(
+            ok=(
+                at4.policy_gate_invoked is False
+                and at4.policy_bypass is False
+                and self._zero_effects(at4)
+            ),
+            detail=(
+                "AT-4 PRE_POLICY_FAIL_CLOSED=true, POLICY_GATE_INVOKED=false, "
+                f"POLICY_BYPASS={at4.policy_bypass}, EFFECT_COUNTERS={at4.effect_counters}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-04"),
+            remaining_gap="tc10_pre_policy_fail_closed_violation",
         )
 
-        # TC-20..TC-22
-        obligations["TC-20"] = (
-            _pass("source, ownership, access_context, and provenance preserved in proof record")
-            if all(run.envelope_preserved for run in scenarios.values())
-            else _fail("envelope provenance not preserved", "provenance_lost")
+        obligations["TC-11"] = self._obligation(
+            ok=at5.transcript_content_hash
+            == str((at5.envelope.get("artifact") or {}).get("content_hash") or ""),
+            detail=(
+                "AT-5 TRANSCRIPT_SOURCE_ENVELOPE_V1 accepted with "
+                f"TRANSCRIPT_CONTENT_HASH={at5.transcript_content_hash}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-05"),
+            remaining_gap="tc11_content_hash_mismatch",
         )
-        obligations["TC-21"] = (
-            _pass("All envelopes set treat_content_as_data_only=true and instruction_authority=false")
-            if all(
+        obligations["TC-12"] = self._obligation(
+            ok=all(
+                agent in at5.agents_started
+                for agent in (
+                    "meeting_context_agent",
+                    "relationship_context_agent",
+                    "follow_up_planning_agent",
+                )
+            ),
+            detail=f"AT-5 AGENTS_STARTED={at5.agents_started}",
+            evidence_path=self._scenario_evidence_paths("AT-05"),
+            remaining_gap="tc12_agent_trace_missing",
+        )
+        obligations["TC-13"] = self._obligation(
+            ok=(
+                at5.stop_reason_code == "LOW_EXTRACTION_CONFIDENCE"
+                and at5.stop_point == "meeting_context_agent"
+                and at5.disposition == "blocked"
+            ),
+            detail=(
+                f"AT-5 STOP_POINT={at5.stop_point}, STOP_REASON_CODE={at5.stop_reason_code}, "
+                f"DISPOSITION={at5.disposition}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-05"),
+            remaining_gap="tc13_at5_stop_reason_or_disposition",
+        )
+        obligations["TC-14"] = self._obligation(
+            ok=self._short_circuit_valid(
+                run=at5,
+                boundary_agent="meeting_context_agent",
+            ),
+            detail=(
+                f"AT-5 AGENT_STATUSES={at5.agent_statuses}, AGENT_EXECUTION={at5.agent_execution}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-05"),
+            remaining_gap="tc14_downstream_execution_after_governed_stop",
+        )
+        obligations["TC-15"] = self._obligation(
+            ok=(
+                at5.policy_gate_invoked is False
+                and at5.policy_bypass is False
+                and self._zero_effects(at5)
+            ),
+            detail=(
+                "AT-5 PRE_POLICY_FAIL_CLOSED=true, POLICY_GATE_INVOKED=false, "
+                f"POLICY_BYPASS={at5.policy_bypass}, EFFECT_COUNTERS={at5.effect_counters}"
+            ),
+            evidence_path=self._scenario_evidence_paths("AT-05"),
+            remaining_gap="tc15_pre_policy_fail_closed_violation",
+        )
+
+        known_agents = {
+            "meeting_context_agent",
+            "relationship_context_agent",
+            "follow_up_planning_agent",
+        }
+        obligations["TC-16"] = self._obligation(
+            ok=all(
+                set(run.agents_started).issubset(known_agents) for run in scenarios.values()
+            ),
+            detail="Existing fleet entrypoints reused; no new runtime agent IDs observed",
+            evidence_path=(
+                "proof/nw008/tranche-c/at-02-run.json | "
+                "proof/nw008/tranche-c/at-04-run.json | "
+                "proof/nw008/tranche-c/at-05-run.json"
+            ),
+            remaining_gap="tc16_unexpected_agent_id",
+        )
+        obligations["TC-17"] = self._obligation(
+            ok=deterministic_replay == "PASS",
+            detail=f"Deterministic replay result={deterministic_replay}",
+            evidence_path=(
+                "proof/nw008/tranche-c/at-02-run.json | "
+                "proof/nw008/tranche-c/at-04-run.json | "
+                "proof/nw008/tranche-c/at-05-run.json"
+            ),
+            remaining_gap="tc17_deterministic_replay_failed",
+        )
+        obligations["TC-18"] = self._obligation(
+            ok=all(
+                run.envelope["source"]["provider"] == "synthetic"
+                and run.envelope["source"]["acquisition_mode"] == "fixture"
+                and run.envelope["data_classification"]["contains_real_customer_data"]
+                is False
+                and run.envelope["data_classification"]["permitted_for_public_proof"]
+                is True
+                for run in scenarios.values()
+            ),
+            detail="Synthetic-only envelope invariants verified from fixture envelopes",
+            evidence_path=(
+                "fixtures/nw008/tranche_c/at-02-envelope.json | "
+                "fixtures/nw008/tranche_c/at-04-envelope.json | "
+                "fixtures/nw008/tranche_c/at-05-envelope.json"
+            ),
+            remaining_gap="tc18_synthetic_source_violation",
+        )
+        obligations["TC-19"] = self._obligation(
+            ok=set(SCENARIO_LABELS.values()) == {"AT-2", "AT-4", "AT-5"},
+            detail="Historical AT target set unchanged: AT-2, AT-4, AT-5 only",
+            evidence_path=(
+                "src/orchestration/nw008_tranche_c.py | "
+                "contracts/nw008_tranche_c_proof_return.schema.json"
+            ),
+            remaining_gap="tc19_target_set_changed",
+        )
+
+        obligations["TC-20"] = self._obligation(
+            ok=all(
+                run.envelope_preserved
+                and run.transcript_content_hash
+                == str((run.envelope.get("artifact") or {}).get("content_hash") or "")
+                and run.envelope_digest == _sha256_dict(run.envelope)
+                for run in scenarios.values()
+            ),
+            detail=(
+                "TRANSCRIPT_CONTENT_HASH and ENVELOPE_DIGEST verified; "
+                "source/ownership/access_context/provenance preserved"
+            ),
+            evidence_path=(
+                "proof/nw008/tranche-c/at-02-run.json | "
+                "proof/nw008/tranche-c/at-04-run.json | "
+                "proof/nw008/tranche-c/at-05-run.json"
+            ),
+            remaining_gap="tc20_envelope_integrity_or_preservation_failed",
+        )
+        obligations["TC-21"] = self._obligation(
+            ok=all(
                 run.envelope["data_classification"]["treat_content_as_data_only"] is True
                 and run.envelope["content"]["instruction_authority"] is False
                 for run in scenarios.values()
-            )
-            else _fail("instruction authority invariant violated", "instruction_authority")
+            ),
+            detail=(
+                "All envelopes enforce treat_content_as_data_only=true and "
+                "instruction_authority=false"
+            ),
+            evidence_path=(
+                "fixtures/nw008/tranche_c/at-02-envelope.json | "
+                "fixtures/nw008/tranche_c/at-04-envelope.json | "
+                "fixtures/nw008/tranche_c/at-05-envelope.json"
+            ),
+            remaining_gap="tc21_instruction_authority_violation",
         )
-        obligations["TC-22"] = _pass(
-            "Historical completion claims match unchanged AT clauses; no over-claim"
+        at2_card = at2.decision_card or {}
+        obligations["TC-22"] = self._obligation(
+            ok=all(
+                at2_card.get(field) == expected
+                for field, expected in STATE_2_EQUIVALENT_AT2.items()
+            ),
+            detail=(
+                "AT-2 State-2-equivalent card semantics: "
+                f"policy_state={at2_card.get('policy_state')}, "
+                f"policy_reason_code={at2_card.get('policy_reason_code')}, "
+                f"next_action={at2_card.get('next_action')}"
+            ),
+            evidence_path="proof/nw008/tranche-c/at-02-run.json",
+            remaining_gap="tc22_at2_state2_semantics_mismatch",
         )
 
         return obligations
@@ -518,8 +954,15 @@ class Nw008TrancheCHarness:
             "DEPLOYMENT_PERFORMED": "NO",
         }
         for run in scenarios.values():
-            for key in ("GHL_LIVE_CALLS", "GHL_READS", "GHL_WRITES", "FIRESTORE_WRITES", "EXTERNAL_EFFECTS", "REAL_CUSTOMER_DATA"):
-                totals[key] = max(totals[key], run.effect_counters.get(key, 0))
+            for key in (
+                "GHL_LIVE_CALLS",
+                "GHL_READS",
+                "GHL_WRITES",
+                "FIRESTORE_WRITES",
+                "EXTERNAL_EFFECTS",
+                "REAL_CUSTOMER_DATA",
+            ):
+                totals[key] = max(totals[key], int(run.effect_counters.get(key, 0)))
         return totals
 
     def _historical_at_claims(
@@ -528,28 +971,27 @@ class Nw008TrancheCHarness:
         claims: Dict[str, Any] = {}
         for scenario, run in scenarios.items():
             label = SCENARIO_LABELS[scenario]
-            packet_status = run.result["follow_up_packet"]["run"]["status"]
-            policy_reasons = list(
-                (run.proposal.get("policy_evaluation") or {}).get("reason_codes") or []
-            )
-            reason_ok = run.stop_reason_code in policy_reasons
-            # Evaluate completion candidacy: all historical clauses for the AT.
             if label == "AT-2":
-                card_state_ok = run.decision_card is not None
+                card = run.decision_card or {}
+                state2_exact = all(
+                    card.get(field) == expected
+                    for field, expected in STATE_2_EQUIVALENT_AT2.items()
+                )
                 claims[label] = {
                     "status": "CANDIDATE",
                     "detail": (
-                        f"Blocked with {run.stop_reason_code}; 0 CRM writes; "
-                        f"MG Guide card State 2 rendered={card_state_ok}. "
-                        "Historical completion candidacy pending review."
+                        f"Blocked with {run.stop_reason_code}; PRE_POLICY_FAIL_CLOSED="
+                        f"{(run.policy_gate_invoked is False and run.policy_bypass is False)}; "
+                        f"State2Equivalent={state2_exact}."
                     ),
                 }
             else:
                 claims[label] = {
                     "status": "CANDIDATE",
                     "detail": (
-                        f"Blocked with {run.stop_reason_code}; 0 CRM writes; "
-                        "NW007 card semantics unchanged. Historical completion candidacy pending review."
+                        f"Blocked with {run.stop_reason_code}; PRE_POLICY_FAIL_CLOSED="
+                        f"{(run.policy_gate_invoked is False and run.policy_bypass is False)}; "
+                        "NW007 card semantics unchanged."
                     ),
                 }
         return claims
@@ -560,23 +1002,24 @@ class Nw008TrancheCHarness:
             "",
             "| Field | Value |",
             "| --- | --- |",
-            f"| Execution unit | TRANCHE_C |",
-            f"| Purpose | HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY |",
+            "| Execution unit | TRANCHE_C |",
+            "| Purpose | HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY |",
             f"| Implementation subject SHA | `{result.implementation_subject_sha}` |",
-            f"| Transcript source contract | TRANSCRIPT_SOURCE_ENVELOPE_V1 |",
+            "| Transcript source contract | TRANSCRIPT_SOURCE_ENVELOPE_V1 |",
             "| Targets | AT-2, AT-4, AT-5 |",
             "| Excludes | AT-8, AT-9 |",
+            f"| Deterministic replay | {result.deterministic_replay} |",
             "",
             "## Entrypoints",
             "",
         ]
         for key, value in ENTRYPOINTS.items():
             lines.append(f"- `{key}` = `{value}`")
-        lines.extend(["", "## Proof obligations", "", "| ID | Status | Detail |", "| --- | --- | --- |"])
+        lines.extend(
+            ["", "## Proof obligations", "", "| ID | Status | Detail |", "| --- | --- | --- |"]
+        )
         for tc_id, obligation in result.proof_obligations.items():
-            lines.append(
-                f"| {tc_id} | {obligation.STATUS} | {obligation.DETAIL} |"
-            )
+            lines.append(f"| {tc_id} | {obligation.STATUS} | {obligation.DETAIL} |")
         lines.extend(["", "## Effect counters", ""])
         for key, value in result.effect_counters.items():
             lines.append(f"- `{key}` = `{value}`")
@@ -588,19 +1031,22 @@ class Nw008TrancheCHarness:
     def _proof_return_payload(self, result: TrancheCResult) -> Dict[str, Any]:
         scenario_payloads: Dict[str, Any] = {}
         for scenario, run in result.scenarios.items():
-            stem = SCENARIO_STEMS[scenario]
             scenario_payloads[SCENARIO_LABELS[scenario]] = {
-                "envelope_path": f"fixtures/nw008/tranche_c/{stem}-envelope.json",
-                "envelope_hash": run.envelope_hash,
+                "envelope_path": run.envelope_path,
+                "transcript_content_hash": run.transcript_content_hash,
+                "envelope_digest": run.envelope_digest,
                 "run_id": run.run_id,
-                "run_path": f"proof/nw008/tranche-c/{stem}-run.json",
+                "run_path": run.run_path,
                 "agents_started": run.agents_started,
                 "agents_completed": run.agents_completed,
+                "agent_statuses": run.agent_statuses,
+                "agent_execution": run.agent_execution,
                 "stop_point": run.stop_point,
                 "stop_reason_code": run.stop_reason_code,
                 "stop_reason_source": run.stop_reason_source,
+                "policy_gate_invoked": run.policy_gate_invoked,
                 "policy_bypass": run.policy_bypass,
-                "disposition": run.result["follow_up_packet"]["run"]["status"],
+                "disposition": run.disposition,
                 "effect_counters": run.effect_counters,
             }
         return {
@@ -612,8 +1058,7 @@ class Nw008TrancheCHarness:
             "excludes": ["AT-8", "AT-9"],
             "scenarios": scenario_payloads,
             "proof_obligations": {
-                tc_id: ob.to_dict()
-                for tc_id, ob in result.proof_obligations.items()
+                tc_id: ob.to_dict() for tc_id, ob in result.proof_obligations.items()
             },
             "effect_counters": result.effect_counters,
             "historical_at_claims": result.historical_at_claims,

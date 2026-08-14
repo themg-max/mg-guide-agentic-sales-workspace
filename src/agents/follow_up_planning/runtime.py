@@ -75,6 +75,9 @@ _STATE_KEYS = (
     "follow_up_packet",
 )
 
+GOVERNED_STOP_SKIPPED_STATUS = "SKIPPED_GOVERNED_STOP"
+GOVERNED_STOP_BLOCK_ORIGIN_STATUS = "BLOCK_ORIGIN"
+
 
 def _build_unit3_adk_agents(
     prim: Dict[str, Any],
@@ -102,19 +105,112 @@ def _build_unit3_adk_agents(
             actions=EventActions(state_delta=payload),
         )
 
+    def _governed_profile(state: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+        profile = state.get("governed_stop_profile")
+        return dict(profile) if isinstance(profile, Mapping) else None
+
+    def _governed_stop(state: Mapping[str, Any]) -> Optional[Dict[str, Any]]:
+        stop = state.get("governed_stop")
+        return dict(stop) if isinstance(stop, Mapping) else None
+
+    def _agent_execution(state: Mapping[str, Any]) -> Dict[str, Any]:
+        execution = state.get("agent_execution")
+        if isinstance(execution, Mapping):
+            return dict(execution)
+        return {}
+
+    def _with_execution(
+        *,
+        state: Mapping[str, Any],
+        agent_id: str,
+        wrapper_status: str,
+        delegate_called: bool,
+        block_origin: bool = False,
+        skipped_by: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        execution = _agent_execution(state)
+        entry = {
+            "wrapper_status": wrapper_status,
+            "delegate_called": bool(delegate_called),
+            "block_origin": bool(block_origin),
+        }
+        if skipped_by:
+            entry["skipped_by"] = skipped_by
+        execution[agent_id] = entry
+        return execution
+
     class MeetingContextAdkAgent(BaseAgent):
         """ADK agent wrapper around the Unit 1 Meeting Context Agent."""
 
         delegate: Any = None
 
         async def _run_async_impl(self, ctx: Any) -> Any:
+            active_stop = _governed_stop(ctx.session.state)
+            if active_stop:
+                execution = _with_execution(
+                    state=ctx.session.state,
+                    agent_id=self.name,
+                    wrapper_status=GOVERNED_STOP_SKIPPED_STATUS,
+                    delegate_called=False,
+                    skipped_by=str(active_stop.get("boundary_agent_id") or ""),
+                )
+                payload = {
+                    "agent_execution": execution,
+                    "governed_stop": active_stop,
+                }
+                yield _event(ctx, self.name, payload)
+                return
             try:
                 request = ctx.session.state["meeting_request"]
                 result = self.delegate.run(request)
-                payload = {"meeting_context": result.to_dict()}
+                meeting_context = result.to_dict()
+                execution = _with_execution(
+                    state=ctx.session.state,
+                    agent_id=self.name,
+                    wrapper_status="EXECUTED",
+                    delegate_called=True,
+                )
+                payload: Dict[str, Any] = {
+                    "meeting_context": meeting_context,
+                    "agent_execution": execution,
+                }
+
+                profile = _governed_profile(ctx.session.state)
+                if profile and profile.get("boundary_agent_id") == self.name:
+                    confidence = (meeting_context.get("evidence") or {}).get(
+                        "extraction_confidence"
+                    )
+                    threshold = float(profile.get("extraction_abort_threshold", 0.70))
+                    should_stop = (
+                        confidence is None or float(confidence) < threshold
+                    )
+                    if should_stop:
+                        stop = {
+                            "boundary_agent_id": self.name,
+                            "reason_code": profile.get(
+                                "reason_code", "LOW_EXTRACTION_CONFIDENCE"
+                            ),
+                            "reason_source": profile.get("reason_source", ""),
+                            "wrapper_status": GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
+                        }
+                        execution = _with_execution(
+                            state=payload,
+                            agent_id=self.name,
+                            wrapper_status=GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
+                            delegate_called=True,
+                            block_origin=True,
+                        )
+                        payload["agent_execution"] = execution
+                        payload["governed_stop"] = stop
             except Exception as exc:
                 payload = {
                     "meeting_context": None,
+                    "agent_execution": _with_execution(
+                        state=ctx.session.state,
+                        agent_id=self.name,
+                        wrapper_status="ERROR",
+                        delegate_called=True,
+                    ),
                     "errors": [f"meeting_context_agent: {type(exc).__name__}: {exc}"],
                 }
             yield _event(ctx, self.name, payload)
@@ -125,10 +221,31 @@ def _build_unit3_adk_agents(
         delegate: Any = None
 
         async def _run_async_impl(self, ctx: Any) -> Any:
+            active_stop = _governed_stop(ctx.session.state)
+            if active_stop:
+                execution = _with_execution(
+                    state=ctx.session.state,
+                    agent_id=self.name,
+                    wrapper_status=GOVERNED_STOP_SKIPPED_STATUS,
+                    delegate_called=False,
+                    skipped_by=str(active_stop.get("boundary_agent_id") or ""),
+                )
+                payload = {
+                    "agent_execution": execution,
+                    "governed_stop": active_stop,
+                }
+                yield _event(ctx, self.name, payload)
+                return
             meeting_context = ctx.session.state.get("meeting_context")
             if meeting_context is None:
                 payload = {
                     "relationship_context": None,
+                    "agent_execution": _with_execution(
+                        state=ctx.session.state,
+                        agent_id=self.name,
+                        wrapper_status="ERROR",
+                        delegate_called=False,
+                    ),
                     "errors": [
                         "relationship_context_agent: meeting_context missing"
                     ],
@@ -142,10 +259,54 @@ def _build_unit3_adk_agents(
                         prior_context=ctx.session.state.get("approved_prior_context"),
                     )
                     result = self.delegate.run(request)
-                    payload = {"relationship_context": result.to_dict()}
+                    relationship_context = result.to_dict()
+                    execution = _with_execution(
+                        state=ctx.session.state,
+                        agent_id=self.name,
+                        wrapper_status="EXECUTED",
+                        delegate_called=True,
+                    )
+                    payload = {
+                        "relationship_context": relationship_context,
+                        "agent_execution": execution,
+                    }
+
+                    profile = _governed_profile(ctx.session.state)
+                    if profile and profile.get("boundary_agent_id") == self.name:
+                        status = str(
+                            (relationship_context.get("resolution") or {}).get("status")
+                            or ""
+                        )
+                        status_reason = {
+                            "ambiguous": "AMBIGUOUS_CONTACT",
+                            "not_found": "CONTACT_NOT_FOUND",
+                        }.get(status)
+                        should_stop = status_reason == profile.get("reason_code")
+                        if should_stop:
+                            stop = {
+                                "boundary_agent_id": self.name,
+                                "reason_code": status_reason,
+                                "reason_source": profile.get("reason_source", ""),
+                                "wrapper_status": GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
+                            }
+                            execution = _with_execution(
+                                state=payload,
+                                agent_id=self.name,
+                                wrapper_status=GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
+                                delegate_called=True,
+                                block_origin=True,
+                            )
+                            payload["agent_execution"] = execution
+                            payload["governed_stop"] = stop
                 except Exception as exc:
                     payload = {
                         "relationship_context": None,
+                        "agent_execution": _with_execution(
+                            state=ctx.session.state,
+                            agent_id=self.name,
+                            wrapper_status="ERROR",
+                            delegate_called=True,
+                        ),
                         "errors": [
                             f"relationship_context_agent: "
                             f"{type(exc).__name__}: {exc}"
@@ -159,6 +320,24 @@ def _build_unit3_adk_agents(
         delegate: Any = None
 
         async def _run_async_impl(self, ctx: Any) -> Any:
+            active_stop = _governed_stop(ctx.session.state)
+            if active_stop:
+                execution = _with_execution(
+                    state=ctx.session.state,
+                    agent_id=self.name,
+                    wrapper_status=GOVERNED_STOP_SKIPPED_STATUS,
+                    delegate_called=False,
+                    skipped_by=str(active_stop.get("boundary_agent_id") or ""),
+                )
+                payload = {
+                    "follow_up_proposal": None,
+                    "follow_up_packet": None,
+                    "follow_up_policy_gate_invoked": False,
+                    "agent_execution": execution,
+                    "governed_stop": active_stop,
+                }
+                yield _event(ctx, self.name, payload)
+                return
             meeting_context = ctx.session.state.get("meeting_context")
             relationship_context = ctx.session.state.get("relationship_context")
             if meeting_context is None or relationship_context is None:
@@ -166,6 +345,12 @@ def _build_unit3_adk_agents(
                     "follow_up_proposal": None,
                     "follow_up_packet": None,
                     "follow_up_policy_gate_invoked": False,
+                    "agent_execution": _with_execution(
+                        state=ctx.session.state,
+                        agent_id=self.name,
+                        wrapper_status="ERROR",
+                        delegate_called=False,
+                    ),
                     "errors": [
                         "follow_up_planning_agent: meeting_context or "
                         "relationship_context missing"
@@ -186,12 +371,24 @@ def _build_unit3_adk_agents(
                         "follow_up_policy_gate_invoked": (
                             result.policy_gate_invoked
                         ),
+                        "agent_execution": _with_execution(
+                            state=ctx.session.state,
+                            agent_id=self.name,
+                            wrapper_status="EXECUTED",
+                            delegate_called=True,
+                        ),
                     }
                 except Exception as exc:
                     payload = {
                         "follow_up_proposal": None,
                         "follow_up_packet": None,
                         "follow_up_policy_gate_invoked": False,
+                        "agent_execution": _with_execution(
+                            state=ctx.session.state,
+                            agent_id=self.name,
+                            wrapper_status="ERROR",
+                            delegate_called=True,
+                        ),
                         "errors": [
                             f"follow_up_planning_agent: "
                             f"{type(exc).__name__}: {exc}"
@@ -236,6 +433,8 @@ class Unit3RunResult:
     deterministic_policy_gate_invoked: bool
     deterministic_policy_bypass: bool
     external_effects: int
+    governed_stop: Optional[Dict[str, Any]]
+    agent_execution: Dict[str, Any]
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -263,6 +462,8 @@ class Unit3RunResult:
             ),
             "deterministic_policy_bypass": self.deterministic_policy_bypass,
             "external_effects": self.external_effects,
+            "governed_stop": self.governed_stop,
+            "agent_execution": self.agent_execution,
         }
 
 
@@ -324,6 +525,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
         run_id: Optional[str],
         scenario_id: Optional[str],
         approved_prior_context: Optional[Mapping[str, Any]],
+        governed_stop_profile: Optional[Mapping[str, Any]],
     ) -> Tuple[Any, List[Any], List[str]]:
         """Execute the ADK Runner and return (final_session, events, errors)."""
         prim = self._prim
@@ -341,6 +543,11 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             "follow_up_policy_gate_invoked": False,
             "stop_after": "follow_up_planning_agent",
             "mutation_execution": "not_authorized_intent_only",
+            "governed_stop_profile": (
+                dict(governed_stop_profile) if governed_stop_profile else None
+            ),
+            "governed_stop": None,
+            "agent_execution": {},
         }
         session = await self._session_service.create_session(
             app_name=APP_NAME,
@@ -381,6 +588,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
         run_id: Optional[str] = None,
         scenario_id: Optional[str] = None,
         approved_prior_context: Optional[Mapping[str, Any]] = None,
+        governed_stop_profile: Optional[Mapping[str, Any]] = None,
     ) -> Unit3RunResult:
         """Execute the Unit 3 pipeline through the Google ADK Runner and stop."""
         self.ensure_started()
@@ -390,6 +598,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
                 run_id=run_id,
                 scenario_id=scenario_id,
                 approved_prior_context=approved_prior_context,
+                governed_stop_profile=governed_stop_profile,
             )
         )
 
@@ -399,6 +608,22 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
         proposal = state.get("follow_up_proposal")
         packet = state.get("follow_up_packet")
         gate_invoked = bool(state.get("follow_up_policy_gate_invoked"))
+        governed_profile = (
+            dict(state.get("governed_stop_profile"))
+            if isinstance(state.get("governed_stop_profile"), Mapping)
+            else None
+        )
+        governed_stop = (
+            dict(state.get("governed_stop"))
+            if isinstance(state.get("governed_stop"), Mapping)
+            else None
+        )
+        agent_execution = (
+            dict(state.get("agent_execution"))
+            if isinstance(state.get("agent_execution"), Mapping)
+            else {}
+        )
+        governed_mode = governed_profile is not None
 
         # ADK primitive use requires events authored by all three sub-agents.
         authors = [getattr(e, "author", None) for e in events]
@@ -423,16 +648,31 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             else:
                 output = state.get(spec.role)
                 output_schema = (output or {}).get("schema") if output else None
+            exec_entry = (
+                dict(agent_execution.get(spec.agent_id))
+                if isinstance(agent_execution.get(spec.agent_id), Mapping)
+                else {}
+            )
+            wrapper_status = str(exec_entry.get("wrapper_status") or "")
+            if wrapper_status == GOVERNED_STOP_SKIPPED_STATUS:
+                status = GOVERNED_STOP_SKIPPED_STATUS
+                skipped_by = str(exec_entry.get("skipped_by") or "unknown")
+                error = f"{spec.agent_id} skipped after governed stop at {skipped_by}"
+            elif wrapper_status == GOVERNED_STOP_BLOCK_ORIGIN_STATUS:
+                status = GOVERNED_STOP_BLOCK_ORIGIN_STATUS
+                error = None
+            elif output is not None:
+                status = "ok"
+                error = None
+            else:
+                status = "error"
+                error = f"{spec.agent_id} produced no output"
             record.record_invocation(
                 AgentInvocationRecord(
                     agent_id=spec.agent_id,
-                    status="ok" if output is not None else "error",
+                    status=status,
                     output_schema=output_schema,
-                    error=(
-                        None
-                        if output is not None
-                        else f"{spec.agent_id} produced no output"
-                    ),
+                    error=error,
                     external_effects=int((output or {}).get("external_effects", 0)),
                 )
             )
@@ -442,6 +682,20 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
 
         bypass = False
         proposal_valid = False
+        expected_boundary = (
+            str(governed_profile.get("boundary_agent_id"))
+            if governed_profile is not None
+            else None
+        )
+        expected_reason_code = (
+            str(governed_profile.get("reason_code"))
+            if governed_profile is not None and governed_profile.get("reason_code")
+            else None
+        )
+        relationship_required = not (
+            governed_mode and expected_boundary == "meeting_context_agent"
+        )
+        proposal_required = not governed_mode
 
         if meeting_context is None:
             errors.append("meeting_context missing")
@@ -454,9 +708,9 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
                 bypass = True
                 errors.append("meeting_context attempted deterministic policy bypass")
 
-        if relationship_context is None:
+        if relationship_context is None and relationship_required:
             errors.append("relationship_context missing")
-        else:
+        elif relationship_context is not None:
             if relationship_context.get("external_effects", 0) != 0:
                 errors.append("relationship_context external_effects must be 0")
             if relationship_context.get("policy_authority", {}).get(
@@ -474,9 +728,9 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             if crm.get("real_customer_data", 0) != 0:
                 errors.append("real_customer_data must be 0")
 
-        if proposal is None or packet is None:
+        if proposal_required and (proposal is None or packet is None):
             errors.append("follow_up_proposal/follow_up_packet missing")
-        else:
+        elif proposal is not None and packet is not None:
             proposal_valid = proposal.get("schema") == "follow_up_proposal_v1"
             if not proposal_valid:
                 errors.append("follow_up_proposal schema must be follow_up_proposal_v1")
@@ -515,10 +769,69 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
                 mut = mutations.get(mut_key) or {}
                 if mut.get("attempted") or mut.get("verified"):
                     errors.append(f"mutations.{mut_key} must not be attempted")
+        elif governed_mode:
+            if proposal is not None or packet is not None:
+                errors.append("follow_up outputs must be absent after governed stop")
+
+        if governed_mode:
+            if governed_stop is None:
+                errors.append("governed_stop_profile set but no governed_stop observed")
+            else:
+                boundary = str(governed_stop.get("boundary_agent_id") or "")
+                reason = str(governed_stop.get("reason_code") or "")
+                if expected_boundary and boundary != expected_boundary:
+                    errors.append(
+                        "governed stop boundary mismatch: "
+                        f"expected {expected_boundary}, got {boundary}"
+                    )
+                if expected_reason_code and reason != expected_reason_code:
+                    errors.append(
+                        "governed stop reason mismatch: "
+                        f"expected {expected_reason_code}, got {reason}"
+                    )
+                if gate_invoked:
+                    errors.append("policy gate must not be invoked on governed stop path")
+
+                boundary_exec = (
+                    dict(agent_execution.get(boundary))
+                    if isinstance(agent_execution.get(boundary), Mapping)
+                    else {}
+                )
+                if (
+                    boundary_exec.get("wrapper_status")
+                    != GOVERNED_STOP_BLOCK_ORIGIN_STATUS
+                ) or not boundary_exec.get("delegate_called"):
+                    errors.append(
+                        f"{boundary} must be execution block_origin with delegate_called=true"
+                    )
+
+                downstream_by_boundary = {
+                    "meeting_context_agent": (
+                        "relationship_context_agent",
+                        "follow_up_planning_agent",
+                    ),
+                    "relationship_context_agent": ("follow_up_planning_agent",),
+                }
+                for downstream_agent in downstream_by_boundary.get(boundary, ()):
+                    entry = (
+                        dict(agent_execution.get(downstream_agent))
+                        if isinstance(agent_execution.get(downstream_agent), Mapping)
+                        else {}
+                    )
+                    if (
+                        entry.get("wrapper_status") != GOVERNED_STOP_SKIPPED_STATUS
+                        or entry.get("delegate_called") is not False
+                    ):
+                        errors.append(
+                            f"{downstream_agent} must be {GOVERNED_STOP_SKIPPED_STATUS} "
+                            "with delegate_called=false"
+                        )
 
         external_effects = int(record.external_effects)
         if packet is not None:
-            external_effects = max(external_effects, int(packet.get("external_effects", 0)))
+            external_effects = max(
+                external_effects, int(packet.get("external_effects", 0))
+            )
 
         markers = derive_runtime_markers(
             google_adk_package_bound=self._google_adk_bound,
@@ -527,7 +840,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             adk_runtime_primitive_used=primitive_used,
         )
 
-        ok = (
+        core_ok = (
             not errors
             and markers["google_adk_runtime_started"]
             and markers["adk_integration_status"] == ADK_STATUS_RUNTIME_INTEGRATED
@@ -535,12 +848,28 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             and markers["adk_runtime_primitive_used"]
             and not markers["local_adk_fallback_used"]
             and meeting_context is not None
-            and relationship_context is not None
-            and proposal is not None
-            and packet is not None
-            and proposal_valid
             and external_effects == 0
             and not bypass
+        )
+
+        if proposal_required:
+            mode_ok = (
+                relationship_context is not None
+                and proposal is not None
+                and packet is not None
+                and proposal_valid
+            )
+        else:
+            mode_ok = (
+                (relationship_context is not None or not relationship_required)
+                and proposal is None
+                and packet is None
+                and governed_stop is not None
+            )
+
+        ok = (
+            core_ok
+            and mode_ok
         )
 
         return Unit3RunResult(
@@ -564,4 +893,6 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             deterministic_policy_gate_invoked=gate_invoked,
             deterministic_policy_bypass=bypass,
             external_effects=external_effects,
+            governed_stop=governed_stop,
+            agent_execution=agent_execution,
         )
