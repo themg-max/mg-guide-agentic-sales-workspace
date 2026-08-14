@@ -1,9 +1,9 @@
-# NW-008 Readiness Matrix — AT-1…AT-10 (Planning Only)
+# NW-008 Acceptance Readiness Matrix — AT-1…AT-10
 
 | Field | Value |
 | --- | --- |
 | Work item | NW-008 |
-| Status | **IN_PROGRESS** (Tranche A **MERGED_COMPLETE** PR #40; Tranche B **MERGED_COMPLETE** PR #42; Tranche C **PLANNED** — no acceptance execution in this unit) |
+| Status | **IN_PROGRESS** (Tranche A **MERGED_COMPLETE** PR #40; Tranche B **MERGED_COMPLETE** PR #42; Tranche C **MERGED_COMPLETE** PR #44) |
 | Source of historical criteria | [`docs/MEETING_FOLLOW_UP_FOUNDATION.md`](../../docs/MEETING_FOLLOW_UP_FOUNDATION.md) §17 |
 | Companion packets | [`nw-008-implementation-packet.md`](./nw-008-implementation-packet.md) (Tranche A), [`nw-008-tranche-b-implementation-packet.md`](./nw-008-tranche-b-implementation-packet.md) (Tranche B), [`nw-008-tranche-c-implementation-packet.md`](./nw-008-tranche-c-implementation-packet.md) (Tranche C) |
 | Tranche B closeout | [`nw-008-tranche-b-merge-closeout.md`](./nw-008-tranche-b-merge-closeout.md) — `FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED` |
@@ -11,7 +11,7 @@
 | NW-006 dependency | **MERGED_COMPLETE** (PR #15) — card surface available offline |
 | NW-007 dependency | **MERGED_COMPLETE** (PR #37 merged; Stage B2 deployment evidence exists; proof closeout merged via PR #38) |
 | Mutation / write posture | **No GHL writes authorized**; no isolated GHL test location |
-| Audit posture | NW-005 Firestore audit writer remains **PLANNED / NOT_AUTHORIZED** unless a newer human grant is recorded on current main |
+| Audit posture | NW-005 Stage A offline audit projection is **MERGED_COMPLETE**; Stage B Firestore write proof remains **PLANNED_NOT_AUTHORIZED** |
 | Deployment posture | NW-007 Stage B2 deployment evidence exists, but `DEPLOYMENT_AUTHORIZATION=NO` |
 | Live read posture | NW-013 exact-ID synthetic read remains **AUTHORIZED_NOT_EXECUTED** |
 | Production / customer data | **Forbidden** |
@@ -23,6 +23,7 @@
 | Class | Meaning |
 | --- | --- |
 | **READY** | Historical AT can be executed end-to-end **today** under current grants with recorded evidence, without new authorization |
+| **HISTORICAL_COMPLETE** | Historical AT has been satisfied by a merged proof bundle without changing the original §17 definition |
 | **PARTIAL** | Material offline/synthetic prerequisites exist, but one or more historical expected outcomes remain unsatisfied |
 | **DEFERRED** | Intentionally sequenced behind a planned dependency (authorization, implementation, or deployment lane) |
 | **BLOCKED** | Hard environmental or authorization stop prevents honest execution of the historical criterion |
@@ -50,15 +51,15 @@
 
 ---
 
-## Current readiness matrix (post Tranche B merge / PR #42)
+## Current readiness matrix (post Tranche C merge / PR #44)
 
 | AT | Historical expected outcome | Current readiness | Current evidence | Remaining gap | Authorization dependency | Recommended next action |
 | --- | --- | --- | --- | --- | --- | --- |
 | **AT-1** | `transcript-success.txt` full run → `completed`; note `verified`; stage `discovery_scheduled → discovery_complete` verified; audit record present; MG Guide card State 1 | **BLOCKED** | NW-007 decision-card proof is merged complete; deterministic success render and policy semantics are proven offline; synthetic success path remains available for offline review | Live write-path verification still cannot be honestly executed without a safe-environment mutation grant; no isolated GHL test location; no Firestore audit writer under current main | Future safe-environment mutation + audit authorization | Keep this AT deferred behind a separately authorized write path; do not claim full success without a safe-environment lane |
-| **AT-2** | `transcript-ambiguous-contact.txt` → `blocked` with `AMBIGUOUS_CONTACT`; 0 CRM writes; MG Guide card State 2 | **PARTIAL** | Offline Unit 2/3 ambiguous-contact path remains valid; deterministic policy + card render produce blocked/zero-write semantics; raw CRM IDs remain absent | No full transcript-to-agent-to-policy-to-card evidence package is yet recorded on main as an executed NW-008 proof bundle | No new mutation authority required for synthetic offline proof; live relationship read remains optional and unexecuted | Execute synthetic AT-2 evidence package without GHL writes; keep live reads unclaimed |
+| **AT-2** | `transcript-ambiguous-contact.txt` → `blocked` with `AMBIGUOUS_CONTACT`; 0 CRM writes; MG Guide card State 2 | **HISTORICAL_COMPLETE** | Tranche C replay proved `AMBIGUOUS_CONTACT` + zero-write fail-closed handling in `proof/nw008/tranche-c/at-02-run.json`; deterministic replay and `TC-03`/`TC-04`/`TC-05`/`TC-22` pass | No remaining gap in the historical criterion; the broader live CRM path remains outside this lane | No new mutation authority required for this historical clause; live relationship read remains optional and unexecuted | Maintain the historical completion flag; do not claim a wider live mutation lane or reinterpret the historical clause |
 | **AT-3** | `transcript-no-stage-change.txt` → note `verified`; stage unchanged with `STAGE_TRANSITION_NOT_ALLOWED`; disposition `completed_with_review` | **BLOCKED** | Offline stage-denied semantics and the card’s completed-with-review rendering exist; deterministic policy prevents stage write | The historical AT requires a live verified note + stage-write refusal evidence path under a safe-environment mutation lane | Future safe-environment mutation authorization and audit writer | Do not claim completion of AT-3 until write-path evidence exists under explicit authority |
-| **AT-4** | Contact not found → `blocked` with `CONTACT_NOT_FOUND`; 0 writes | **PARTIAL** | Offline fail-closed handling and blocked card rendering for contact-not-found is present and synthetic-friendly; no external effects | Historical full-run proof needs a transcript/agent/policy/card evidence package tied to approved synthetic data | No new mutation authority required for synthetic offline evidence; real CRM contact lookup remains unavailable/no live claim | Execute a synthetic AT-4 evidence package with explicit zero-write proof |
-| **AT-5** | Extraction confidence below threshold → `blocked` with `LOW_EXTRACTION_CONFIDENCE`; 0 writes | **PARTIAL** | Low-confidence blocked path and card rendering are present in deterministic fixtures; no mutation produced | Full AT evidence still requires a durable transcript/decision-record package under the current audit boundary | No new mutation authority required for synthetic offline proof; no Firestore writes today | Package AT-5 as a synthetic offline decision proof and keep the live write path disclaimed |
+| **AT-4** | Contact not found → `blocked` with `CONTACT_NOT_FOUND`; 0 writes | **HISTORICAL_COMPLETE** | Tranche C replay proved `CONTACT_NOT_FOUND` + zero-write fail-closed handling in `proof/nw008/tranche-c/at-04-run.json`; deterministic replay and `TC-08`/`TC-09`/`TC-10` pass | No remaining gap in the historical criterion; no live write path is implied | No new mutation authority required for this historical clause; live CRM lookup remains outside this lane | Maintain the historical completion flag; do not expand this to a live mutation or broader runtime lane |
+| **AT-5** | Extraction confidence below threshold → `blocked` with `LOW_EXTRACTION_CONFIDENCE`; 0 writes | **HISTORICAL_COMPLETE** | Tranche C replay proved `LOW_EXTRACTION_CONFIDENCE` + zero-write fail-closed handling in `proof/nw008/tranche-c/at-05-run.json`; deterministic replay and `TC-13`/`TC-14`/`TC-15` pass | No remaining gap in the historical criterion; no live write path is implied | No new mutation authority required for this historical clause; no Firestore writes today | Maintain the historical completion flag; do not imply a future write-capable runtime without separate authority |
 | **AT-6** | GHL tool failure during write → `failed` with `GHL_TOOL_FAILURE`; mutation recorded `attempted: true, verified: false` | **BLOCKED** | Failure-code semantics and failed-card rendering exist; no mutation path is available under current grants | Real write-path failure injected on a live GHL tool is not authorized; isolated test service is unavailable and canonical GHL location is not a test environment | Separate safe-environment mutation lane; explicit human authority required | Do not claim AT-6 completion; keep blocked until a governed mutation environment exists |
 | **AT-7** | Write succeeds but read-back mismatch → `failed` with `GHL_WRITE_NOT_VERIFIED`; no completion declared | **BLOCKED** | Failure semantics and denial-of-completion posture are documented; deterministic card fail-state exists | Real write/read-back mismatch cannot be executed without GHL mutation + verification path | Separate safe-environment mutation lane + verification authority | Keep AT-7 blocked; no completion claim without live write/read-back evidence |
 | **AT-8** | Per-run mutation caps → second note or stage write attempt is refused by OL3 policy, not by agent choice | **PARTIAL** | Deterministic policy remains the sole consequential-action authorization surface; offline policy caps are the right architecture | Full historical proof requires an active policy+execution trace showing the second attempt is refused under live mutation conditions | No new mutation authority required for offline policy proof; live mutation remains unauthorized | Prefer synthetic policy-cap proof package over unverified live mutation execution |
@@ -70,11 +71,12 @@
 | Class | ATs |
 | --- | --- |
 | READY | _(none)_ |
-| PARTIAL | AT-2, AT-4, AT-5, AT-8, AT-9 |
+| HISTORICAL_COMPLETE | AT-2, AT-4, AT-5 |
+| PARTIAL | AT-8, AT-9 |
 | BLOCKED | AT-1, AT-3, AT-6, AT-7 |
 | DEFERRED | AT-10 |
 
-**Offline executable candidates (not a Tranche C claim):** `AT-2, AT-4, AT-5, AT-8, AT-9`
+**Offline executable candidates (not a Tranche C claim):** `AT-8, AT-9`
 
 These candidates are preferred because they:
 
@@ -85,32 +87,36 @@ These candidates are preferred because they:
 - avoid AT-6 / AT-7 write-path behavior;
 - do not imply Firestore writes without NW-005 Stage B authorization.
 
-**Tranche C (PLANNED — not started):** historical failure-path agent-fleet
-acceptance replay of **exactly** `AT-2, AT-4, AT-5` entering through the
+**Tranche C** is a merged historical replay of **exactly** `AT-2, AT-4, AT-5` entering through the
 provider-neutral `TRANSCRIPT_SOURCE_ENVELOPE_V1` boundary
 ([`nw-008-tranche-c-implementation-packet.md`](./nw-008-tranche-c-implementation-packet.md)).
-`AT-8` / `AT-9` are offline candidates but **excluded** from Tranche C.
+`AT-8` / `AT-9` remain offline candidates and are **excluded** from Tranche C.
 Future Google Workspace transcript adapter remains
 `FUTURE_NOT_IMPLEMENTED` / `NOT_AUTHORIZED_IN_TRANCHE_C`.
 
 ```text
-NW008_OFFLINE_EXECUTABLE_CANDIDATES=AT-2,AT-4,AT-5,AT-8,AT-9
+NW008_HISTORICAL_AT_COMPLETE=AT-2,AT-4,AT-5
+NW008_HISTORICAL_AT_REMAINING=AT-1,AT-3,AT-6,AT-7,AT-8,AT-9,AT-10
+NW008_OFFLINE_EXECUTABLE_CANDIDATES=AT-8,AT-9
+NW008_TRANCHE_C_STATUS=MERGED_COMPLETE
+NW008_TRANCHE_C_PR=44
 NW008_TRANCHE_C_TARGETS=AT-2,AT-4,AT-5
 NW008_TRANCHE_C_EXCLUDES=AT-8,AT-9
-NW008_TRANCHE_REQUIRES_NEW_AUTHORIZATION=NO
+NW008_TRANCHE_C_REQUIRED_NEW_AUTHORIZATION=NO
 NW008_TRANCHE_B_STATUS=MERGED_COMPLETE
 FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED
 NW008_OVERALL_STATUS=IN_PROGRESS
-TRANCHE_C_STATUS=PLANNED
-TRANCHE_C_EXECUTION_STARTED=NO
+TRANCHE_C_STATUS=MERGED_COMPLETE
+TRANCHE_C_EXECUTION_STARTED=YES
 TRANSCRIPT_SOURCE_CONTRACT=TRANSCRIPT_SOURCE_ENVELOPE_V1
 TRANSCRIPT_SOURCE_ACCESS_CONTEXT_MODELED=YES
 MG_GUIDE_ADD_ON_GRANT_MODELED=YES
 GOOGLE_WORKSPACE_ADAPTER_STATUS=FUTURE_NOT_IMPLEMENTED
 GOOGLE_WORKSPACE_TRANSCRIPT_ADAPTER=FUTURE_NOT_IMPLEMENTED
-AUTHORITATIVE_REASON_SOURCE=WORKFLOW_POLICY
+AUTHORITATIVE_STOP_SOURCE=STATE_MACHINE_WORKFLOW_CONTRACT
 NW007_CARD_SEMANTICS_CHANGE=NO
 PER_SCENARIO_EXECUTION=SHORT_CIRCUIT_AT_FIRST_GOVERNED_FAILURE
+NW005_STAGE_A_STATUS=MERGED_COMPLETE
 NW005_STAGE_B_STATUS=PLANNED_NOT_AUTHORIZED
 NW013_STATUS=AUTHORIZED_NOT_EXECUTED
 GHL_WRITES_AUTHORIZED=NO
@@ -150,7 +156,8 @@ CANONICAL_GHL_LOCATION_IS_TEST_ENV=NO
 NW013_STATUS=AUTHORIZED_NOT_EXECUTED
 GHL_WRITES_AUTHORIZED=NO
 FIRESTORE_WRITES_AUTHORIZED_UNDER_COMPLETED_LANES=NO
-NW005_STATUS=PLANNED_NOT_AUTHORIZED
+NW005_STAGE_A_STATUS=MERGED_COMPLETE
+NW005_STAGE_B_STATUS=PLANNED_NOT_AUTHORIZED
 NW007_STATUS=MERGED_COMPLETE
 NW007_STAGE_B2_DEPLOYMENT_EVIDENCE=AVAILABLE
 NW007_DEPLOYMENT_AUTHORIZATION=NO
@@ -169,9 +176,9 @@ EXTERNAL_EFFECTS=0
 | Card re-evaluates policy or executes mutations | **No** |
 | AT-1…AT-10 complete because card snapshots pass | **No — forbidden claim** |
 | Vertical slice demo fully executable per foundation §18 | **No** |
-| Competition acceptance (NW-008) ready to close | **No — planning only** |
+| Competition acceptance (NW-008) ready to close | **No** — **IN_PROGRESS**; AT-2/AT-4/AT-5 are **HISTORICAL_COMPLETE** and AT-1/AT-3/AT-6/AT-7/AT-8/AT-9/AT-10 remain open |
 
-## Recommended evidence standard when NW-008 executes later
+## Recommended evidence standard for remaining NW-008 AT execution
 
 For each AT marked for execution under a future authorized unit:
 
@@ -185,5 +192,5 @@ For each AT marked for execution under a future authorized unit:
 ## STOP
 
 ```text
-STOP_CODE=NW008_TRANCHE_C_PLAN_FROZEN_READY_FOR_IMPLEMENTATION
+STOP_CODE=NW008_TRANCHE_C_CLOSEOUT_ACCEPTANCE_RECONCILIATION_READY_FOR_REVIEW
 ```
