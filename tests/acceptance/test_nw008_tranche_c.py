@@ -195,5 +195,38 @@ def test_negative_control_at2_card_semantics_mismatch_fails(
     assert obligations["TC-22"].STATUS == "FAIL"
 
 
+def test_negative_control_harness_threshold_reason_cannot_override_authority(
+    harness: Nw008TrancheCHarness, monkeypatch
+):
+    from orchestration import nw008_tranche_c as tc_mod
+
+    tampered = copy.deepcopy(tc_mod.SCENARIOS)
+    tampered["AT-05"]["governed_stop_profile"]["extraction_abort_threshold"] = 0.99
+    tampered["AT-05"]["governed_stop_profile"]["reason_code"] = "FORCED_REASON"
+    tampered["AT-05"]["governed_stop_profile"][
+        "reason_source"
+    ] = "harness.override.authority"
+    monkeypatch.setattr(tc_mod, "SCENARIOS", tampered)
+
+    result = harness.run()
+    at5 = result.scenarios["AT-05"]
+    assert at5.stop_reason_code == "LOW_EXTRACTION_CONFIDENCE"
+    assert "FORCED" not in at5.stop_reason_source
+    assert "harness.override" not in at5.stop_reason_source
+    assert "workflow_states.yaml" in at5.stop_reason_source
+
+
+def test_negative_control_historical_claim_fails_closed(
+    result, harness: Nw008TrancheCHarness
+):
+    run = copy.deepcopy(result.scenarios["AT-02"])
+    card = dict(run.decision_card or {})
+    card["policy_state"] = "REVIEW_REQUIRED"
+    tampered = replace(run, decision_card=card)
+    claims = harness._historical_at_claims({"AT-02": tampered})
+    assert claims["AT-2"]["status"] == "NO"
+    assert "state_2_equivalent_card" in claims["AT-2"]["detail"]
+
+
 def test_deterministic_replay_passes(result):
     assert result.deterministic_replay == "PASS"

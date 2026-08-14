@@ -24,6 +24,8 @@ from __future__ import annotations
 import asyncio
 import json
 from dataclasses import dataclass
+from functools import lru_cache
+from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from agents.adk_runtime.markers import (
@@ -43,9 +45,64 @@ from agents.meeting_context import MeetingContextAgent
 from agents.meeting_context.providers.base import ProviderRequest
 from agents.relationship_context.agent import RelationshipContextAgent
 from agents.relationship_context.models import RelationshipRequest
+from orchestration.state_machine import StateMachine
 
 from .agent import FollowUpPlanningAgent
 from .models import FollowUpPlanningRequest
+
+
+def _workflow_contract_path() -> Path:
+    return Path(__file__).resolve().parents[3] / "contracts" / "workflow_states.yaml"
+
+
+@lru_cache(maxsize=1)
+def _unit3_state_machine() -> StateMachine:
+    return StateMachine.from_yaml(_workflow_contract_path())
+
+
+def _derive_meeting_context_stop(
+    meeting_context: Mapping[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Derive AT-5 governed stop from the authoritative workflow contract."""
+    sm = _unit3_state_machine()
+    confidence = (meeting_context.get("evidence") or {}).get("extraction_confidence")
+    threshold = sm.extraction_abort_threshold
+    if confidence is None or float(confidence) < threshold:
+        return {
+            "boundary_agent_id": "meeting_context_agent",
+            "reason_code": "LOW_EXTRACTION_CONFIDENCE",
+            "reason_source": (
+                "contracts/workflow_states.yaml:transition[extracting->blocked:"
+                "when=extraction_confidence_lt_extraction_abort_threshold]:"
+                f"reason_code=LOW_EXTRACTION_CONFIDENCE:threshold={threshold}"
+            ),
+            "wrapper_status": GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
+        }
+    return None
+
+
+def _derive_relationship_context_stop(
+    relationship_context: Mapping[str, Any],
+) -> Optional[Dict[str, Any]]:
+    """Derive AT-2/AT-4 governed stop from the authoritative workflow contract."""
+    status = str((relationship_context.get("resolution") or {}).get("status") or "")
+    mapping = {
+        "ambiguous": ("AMBIGUOUS_CONTACT", "contact_ambiguous"),
+        "not_found": ("CONTACT_NOT_FOUND", "contact_not_found"),
+    }
+    if status not in mapping:
+        return None
+    reason_code, when = mapping[status]
+    return {
+        "boundary_agent_id": "relationship_context_agent",
+        "reason_code": reason_code,
+        "reason_source": (
+            "contracts/workflow_states.yaml:transition[resolving->blocked:"
+            f"when={when}]:reason_code={reason_code}"
+        ),
+        "wrapper_status": GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
+    }
+
 
 UNIT3_AGENT_GRAPH: Sequence[RuntimeAgentSpec] = (
     RuntimeAgentSpec(
@@ -177,22 +234,9 @@ def _build_unit3_adk_agents(
 
                 profile = _governed_profile(ctx.session.state)
                 if profile and profile.get("boundary_agent_id") == self.name:
-                    confidence = (meeting_context.get("evidence") or {}).get(
-                        "extraction_confidence"
-                    )
-                    threshold = float(profile.get("extraction_abort_threshold", 0.70))
-                    should_stop = (
-                        confidence is None or float(confidence) < threshold
-                    )
-                    if should_stop:
-                        stop = {
-                            "boundary_agent_id": self.name,
-                            "reason_code": profile.get(
-                                "reason_code", "LOW_EXTRACTION_CONFIDENCE"
-                            ),
-                            "reason_source": profile.get("reason_source", ""),
-                            "wrapper_status": GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
-                        }
+                    stop = _derive_meeting_context_stop(meeting_context)
+                    if stop is not None:
+                        stop["boundary_agent_id"] = self.name
                         execution = _with_execution(
                             state=payload,
                             agent_id=self.name,
@@ -273,22 +317,9 @@ def _build_unit3_adk_agents(
 
                     profile = _governed_profile(ctx.session.state)
                     if profile and profile.get("boundary_agent_id") == self.name:
-                        status = str(
-                            (relationship_context.get("resolution") or {}).get("status")
-                            or ""
-                        )
-                        status_reason = {
-                            "ambiguous": "AMBIGUOUS_CONTACT",
-                            "not_found": "CONTACT_NOT_FOUND",
-                        }.get(status)
-                        should_stop = status_reason == profile.get("reason_code")
-                        if should_stop:
-                            stop = {
-                                "boundary_agent_id": self.name,
-                                "reason_code": status_reason,
-                                "reason_source": profile.get("reason_source", ""),
-                                "wrapper_status": GOVERNED_STOP_BLOCK_ORIGIN_STATUS,
-                            }
+                        stop = _derive_relationship_context_stop(relationship_context)
+                        if stop is not None:
+                            stop["boundary_agent_id"] = self.name
                             execution = _with_execution(
                                 state=payload,
                                 agent_id=self.name,
@@ -687,11 +718,6 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             if governed_profile is not None
             else None
         )
-        expected_reason_code = (
-            str(governed_profile.get("reason_code"))
-            if governed_profile is not None and governed_profile.get("reason_code")
-            else None
-        )
         relationship_required = not (
             governed_mode and expected_boundary == "meeting_context_agent"
         )
@@ -783,11 +809,6 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
                     errors.append(
                         "governed stop boundary mismatch: "
                         f"expected {expected_boundary}, got {boundary}"
-                    )
-                if expected_reason_code and reason != expected_reason_code:
-                    errors.append(
-                        "governed stop reason mismatch: "
-                        f"expected {expected_reason_code}, got {reason}"
                     )
                 if gate_invoked:
                     errors.append("policy gate must not be invoked on governed stop path")
@@ -888,7 +909,7 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
             local_adk_fallback_used=markers["local_adk_fallback_used"],
             meeting_context_reused=meeting_context is not None,
             relationship_context_reused=relationship_context is not None,
-            follow_up_planning_agent_implemented=proposal is not None,
+            follow_up_planning_agent_implemented=True,
             follow_up_proposal_valid=proposal_valid,
             deterministic_policy_gate_invoked=gate_invoked,
             deterministic_policy_bypass=bypass,

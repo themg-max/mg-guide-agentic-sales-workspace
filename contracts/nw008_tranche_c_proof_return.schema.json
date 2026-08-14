@@ -9,12 +9,15 @@
     "purpose",
     "implementation_subject_sha",
     "transcript_source_contract",
+    "authoritative_stop_source",
     "targets",
     "excludes",
     "scenarios",
     "proof_obligations",
     "effect_counters",
     "historical_at_claims",
+    "at2_card_evidence_source",
+    "nw007_card_semantics_change",
     "remaining_gaps",
     "entrypoints"
   ],
@@ -34,6 +37,10 @@
     "transcript_source_contract": {
       "type": "string",
       "const": "TRANSCRIPT_SOURCE_ENVELOPE_V1"
+    },
+    "authoritative_stop_source": {
+      "type": "string",
+      "const": "STATE_MACHINE_WORKFLOW_CONTRACT"
     },
     "targets": {
       "type": "array",
@@ -170,6 +177,14 @@
           "$ref": "#/$defs/historicalClaim"
         }
       }
+    },
+    "at2_card_evidence_source": {
+      "type": "string",
+      "const": "GOVERNED_STOP_PROOF_PROJECTION_THROUGH_EXISTING_NW007_MAPPER"
+    },
+    "nw007_card_semantics_change": {
+      "type": "string",
+      "const": "NO"
     },
     "remaining_gaps": {
       "type": "array",

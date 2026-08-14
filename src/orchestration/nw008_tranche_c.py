@@ -28,6 +28,7 @@ from agents.relationship_context.crm_store import SyntheticCrmStore
 from mg_guide.meeting_follow_up_card.decision_mapper import map_packet_to_decision_card
 from mg_guide.meeting_follow_up_card.decision_render_html import render_decision_card_html
 from mg_guide.meeting_follow_up_card.decision_render_text import render_decision_card_text
+from orchestration.state_machine import StateMachine
 from orchestration.transcript_source import (
     TranscriptSourceEnvelope,
     envelope_from_dict,
@@ -56,11 +57,6 @@ SCENARIOS = {
     "AT-02": {
         "governed_stop_profile": {
             "boundary_agent_id": "relationship_context_agent",
-            "reason_code": "AMBIGUOUS_CONTACT",
-            "reason_source": (
-                "agents.relationship_context.resolver.resolve_relationship "
-                "(crm_status=ambiguous -> governed stop)"
-            ),
         },
         "expected_reason_code": "AMBIGUOUS_CONTACT",
         "expected_stop_point": "relationship_context_agent",
@@ -71,11 +67,6 @@ SCENARIOS = {
     "AT-04": {
         "governed_stop_profile": {
             "boundary_agent_id": "relationship_context_agent",
-            "reason_code": "CONTACT_NOT_FOUND",
-            "reason_source": (
-                "agents.relationship_context.resolver.resolve_relationship "
-                "(crm_status=not_found -> governed stop)"
-            ),
         },
         "expected_reason_code": "CONTACT_NOT_FOUND",
         "expected_stop_point": "relationship_context_agent",
@@ -86,12 +77,6 @@ SCENARIOS = {
     "AT-05": {
         "governed_stop_profile": {
             "boundary_agent_id": "meeting_context_agent",
-            "reason_code": "LOW_EXTRACTION_CONFIDENCE",
-            "reason_source": (
-                "orchestration.state_machine.StateMachine.extraction_abort_threshold "
-                "(confidence < 0.70 -> governed stop)"
-            ),
-            "extraction_abort_threshold": 0.70,
         },
         "expected_reason_code": "LOW_EXTRACTION_CONFIDENCE",
         "expected_stop_point": "meeting_context_agent",
@@ -100,6 +85,8 @@ SCENARIOS = {
         "historical_card_required": False,
     },
 }
+
+AUTHORITATIVE_STOP_SOURCE = "STATE_MACHINE_WORKFLOW_CONTRACT"
 
 SCENARIO_LABELS = {
     "AT-02": "AT-2",
@@ -126,6 +113,10 @@ STATE_2_EQUIVALENT_AT2 = {
     "policy_reason_code": "AMBIGUOUS_CONTACT",
     "next_action": "RESOLVE_CONTACT",
 }
+
+AT2_CARD_EVIDENCE_SOURCE = (
+    "GOVERNED_STOP_PROOF_PROJECTION_THROUGH_EXISTING_NW007_MAPPER"
+)
 
 
 class TrancheCReplayError(RuntimeError):
@@ -585,6 +576,62 @@ class Nw008TrancheCHarness:
         )
 
     @staticmethod
+    def _verify_historical_definitions() -> Tuple[bool, str]:
+        contract_path = REPO_ROOT / "contracts" / "workflow_states.yaml"
+        contract = yaml.safe_load(contract_path.read_text(encoding="utf-8"))
+        sm = StateMachine(contract)
+        invariants_list = contract.get("invariants") or []
+        invariants: Dict[str, Any] = {}
+        for item in invariants_list:
+            if isinstance(item, dict):
+                invariants.update(item)
+        checks: List[Tuple[bool, str]] = [
+            (sm.is_terminal("blocked"), "blocked state is terminal"),
+            (
+                any(
+                    tr.source == "extracting"
+                    and tr.target == "blocked"
+                    and tr.reason_code == "LOW_EXTRACTION_CONFIDENCE"
+                    for tr in sm.transitions
+                ),
+                "AT-5 extracting->blocked LOW_EXTRACTION_CONFIDENCE",
+            ),
+            (
+                any(
+                    tr.source == "resolving"
+                    and tr.target == "blocked"
+                    and tr.reason_code == "AMBIGUOUS_CONTACT"
+                    for tr in sm.transitions
+                ),
+                "AT-2 resolving->blocked AMBIGUOUS_CONTACT",
+            ),
+            (
+                any(
+                    tr.source == "resolving"
+                    and tr.target == "blocked"
+                    and tr.reason_code == "CONTACT_NOT_FOUND"
+                    for tr in sm.transitions
+                ),
+                "AT-4 resolving->blocked CONTACT_NOT_FOUND",
+            ),
+            (
+                invariants.get("production_crm_writes") == "forbidden",
+                "production_crm_writes forbidden (0 CRM writes)",
+            ),
+            (
+                float(sm.extraction_abort_threshold) == 0.70,
+                f"AT-5 extraction_abort_threshold=0.70 (got {sm.extraction_abort_threshold})",
+            ),
+        ]
+        failed = [desc for ok, desc in checks if not ok]
+        if failed:
+            return False, "historical definition mismatch: " + "; ".join(failed)
+        return (
+            True,
+            "canonical AT-2/AT-4/AT-5 definitions verified in contracts/workflow_states.yaml",
+        )
+
+    @staticmethod
     def _zero_effects(run: ScenarioRun) -> bool:
         return all(
             int(run.effect_counters.get(key, 0)) == 0
@@ -876,14 +923,19 @@ class Nw008TrancheCHarness:
             ),
             remaining_gap="tc18_synthetic_source_violation",
         )
+        historical_defs_ok, historical_defs_detail = self._verify_historical_definitions()
         obligations["TC-19"] = self._obligation(
-            ok=set(SCENARIO_LABELS.values()) == {"AT-2", "AT-4", "AT-5"},
-            detail="Historical AT target set unchanged: AT-2, AT-4, AT-5 only",
+            ok=(
+                set(SCENARIO_LABELS.values()) == {"AT-2", "AT-4", "AT-5"}
+                and historical_defs_ok
+            ),
+            detail=historical_defs_detail,
             evidence_path=(
+                "contracts/workflow_states.yaml | "
                 "src/orchestration/nw008_tranche_c.py | "
                 "contracts/nw008_tranche_c_proof_return.schema.json"
             ),
-            remaining_gap="tc19_target_set_changed",
+            remaining_gap="tc19_historical_definition_changed",
         )
 
         obligations["TC-20"] = self._obligation(
@@ -971,28 +1023,82 @@ class Nw008TrancheCHarness:
         claims: Dict[str, Any] = {}
         for scenario, run in scenarios.items():
             label = SCENARIO_LABELS[scenario]
+            failed: List[str] = []
+            if run.disposition != "blocked":
+                failed.append("disposition=blocked")
+            if run.policy_gate_invoked is not False:
+                failed.append("policy_gate_invoked=false")
+            if run.policy_bypass is not False:
+                failed.append("policy_bypass=false")
+            if not self._zero_effects(run):
+                failed.append("zero_effects")
+
             if label == "AT-2":
+                if run.stop_reason_code != "AMBIGUOUS_CONTACT":
+                    failed.append("stop_reason_code=AMBIGUOUS_CONTACT")
+                if run.stop_point != "relationship_context_agent":
+                    failed.append("stop_point=relationship_context_agent")
                 card = run.decision_card or {}
                 state2_exact = all(
                     card.get(field) == expected
                     for field, expected in STATE_2_EQUIVALENT_AT2.items()
                 )
-                claims[label] = {
-                    "status": "CANDIDATE",
-                    "detail": (
-                        f"Blocked with {run.stop_reason_code}; PRE_POLICY_FAIL_CLOSED="
-                        f"{(run.policy_gate_invoked is False and run.policy_bypass is False)}; "
-                        f"State2Equivalent={state2_exact}."
-                    ),
-                }
+                if not state2_exact:
+                    failed.append("state_2_equivalent_card")
+                if failed:
+                    claims[label] = {
+                        "status": "NO",
+                        "detail": "missing " + ", ".join(failed),
+                    }
+                else:
+                    claims[label] = {
+                        "status": "CANDIDATE",
+                        "detail": (
+                            "Blocked with AMBIGUOUS_CONTACT; PRE_POLICY_FAIL_CLOSED=true; "
+                            "State2Equivalent=true."
+                        ),
+                    }
+            elif label == "AT-4":
+                if run.stop_reason_code != "CONTACT_NOT_FOUND":
+                    failed.append("stop_reason_code=CONTACT_NOT_FOUND")
+                if run.stop_point != "relationship_context_agent":
+                    failed.append("stop_point=relationship_context_agent")
+                if failed:
+                    claims[label] = {
+                        "status": "NO",
+                        "detail": "missing " + ", ".join(failed),
+                    }
+                else:
+                    claims[label] = {
+                        "status": "CANDIDATE",
+                        "detail": (
+                            "Blocked with CONTACT_NOT_FOUND; PRE_POLICY_FAIL_CLOSED=true; "
+                            "NW007 card semantics unchanged."
+                        ),
+                    }
+            elif label == "AT-5":
+                if run.stop_reason_code != "LOW_EXTRACTION_CONFIDENCE":
+                    failed.append("stop_reason_code=LOW_EXTRACTION_CONFIDENCE")
+                if run.stop_point != "meeting_context_agent":
+                    failed.append("stop_point=meeting_context_agent")
+                if failed:
+                    claims[label] = {
+                        "status": "NO",
+                        "detail": "missing " + ", ".join(failed),
+                    }
+                else:
+                    claims[label] = {
+                        "status": "CANDIDATE",
+                        "detail": (
+                            "Blocked with LOW_EXTRACTION_CONFIDENCE; "
+                            "PRE_POLICY_FAIL_CLOSED=true; "
+                            "NW007 card semantics unchanged."
+                        ),
+                    }
             else:
                 claims[label] = {
-                    "status": "CANDIDATE",
-                    "detail": (
-                        f"Blocked with {run.stop_reason_code}; PRE_POLICY_FAIL_CLOSED="
-                        f"{(run.policy_gate_invoked is False and run.policy_bypass is False)}; "
-                        "NW007 card semantics unchanged."
-                    ),
+                    "status": "NO",
+                    "detail": f"unsupported historical AT label {label}",
                 }
         return claims
 
@@ -1026,6 +1132,15 @@ class Nw008TrancheCHarness:
         lines.extend(["", "## Historical AT claims", ""])
         for at, claim in result.historical_at_claims.items():
             lines.append(f"- **{at}**: {claim['status']} — {claim['detail']}")
+        lines.extend(
+            [
+                "",
+                "## Card evidence source",
+                "",
+                f"- `AT2_CARD_EVIDENCE_SOURCE` = `{AT2_CARD_EVIDENCE_SOURCE}`",
+                "- `NW007_CARD_SEMANTICS_CHANGE` = `NO`",
+            ]
+        )
         return "\n".join(lines) + "\n"
 
     def _proof_return_payload(self, result: TrancheCResult) -> Dict[str, Any]:
@@ -1054,6 +1169,7 @@ class Nw008TrancheCHarness:
             "purpose": "HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY",
             "implementation_subject_sha": result.implementation_subject_sha,
             "transcript_source_contract": "TRANSCRIPT_SOURCE_ENVELOPE_V1",
+            "authoritative_stop_source": AUTHORITATIVE_STOP_SOURCE,
             "targets": ["AT-2", "AT-4", "AT-5"],
             "excludes": ["AT-8", "AT-9"],
             "scenarios": scenario_payloads,
@@ -1062,6 +1178,8 @@ class Nw008TrancheCHarness:
             },
             "effect_counters": result.effect_counters,
             "historical_at_claims": result.historical_at_claims,
+            "at2_card_evidence_source": AT2_CARD_EVIDENCE_SOURCE,
+            "nw007_card_semantics_change": "NO",
             "remaining_gaps": result.remaining_gaps,
             "entrypoints": ENTRYPOINTS,
         }
