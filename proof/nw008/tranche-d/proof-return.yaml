@@ -3,6 +3,7 @@ evidence:
   AUDIT_WARNING_PROJECTED_STAGE_A: true
   AUDIT_WARNING_RECORDED: true
   CAPABILITY_CLASS: contact_create
+  DETERMINISTIC_PROOF_REPLAY: PASS
   DOWNSTREAM_EXECUTOR_CALLED: false
   EXTERNAL_EFFECTS: 0
   FIRESTORE_STAGE_B_CALLED: false
@@ -23,9 +24,11 @@ evidence:
   PROOF_STATUS: PASS
   REFUSAL_LAYER: TOOL_MANIFEST
   REQUESTED_OPERATION: create-contact
+  STAGE_B_SPY_CALLED: false
+  STAGE_B_SPY_INSTANTIATED: true
   TOOL_MANIFEST_REFUSED: true
   TRANSPORT_ATTEMPTED: false
-implementation_subject_sha: 928a25995e732fc773818809d9865b8f34c58cb9
+implementation_subject_sha: ab17da29fce5c134eb865e07c30f208e8d61b394
 manifest_node: ghl_mcp.blocked_capability_classes
 manifest_path: contracts/ghl_tool_manifest.yaml
 proof_id: NW008-D1-AT9

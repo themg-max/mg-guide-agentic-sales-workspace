@@ -30,7 +30,7 @@
     "strategy": "create_only_if_absent"
   },
   "integrity": {
-    "content_fingerprint": "5f63991bd7dfb69e620efd91f1575ba3a17cfa18e311213044cf0ce5600c1b7b",
+    "content_fingerprint": "37d9241b15d014b170d690dcb18e11c553170fdcf4aca576d992508dd2614b16",
     "projection_input_fingerprint": "92ba2a6af674ea10477fd1567e22ba87eea87848c66075379da03ddc6435f99a"
   },
   "mg_guide_card": {
@@ -71,7 +71,7 @@
     "transcript_hash": "0000000000000000000000000000000000000000000000000000000000000000",
     "writer": {
       "component": "nw008_tranche_d",
-      "component_version": "v2",
+      "component_version": "v3",
       "mode": "local_fixture",
       "projection_version": "workflow_run_audit_v1"
     }

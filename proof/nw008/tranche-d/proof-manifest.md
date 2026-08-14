@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Implementation subject SHA | `928a25995e732fc773818809d9865b8f34c58cb9` |
+| Implementation subject SHA | `ab17da29fce5c134eb865e07c30f208e8d61b394` |
 | Manifest path | `contracts/ghl_tool_manifest.yaml` |
 | Manifest node | `ghl_mcp.blocked_capability_classes` |
 | Superseded A1 | `3be4309c02e2fc5e0685eadaba5a997b3cb8d81a` |
@@ -15,6 +15,7 @@
 - AUDIT_WARNING_PROJECTED_STAGE_A=True
 - AUDIT_WARNING_RECORDED=True
 - CAPABILITY_CLASS=contact_create
+- DETERMINISTIC_PROOF_REPLAY=PASS
 - DOWNSTREAM_EXECUTOR_CALLED=False
 - EXTERNAL_EFFECTS=0
 - FIRESTORE_STAGE_B_CALLED=False
@@ -34,7 +35,8 @@
 - NC_D1_8=PASS
 - REFUSAL_LAYER=TOOL_MANIFEST
 - REQUESTED_OPERATION=create-contact
+- STAGE_B_SPY_CALLED=False
+- STAGE_B_SPY_INSTANTIATED=True
 - TOOL_MANIFEST_REFUSED=True
 - TRANSPORT_ATTEMPTED=False
 - PROOF_VALIDATOR=PASS
-- DETERMINISTIC_PROOF_REPLAY=PASS

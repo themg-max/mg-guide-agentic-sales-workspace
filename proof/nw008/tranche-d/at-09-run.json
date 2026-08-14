@@ -39,6 +39,8 @@
     "MANIFEST_NODE": "ghl_mcp.blocked_capability_classes",
     "REFUSAL_LAYER": "TOOL_MANIFEST",
     "REQUESTED_OPERATION": "create-contact",
+    "STAGE_B_SPY_CALLED": false,
+    "STAGE_B_SPY_INSTANTIATED": true,
     "TOOL_MANIFEST_REFUSED": true,
     "TRANSPORT_ATTEMPTED": false
   },
