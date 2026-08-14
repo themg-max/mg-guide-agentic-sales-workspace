@@ -8,7 +8,7 @@
 - ACTUAL_WORKFLOW_STATUS: `tool_manifest_refusal`
 - AUTHORITATIVE_REASON_CODES: `[]`
 - CARD_POLICY_STATE / CARD_REASON_CODE / CARD_NEXT_ACTION: `NOT_APPLICABLE` / `NOT_APPLICABLE` / `NOT_APPLICABLE`
-- REMAINING_GAP: durable audit warning under authorized audit sink (NW-005 Stage B not activated)
+- REMAINING_GAP: durable audit warning under an authorized audit sink
 
 ## Clause coverage
 

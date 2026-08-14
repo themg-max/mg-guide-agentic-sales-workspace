@@ -3,9 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Work item | NW-008 |
+| Purpose | DETERMINISTIC_ACCEPTANCE_EVIDENCE_SUBSTRATE |
 | Execution unit | TRANCHE_A |
 | Execution mode | OFFLINE_SYNTHETIC_ACCEPTANCE_EVIDENCE |
-| Commit SHA | `b45495ffe455604cda8153462889740baad134f5` |
+| Implementation subject SHA | `e77c2ce42bdda4fdc049990d56d43958f49af73c` |
 | Generated at (fixture clock) | `2026-08-14T12:00:00Z` |
 | GHL_LIVE_CALLS_AUTHORIZED | NO |
 | GHL_WRITES_AUTHORIZED | NO |
@@ -14,16 +15,20 @@
 | DEPLOYMENT_AUTHORIZED | NO |
 | REAL_CUSTOMER_DATA | FORBIDDEN |
 | RAW_REST | FORBIDDEN |
+| DETERMINISTIC_SUPPORTING_PROOFS | AT-2, AT-4, AT-5 |
+| PARTIAL_SUPPORTING_PROOFS | AT-8, AT-9 |
+| HISTORICAL_AT_COMPLETE | NONE |
+| NEXT_FUTURE_TRANCHE | LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY |
 
 ## AT map
 
 | AT | Historical clauses | Evidence path | Clause status | Completion classification | Remaining gap |
 | --- | --- | --- | --- | --- | --- |
-| AT-2 | blocked, AMBIGUOUS_CONTACT, 0_CRM_writes, MG_Guide_blocked_State_2_equivalent_decision_card | `proof/nw008/at-02/evidence.json` | blocked=PASS, AMBIGUOUS_CONTACT=PASS, 0_CRM_writes=PASS, MG_Guide_blocked_State_2_equivalent_decision_card=PASS | COMPLETION_CANDIDATE / HISTORICAL_AT_COMPLETE=YES | none |
-| AT-4 | CONTACT_NOT_FOUND, blocked, 0_writes | `proof/nw008/at-04/evidence.json` | CONTACT_NOT_FOUND=PASS, blocked=PASS, 0_writes=PASS | COMPLETION_CANDIDATE / HISTORICAL_AT_COMPLETE=YES | none |
-| AT-5 | extraction_below_threshold, LOW_EXTRACTION_CONFIDENCE, blocked, 0_writes | `proof/nw008/at-05/evidence.json` | extraction_below_threshold=PASS, LOW_EXTRACTION_CONFIDENCE=PASS, blocked=PASS, 0_writes=PASS | COMPLETION_CANDIDATE / HISTORICAL_AT_COMPLETE=YES | none |
-| AT-8 | deterministic_policy_cap_enforced | `proof/nw008/at-08/evidence.json` | deterministic_policy_cap_enforced=PASS | PARTIAL_SUPPORTING_PROOF / HISTORICAL_AT_COMPLETE=NO | active mutation-execution trace showing second attempt refusal by policy |
-| AT-9 | tool_manifest_refusal_offline | `proof/nw008/at-09/evidence.json` | tool_manifest_refusal_offline=PASS | PARTIAL_SUPPORTING_PROOF / HISTORICAL_AT_COMPLETE=NO | durable audit warning under authorized audit sink (NW-005 Stage B not activated) |
+| AT-2 | blocked, AMBIGUOUS_CONTACT, 0_CRM_writes, MG_Guide_blocked_State_2_equivalent_decision_card | `proof/nw008/at-02/evidence.json` | blocked=PASS, AMBIGUOUS_CONTACT=PASS, 0_CRM_writes=PASS, MG_Guide_blocked_State_2_equivalent_decision_card=PASS | DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF / HISTORICAL_AT_COMPLETE=NO | FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED |
+| AT-4 | CONTACT_NOT_FOUND, blocked, 0_writes | `proof/nw008/at-04/evidence.json` | CONTACT_NOT_FOUND=PASS, blocked=PASS, 0_writes=PASS | DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF / HISTORICAL_AT_COMPLETE=NO | FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED |
+| AT-5 | extraction_below_threshold, LOW_EXTRACTION_CONFIDENCE, blocked, 0_writes | `proof/nw008/at-05/evidence.json` | extraction_below_threshold=PASS, LOW_EXTRACTION_CONFIDENCE=PASS, blocked=PASS, 0_writes=PASS | DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF / HISTORICAL_AT_COMPLETE=NO | FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED |
+| AT-8 | policy_cap_configuration_verified, single_intent_bound_behavior_verified, offline_second_attempt_model | `proof/nw008/at-08/evidence.json` | policy_cap_configuration_verified=PASS, single_intent_bound_behavior_verified=PASS, offline_second_attempt_model=PASS | PARTIAL_SUPPORTING_PROOF / HISTORICAL_AT_COMPLETE=NO | active authoritative mutation-execution trace showing the second attempt is refused by policy rather than agent choice or harness simulation |
+| AT-9 | tool_manifest_refusal_offline | `proof/nw008/at-09/evidence.json` | tool_manifest_refusal_offline=PASS | PARTIAL_SUPPORTING_PROOF / HISTORICAL_AT_COMPLETE=NO | durable audit warning under an authorized audit sink |
 
 ## Not executed in Tranche A
 

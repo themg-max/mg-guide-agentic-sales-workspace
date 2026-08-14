@@ -8,11 +8,13 @@
 - ACTUAL_WORKFLOW_STATUS: `policy_cap_evaluation`
 - AUTHORITATIVE_REASON_CODES: `[]`
 - CARD_POLICY_STATE / CARD_REASON_CODE / CARD_NEXT_ACTION: `NOT_APPLICABLE` / `NOT_APPLICABLE` / `NOT_APPLICABLE`
-- REMAINING_GAP: active mutation-execution trace showing second attempt refusal by policy
+- REMAINING_GAP: active authoritative mutation-execution trace showing the second attempt is refused by policy rather than agent choice or harness simulation
 
 ## Clause coverage
 
-- `deterministic_policy_cap_enforced`: **PASS**
+- `policy_cap_configuration_verified`: **PASS**
+- `single_intent_bound_behavior_verified`: **PASS**
+- `offline_second_attempt_model`: **PASS**
 
 ## Effect counters
 

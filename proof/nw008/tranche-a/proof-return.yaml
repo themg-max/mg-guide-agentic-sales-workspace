@@ -2,8 +2,17 @@ proof_id: nw008-tranche-a-offline-synthetic-acceptance-evidence-v1
 work_item: NW-008
 execution_unit: TRANCHE_A
 execution_mode: OFFLINE_SYNTHETIC_ACCEPTANCE_EVIDENCE
-commit_sha: b45495ffe455604cda8153462889740baad134f5
+implementation_subject_sha: e77c2ce42bdda4fdc049990d56d43958f49af73c
 generated_at_fixture_clock: '2026-08-14T12:00:00Z'
+purpose: DETERMINISTIC_ACCEPTANCE_EVIDENCE_SUBSTRATE
+deterministic_supporting_proofs:
+- AT-2
+- AT-4
+- AT-5
+partial_supporting_proofs:
+- AT-8
+- AT-9
+historical_at_complete: NONE
 authority:
   GHL_LIVE_CALLS_AUTHORIZED: 'NO'
   GHL_WRITES_AUTHORIZED: 'NO'
@@ -19,13 +28,6 @@ effect_counters:
   FIRESTORE_WRITES: 0
   EXTERNAL_EFFECTS: 0
   REAL_CUSTOMER_DATA: 0
-completion_candidates:
-- AT-2
-- AT-4
-- AT-5
-supporting_partial_proofs:
-- AT-8
-- AT-9
 blocked_not_executed:
 - AT-1
 - AT-3
@@ -33,10 +35,11 @@ blocked_not_executed:
 - AT-7
 deferred_not_executed:
 - AT-10
+next_future_tranche: LONGITUDINAL_SYNTHETIC_AGENT_FLEET_REPLAY
 results:
   AT-2:
-    EVIDENCE_CLASS: COMPLETION_CANDIDATE
-    HISTORICAL_AT_COMPLETE: 'YES'
+    EVIDENCE_CLASS: DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF
+    HISTORICAL_AT_COMPLETE: 'NO'
     TEST_RESULT: PASS
     SOURCE_FIXTURE: transcript-ambiguous-contact.expected.json
     INPUT_HASH: a0a49c3b8df4eec7eb1c7587371d29c3659e74df3c2dd63ea52caea50496e5e9
@@ -51,11 +54,12 @@ results:
       AMBIGUOUS_CONTACT: PASS
       0_CRM_writes: PASS
       MG_Guide_blocked_State_2_equivalent_decision_card: PASS
-    REMAINING_GAP: ''
+    REMAINING_GAP: FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED
+    implementation_subject_sha: e77c2ce42bdda4fdc049990d56d43958f49af73c
     evidence_path: proof/nw008/at-02/evidence.json
   AT-4:
-    EVIDENCE_CLASS: COMPLETION_CANDIDATE
-    HISTORICAL_AT_COMPLETE: 'YES'
+    EVIDENCE_CLASS: DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF
+    HISTORICAL_AT_COMPLETE: 'NO'
     TEST_RESULT: PASS
     SOURCE_FIXTURE: transcript-contact-not-found.expected.json
     INPUT_HASH: 854967e6c58ab78be7514c0bd39fcfe36385250fe3fd8c01f836d4ba53a7e80c
@@ -69,11 +73,12 @@ results:
       CONTACT_NOT_FOUND: PASS
       blocked: PASS
       0_writes: PASS
-    REMAINING_GAP: ''
+    REMAINING_GAP: FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED
+    implementation_subject_sha: e77c2ce42bdda4fdc049990d56d43958f49af73c
     evidence_path: proof/nw008/at-04/evidence.json
   AT-5:
-    EVIDENCE_CLASS: COMPLETION_CANDIDATE
-    HISTORICAL_AT_COMPLETE: 'YES'
+    EVIDENCE_CLASS: DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF
+    HISTORICAL_AT_COMPLETE: 'NO'
     TEST_RESULT: PASS
     SOURCE_FIXTURE: transcript-insufficient-context.expected.json
     INPUT_HASH: bd9f7e1dc2e9ee3b1d8f8311e67630226f80424b2f980da37908d61f23157388
@@ -88,7 +93,8 @@ results:
       LOW_EXTRACTION_CONFIDENCE: PASS
       blocked: PASS
       0_writes: PASS
-    REMAINING_GAP: ''
+    REMAINING_GAP: FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED
+    implementation_subject_sha: e77c2ce42bdda4fdc049990d56d43958f49af73c
     evidence_path: proof/nw008/at-05/evidence.json
   AT-8:
     EVIDENCE_CLASS: PARTIAL_SUPPORTING_PROOF
@@ -102,9 +108,12 @@ results:
     CARD_REASON_CODE: NOT_APPLICABLE
     CARD_NEXT_ACTION: NOT_APPLICABLE
     HISTORICAL_CLAUSE_COVERAGE:
-      deterministic_policy_cap_enforced: PASS
-    REMAINING_GAP: active mutation-execution trace showing second attempt refusal
-      by policy
+      policy_cap_configuration_verified: PASS
+      single_intent_bound_behavior_verified: PASS
+      offline_second_attempt_model: PASS
+    REMAINING_GAP: active authoritative mutation-execution trace showing the second
+      attempt is refused by policy rather than agent choice or harness simulation
+    implementation_subject_sha: e77c2ce42bdda4fdc049990d56d43958f49af73c
     evidence_path: proof/nw008/at-08/evidence.json
   AT-9:
     EVIDENCE_CLASS: PARTIAL_SUPPORTING_PROOF
@@ -119,8 +128,8 @@ results:
     CARD_NEXT_ACTION: NOT_APPLICABLE
     HISTORICAL_CLAUSE_COVERAGE:
       tool_manifest_refusal_offline: PASS
-    REMAINING_GAP: durable audit warning under authorized audit sink (NW-005 Stage
-      B not activated)
+    REMAINING_GAP: durable audit warning under an authorized audit sink
+    implementation_subject_sha: e77c2ce42bdda4fdc049990d56d43958f49af73c
     evidence_path: proof/nw008/at-09/evidence.json
 non_claims:
   POLICY_SEMANTICS_CHANGE: 'NO'
