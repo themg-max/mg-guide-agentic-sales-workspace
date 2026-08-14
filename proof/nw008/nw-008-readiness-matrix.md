@@ -74,27 +74,29 @@
 | BLOCKED | AT-1, AT-3, AT-6, AT-7 |
 | DEFERRED | AT-10 |
 
-**Recommended first executable tranche:** `AT-2, AT-4, AT-5, AT-8, AT-9`
+**Offline executable candidates (not a Tranche C claim):** `AT-2, AT-4, AT-5, AT-8, AT-9`
 
-This tranche is preferred because it:
+These candidates are preferred because they:
 
-- requires no new mutation authority;
-- uses synthetic / approved data only;
-- demonstrates transcript → agents → deterministic policy → decision card;
+- require no new mutation authority;
+- use synthetic / approved data only;
+- demonstrate transcript → agents → deterministic policy → decision card;
 - can produce strong judge-visible evidence;
-- avoids AT-6 / AT-7 write-path behavior;
-- does not imply Firestore writes without NW-005 Stage B authorization.
+- avoid AT-6 / AT-7 write-path behavior;
+- do not imply Firestore writes without NW-005 Stage B authorization.
 
 **Tranche C (PLANNED — not started):** historical failure-path agent-fleet
-acceptance replay of `AT-2, AT-4, AT-5` entering through the provider-neutral
-`TRANSCRIPT_SOURCE_ENVELOPE_V1` boundary
+acceptance replay of **exactly** `AT-2, AT-4, AT-5` entering through the
+provider-neutral `TRANSCRIPT_SOURCE_ENVELOPE_V1` boundary
 ([`nw-008-tranche-c-implementation-packet.md`](./nw-008-tranche-c-implementation-packet.md)).
-AT-8 / AT-9 partial proof and the future Google Workspace transcript adapter
-(`FUTURE_NOT_IMPLEMENTED`, `NOT_AUTHORIZED_IN_TRANCHE_C`) are out of Tranche C
-scope.
+`AT-8` / `AT-9` are offline candidates but **excluded** from Tranche C.
+Future Google Workspace transcript adapter remains
+`FUTURE_NOT_IMPLEMENTED` / `NOT_AUTHORIZED_IN_TRANCHE_C`.
 
 ```text
-NW008_FIRST_EXECUTABLE_TRANCHE=AT-2,AT-4,AT-5,AT-8,AT-9
+NW008_OFFLINE_EXECUTABLE_CANDIDATES=AT-2,AT-4,AT-5,AT-8,AT-9
+NW008_TRANCHE_C_TARGETS=AT-2,AT-4,AT-5
+NW008_TRANCHE_C_EXCLUDES=AT-8,AT-9
 NW008_TRANCHE_REQUIRES_NEW_AUTHORIZATION=NO
 NW008_TRANCHE_B_STATUS=MERGED_COMPLETE
 FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_GAP=CLOSED
@@ -102,7 +104,13 @@ NW008_OVERALL_STATUS=IN_PROGRESS
 TRANCHE_C_STATUS=PLANNED
 TRANCHE_C_EXECUTION_STARTED=NO
 TRANSCRIPT_SOURCE_CONTRACT=TRANSCRIPT_SOURCE_ENVELOPE_V1
+TRANSCRIPT_SOURCE_ACCESS_CONTEXT_MODELED=YES
+MG_GUIDE_ADD_ON_GRANT_MODELED=YES
+GOOGLE_WORKSPACE_ADAPTER_STATUS=FUTURE_NOT_IMPLEMENTED
 GOOGLE_WORKSPACE_TRANSCRIPT_ADAPTER=FUTURE_NOT_IMPLEMENTED
+AUTHORITATIVE_REASON_SOURCE=WORKFLOW_POLICY
+NW007_CARD_SEMANTICS_CHANGE=NO
+PER_SCENARIO_EXECUTION=SHORT_CIRCUIT_AT_FIRST_GOVERNED_FAILURE
 NW005_STAGE_B_STATUS=PLANNED_NOT_AUTHORIZED
 NW013_STATUS=AUTHORIZED_NOT_EXECUTED
 GHL_WRITES_AUTHORIZED=NO
@@ -177,5 +185,5 @@ For each AT marked for execution under a future authorized unit:
 ## STOP
 
 ```text
-STOP_CODE=NW008_REVISED_TRANCHE_C_TRANSCRIPT_SOURCE_PLAN_READY_FOR_REVIEW
+STOP_CODE=NW008_TRANCHE_C_PLAN_FROZEN_READY_FOR_IMPLEMENTATION
 ```

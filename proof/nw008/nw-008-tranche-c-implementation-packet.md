@@ -34,10 +34,19 @@ DATA_CLASS=SYNTHETIC_ONLY
 TRANCHE_C_STATUS=PLANNED
 TRANCHE_C_EXECUTION_STARTED=NO
 
-AGENT_CHAIN:
+NW008_OFFLINE_EXECUTABLE_CANDIDATES=AT-2,AT-4,AT-5,AT-8,AT-9
+NW008_TRANCHE_C_TARGETS=AT-2,AT-4,AT-5
+NW008_TRANCHE_C_EXCLUDES=AT-8,AT-9
+
+AVAILABLE_FLEET_PATH=
 Meeting Context Agent
-Relationship Context Agent
-Follow-Up Planning Agent
+→ Relationship Context Agent
+→ Follow-Up Planning Agent
+
+PER_SCENARIO_EXECUTION=SHORT_CIRCUIT_AT_FIRST_GOVERNED_FAILURE
+
+AUTHORITATIVE_REASON_SOURCE=WORKFLOW_POLICY
+NW007_CARD_SEMANTICS_CHANGE=NO
 
 POLICY_AUTHORITY=DETERMINISTIC_POLICY_ONLY
 
@@ -53,6 +62,7 @@ REAL_CUSTOMER_DATA=FORBIDDEN
 
 GOOGLE_WORKSPACE_TRANSCRIPT_ADAPTER=FUTURE_NOT_IMPLEMENTED
 GOOGLE_WORKSPACE_RUNTIME=NOT_AUTHORIZED_IN_TRANCHE_C
+GOOGLE_WORKSPACE_ADAPTER_STATUS=FUTURE_NOT_IMPLEMENTED
 ```
 
 ## Why this packet is revised
@@ -82,12 +92,34 @@ source-specific acquisition.
 ```text
 source
 ownership
+access_context
 meeting
 artifact
 data_classification
 provenance
 content
 security
+```
+
+### Minimal source access reference (`access_context`)
+
+Logical fields only — do **not** import any private fleet-policy contract:
+
+```text
+access_context
+  grant_model
+  source_access_grant_ref
+  owner_bound
+  resource_scope
+  valid
+```
+
+Tranche C uses **synthetic values only** for `access_context`. No OAuth, no
+Drive API, no live grant evaluation, and no private grant-contract import.
+
+```text
+MG_GUIDE_ADD_ON_GRANT_MODELED=YES
+TRANSCRIPT_SOURCE_ACCESS_CONTEXT_MODELED=YES
 ```
 
 ### Required invariants
@@ -123,6 +155,8 @@ All Google Workspace behavior is:
 ```text
 FUTURE_NOT_IMPLEMENTED
 NOT_AUTHORIZED_IN_TRANCHE_C
+GOOGLE_WORKSPACE_ADAPTER_STATUS=FUTURE_NOT_IMPLEMENTED
+GOOGLE_WORKSPACE_RUNTIME=NOT_AUTHORIZED_IN_TRANCHE_C
 ```
 
 ### Explicit non-goals for Tranche C
@@ -131,23 +165,28 @@ Do **not** add:
 
 - Google OAuth
 - Drive API calls
-- Google Workspace permissions
+- Google Workspace permissions / scopes implementation
 - folder discovery runtime
 - real transcript reads
 - domain user data
+- private fleet-policy contract import
 
 ## Future domain workspace note (planning-only architecture)
 
 ```text
 Google Meet
-→ authorized domain-user Drive transcript location
-→ future Google Workspace transcript intake adapter
+→ user-owned/user-authorized Workspace resource
+→ MG Guide add-on scoped source-access grant
+→ FUTURE Google Workspace transcript intake adapter
 → TRANSCRIPT_SOURCE_ENVELOPE_V1
 → meeting_follow_up_v1
 ```
 
 ```text
+GOOGLE_WORKSPACE_ADAPTER_STATUS=FUTURE_NOT_IMPLEMENTED
 GOOGLE_WORKSPACE_TRANSCRIPT_ADAPTER=FUTURE_NOT_IMPLEMENTED
+GOOGLE_WORKSPACE_RUNTIME=NOT_AUTHORIZED_IN_TRANCHE_C
+MG_GUIDE_ADD_ON_GRANT_MODELED=YES
 ```
 
 The future adapter will later own:
@@ -163,7 +202,7 @@ The future adapter will later own:
 Agents will **NOT** own Google Drive discovery or credentials. The fleet
 boundary remains the envelope; swapping the synthetic fixture provider for the
 future adapter must not change fleet processing, policy semantics, or the
-historical AT definitions.
+historical AT definitions. No OAuth/API/scope implementation in Tranche C.
 
 ## Historical acceptance definitions (unchanged)
 
@@ -180,17 +219,47 @@ Historical AT definitions remain verbatim from
 Tranche C replay targets these **unchanged** definitions only:
 
 ```text
-AT-2: blocked / AMBIGUOUS_CONTACT / CRM_WRITES=0
+NW008_TRANCHE_C_TARGETS=AT-2,AT-4,AT-5
+NW008_TRANCHE_C_EXCLUDES=AT-8,AT-9
+
+AT-2: blocked / AMBIGUOUS_CONTACT / CRM_WRITES=0 / MG Guide card State 2
 AT-4: blocked / CONTACT_NOT_FOUND / CRM_WRITES=0
 AT-5: blocked / LOW_EXTRACTION_CONFIDENCE / CRM_WRITES=0
+```
+
+### Card claim boundary (AT-4 / AT-5)
+
+```text
+AUTHORITATIVE_REASON_SOURCE=WORKFLOW_POLICY
+NW007_CARD_SEMANTICS_CHANGE=NO
+```
+
+- Authoritative reason codes for AT-2 / AT-4 / AT-5 come from workflow /
+  deterministic policy — **not** invented NW-007 card presentation semantics.
+- Only **AT-2** historically requires MG Guide card State 2.
+- AT-4 and AT-5 do **not** claim named NW-007 card scenario semantics beyond
+  what the existing card surface already exposes.
+- Unsupported reason tuples may fail closed under existing NW-007 semantics.
+- Do **not** alter historical AT definitions and do **not** change the NW-007
+  decision-card mapper to invent presentation semantics.
+
+### Fleet execution language
+
+```text
+AVAILABLE_FLEET_PATH=
+Meeting Context Agent
+→ Relationship Context Agent
+→ Follow-Up Planning Agent
+
+PER_SCENARIO_EXECUTION=SHORT_CIRCUIT_AT_FIRST_GOVERNED_FAILURE
 ```
 
 ### Architectural rule
 
 Do **not** force downstream agents to execute after the correct governed
 failure boundary merely to claim fleet execution. When the governed failure
-boundary is reached, the run stops there; the proof records which agents
-started and completed up to that boundary.
+boundary is reached, the run short-circuits there; the proof records which
+agents started and completed up to that boundary.
 
 ### Required proof fields (per replayed AT run)
 
@@ -235,7 +304,7 @@ boundary. Do **not** pre-mark obligations PASS.
 | TC-17 | Deterministic / replay-safe proof: normalized semantic snapshots compared across bounded runs | TODO |
 | TC-18 | REAL_CUSTOMER_DATA=0; synthetic fixture safety validation passes (`contains_real_customer_data=false`, `permitted_for_public_proof=true`) | TODO |
 | TC-19 | Historical AT definitions unchanged (foundation §17 verbatim; no silent revision) | TODO |
-| TC-20 | TRANSCRIPT_SOURCE_PROVENANCE_PRESERVED — source/ownership/provenance fields survive intake into fleet processing unaltered | TODO |
+| TC-20 | TRANSCRIPT_SOURCE_PROVENANCE_PRESERVED — source, ownership, access reference (`access_context`), and provenance survive intake into fleet processing unaltered | TODO |
 | TC-21 | TRANSCRIPT_CONTENT_HAS_NO_INSTRUCTION_AUTHORITY — envelope content treated as data only (`treat_content_as_data_only=true`, `instruction_authority=false`) | TODO |
 | TC-22 | HISTORICAL_COMPLETION_CLAIMS_EXACT — completion claims match the unchanged historical AT clauses exactly; no over-claim | TODO |
 
@@ -245,17 +314,22 @@ Tranche C is intended to evidence the historical **failure paths** through the
 provider-neutral transcript source boundary:
 
 ```text
-AT-2: blocked / AMBIGUOUS_CONTACT / CRM_WRITES=0
+AT-2: blocked / AMBIGUOUS_CONTACT / CRM_WRITES=0 / MG Guide card State 2
 AT-4: blocked / CONTACT_NOT_FOUND / CRM_WRITES=0
 AT-5: blocked / LOW_EXTRACTION_CONFIDENCE / CRM_WRITES=0
+
+AUTHORITATIVE_REASON_SOURCE=WORKFLOW_POLICY
+NW007_CARD_SEMANTICS_CHANGE=NO
 ```
 
 Do **not** mark any historical AT complete unless every clause of its
-unchanged historical definition is evidenced, including the MG Guide card
-state clause where the historical definition requires it. AT-1 / AT-3 /
-AT-6 / AT-7 remain write-path blocked; AT-8 / AT-9 remain partial; AT-10
-remains deferred behind NW-005 Stage B authority. None of those postures
-change in Tranche C.
+unchanged historical definition is evidenced. Only AT-2 historically requires
+the MG Guide card State 2 clause; AT-4 / AT-5 completion claims rest on
+workflow/policy reason codes and zero-write guarantees, not invented NW-007
+named card semantics. AT-1 / AT-3 / AT-6 / AT-7 remain write-path blocked;
+AT-8 / AT-9 remain partial and are **excluded** from Tranche C
+(`NW008_TRANCHE_C_EXCLUDES=AT-8,AT-9`); AT-10 remains deferred behind NW-005
+Stage B authority. None of those postures change in Tranche C.
 
 ## Non-goals (enforced)
 
@@ -285,9 +359,19 @@ MG_MCP_WRITES=NO
 ## STOP
 
 ```text
+NW008_TRANCHE_C_TARGETS=AT-2,AT-4,AT-5
+NW008_TRANCHE_C_EXCLUDES=AT-8,AT-9
 TRANSCRIPT_SOURCE_CONTRACT=TRANSCRIPT_SOURCE_ENVELOPE_V1
+TRANSCRIPT_SOURCE_ACCESS_CONTEXT_MODELED=YES
+MG_GUIDE_ADD_ON_GRANT_MODELED=YES
 GOOGLE_WORKSPACE_ADAPTER_STATUS=FUTURE_NOT_IMPLEMENTED
+GOOGLE_WORKSPACE_RUNTIME=NOT_AUTHORIZED_IN_TRANCHE_C
+AUTHORITATIVE_REASON_SOURCE=WORKFLOW_POLICY
+NW007_CARD_SEMANTICS_CHANGE=NO
+PER_SCENARIO_EXECUTION=SHORT_CIRCUIT_AT_FIRST_GOVERNED_FAILURE
 TRANCHE_C_STATUS=PLANNED
 TRANCHE_C_EXECUTION_STARTED=NO
-STOP_CODE=NW008_REVISED_TRANCHE_C_TRANSCRIPT_SOURCE_PLAN_READY_FOR_REVIEW
+APPLICATION_CODE_CHANGED=NO
+READY_FOR_TRANCHE_C_IMPLEMENTATION=YES
+STOP_CODE=NW008_TRANCHE_C_PLAN_FROZEN_READY_FOR_IMPLEMENTATION
 ```

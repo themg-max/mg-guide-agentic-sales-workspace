@@ -187,11 +187,22 @@ TRANCHE_C_EXECUTION_STARTED=NO
 TRANCHE_C_PURPOSE=HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY
 REUSABILITY_OBJECTIVE=PROVE_FAILURE_PATHS_THROUGH_PROVIDER_NEUTRAL_TRANSCRIPT_SOURCE_BOUNDARY
 
+NW008_OFFLINE_EXECUTABLE_CANDIDATES=AT-2,AT-4,AT-5,AT-8,AT-9
+NW008_TRANCHE_C_TARGETS=AT-2,AT-4,AT-5
+NW008_TRANCHE_C_EXCLUDES=AT-8,AT-9
+
 TRANSCRIPT_SOURCE_CONTRACT=TRANSCRIPT_SOURCE_ENVELOPE_V1
+TRANSCRIPT_SOURCE_ACCESS_CONTEXT_MODELED=YES
+MG_GUIDE_ADD_ON_GRANT_MODELED=YES
 COMPETITION_SOURCE=synthetic_fixture/synthetic/fixture
 FUTURE_OPERATIONAL_SOURCE=google_workspace_meet_transcript/google_workspace/authorized_drive_read
+GOOGLE_WORKSPACE_ADAPTER_STATUS=FUTURE_NOT_IMPLEMENTED
 GOOGLE_WORKSPACE_TRANSCRIPT_ADAPTER=FUTURE_NOT_IMPLEMENTED
 GOOGLE_WORKSPACE_RUNTIME=NOT_AUTHORIZED_IN_TRANCHE_C
+
+AUTHORITATIVE_REASON_SOURCE=WORKFLOW_POLICY
+NW007_CARD_SEMANTICS_CHANGE=NO
+PER_SCENARIO_EXECUTION=SHORT_CIRCUIT_AT_FIRST_GOVERNED_FAILURE
 
 NEW_AGENT=NO
 POLICY_SEMANTICS_CHANGE=NO
@@ -202,7 +213,7 @@ REAL_CUSTOMER_DATA=FORBIDDEN
 ```
 
 - Planning artifact: `proof/nw008/nw-008-tranche-c-implementation-packet.md`
-- Future domain workspace note (planning only): Google Meet → authorized domain-user Drive transcript location → future Google Workspace transcript intake adapter → `TRANSCRIPT_SOURCE_ENVELOPE_V1` → `meeting_follow_up_v1`; the adapter will later own file discovery, authenticated Drive read, tenant/user ownership binding, transcript file identity, timestamps, transcript hashing, and ingestion status; agents will **not** own Google Drive discovery or credentials
+- Future domain workspace note (planning only): Google Meet → user-owned/user-authorized Workspace resource → MG Guide add-on scoped source-access grant → FUTURE Google Workspace transcript intake adapter → `TRANSCRIPT_SOURCE_ENVELOPE_V1` → `meeting_follow_up_v1`; the adapter will later own file discovery, authenticated Drive read, tenant/user ownership binding, transcript file identity, timestamps, transcript hashing, and ingestion status; agents will **not** own Google Drive discovery or credentials; no OAuth/API/scope implementation in Tranche C
 
 
 ## NW-013 canonical synthetic-read binding (AUTHORIZED_NOT_EXECUTED)
