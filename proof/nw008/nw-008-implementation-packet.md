@@ -39,10 +39,16 @@ NW006_EXACT_HEAD_CI_RUN=31630399411
 NW006_EXACT_HEAD_CI_RESULT=SUCCESS
 NW006_MERGE_SHA=e22eb861442a37be0797d6d7aec8bb17001fb7a3
 NW006_MERGED_AT=2026-08-12T19:12:33Z
+NW007_STATUS=MERGED_COMPLETE
+NW007_PR=37
+NW007_FINAL_REVIEWED_HEAD=22a3b0b3c20373100ca0158cda7a74b4fbc1fb76
+NW007_MERGE_SHA=f0fe64f1ed1ddab7adb0252ccd4aabb74fe65aa6
+NW007_MERGED_AT=2026-08-14T09:35:35Z
+NW007_STAGE_B2_DEPLOYMENT_EVIDENCE=AVAILABLE
+NW007_DEPLOYMENT_AUTHORIZATION=NO
 EXTERNAL_EFFECTS=0
 
 NW005_STATUS=PLANNED
-NW007_STATUS=PLANNED
 NW013_STATUS=AUTHORIZED_NOT_EXECUTED
 GHL_WRITES_AUTHORIZED=NO
 ISOLATED_GHL_TEST_LOCATION=NO
@@ -57,7 +63,7 @@ Recorded competition sequence for remaining work. Each arrow is a **separately
 governed** unit; later units must not start by inventing authority.
 
 ```text
-1) NW-006 closeout                          [THIS DOCS UNIT — MERGED_COMPLETE]
+1) NW-006 closeout                          [MERGED_COMPLETE]
         ↓
 2) optional NW-013 bounded synthetic        [AUTHORIZED_NOT_EXECUTED today]
    live-read execution (exact-ID allowlist;
@@ -68,15 +74,16 @@ governed** unit; later units must not start by inventing authority.
    authorization + implementation
    (workflow_runs/{run_id}; no CRM writes)
         ↓
-4) NW-007 bounded Cloud Run / test          [PLANNED]
-   deployment (activation authority required;
-   still no production CRM writes)
-        ↓
+4) NW-007 bounded Cloud Run / test          [MERGED_COMPLETE — evidence exists,
+   no new deployment authorization claim]    deployment proof remains staged
+   under the governing lane; no production
+   CRM writes by merge fact alone
+       ↓
 5) NW-008 final acceptance / demo proof     [PLANNED — this packet]
    AT-1…AT-10 evidence + §18 demo binding
    under whatever mutation posture is then
    honestly available
-        ↓
+       ↓
 6) CRM mutation only under a future         [NOT AUTHORIZED NOW]
    separately authorized safe-environment
    lane (not the canonical customer location;
