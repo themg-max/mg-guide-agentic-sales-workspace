@@ -113,7 +113,7 @@
     "completed": true,
     "external_effects": 0,
     "run_id": "nw008_tranche_c_at-05",
-    "session_id": "a13d9be0-85a1-42b2-8172-b4c1e50df3bb",
+    "session_id": "325c34d3-edd4-4fb7-afc7-f78e5528e6f1",
     "started": true,
     "state_keys": [
       "agent_execution",
@@ -123,7 +123,6 @@
       "follow_up_policy_gate_invoked",
       "follow_up_proposal",
       "governed_stop",
-      "governed_stop_profile",
       "meeting_context",
       "mutation_execution",
       "relationship_context",

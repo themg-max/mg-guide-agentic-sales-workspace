@@ -4,7 +4,7 @@
 | --- | --- |
 | Execution unit | TRANCHE_C |
 | Purpose | HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY |
-| Implementation subject SHA | `a8715dcdeaa58f8404766f39db4e4dea289f951e` |
+| Implementation subject SHA | `49b567c35cc2923e6faa6829e9967b8c089f402b` |
 | Transcript source contract | TRANSCRIPT_SOURCE_ENVELOPE_V1 |
 | Targets | AT-2, AT-4, AT-5 |
 | Excludes | AT-8, AT-9 |
@@ -20,6 +20,12 @@
 - `PACKET_ENTRYPOINT` = `agents.follow_up_planning.packet.FollowUpPacketAssembler.assemble`
 - `DECISION_CARD_ENTRYPOINT` = `mg_guide.meeting_follow_up_card.decision_mapper.map_packet_to_decision_card`
 - `TRANSCRIPT_SOURCE_ENTRYPOINT` = `orchestration.transcript_source.envelope_to_provider_request`
+
+## Trace semantics
+
+- `AGENTS_STARTED` = ADK wrapper visitation (each sub-agent wrapper was entered by the SequentialAgent).
+- `agent_execution[<agent_id>].delegate_called` = actual business-agent execution truth.
+- `AUTHORITATIVE_STOP_SOURCE` = `STATE_MACHINE_WORKFLOW_CONTRACT`; the harness has no enforcement authority (`governed_stop_profile` input removed); reason codes are derived from the StateMachine transition contract.
 
 ## Proof obligations
 
@@ -43,7 +49,7 @@
 | TC-16 | PASS | Existing fleet entrypoints reused; no new runtime agent IDs observed |
 | TC-17 | PASS | Deterministic replay result=PASS |
 | TC-18 | PASS | Synthetic-only envelope invariants verified from fixture envelopes |
-| TC-19 | PASS | canonical AT-2/AT-4/AT-5 definitions verified in contracts/workflow_states.yaml |
+| TC-19 | PASS | FOUNDATION_DEFINITIONS_UNCHANGED=true (docs/MEETING_FOLLOW_UP_FOUNDATION.md §17 AT-2/AT-4/AT-5 clauses exact); WORKFLOW_CONTRACT_ALIGNED=true (contracts/workflow_states.yaml transitions carry canonical reason codes) |
 | TC-20 | PASS | TRANSCRIPT_CONTENT_HASH and ENVELOPE_DIGEST verified; source/ownership/access_context/provenance preserved |
 | TC-21 | PASS | All envelopes enforce treat_content_as_data_only=true and instruction_authority=false |
 | TC-22 | PASS | AT-2 State-2-equivalent card semantics: policy_state=BLOCKED, policy_reason_code=AMBIGUOUS_CONTACT, next_action=RESOLVE_CONTACT |

@@ -1,6 +1,6 @@
 execution_unit: TRANCHE_C
 purpose: HISTORICAL_FAILURE_PATH_AGENT_FLEET_ACCEPTANCE_REPLAY
-implementation_subject_sha: a8715dcdeaa58f8404766f39db4e4dea289f951e
+implementation_subject_sha: 49b567c35cc2923e6faa6829e9967b8c089f402b
 transcript_source_contract: TRANSCRIPT_SOURCE_ENVELOPE_V1
 authoritative_stop_source: STATE_MACHINE_WORKFLOW_CONTRACT
 targets:
@@ -285,9 +285,11 @@ proof_obligations:
     REMAINING_GAP: ''
   TC-19:
     STATUS: PASS
-    EVIDENCE_PATH: contracts/workflow_states.yaml | src/orchestration/nw008_tranche_c.py
-      | contracts/nw008_tranche_c_proof_return.schema.json
-    DETAIL: canonical AT-2/AT-4/AT-5 definitions verified in contracts/workflow_states.yaml
+    EVIDENCE_PATH: docs/MEETING_FOLLOW_UP_FOUNDATION.md | contracts/workflow_states.yaml
+      | src/orchestration/nw008_tranche_c.py | contracts/nw008_tranche_c_proof_return.schema.json
+    DETAIL: FOUNDATION_DEFINITIONS_UNCHANGED=true (docs/MEETING_FOLLOW_UP_FOUNDATION.md
+      §17 AT-2/AT-4/AT-5 clauses exact); WORKFLOW_CONTRACT_ALIGNED=true (contracts/workflow_states.yaml
+      transitions carry canonical reason codes)
     REMAINING_GAP: ''
   TC-20:
     STATUS: PASS
