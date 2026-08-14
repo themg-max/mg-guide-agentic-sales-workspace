@@ -11,6 +11,17 @@ NEXT_ACTION_LABELS = {
     "RESOLVE_CONTACT": "Resolve contact",
     "REVIEW_REQUIRED_UNKNOWN_STATE": "Review required (unrecognized state)",
 }
+SUPPORTED_WORKFLOW_STATUSES = {
+    "received",
+    "extracting",
+    "resolving",
+    "evaluating",
+    "writing",
+    "completed",
+    "completed_with_review",
+    "blocked",
+    "failed",
+}
 
 
 def _render_li(items: Any) -> str:
@@ -20,6 +31,12 @@ def _render_li(items: Any) -> str:
     return "".join(f"<li>{escape(item, quote=True)}</li>" for item in values)
 
 
+def _safe_workflow_status(value: Any) -> str:
+    if isinstance(value, str) and value in SUPPORTED_WORKFLOW_STATUSES:
+        return value
+    return "unknown"
+
+
 def _next_action_display(value: Any) -> str:
     if value in NEXT_ACTION_LABELS:
         return NEXT_ACTION_LABELS[value]
@@ -27,8 +44,8 @@ def _next_action_display(value: Any) -> str:
 
 
 def _external_effects_display(value: Any) -> str:
-    if isinstance(value, int) and not isinstance(value, bool):
-        return str(value)
+    if type(value) is int and value == 0:
+        return "0"
     return "unknown"
 
 
@@ -38,9 +55,7 @@ def render_decision_card_html(card: Any) -> str:
     else:
         rendered = dict(card)
 
-    external_effects_display = _external_effects_display(
-        rendered.get("external_effects")
-    )
+    external_effects_display = _external_effects_display(rendered.get("external_effects"))
     if isinstance(rendered.get("agent_contributions"), list):
         agent_contributions = rendered["agent_contributions"]
     else:
@@ -49,7 +64,7 @@ def render_decision_card_html(card: Any) -> str:
     return (
         "<section class='mg-guide-decision-card'>"
         f"<h1>MG Guide Decision Card</h1>"
-        f"<p><strong>Workflow status:</strong> {escape(str(rendered.get('workflow_status', 'unknown')), quote=True)}</p>"
+        f"<p><strong>Workflow status:</strong> {escape(_safe_workflow_status(rendered.get('workflow_status')), quote=True)}</p>"
         f"<p><strong>Agent contributions:</strong></p><ul>{_render_li(agent_contributions)}</ul>"
         f"<p><strong>Policy state:</strong> {escape(str(rendered.get('policy_state', 'unknown')), quote=True)}</p>"
         f"<p><strong>Policy reason code:</strong> {escape(str(rendered.get('policy_reason_code', 'unknown')), quote=True)}</p>"

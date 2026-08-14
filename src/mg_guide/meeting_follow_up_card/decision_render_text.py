@@ -10,6 +10,17 @@ NEXT_ACTION_LABELS = {
     "RESOLVE_CONTACT": "Resolve contact",
     "REVIEW_REQUIRED_UNKNOWN_STATE": "Review required (unrecognized state)",
 }
+SUPPORTED_WORKFLOW_STATUSES = {
+    "received",
+    "extracting",
+    "resolving",
+    "evaluating",
+    "writing",
+    "completed",
+    "completed_with_review",
+    "blocked",
+    "failed",
+}
 
 
 def _render_list(values: Iterable[str]) -> str:
@@ -19,6 +30,12 @@ def _render_list(values: Iterable[str]) -> str:
     return "; ".join(entries)
 
 
+def _safe_workflow_status(value: Any) -> str:
+    if isinstance(value, str) and value in SUPPORTED_WORKFLOW_STATUSES:
+        return value
+    return "unknown"
+
+
 def _next_action_display(value: Any) -> str:
     if value in NEXT_ACTION_LABELS:
         return NEXT_ACTION_LABELS[value]
@@ -26,8 +43,8 @@ def _next_action_display(value: Any) -> str:
 
 
 def _external_effects_display(value: Any) -> str:
-    if isinstance(value, int) and not isinstance(value, bool):
-        return str(value)
+    if type(value) is int and value == 0:
+        return "0"
     return "unknown"
 
 
@@ -39,7 +56,7 @@ def render_decision_card_text(card: Any) -> str:
 
     lines = [
         "MG Guide Decision Card",
-        f"Workflow status: {rendered.get('workflow_status', 'unknown')}",
+        f"Workflow status: {_safe_workflow_status(rendered.get('workflow_status'))}",
         f"Agent contributions: {_render_list(rendered.get('agent_contributions', []))}",
         f"Policy state: {rendered.get('policy_state', 'unknown')}",
         f"Policy reason code: {rendered.get('policy_reason_code', 'unknown')}",

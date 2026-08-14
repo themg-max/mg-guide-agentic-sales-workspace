@@ -17,7 +17,7 @@ def test_render_decision_card_text_includes_required_fields_without_crm_ids():
 
     assert "Workflow status:" in rendered
     assert "Agent contributions:" in rendered
-    assert "Meeting Context Agent" in rendered
+    assert "Meeting Context Agent — present in packet audit" in rendered
     assert "Policy state:" in rendered
     assert "Policy reason code:" in rendered
     assert "Policy explanation:" in rendered

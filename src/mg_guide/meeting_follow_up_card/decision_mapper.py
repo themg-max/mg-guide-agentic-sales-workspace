@@ -1,13 +1,12 @@
 """Deterministic mapper for the NW-007 follow-up decision card.
 
-Atomic scenario classification: only the exact supported
-(workflow_status, reason_codes, external_effects) tuples map to a named
-scenario. Everything else fails closed to REVIEW_REQUIRED.
+Only exact packet-supported tuples are classified as named scenarios. Every
+malformed, unsupported, or inconsistent combination fails closed.
 """
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping
+from typing import Any, List, Mapping
 
 from .decision_models import DecisionCard
 
@@ -19,12 +18,8 @@ POLICY_EXPLANATION_AMBIGUOUS_CONTACT = (
     "The contact could not be matched unambiguously. "
     "Resolve the contact identity before proceeding."
 )
-POLICY_EXPLANATION_SUCCESS_NO_BLOCKER = (
-    "Policy evaluation completed with no blocking reason code."
-)
-POLICY_EXPLANATION_UNKNOWN = (
-    "An unrecognized workflow or policy state requires human review."
-)
+POLICY_EXPLANATION_SUCCESS_NO_BLOCKER = "Policy evaluation completed with no blocking reason code."
+POLICY_EXPLANATION_UNKNOWN = "An unrecognized workflow or policy state requires human review."
 
 NEXT_ACTION_ENUM = (
     "REVIEW_FOLLOW_UP",
@@ -34,7 +29,17 @@ NEXT_ACTION_ENUM = (
 )
 
 KNOWN_REASON_CODES = ("STAGE_TRANSITION_NOT_ALLOWED", "AMBIGUOUS_CONTACT")
-
+KNOWN_WORKFLOW_STATUSES = {
+    "received",
+    "extracting",
+    "resolving",
+    "evaluating",
+    "writing",
+    "completed",
+    "completed_with_review",
+    "blocked",
+    "failed",
+}
 KNOWN_AGENT_LABELS = {
     "meeting_context_agent": "Meeting Context Agent",
     "relationship_context_agent": "Relationship Context Agent",
@@ -74,9 +79,13 @@ _UNKNOWN_OUTCOME = {
 }
 
 
+def _normalize_workflow_status(status: Any) -> str:
+    if isinstance(status, str) and status in KNOWN_WORKFLOW_STATUSES:
+        return status
+    return "unknown"
+
+
 def _valid_reason_codes(policy: Any) -> Any:
-    """Return the reason-code list only if it is an explicit, well-formed list
-    of supported codes; otherwise return None (fail closed)."""
     if not isinstance(policy, Mapping):
         return None
     if "reason_codes" not in policy:
@@ -91,33 +100,24 @@ def _valid_reason_codes(policy: Any) -> Any:
 
 
 def _valid_external_effects(packet: Mapping[str, Any]) -> bool:
-    """External effects must match the packet schema type: integer const 0.
-
-    bool is excluded because bool is a subclass of int in Python.
-    """
+    if not isinstance(packet, Mapping):
+        return False
     if "external_effects" not in packet:
         return False
     value = packet.get("external_effects")
-    return isinstance(value, int) and not isinstance(value, bool)
+    return type(value) is int and value == 0
 
 
-def _classify_scenario(
-    workflow_status: Any, reason_codes: Any, external_effects_valid: bool
-) -> str:
-    """Classify only exact supported tuples; everything else is unknown."""
-    if not isinstance(workflow_status, str):
+def _classify_scenario(workflow_status: Any, reason_codes: Any, external_effects_valid: bool) -> str:
+    if _normalize_workflow_status(workflow_status) == "unknown":
         return "UNKNOWN"
-    if reason_codes is None:
-        return "UNKNOWN"
-    if not external_effects_valid:
+    if reason_codes is None or not external_effects_valid:
         return "UNKNOWN"
     if any(code not in KNOWN_REASON_CODES for code in reason_codes):
         return "UNKNOWN"
     if workflow_status == "completed" and reason_codes == []:
         return "SUCCESS"
-    if workflow_status == "completed_with_review" and reason_codes == [
-        "STAGE_TRANSITION_NOT_ALLOWED"
-    ]:
+    if workflow_status == "completed_with_review" and reason_codes == ["STAGE_TRANSITION_NOT_ALLOWED"]:
         return "STAGE_CHANGE_DENIED"
     if workflow_status == "blocked" and reason_codes == ["AMBIGUOUS_CONTACT"]:
         return "AMBIGUOUS_CONTACT"
@@ -125,10 +125,6 @@ def _classify_scenario(
 
 
 def _agent_contributions(packet: Mapping[str, Any]) -> List[str]:
-    """Map allowlisted agent IDs from the packet audit block to fixed
-    human-facing labels. Presence is described as packet-supported audit
-    presence only; no execution status is claimed and unknown identifiers
-    are never printed."""
     audit = packet.get("audit") if isinstance(packet.get("audit"), Mapping) else {}
     agents = audit.get("agents_used")
     if not isinstance(agents, list):
@@ -136,9 +132,11 @@ def _agent_contributions(packet: Mapping[str, Any]) -> List[str]:
     contributions: List[str] = []
     seen = set()
     for agent in agents:
+        if not isinstance(agent, str):
+            continue
         if agent in KNOWN_AGENT_LABELS and agent not in seen:
             seen.add(agent)
-            contributions.append(KNOWN_AGENT_LABELS[agent])
+            contributions.append(f"{KNOWN_AGENT_LABELS[agent]} — present in packet audit")
     return contributions
 
 
@@ -146,16 +144,10 @@ def map_packet_to_decision_card(packet: Mapping[str, Any]) -> DecisionCard:
     run = packet.get("run") if isinstance(packet.get("run"), Mapping) else {}
     policy = packet.get("policy")
 
-    workflow_status = run.get("status")
-    workflow_status_display = (
-        workflow_status if isinstance(workflow_status, str) else "unknown"
-    )
-
+    workflow_status = _normalize_workflow_status(run.get("status"))
     reason_codes = _valid_reason_codes(policy)
     external_effects_valid = _valid_external_effects(packet)
-    scenario = _classify_scenario(
-        workflow_status, reason_codes, external_effects_valid
-    )
+    scenario = _classify_scenario(run.get("status"), reason_codes, external_effects_valid)
 
     if scenario == "UNKNOWN":
         outcome = _UNKNOWN_OUTCOME
@@ -165,7 +157,7 @@ def map_packet_to_decision_card(packet: Mapping[str, Any]) -> DecisionCard:
     external_effects = packet.get("external_effects") if external_effects_valid else None
 
     return DecisionCard(
-        workflow_status=workflow_status_display,
+        workflow_status=workflow_status,
         agent_contributions=_agent_contributions(packet),
         policy_state=outcome["policy_state"],
         policy_reason_code=outcome["policy_reason_code"],

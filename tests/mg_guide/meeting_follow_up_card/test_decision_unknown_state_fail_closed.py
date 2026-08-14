@@ -101,6 +101,16 @@ def test_success_tuple_with_malformed_external_effects_fails_closed_and_does_not
     assert "External effects: unknown" in text
 
 
+def test_external_effects_numeric_one_fails_closed():
+    packet = _load_success_packet()
+    packet["external_effects"] = 1
+    card = map_packet_to_decision_card(packet)
+    _assert_fail_closed(card)
+    assert card.external_effects is None
+    assert "External effects: unknown" in render_decision_card_text(card)
+    assert "External effects:</strong> unknown" in render_decision_card_html(card)
+
+
 def test_unknown_reason_containing_crm_style_identifier_is_not_reflected():
     packet = _load_success_packet()
     packet["policy"]["reason_codes"] = ["contact_demo_taylor_001"]
@@ -125,6 +135,22 @@ def test_unknown_reason_containing_html_markup_is_sanitized():
     assert "alert" not in html
 
 
+def test_unsupported_status_string_is_sanitized_to_unknown_in_both_renderers():
+    packet = _load_success_packet()
+    packet["run"]["status"] = "<script>alert('x')</script>"
+    packet["policy"]["reason_codes"] = []
+    card = map_packet_to_decision_card(packet)
+    assert card.workflow_status == "unknown"
+    text = render_decision_card_text(card)
+    html = render_decision_card_html(card)
+    assert "<script>" not in text
+    assert "<script>" not in html
+    assert "alert('x')" not in text
+    assert "alert('x')" not in html
+    assert "Workflow status: unknown" in text
+    assert "Workflow status:</strong> unknown" in html
+
+
 def test_unknown_state_fail_closed_end_to_end():
     packet = {
         "schema": "meeting_follow_up_packet_v1",
@@ -140,8 +166,8 @@ def test_unknown_state_fail_closed_end_to_end():
     _assert_fail_closed(card)
     assert card.external_effects is None
     assert card.agent_contributions == [
-        "Meeting Context Agent",
-        "Relationship Context Agent",
+        "Meeting Context Agent — present in packet audit",
+        "Relationship Context Agent — present in packet audit",
     ]
 
     text = render_decision_card_text(card)

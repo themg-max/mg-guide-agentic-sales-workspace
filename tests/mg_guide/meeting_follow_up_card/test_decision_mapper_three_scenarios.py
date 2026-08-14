@@ -80,9 +80,9 @@ def test_agent_contributions_use_fixed_labels_only():
     packet = _load_packet("packet-success.completed.json")
     card = map_packet_to_decision_card(packet)
 
-    assert "Meeting Context Agent" in card.agent_contributions
-    assert "Relationship Context Agent" in card.agent_contributions
-    assert "Follow-Up Planning Agent" in card.agent_contributions
+    assert "Meeting Context Agent — present in packet audit" in card.agent_contributions
+    assert "Relationship Context Agent — present in packet audit" in card.agent_contributions
+    assert "Follow-Up Planning Agent — present in packet audit" in card.agent_contributions
     # Raw agent identifiers are not echoed into the human-facing labels.
     assert "meeting_context_agent" not in " ".join(card.agent_contributions)
     # Raw CRM identifiers never appear in contributions.
@@ -103,7 +103,7 @@ def test_unknown_agent_identifiers_are_not_printed():
     ]
     card = map_packet_to_decision_card(packet)
 
-    assert card.agent_contributions == ["Meeting Context Agent"]
+    assert card.agent_contributions == ["Meeting Context Agent — present in packet audit"]
     assert "unknown_custom_agent" not in " ".join(card.agent_contributions)
     assert "contact_demo_taylor_001" not in " ".join(card.agent_contributions)
 

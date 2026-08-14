@@ -23,7 +23,7 @@ def test_render_decision_card_html_includes_required_fields_without_crm_ids():
 
     assert "Workflow status:" in rendered
     assert "Agent contributions:" in rendered
-    assert "Meeting Context Agent" in rendered
+    assert "Meeting Context Agent — present in packet audit" in rendered
     assert "Policy state:" in rendered
     assert "Policy reason code:" in rendered
     assert "STAGE_TRANSITION_NOT_ALLOWED" in rendered
@@ -45,4 +45,5 @@ def test_render_decision_card_html_escapes_untrusted_content():
 
     assert card.policy_state == "REVIEW_REQUIRED"
     assert "<script>" not in rendered
-    assert "&lt;script&gt;" in rendered
+    assert "alert('x')" not in rendered
+    assert "Workflow status:</strong> unknown" in rendered
