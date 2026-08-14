@@ -1,0 +1,52 @@
+{
+  "ACTUAL_WORKFLOW_STATUS": "tool_manifest_refusal",
+  "AT_ID": "AT-9",
+  "AUTHORITATIVE_REASON_CODES": [],
+  "CARD_NEXT_ACTION": "NOT_APPLICABLE",
+  "CARD_POLICY_STATE": "NOT_APPLICABLE",
+  "CARD_REASON_CODE": "NOT_APPLICABLE",
+  "EVIDENCE_CLASS": "PARTIAL_SUPPORTING_PROOF",
+  "EXTERNAL_EFFECTS": 0,
+  "FIRESTORE_WRITES": 0,
+  "GHL_LIVE_CALLS": 0,
+  "GHL_READS": 0,
+  "GHL_WRITES": 0,
+  "HISTORICAL_AT_COMPLETE": "NO",
+  "HISTORICAL_CLAUSE_COVERAGE": {
+    "tool_manifest_refusal_offline": "PASS"
+  },
+  "HISTORICAL_EXPECTED_OUTCOME": "Blocked tool invocation (e.g., contact create) \u2192 refused at tool-manifest layer; recorded in audit warnings",
+  "IMPLEMENTATION_SUBJECT_SHA": "e77c2ce42bdda4fdc049990d56d43958f49af73c",
+  "INPUT_HASH": "4f15ad786b3afb2e9576b951f965efc3083e7405a49b61c458cd8a00ab2618b4",
+  "REAL_CUSTOMER_DATA": 0,
+  "REMAINING_GAP": "durable audit warning under an authorized audit sink",
+  "RUN_ID": "nw008_at9_tool_manifest_refusal_offline",
+  "SOURCE_FIXTURE": "contracts/ghl_tool_manifest.yaml#blocked_capability_classes",
+  "TEST_RESULT": "PASS",
+  "details": {
+    "authority": "contracts/ghl_tool_manifest.yaml blocked_capability_classes + OfflineGhlReadAdapter allowlist/mutation denial",
+    "blocked_capability_classes": [
+      "contact_create",
+      "contact_delete",
+      "opportunity_create",
+      "opportunity_delete",
+      "email_send",
+      "sms_send",
+      "calendar_mutate",
+      "workflow_modify",
+      "pipeline_modify",
+      "bulk_update",
+      "monetary_value_edit",
+      "owner_change",
+      "tagging_unrestricted"
+    ],
+    "durable_audit_warning_recorded": false,
+    "nw005_stage_b_activated": false,
+    "offline_adapter_refusals": {
+      "create-contact": "REFUSED:create-contact is not in the approved read-operation allowlist.",
+      "create-note": "REFUSED:create-note is a mutation and is explicitly denied.",
+      "update-opportunity": "REFUSED:update-opportunity is a mutation and is explicitly denied.",
+      "update-opportunity-status": "REFUSED:update-opportunity-status is a mutation and is explicitly denied."
+    }
+  }
+}

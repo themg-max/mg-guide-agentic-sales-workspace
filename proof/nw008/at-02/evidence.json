@@ -1,0 +1,58 @@
+{
+  "ACTUAL_WORKFLOW_STATUS": "blocked",
+  "AT_ID": "AT-2",
+  "AUTHORITATIVE_REASON_CODES": [
+    "AMBIGUOUS_CONTACT"
+  ],
+  "CARD_NEXT_ACTION": "RESOLVE_CONTACT",
+  "CARD_POLICY_STATE": "BLOCKED",
+  "CARD_REASON_CODE": "AMBIGUOUS_CONTACT",
+  "EVIDENCE_CLASS": "DETERMINISTIC_ACCEPTANCE_SUPPORTING_PROOF",
+  "EXTERNAL_EFFECTS": 0,
+  "FIRESTORE_WRITES": 0,
+  "GHL_LIVE_CALLS": 0,
+  "GHL_READS": 0,
+  "GHL_WRITES": 0,
+  "HISTORICAL_AT_COMPLETE": "NO",
+  "HISTORICAL_CLAUSE_COVERAGE": {
+    "0_CRM_writes": "PASS",
+    "AMBIGUOUS_CONTACT": "PASS",
+    "MG_Guide_blocked_State_2_equivalent_decision_card": "PASS",
+    "blocked": "PASS"
+  },
+  "HISTORICAL_EXPECTED_OUTCOME": "transcript-ambiguous-contact.txt \u2192 blocked with AMBIGUOUS_CONTACT; 0 CRM writes; MG Guide card State 2",
+  "IMPLEMENTATION_SUBJECT_SHA": "e77c2ce42bdda4fdc049990d56d43958f49af73c",
+  "INPUT_HASH": "a0a49c3b8df4eec7eb1c7587371d29c3659e74df3c2dd63ea52caea50496e5e9",
+  "REAL_CUSTOMER_DATA": 0,
+  "REMAINING_GAP": "FULL_AGENT_FLEET_TRANSCRIPT_REPLAY_NOT_YET_EVIDENCED",
+  "RUN_ID": "run_demo_ambiguous_001",
+  "SOURCE_FIXTURE": "transcript-ambiguous-contact.expected.json",
+  "TEST_RESULT": "PASS",
+  "details": {
+    "authoritative_workflow_reason": {
+      "final_state": "blocked",
+      "reason_codes": [
+        "AMBIGUOUS_CONTACT"
+      ],
+      "source": "orchestration.WorkflowRunner + contracts/workflow_states.yaml",
+      "validation_ok": true
+    },
+    "decision_card_presentation": {
+      "agent_contributions": [],
+      "external_effects": 0,
+      "human_review_required": true,
+      "next_action": "RESOLVE_CONTACT",
+      "policy_explanation": "The contact could not be matched unambiguously. Resolve the contact identity before proceeding.",
+      "policy_reason_code": "AMBIGUOUS_CONTACT",
+      "policy_state": "BLOCKED",
+      "workflow_status": "blocked"
+    },
+    "mg_guide_card_state": "blocked",
+    "mutation_intents": {
+      "note": [],
+      "stage": []
+    },
+    "note": "AUTHORITATIVE_WORKFLOW_REASON is separate from DECISION_CARD_PRESENTATION and HISTORICAL_AT_COMPLETION.",
+    "packet_external_effects": 0
+  }
+}
