@@ -1,0 +1,97 @@
+{
+  "agent_steps": {
+    "agents_used": [],
+    "tools_used": []
+  },
+  "brief_headline": null,
+  "completed_at": "2026-08-14T17:30:00Z",
+  "crm_resolution": {
+    "candidate_count": 0,
+    "contact_id": null,
+    "lifecycle": "not_attempted",
+    "match_basis": "not_attempted",
+    "opportunity_id": null,
+    "status": "not_attempted"
+  },
+  "errors": [
+    "final_disposition=failed"
+  ],
+  "external_effects": {
+    "counters": {
+      "EXTERNAL_EFFECTS": 0,
+      "GHL_READS": 0,
+      "GHL_WRITES": 0
+    },
+    "packet_external_effects": 0
+  },
+  "final_disposition": "failed",
+  "idempotency": {
+    "key": "at-09-run",
+    "strategy": "create_only_if_absent"
+  },
+  "integrity": {
+    "content_fingerprint": "37d9241b15d014b170d690dcb18e11c553170fdcf4aca576d992508dd2614b16",
+    "projection_input_fingerprint": "92ba2a6af674ea10477fd1567e22ba87eea87848c66075379da03ddc6435f99a"
+  },
+  "mg_guide_card": {
+    "card_state": "failed",
+    "projection_source": "audit_status_mapper_v1"
+  },
+  "mutation_intents": {
+    "note": [],
+    "stage": []
+  },
+  "mutations": {
+    "lifecycle": "not_attempted",
+    "note": {
+      "attempted": false,
+      "record_id": null,
+      "verified": false
+    },
+    "opportunity_stage": {
+      "attempted": false,
+      "from_stage": null,
+      "to_stage": null,
+      "verified": false
+    }
+  },
+  "policy": {
+    "lifecycle": "not_attempted",
+    "note_write": "not_attempted",
+    "reason_codes": [],
+    "stage_write": "not_attempted"
+  },
+  "provenance": {
+    "fixture_id": "at-09-d1-proof",
+    "meeting_id": null,
+    "meeting_source": null,
+    "packet_run_status": "failed",
+    "packet_schema": "meeting_follow_up_packet_v1",
+    "source_refs": [],
+    "transcript_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "writer": {
+      "component": "nw008_tranche_d",
+      "component_version": "v3",
+      "mode": "local_fixture",
+      "projection_version": "workflow_run_audit_v1"
+    }
+  },
+  "reason_codes": [],
+  "recorded_at": "2026-08-14T17:30:00Z",
+  "run_id": "at-09-run",
+  "schema": "workflow_run_audit_v1",
+  "started_at": "2026-08-14T17:30:00Z",
+  "terminal_state": "failed",
+  "tool_call_counts": {
+    "ghl_mcp": {
+      "reads": 0,
+      "writes": 0
+    },
+    "other": 0,
+    "tools_listed_count": 0
+  },
+  "warnings": [
+    "TOOL_MANIFEST_REFUSED:contact_create"
+  ],
+  "workflow_id": "meeting_follow_up_v1"
+}
