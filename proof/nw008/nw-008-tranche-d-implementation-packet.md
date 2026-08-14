@@ -325,7 +325,7 @@ deterministic orchestration policy permits intent (attempt #1)
         ↓
 run-scoped write-attempt cap guard
         ↓
-attempt #1 admitted (WRITE_ATTEMPT_COUNT=1 <= max_writes_per_run)
+attempt #1 admitted (BEFORE=0, REQUESTED_ORDINAL=1, CAP_CHECK=PERMIT, AFTER=1)
         ↓
 no transport in offline lane (TRANSPORT_ATTEMPTED=false, CANONICAL_PACKET_MUTATION_ATTEMPTED=false)
         ↓
@@ -333,12 +333,39 @@ attempt #2 requested within the SAME workflow run
         ↓
 run-scoped write-attempt cap guard
         ↓
-refused because write-attempt cap exhausted (WRITE_ATTEMPT_COUNT=2 > max_writes_per_run)
+refused because admitted write-attempt cap is exhausted
+(BEFORE=1, REQUESTED_ORDINAL=2, CAP_CHECK=REFUSE, AFTER=1)
         ↓
 refusal recorded as POLICY_CAP_REFUSAL by DETERMINISTIC_POLICY
         ↓
 zero transport / zero external effect (EXTERNAL_EFFECTS=0, GHL_WRITES=0)
 ```
+
+### 9.4.1 Ledger counter semantics
+
+```text
+LEDGER_COUNTS_ADMITTED_ATTEMPTS_ONLY=YES
+REFUSED_ATTEMPT_INCREMENTS_LEDGER=NO
+
+# Attempt #1
+ADMITTED_WRITE_ATTEMPTS_BEFORE_REQUEST=0
+REQUESTED_ATTEMPT_ORDINAL=1
+MAX_WRITES_PER_RUN=1
+CAP_CHECK=PERMIT
+ADMITTED_WRITE_ATTEMPTS_AFTER_REQUEST=1
+
+# Attempt #2 in the same run
+ADMITTED_WRITE_ATTEMPTS_BEFORE_REQUEST=1
+REQUESTED_ATTEMPT_ORDINAL=2
+MAX_WRITES_PER_RUN=1
+CAP_CHECK=ADMITTED_WRITE_ATTEMPTS_BEFORE_REQUEST >= MAX_WRITES_PER_RUN
+RESULT=REFUSED
+ADMITTED_WRITE_ATTEMPTS_AFTER_REQUEST=1
+```
+
+The ledger increments only after admitting an attempt. A refused request is
+still a requested attempt for AT-8 proof, but it does not alter the ledger's
+admitted-attempt count.
 
 ### 9.4 Enforcement ownership
 
@@ -465,19 +492,13 @@ PLANNED_BLOCKED_FILES:
 
 ### 14.1 Minimum Subunit D1 validation suite
 
-1. `pytest tests/test_manifest_gate.py` — unit tests for classifier and manifest lookup.
-2. `pytest tests/test_manifest_gate_negative_controls.py` — 8 negative controls.
-3. `pytest tests/test_firestore_audit_project.py` — NW-005 Stage A projection with audit warnings.
-4. Schema validation of projected `workflow_run_audit_v1` JSON against `contracts/workflow_run_audit.schema.json`.
-5. Zero-effect counter assertion (`GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `EXTERNAL_EFFECTS=0`).
+1. `pytest tests/test_manifest_gate.py` — classifier, manifest lookup, audit-warning unit tests, and NC-D1-1 through NC-D1-8.
+2. `pytest tests/test_nw008_tranche_d_acceptance.py` — D1 Stage-A projection/schema validation, durable-proof assertions, and zero-effect assertions.
 
 ### 14.2 Minimum Subunit D2 validation suite
 
-1. `pytest tests/test_write_attempt_ledger.py` — unit tests for run-scoped ledger and contract cap loading.
-2. `pytest tests/test_write_attempt_negative_controls.py` — 10 negative controls.
-3. `pytest tests/test_policy.py` — policy evaluation regression tests.
-4. `pytest tests/test_runner.py` — runner regression and duplicate run rejection tests.
-5. Zero-effect counter assertion (`GHL_LIVE_CALLS=0`, `GHL_WRITES=0`, `FIRESTORE_WRITES=0`, `EXTERNAL_EFFECTS=0`).
+1. `pytest tests/test_write_attempt_ledger.py` — run-scoped ledger, contract cap loading, policy/runner regression coverage, and NC-D2-1 through NC-D2-10.
+2. `pytest tests/test_nw008_tranche_d_acceptance.py` — D2 note and stage second-attempt cases, proof assertions, replay/idempotency regression, and zero-effect assertions.
 
 ### 14.3 Full integration validation
 
