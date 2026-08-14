@@ -1,0 +1,39 @@
+proof_id: nw007-demo-grade-follow-up-decision-card-v1
+manifest_id: nw007-demo-grade-workflow-narrative-policy-planning
+workflow_id: meeting_follow_up_v1
+branch: impl/nw007-demo-grade-follow-up-decision-card
+head_sha: "22a3b0b3c20373100ca0158cda7a74b4fbc1fb76"
+pr_url: https://github.com/themg-max/mg-guide-agentic-sales-workspace/pull/37
+files_changed:
+  - src/mg_guide/meeting_follow_up_card/decision_models.py
+  - src/mg_guide/meeting_follow_up_card/decision_mapper.py
+  - src/mg_guide/meeting_follow_up_card/decision_render_text.py
+  - src/mg_guide/meeting_follow_up_card/decision_render_html.py
+  - tests/mg_guide/meeting_follow_up_card/test_decision_mapper_three_scenarios.py
+  - tests/mg_guide/meeting_follow_up_card/test_decision_render_text.py
+  - tests/mg_guide/meeting_follow_up_card/test_decision_render_html.py
+  - tests/mg_guide/meeting_follow_up_card/test_decision_unknown_state_fail_closed.py
+validation:
+  git_diff_check: PASS
+  tests: PASS
+  contract_validation: PASS
+  notes: >
+    Exact-head GitHub Actions run 31787424303 (Phase 1 Deterministic CI /
+    Phase 1 deterministic validation) concluded SUCCESS on head
+    22a3b0b3c20373100ca0158cda7a74b4fbc1fb76 (event=pull_request,
+    branch=impl/nw007-demo-grade-follow-up-decision-card). Local replay at the
+    same head: targeted decision-card tests 22 passed; meeting_follow_up_card
+    suite 50 passed; full suite 233 passed; git diff --check PASS.
+external_calls:
+  network: NONE
+  crm: NONE
+  cloud: NONE
+authorization_posture:
+  PHASE1_IMPLEMENTATION_AUTHORIZED: "YES"
+  GHL_WRITE_AUTHORIZED: "NO"
+  DEPLOYMENT_AUTHORIZED: "NO"
+residual_risks:
+  - Repository has no authoritative required-PR-check policy artifact; convention is Phase 1 Deterministic CI plus human exact-head review.
+  - PR #37 has no recorded human review verdict; merge requires human reviewer.
+  - MG MCP discoverability for NW-007 decision-card artifacts is UNKNOWN (zero search results); retrieval/index validation deferred.
+next_action: RUN_FINAL_PR37_MERGE_READINESS_REVIEW
