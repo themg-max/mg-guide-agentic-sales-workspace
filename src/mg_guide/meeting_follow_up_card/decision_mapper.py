@@ -1,123 +1,176 @@
-"""Deterministic mapper for the NW-007 follow-up decision card."""
+"""Deterministic mapper for the NW-007 follow-up decision card.
+
+Atomic scenario classification: only the exact supported
+(workflow_status, reason_codes, external_effects) tuples map to a named
+scenario. Everything else fails closed to REVIEW_REQUIRED.
+"""
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Mapping
+from typing import Any, Dict, List, Mapping
 
 from .decision_models import DecisionCard
 
-REASON_EXPLANATIONS = {
-    "STAGE_TRANSITION_NOT_ALLOWED": (
-        "The requested stage transition is not permitted by policy. "
-        "The current stage must be preserved pending human review."
-    ),
-    "AMBIGUOUS_CONTACT": (
-        "The contact could not be matched unambiguously. "
-        "Resolve the contact identity before proceeding."
-    ),
-    "SUCCESS_NO_BLOCKER": "Policy evaluation completed with no blocking reason code.",
+POLICY_EXPLANATION_STAGE_TRANSITION_NOT_ALLOWED = (
+    "The requested stage transition is not permitted by policy. "
+    "The current stage must be preserved pending human review."
+)
+POLICY_EXPLANATION_AMBIGUOUS_CONTACT = (
+    "The contact could not be matched unambiguously. "
+    "Resolve the contact identity before proceeding."
+)
+POLICY_EXPLANATION_SUCCESS_NO_BLOCKER = (
+    "Policy evaluation completed with no blocking reason code."
+)
+POLICY_EXPLANATION_UNKNOWN = (
+    "An unrecognized workflow or policy state requires human review."
+)
+
+NEXT_ACTION_ENUM = (
+    "REVIEW_FOLLOW_UP",
+    "KEEP_CURRENT_STAGE_AND_REVIEW",
+    "RESOLVE_CONTACT",
+    "REVIEW_REQUIRED_UNKNOWN_STATE",
+)
+
+KNOWN_REASON_CODES = ("STAGE_TRANSITION_NOT_ALLOWED", "AMBIGUOUS_CONTACT")
+
+KNOWN_AGENT_LABELS = {
+    "meeting_context_agent": "Meeting Context Agent",
+    "relationship_context_agent": "Relationship Context Agent",
+    "follow_up_planning_agent": "Follow-Up Planning Agent",
 }
 
-NEXT_ACTIONS = {
-    "SUCCESS": "REVIEW_FOLLOW_UP",
-    "STAGE_TRANSITION_NOT_ALLOWED": "KEEP_CURRENT_STAGE_AND_REVIEW",
-    "AMBIGUOUS_CONTACT": "RESOLVE_CONTACT",
+_SCENARIOS = {
+    "SUCCESS": {
+        "policy_state": "ALLOWED",
+        "policy_reason_code": "NONE",
+        "policy_explanation": POLICY_EXPLANATION_SUCCESS_NO_BLOCKER,
+        "human_review_required": False,
+        "next_action": "REVIEW_FOLLOW_UP",
+    },
+    "STAGE_CHANGE_DENIED": {
+        "policy_state": "BLOCKED",
+        "policy_reason_code": "STAGE_TRANSITION_NOT_ALLOWED",
+        "policy_explanation": POLICY_EXPLANATION_STAGE_TRANSITION_NOT_ALLOWED,
+        "human_review_required": True,
+        "next_action": "KEEP_CURRENT_STAGE_AND_REVIEW",
+    },
+    "AMBIGUOUS_CONTACT": {
+        "policy_state": "BLOCKED",
+        "policy_reason_code": "AMBIGUOUS_CONTACT",
+        "policy_explanation": POLICY_EXPLANATION_AMBIGUOUS_CONTACT,
+        "human_review_required": True,
+        "next_action": "RESOLVE_CONTACT",
+    },
 }
 
-UNKNOWN_EXPLANATION = "An unrecognized workflow or policy state requires human review."
+_UNKNOWN_OUTCOME = {
+    "policy_state": "REVIEW_REQUIRED",
+    "policy_reason_code": "NONE",
+    "policy_explanation": POLICY_EXPLANATION_UNKNOWN,
+    "human_review_required": True,
+    "next_action": "REVIEW_REQUIRED_UNKNOWN_STATE",
+}
 
 
-def _normalize_reason_codes(raw: Any) -> List[str]:
-    if not isinstance(raw, list):
-        return []
-    codes: List[str] = []
-    for value in raw:
-        if isinstance(value, str) and value:
-            codes.append(value)
+def _valid_reason_codes(policy: Any) -> Any:
+    """Return the reason-code list only if it is an explicit, well-formed list
+    of supported codes; otherwise return None (fail closed)."""
+    if not isinstance(policy, Mapping):
+        return None
+    if "reason_codes" not in policy:
+        return None
+    codes = policy.get("reason_codes")
+    if not isinstance(codes, list):
+        return None
+    for code in codes:
+        if not isinstance(code, str):
+            return None
     return codes
 
 
+def _valid_external_effects(packet: Mapping[str, Any]) -> bool:
+    """External effects must match the packet schema type: integer const 0.
+
+    bool is excluded because bool is a subclass of int in Python.
+    """
+    if "external_effects" not in packet:
+        return False
+    value = packet.get("external_effects")
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _classify_scenario(
+    workflow_status: Any, reason_codes: Any, external_effects_valid: bool
+) -> str:
+    """Classify only exact supported tuples; everything else is unknown."""
+    if not isinstance(workflow_status, str):
+        return "UNKNOWN"
+    if reason_codes is None:
+        return "UNKNOWN"
+    if not external_effects_valid:
+        return "UNKNOWN"
+    if any(code not in KNOWN_REASON_CODES for code in reason_codes):
+        return "UNKNOWN"
+    if workflow_status == "completed" and reason_codes == []:
+        return "SUCCESS"
+    if workflow_status == "completed_with_review" and reason_codes == [
+        "STAGE_TRANSITION_NOT_ALLOWED"
+    ]:
+        return "STAGE_CHANGE_DENIED"
+    if workflow_status == "blocked" and reason_codes == ["AMBIGUOUS_CONTACT"]:
+        return "AMBIGUOUS_CONTACT"
+    return "UNKNOWN"
+
+
 def _agent_contributions(packet: Mapping[str, Any]) -> List[str]:
+    """Map allowlisted agent IDs from the packet audit block to fixed
+    human-facing labels. Presence is described as packet-supported audit
+    presence only; no execution status is claimed and unknown identifiers
+    are never printed."""
     audit = packet.get("audit") if isinstance(packet.get("audit"), Mapping) else {}
-    agents = audit.get("agents_used") if isinstance(audit.get("agents_used"), list) else []
-    seen = set()
+    agents = audit.get("agents_used")
+    if not isinstance(agents, list):
+        return []
     contributions: List[str] = []
+    seen = set()
     for agent in agents:
-        if not isinstance(agent, str) or not agent or agent in seen:
-            continue
-        seen.add(agent)
-        contributions.append(f"{agent}: packet-supported outcome: used")
-    if not contributions:
-        return ["no packet-supported agent contribution metadata"]
+        if agent in KNOWN_AGENT_LABELS and agent not in seen:
+            seen.add(agent)
+            contributions.append(KNOWN_AGENT_LABELS[agent])
     return contributions
-
-
-def _external_effects(packet: Mapping[str, Any]) -> Any:
-    if "external_effects" in packet:
-        return packet.get("external_effects")
-    return None
-
-
-def _policy_state_and_explanation(reason_codes: List[str]) -> Dict[str, str]:
-    if not reason_codes:
-        return {
-            "policy_state": "allowed",
-            "policy_reason_code": "NONE",
-            "policy_explanation": REASON_EXPLANATIONS["SUCCESS_NO_BLOCKER"],
-        }
-    if "STAGE_TRANSITION_NOT_ALLOWED" in reason_codes:
-        return {
-            "policy_state": "blocked",
-            "policy_reason_code": "STAGE_TRANSITION_NOT_ALLOWED",
-            "policy_explanation": REASON_EXPLANATIONS["STAGE_TRANSITION_NOT_ALLOWED"],
-        }
-    if "AMBIGUOUS_CONTACT" in reason_codes:
-        return {
-            "policy_state": "blocked",
-            "policy_reason_code": "AMBIGUOUS_CONTACT",
-            "policy_explanation": REASON_EXPLANATIONS["AMBIGUOUS_CONTACT"],
-        }
-    first_reason = reason_codes[0]
-    return {
-        "policy_state": "REVIEW_REQUIRED",
-        "policy_reason_code": first_reason,
-        "policy_explanation": UNKNOWN_EXPLANATION,
-    }
-
-
-def _next_action(workflow_status: str, policy_state: str, reason_code: str) -> str:
-    normalized_status = str(workflow_status or "unknown").strip().lower()
-    if normalized_status == "completed" and policy_state == "allowed":
-        return NEXT_ACTIONS["SUCCESS"]
-    if reason_code == "STAGE_TRANSITION_NOT_ALLOWED":
-        return NEXT_ACTIONS["STAGE_TRANSITION_NOT_ALLOWED"]
-    if reason_code == "AMBIGUOUS_CONTACT":
-        return NEXT_ACTIONS["AMBIGUOUS_CONTACT"]
-    return "REVIEW_REQUIRED_UNKNOWN_STATE"
 
 
 def map_packet_to_decision_card(packet: Mapping[str, Any]) -> DecisionCard:
     run = packet.get("run") if isinstance(packet.get("run"), Mapping) else {}
-    policy = packet.get("policy") if isinstance(packet.get("policy"), Mapping) else {}
-    workflow_status = str(run.get("status") or "unknown")
-    reason_codes = _normalize_reason_codes(policy.get("reason_codes"))
-    policy_details = _policy_state_and_explanation(reason_codes)
-    policy_reason_code = policy_details["policy_reason_code"]
-    policy_state = policy_details["policy_state"]
-    explanation = policy_details["policy_explanation"]
-    next_action = _next_action(workflow_status, policy_state, policy_reason_code)
-    human_review_required = (
-        policy_state in {"blocked", "REVIEW_REQUIRED"}
-        or workflow_status in {"completed_with_review", "blocked", "failed", "unknown"}
+    policy = packet.get("policy")
+
+    workflow_status = run.get("status")
+    workflow_status_display = (
+        workflow_status if isinstance(workflow_status, str) else "unknown"
     )
 
+    reason_codes = _valid_reason_codes(policy)
+    external_effects_valid = _valid_external_effects(packet)
+    scenario = _classify_scenario(
+        workflow_status, reason_codes, external_effects_valid
+    )
+
+    if scenario == "UNKNOWN":
+        outcome = _UNKNOWN_OUTCOME
+    else:
+        outcome = _SCENARIOS[scenario]
+
+    external_effects = packet.get("external_effects") if external_effects_valid else None
+
     return DecisionCard(
-        workflow_status=workflow_status,
+        workflow_status=workflow_status_display,
         agent_contributions=_agent_contributions(packet),
-        policy_state=policy_state,
-        policy_reason_code=policy_reason_code,
-        policy_explanation=explanation,
-        human_review_required=human_review_required,
-        external_effects=_external_effects(packet),
-        next_action=next_action,
+        policy_state=outcome["policy_state"],
+        policy_reason_code=outcome["policy_reason_code"],
+        policy_explanation=outcome["policy_explanation"],
+        human_review_required=outcome["human_review_required"],
+        external_effects=external_effects,
+        next_action=outcome["next_action"],
     )

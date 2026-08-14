@@ -5,6 +5,13 @@ from __future__ import annotations
 from html import escape
 from typing import Any
 
+NEXT_ACTION_LABELS = {
+    "REVIEW_FOLLOW_UP": "Review follow-up",
+    "KEEP_CURRENT_STAGE_AND_REVIEW": "Keep current stage and review",
+    "RESOLVE_CONTACT": "Resolve contact",
+    "REVIEW_REQUIRED_UNKNOWN_STATE": "Review required (unrecognized state)",
+}
+
 
 def _render_li(items: Any) -> str:
     values = [str(item) for item in list(items or []) if str(item)]
@@ -13,14 +20,27 @@ def _render_li(items: Any) -> str:
     return "".join(f"<li>{escape(item, quote=True)}</li>" for item in values)
 
 
+def _next_action_display(value: Any) -> str:
+    if value in NEXT_ACTION_LABELS:
+        return NEXT_ACTION_LABELS[value]
+    return NEXT_ACTION_LABELS["REVIEW_REQUIRED_UNKNOWN_STATE"]
+
+
+def _external_effects_display(value: Any) -> str:
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    return "unknown"
+
+
 def render_decision_card_html(card: Any) -> str:
     if hasattr(card, "to_dict"):
         rendered = card.to_dict()
     else:
         rendered = dict(card)
 
-    external_effects = rendered.get("external_effects")
-    external_effects_display = "unknown" if external_effects is None else str(external_effects)
+    external_effects_display = _external_effects_display(
+        rendered.get("external_effects")
+    )
     if isinstance(rendered.get("agent_contributions"), list):
         agent_contributions = rendered["agent_contributions"]
     else:
@@ -36,6 +56,6 @@ def render_decision_card_html(card: Any) -> str:
         f"<p><strong>Policy explanation:</strong> {escape(str(rendered.get('policy_explanation', 'unknown')), quote=True)}</p>"
         f"<p><strong>Human review required:</strong> {escape(str(bool(rendered.get('human_review_required'))).lower(), quote=True)}</p>"
         f"<p><strong>External effects:</strong> {escape(external_effects_display, quote=True)}</p>"
-        f"<p><strong>Next action:</strong> {escape(str(rendered.get('next_action', 'unknown')), quote=True)}</p>"
+        f"<p><strong>Next action:</strong> {escape(_next_action_display(rendered.get('next_action')), quote=True)}</p>"
         "</section>"
     )

@@ -4,12 +4,31 @@ from __future__ import annotations
 
 from typing import Any, Iterable
 
+NEXT_ACTION_LABELS = {
+    "REVIEW_FOLLOW_UP": "Review follow-up",
+    "KEEP_CURRENT_STAGE_AND_REVIEW": "Keep current stage and review",
+    "RESOLVE_CONTACT": "Resolve contact",
+    "REVIEW_REQUIRED_UNKNOWN_STATE": "Review required (unrecognized state)",
+}
+
 
 def _render_list(values: Iterable[str]) -> str:
     entries = [str(item) for item in values if str(item)]
     if not entries:
         return "(none)"
     return "; ".join(entries)
+
+
+def _next_action_display(value: Any) -> str:
+    if value in NEXT_ACTION_LABELS:
+        return NEXT_ACTION_LABELS[value]
+    return NEXT_ACTION_LABELS["REVIEW_REQUIRED_UNKNOWN_STATE"]
+
+
+def _external_effects_display(value: Any) -> str:
+    if isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    return "unknown"
 
 
 def render_decision_card_text(card: Any) -> str:
@@ -26,7 +45,7 @@ def render_decision_card_text(card: Any) -> str:
         f"Policy reason code: {rendered.get('policy_reason_code', 'unknown')}",
         f"Policy explanation: {rendered.get('policy_explanation', 'unknown')}",
         f"Human review required: {str(bool(rendered.get('human_review_required'))).lower()}",
-        f"External effects: {rendered.get('external_effects', 'unknown') if rendered.get('external_effects') is not None else 'unknown'}",
-        f"Next action: {rendered.get('next_action', 'unknown')}",
+        f"External effects: {_external_effects_display(rendered.get('external_effects'))}",
+        f"Next action: {_next_action_display(rendered.get('next_action'))}",
     ]
     return "\n".join(lines)
