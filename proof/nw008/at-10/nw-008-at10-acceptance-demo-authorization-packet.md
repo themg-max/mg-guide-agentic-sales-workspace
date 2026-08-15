@@ -13,6 +13,7 @@ approved.
 ```text
 AUTHORIZATION_ID=MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_V1
 PACKET_KIND=AT10_ACCEPTANCE_DEMO_AUTHORIZATION_REQUEST
+PACKET_REVISION=R1
 STATUS=PROPOSED_NOT_AUTHORIZED
 SELF_ACTIVATION=FORBIDDEN
 REQUESTED_MODE=acceptance_demo
@@ -150,7 +151,7 @@ ENVIRONMENT_BINDING_COMPLETE=YES
 REQUIRED_FIELDS_WITH_UNKNOWN=NONE
 ```
 
-## Exact run allowlist
+## Exact run allowlist / acceptance set (AR-06)
 
 Execution may address **only** these exact pre-bound synthetic `run_id` values.
 No prefix match. No suffix match. No glob/wildcard. No dynamic ID minting.
@@ -172,11 +173,22 @@ MAX_DISTINCT_RUN_IDS=4
 NON_TERMINAL_RUN_ID_EXAMPLE=run_nw006_non_terminal_001
 NON_TERMINAL_DURABLE_WRITE=FORBIDDEN
 SYNTHETIC_ONLY=YES
+
+AT10_ACCEPTANCE_SET_SIZE=4
+AT10_ACCEPTANCE_SET=run_nw006_success_001,run_nw006_stage_denied_001,run_nw006_ambiguous_contact_001,run_nw006_failed_001
+AT10_ACCEPTANCE_SET_COMPLETE=YES
+AT10_ACCEPTANCE_SET_SCOPE=BOUNDED_SYNTHETIC_ALLOWLIST_ONLY
+AT10_ACCEPTANCE_SET_GLOBAL_PRODUCTION_CLAIM=FORBIDDEN
 ```
 
 Target dispositions cover the AT-10 surface of success, blocked, and failed
 (plus the existing Stage A terminal `completed_with_review` fixture already on
 the NW-005 allowlist). Non-terminal packets remain forbidden for durable write.
+
+**Scope discipline (AR-06):** `AT10_ACCEPTANCE_SET_COMPLETE=YES` means the four
+allowlisted synthetic runs above form a complete bounded proof universe for
+this acceptance-demo lane. It does **not** mean all production runs, all
+historical runs, or any global inventory outside this exact set.
 
 ## AT-10 historical criterion (verbatim)
 
@@ -201,6 +213,57 @@ AT10_READINESS_SOURCE=proof/nw008/nw-008-readiness-matrix.md
 This packet requests authorization to pursue AT-10 under `acceptance_demo`.
 It does **not** itself change readiness status or claim AT-10 complete.
 
+## AR-01 — Exact audit field paths (merged NW-005 Stage A schema)
+
+Inspected merged Stage A contract and projection:
+
+```text
+SCHEMA_SOURCE=contracts/workflow_run_audit.schema.json
+SCHEMA_TITLE=workflow_run_audit_v1
+PROJECTION_FIXTURE_EXAMPLE=fixtures/nw005/expected_audits/audit-success.completed.json
+SCHEMA_FIELD_ALIASES_AUTHORIZED=NO
+```
+
+AT-10 presence proof must bind **exactly** these document field paths. Alias,
+"or equivalent", slash-alternation, or soft synonym proof is **forbidden**.
+
+| AT-10 clause | Exact durable field path | Schema type |
+| --- | --- | --- |
+| agents | `agent_steps.agents_used` | array of string (required under `agent_steps`) |
+| tool counts | `tool_call_counts` | object (required; includes `tools_listed_count`, `ghl_mcp`, `other`) |
+| reason codes | `reason_codes` | array of string (top-level required) |
+| disposition | `final_disposition` | string (required) |
+
+```text
+AT10_AGENT_FIELD_PATH=agent_steps.agents_used
+AT10_TOOL_COUNT_FIELD_PATH=tool_call_counts
+AT10_REASON_CODES_FIELD_PATH=reason_codes
+AT10_DISPOSITION_FIELD_PATH=final_disposition
+SCHEMA_FIELD_ALIASES_AUTHORIZED=NO
+```
+
+### Explicitly rejected alias / soft bindings
+
+The following are **not** authorized as substitutes for the exact paths above:
+
+- `agents` (bare root key — not in schema)
+- `agent_steps` alone (parent object without `agents_used`)
+- `agents / agent_steps.agents_used` alternation
+- `tools_used` / `agent_steps.tools_used` as the tool-**count** path
+- `tool_call_counts` / equivalent alternation
+- `policy.reason_codes` as the sole reason-codes path
+- `reason_codes / policy.reason_codes` alternation
+- `terminal_state` as the disposition path
+- `final_disposition` / terminal disposition alternation
+- any "or equivalent" wording in proof gates
+
+Note: `policy.reason_codes` and `agent_steps.tools_used` remain schema-valid
+adjacent fields; they are **not** the AT-10 proof paths bound by this packet.
+
+Empty arrays/objects are permitted only when the source packet legitimately
+projects empty agents/tools/reason_codes; the **exact fields themselves** must
+still be present on the durable record.
+
 ## Per-document required proof (each allowlisted run)
 
 For every exact allowlisted `run_id`, future authorized execution must collect:
@@ -208,6 +271,12 @@ For every exact allowlisted `run_id`, future authorized execution must collect:
 ```text
 RUN_ID_MATCH=YES
 SCHEMA_VALID_AFTER_READBACK=YES
+
+AT10_AGENT_FIELD_PATH=agent_steps.agents_used
+AT10_TOOL_COUNT_FIELD_PATH=tool_call_counts
+AT10_REASON_CODES_FIELD_PATH=reason_codes
+AT10_DISPOSITION_FIELD_PATH=final_disposition
+
 AGENTS_PRESENT=YES
 TOOL_COUNTS_PRESENT=YES
 REASON_CODES_PRESENT=YES
@@ -217,6 +286,15 @@ EXPECTED_PROJECTED_CONTENT_FINGERPRINT=<hex>
 STORED_CONTENT_FINGERPRINT=<hex>
 RECOMPUTED_READBACK_CONTENT_FINGERPRINT=<hex>
 CONTENT_FINGERPRINT_MATCH=YES
+```
+
+Presence gates evaluate the exact paths only:
+
+```text
+AGENTS_PRESENT        := path agent_steps.agents_used exists on durable doc
+TOOL_COUNTS_PRESENT   := path tool_call_counts exists on durable doc
+REASON_CODES_PRESENT  := path reason_codes exists on durable doc
+DISPOSITION_PRESENT   := path final_disposition exists on durable doc
 ```
 
 ### Fingerprint triple equality (frozen from Stage A / Stage B)
@@ -238,42 +316,140 @@ RECOMPUTED_READBACK_CONTENT_FINGERPRINT
   == EXPECTED_PROJECTED_CONTENT_FINGERPRINT
 ```
 
-Any inequality → `CONTENT_FINGERPRINT_MATCH=NO` → fail closed; still attempt
-`acceptance_demo` cleanup for any documents created in the run.
+Any inequality → `CONTENT_FINGERPRINT_MATCH=NO` → apply AR-05 failure semantics
+and attempt `acceptance_demo` cleanup for any documents created in the run.
 
-### Field-presence semantics (do not weaken AT-10)
+## AR-02 — Initial document absence (before any create)
 
-| Required presence | Source expectation |
-| --- | --- |
-| `AGENTS_PRESENT` | Durable audit document carries agent identity data projected from packet audit (`agents` / `agent_steps.agents_used` per Stage A schema) |
-| `TOOL_COUNTS_PRESENT` | Durable audit document carries tool-count fields projected by Stage A (`tool_call_counts` / equivalent projected counts). Presence is required; do not silently drop the AT-10 tool-count clause |
-| `REASON_CODES_PRESENT` | Durable audit document carries reason codes (`reason_codes` / `policy.reason_codes`) |
-| `DISPOSITION_PRESENT` | Durable audit document carries disposition (`final_disposition` / terminal disposition aligned to target table) |
+Before any create, future authorized execution **must** perform exact document
+gets for every acceptance-set run ID and require `NOT_FOUND` for all four:
 
-Empty lists are permitted only when the source packet legitimately has empty
-agents/tools/reason_codes; the **fields themselves** must still be present on
-the durable record.
+```text
+exact get workflow_runs/run_nw006_success_001
+exact get workflow_runs/run_nw006_stage_denied_001
+exact get workflow_runs/run_nw006_ambiguous_contact_001
+exact get workflow_runs/run_nw006_failed_001
+```
+
+```text
+PRECREATE_ABSENCE_GETS_REQUIRED=4
+PRECREATE_ABSENCE_REQUIRED_RESULT=NOT_FOUND
+PREEXISTING_DOCUMENTS=0
+ON_ANY_PREEXISTING_DOCUMENT=STOP_BEFORE_WRITES
+```
+
+If any pre-create get returns an existing document:
+
+```text
+STOP_BEFORE_WRITES
+ON_PRECHECK_FAILURE=STOP_NO_WRITES
+AT10_RESULT=FAIL
+```
+
+No create, update, overwrite, list, query, or cleanup of foreign/pre-existing
+documents is authorized by this packet.
+
+## AR-03 — Execution provenance (before first external call)
+
+Before the first external/network call of an authorized execution, require:
+
+```text
+EXECUTION_CODE_COMMITTED=YES
+WORKTREE_CLEAN_BEFORE_FIRST_EXTERNAL_CALL=YES
+
+IMPLEMENTATION_SUBJECT_SHA=<future exact SHA>
+EXECUTION_CODE_SHA=<future exact SHA>
+
+EXECUTION_CODE_SHA_MUST_EQUAL_IMPLEMENTATION_SUBJECT_SHA=YES
+UNCOMMITTED_EXECUTION_CODE=FORBIDDEN
+```
+
+Binding rules:
+
+- `IMPLEMENTATION_SUBJECT_SHA` is the exact committed SHA of the authorized
+  implementation subject under review.
+- `EXECUTION_CODE_SHA` is the exact committed SHA of the code that will perform
+  the external calls.
+- These two SHAs **must be equal**.
+- Uncommitted execution code is **forbidden**.
+- Dirty worktree before first external call is **forbidden**.
+
+If any provenance gate is false:
+
+```text
+STOP_BEFORE_NETWORK_CALL
+ON_PRECHECK_FAILURE=STOP_NO_WRITES
+```
+
+At planning time these SHAs remain blank future bindings:
+
+```text
+IMPLEMENTATION_SUBJECT_SHA=
+EXECUTION_CODE_SHA=
+```
+
+## AR-04 — Principal binding (carry forward Stage B identity)
+
+Carry forward the exact Stage B identity. No alternate principal. No IAM
+mutation.
+
+```text
+EXECUTION_PRINCIPAL=user:themg@themiliare-group.com
+CREDENTIAL_SOURCE=USER_APPLICATION_DEFAULT_CREDENTIALS
+
+EXECUTION_PRINCIPAL_MATCH_REQUIRED=YES
+CREDENTIAL_SOURCE_MATCH_REQUIRED=YES
+IAM_MUTATION_AUTHORIZED=NO
+```
+
+Before first external call, future execution must observe the active principal
+and credential source and require exact match to the bindings above.
+
+On mismatch:
+
+```text
+STOP_BEFORE_NETWORK_CALL
+ON_PRECHECK_FAILURE=STOP_NO_WRITES
+```
+
+IAM mutation remains forbidden under this packet and under any grant derived
+from it.
 
 ## Authorized call graph request (future execution only)
 
-For each exact allowlisted run ID, in sequence or as an explicitly bounded
-four-run batch that never exceeds caps:
+Ordered graph (caps include pre-create absence gets):
 
 ```text
+# AR-03 / AR-04 prechecks (local only; zero network)
+require EXECUTION_CODE_COMMITTED=YES
+require WORKTREE_CLEAN_BEFORE_FIRST_EXTERNAL_CALL=YES
+require EXECUTION_CODE_SHA == IMPLEMENTATION_SUBJECT_SHA
+require EXECUTION_PRINCIPAL match
+require CREDENTIAL_SOURCE match
+
+# AR-02 pre-create absence (4 exact gets)
+exact get workflow_runs/run_nw006_success_001            → require NOT_FOUND
+exact get workflow_runs/run_nw006_stage_denied_001       → require NOT_FOUND
+exact get workflow_runs/run_nw006_ambiguous_contact_001  → require NOT_FOUND
+exact get workflow_runs/run_nw006_failed_001             → require NOT_FOUND
+# PREEXISTING_DOCUMENTS must be 0 else STOP_BEFORE_WRITES
+
+# Per allowlisted run (×4)
 create workflow_runs/{run_id}
   → exact get same document
   → validate schema
   → validate run_id
-  → validate agents / tool_counts / reason_codes / disposition
+  → validate exact paths:
+       agent_steps.agents_used
+       tool_call_counts
+       reason_codes
+       final_disposition
   → recompute fingerprint
   → require triple equality
-```
 
-After all four documents are individually verified:
-
-```text
+# Aggregate (local)
 validate aggregate AT-10 completeness across the four durable records
-  → emit durable local proof artifact(s) under proof/nw008/at-10/
+  → emit durable local proof artifacts under proof/nw008/at-10/acceptance-demo/
   → exact delete each document
   → exact get each expecting NOT_FOUND
   → STOP
@@ -290,6 +466,7 @@ QUERY=FORBIDDEN
 BATCH=FORBIDDEN
 TRANSACTION=FORBIDDEN
 WILDCARD=FORBIDDEN
+NO_COLLECTION_SWEEP=YES
 ```
 
 ## Retention
@@ -299,6 +476,7 @@ REQUESTED_RETENTION_MODE=acceptance_demo
 REQUESTED_RETENTION_CLASS=TEMPORARY_BOUNDED
 CLEANUP_REQUIRED=YES
 DELETE_VERIFICATION_REQUIRED=YES
+NO_COLLECTION_SWEEP=YES
 ```
 
 All four documents may coexist only long enough to:
@@ -313,7 +491,7 @@ require human follow-up only — no collection sweep, list, or query.
 | Mode | Status in this packet | Behavior if later authorized |
 | --- | --- | --- |
 | `stage_b_smoke` | Already proven PASS under separate grant; **not** reopened here | Single-run create/get/verify/delete (historical) |
-| `acceptance_demo` | `PROPOSED_NOT_AUTHORIZED` | Four-run create/get/verify → aggregate proof → delete/get NOT_FOUND |
+| `acceptance_demo` | `PROPOSED_NOT_AUTHORIZED` | Pre-create absence ×4 → four-run create/get/verify → aggregate proof → delete/get NOT_FOUND |
 
 ## Operation caps (exact planned four-run lifecycle only)
 
@@ -321,21 +499,23 @@ Planned network lifecycle (no unrelated margin):
 
 | Phase | Creates | Reads | Deletes | Network calls |
 | --- | --- | --- | --- | --- |
+| Pre-create absence gets × 4 | 0 | 4 | 0 | 4 |
 | Per-run write + readback × 4 | 4 | 4 | 0 | 8 |
 | Aggregate local validation + local proof emit | 0 | 0 | 0 | 0 |
 | Cleanup delete + NOT_FOUND get × 4 | 0 | 4 | 4 | 8 |
-| **Total planned** | **4** | **8** | **4** | **16** |
+| **Total planned** | **4** | **12** | **4** | **20** |
 
 ```text
 MAX_DISTINCT_RUN_IDS=4
 MAX_DOCUMENT_CREATES=4
-MAX_DOCUMENT_READS=8
+MAX_DOCUMENT_READS=12
 MAX_DOCUMENT_DELETES=4
-MAX_NETWORK_CALLS=16
+MAX_NETWORK_CALLS=20
 MAX_EXECUTION_MINUTES=10
 COLLECTION_FANOUT=1
 COLLECTION_NAME=workflow_runs
 DATA=synthetic_only
+NO_COLLECTION_SWEEP=YES
 ```
 
 If any ceiling would be exceeded: **STOP**, do not continue writes, attempt
@@ -344,11 +524,41 @@ bounded cleanup only within remaining delete/read budget, then human follow-up.
 No arbitrary margin for retries, unrelated operations, non-allowlisted IDs, or
 exploratory reads.
 
+## AR-05 — Failure / cleanup semantics
+
+```text
+ON_PRECHECK_FAILURE=STOP_NO_WRITES
+ON_CREATE_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_READBACK_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_SCHEMA_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_FINGERPRINT_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_AGGREGATE_FAILURE=NO_AT10_CLAIM_AND_CLEANUP_CREATED_DOCS
+ON_CLEANUP_FAILURE=AT10_RESULT_FAIL_AND_HUMAN_REMEDIATION
+NO_COLLECTION_SWEEP=YES
+```
+
+Semantics:
+
+| Gate failure | Required behavior |
+| --- | --- |
+| Precheck (provenance, principal, credential, pre-create absence, caps) | Stop with **no writes**. Do not create. Do not delete foreign docs. |
+| Create failure | Stop new creates. Cleanup only documents **this run created**. |
+| Readback failure | Stop new creates. Cleanup only documents **this run created**. |
+| Schema failure | Stop new creates. Cleanup only documents **this run created**. |
+| Fingerprint failure | Stop new creates. Cleanup only documents **this run created**. |
+| Aggregate AT-10 failure | Do **not** claim AT-10. Cleanup only documents **this run created**. |
+| Cleanup failure | `AT10_RESULT=FAIL`; human remediation only; **no** collection sweep/list/query |
+
+Cleanup may delete **only** exact allowlisted document paths that this execution
+successfully created. Pre-existing or foreign documents are out of scope.
+
 ## Aggregate AT-10 completeness gate (future execution)
 
 Before cleanup, local validation must affirm:
 
 ```text
+AT10_ACCEPTANCE_SET_SIZE=4
+AT10_ACCEPTANCE_SET_COMPLETE=YES
 ALLOWLISTED_RUNS_PRESENT_COUNT=4
 DISPOSITION_SET_COVERS_SUCCESS=YES
 DISPOSITION_SET_COVERS_BLOCKED=YES
@@ -359,6 +569,10 @@ ALL_FOUR_AGENTS_PRESENT=YES
 ALL_FOUR_TOOL_COUNTS_PRESENT=YES
 ALL_FOUR_REASON_CODES_PRESENT=YES
 ALL_FOUR_DISPOSITION_PRESENT=YES
+ALL_FOUR_AGENT_FIELD_PATH=agent_steps.agents_used
+ALL_FOUR_TOOL_COUNT_FIELD_PATH=tool_call_counts
+ALL_FOUR_REASON_CODES_FIELD_PATH=reason_codes
+ALL_FOUR_DISPOSITION_FIELD_PATH=final_disposition
 AT10_AGGREGATE_RECORD_PRESENCE=YES
 ```
 
@@ -367,7 +581,43 @@ Only after the above and durable local proof capture may cleanup proceed.
 **Important:** AT-10 completion must **not** be claimed from Stage B smoke, and
 must **not** be claimed from this planning packet. A future completion claim
 requires separate `AT10_COMPLETION_CLAIM_AUTHORIZED=YES` after successful
-authorized execution evidence is reviewed.
+authorized execution evidence is reviewed. Completeness over the bounded
+acceptance set is **not** a global production/historical-run claim.
+
+## AR-07 — Future proof namespace (frozen)
+
+If/when execution is separately authorized, durable local proof artifacts must
+land only under:
+
+```text
+proof/nw008/at-10/acceptance-demo/at-10-run-manifest.json
+proof/nw008/at-10/acceptance-demo/at-10-record-evidence.json
+proof/nw008/at-10/acceptance-demo/at-10-cleanup-evidence.json
+proof/nw008/at-10/acceptance-demo/proof-manifest.md
+proof/nw008/at-10/acceptance-demo/proof-return.yaml
+```
+
+```text
+FUTURE_PROOF_NAMESPACE=proof/nw008/at-10/acceptance-demo/
+FUTURE_PROOF_NAMESPACE_FROZEN=YES
+```
+
+Future proof must bind at least:
+
+```text
+AUTHORIZATION_PACKET_SHA
+AUTHORIZATION_DECISION_SHA
+IMPLEMENTATION_SUBJECT_SHA
+EXECUTION_CODE_SHA
+SOURCE_FIXTURE_HASHES
+RUN_IDS
+FIRESTORE_COUNTERS
+STARTED_AT
+COMPLETED_AT
+```
+
+Plus the per-document and aggregate gates defined in this packet. Proof emission
+is not authorized by this planning packet.
 
 ## Explicitly prohibited
 
@@ -377,6 +627,7 @@ This packet and any future execution under a grant derived from it forbid:
 - `update` (partial or full)
 - `list`
 - `query`
+- collection sweep
 - `wildcard` / prefix / suffix allowlist matching
 - `batch` writes
 - `transaction` multi-doc commits outside the exact single-doc graph
@@ -394,6 +645,11 @@ This packet and any future execution under a grant derived from it forbid:
 - self-activation by an agent/orchestrator
 - AT-10 completion claim from this packet alone
 - reopening or re-executing Stage B smoke as a substitute for AT-10
+- schema field aliases / "or equivalent" AT-10 path proof
+- uncommitted execution code / dirty worktree before first external call
+- principal or credential-source mismatch continuation
+- writing when any pre-create absence get is not `NOT_FOUND`
+- claiming the bounded acceptance set equals all production/historical runs
 
 ## Authority boundary
 
@@ -431,13 +687,20 @@ REQUESTED_LOCATION=us-east4
 REQUESTED_COLLECTION=workflow_runs
 REQUESTED_ALLOWLIST_COUNT=4
 REQUESTED_RUN_COUNT=4
+REQUESTED_ACCEPTANCE_SET_SIZE=4
 REQUESTED_RETENTION_MODE=acceptance_demo
 REQUESTED_MAX_DOCUMENT_CREATES=4
-REQUESTED_MAX_DOCUMENT_READS=8
+REQUESTED_MAX_DOCUMENT_READS=12
 REQUESTED_MAX_DOCUMENT_DELETES=4
-REQUESTED_MAX_NETWORK_CALLS=16
+REQUESTED_MAX_NETWORK_CALLS=20
 REQUESTED_MAX_EXECUTION_MINUTES=10
 REQUESTED_MAX_DISTINCT_RUN_IDS=4
+REQUESTED_EXECUTION_PRINCIPAL=user:themg@themiliare-group.com
+REQUESTED_CREDENTIAL_SOURCE=USER_APPLICATION_DEFAULT_CREDENTIALS
+REQUESTED_AT10_AGENT_FIELD_PATH=agent_steps.agents_used
+REQUESTED_AT10_TOOL_COUNT_FIELD_PATH=tool_call_counts
+REQUESTED_AT10_REASON_CODES_FIELD_PATH=reason_codes
+REQUESTED_AT10_DISPOSITION_FIELD_PATH=final_disposition
 ```
 
 **Do not self-activate AT-10.** Agent/orchestrator STOP is mandatory until a
@@ -458,6 +721,16 @@ STAGE_B_PROOF_REUSED=YES
 ## Required future proof fields (blank until authorized execution)
 
 ```text
+AUTHORIZATION_PACKET_SHA=
+AUTHORIZATION_DECISION_SHA=
+IMPLEMENTATION_SUBJECT_SHA=
+EXECUTION_CODE_SHA=
+SOURCE_FIXTURE_HASHES=
+RUN_IDS=
+FIRESTORE_COUNTERS=
+STARTED_AT=
+COMPLETED_AT=
+
 FIRESTORE_CREATE_ATTEMPTED=
 FIRESTORE_CREATE_VERIFIED=
 FIRESTORE_READBACK_VERIFIED=
@@ -467,6 +740,10 @@ AGENTS_PRESENT=
 TOOL_COUNTS_PRESENT=
 REASON_CODES_PRESENT=
 DISPOSITION_PRESENT=
+AT10_AGENT_FIELD_PATH=agent_steps.agents_used
+AT10_TOOL_COUNT_FIELD_PATH=tool_call_counts
+AT10_REASON_CODES_FIELD_PATH=reason_codes
+AT10_DISPOSITION_FIELD_PATH=final_disposition
 CONTENT_FINGERPRINT_MATCH=
 RECOMPUTED_READBACK_CONTENT_FINGERPRINT=
 STORED_CONTENT_FINGERPRINT=
@@ -479,21 +756,22 @@ AT10_DOCUMENT_CREATES=
 AT10_DOCUMENT_READS=
 AT10_DOCUMENT_DELETES=
 AT10_NETWORK_CALLS=
+PREEXISTING_DOCUMENTS=
 REAL_CUSTOMER_DATA=
 GHL_LIVE_CALLS=
 TEST_PROJECT_ID=
 DATABASE_ID=
 LOCATION_ID=
-PRINCIPAL=
-STARTED_AT=
-COMPLETED_AT=
+EXECUTION_PRINCIPAL=
+CREDENTIAL_SOURCE=
 CLEANUP_STATUS=
 RETENTION_MODE=acceptance_demo
 AT10_COMPLETE=
 ```
 
-All fields are blank at planning time; they may only be filled by actual
-authorized AT-10 acceptance-demo execution evidence.
+All runtime evidence fields are blank at planning time; they may only be filled
+by actual authorized AT-10 acceptance-demo execution evidence. Exact AT-10
+field paths above are frozen planning bindings, not execution results.
 
 ## Scope of this planning mutation
 
@@ -510,14 +788,55 @@ SECRET_MUTATION=NO
 DEPLOYMENT_MUTATION=NO
 ```
 
-## Current truth (this planning packet)
+## Authorization readiness gate (R1)
 
 ```text
+AR-01=PASS
+AR-02=PASS
+AR-03=PASS
+AR-04=PASS
+AR-05=PASS
+AR-06=PASS
+AR-07=PASS
+```
+
+| Repair | Requirement | Packet status |
+| --- | --- | --- |
+| AR-01 | Exact Stage A field paths; aliases forbidden | PASS |
+| AR-02 | Pre-create absence gets; `PREEXISTING_DOCUMENTS=0`; caps 4/12/4/20 | PASS |
+| AR-03 | Committed equal SHAs; clean worktree before first external call | PASS |
+| AR-04 | Stage B principal + ADC binding; mismatch stops before network | PASS |
+| AR-05 | Failure/cleanup matrix; no collection sweep | PASS |
+| AR-06 | Bounded acceptance set of 4; no global claim | PASS |
+| AR-07 | Frozen proof namespace + required proof bindings | PASS |
+
+Because all AR gates are PASS:
+
+```text
+AUTHORIZATION_PACKET_STATUS=READY_FOR_HUMAN_EXECUTION_AUTHORIZATION_REVIEW
+```
+
+Still retained (unchanged authority):
+
+```text
+AT10_IMPLEMENTATION_AUTHORIZED=NO
+AT10_EXECUTION_AUTHORIZED=NO
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+HUMAN_SIGNATURE=PENDING_EXPLICIT_APPROVAL
+CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED
+ACCEPTANCE_DEMO_AUTHORIZED=NO
+```
+
+## Current truth (this planning packet R1)
+
+```text
+PACKET_REVISION=R1
 PR50_CONFIRMED_MERGED=YES
 CURRENT_MAIN=8f7fdd482c03dfee5e75159054d9ddf11dd793fe
 
 AUTHORIZATION_ID=MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_V1
 STATUS=PROPOSED_NOT_AUTHORIZED
+AUTHORIZATION_PACKET_STATUS=READY_FOR_HUMAN_EXECUTION_AUTHORIZATION_REVIEW
 REQUESTED_MODE=acceptance_demo
 
 ENVIRONMENT_REUSED=YES
@@ -525,13 +844,47 @@ STAGE_B_PROOF_REUSED=YES
 INHERITED_STAGE_B_AUTHORIZATION=MG_GUIDE_NW005_FIRESTORE_AUDIT_TEST_PROJECT_PROOF_V1
 INHERITED_STAGE_B_PROOF=PASS
 
+AT10_AGENT_FIELD_PATH=agent_steps.agents_used
+AT10_TOOL_COUNT_FIELD_PATH=tool_call_counts
+AT10_REASON_CODES_FIELD_PATH=reason_codes
+AT10_DISPOSITION_FIELD_PATH=final_disposition
+SCHEMA_FIELD_ALIASES_AUTHORIZED=NO
+
+AT10_ACCEPTANCE_SET_SIZE=4
+AT10_ACCEPTANCE_SET=run_nw006_success_001,run_nw006_stage_denied_001,run_nw006_ambiguous_contact_001,run_nw006_failed_001
+AT10_ACCEPTANCE_SET_COMPLETE=YES
+
+PRECREATE_ABSENCE_GETS_REQUIRED=4
+PREEXISTING_DOCUMENTS_REQUIRED=0
+
+EXECUTION_PRINCIPAL=user:themg@themiliare-group.com
+CREDENTIAL_SOURCE=USER_APPLICATION_DEFAULT_CREDENTIALS
+EXECUTION_PRINCIPAL_MATCH_REQUIRED=YES
+CREDENTIAL_SOURCE_MATCH_REQUIRED=YES
+
+EXECUTION_CODE_COMMITTED_REQUIRED=YES
+WORKTREE_CLEAN_BEFORE_FIRST_EXTERNAL_CALL_REQUIRED=YES
+EXECUTION_CODE_SHA_MUST_EQUAL_IMPLEMENTATION_SUBJECT_SHA=YES
+UNCOMMITTED_EXECUTION_CODE=FORBIDDEN
+
+ON_PRECHECK_FAILURE=STOP_NO_WRITES
+ON_CREATE_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_READBACK_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_SCHEMA_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_FINGERPRINT_FAILURE=STOP_NEW_CREATES_AND_CLEANUP_CREATED_DOCS
+ON_AGGREGATE_FAILURE=NO_AT10_CLAIM_AND_CLEANUP_CREATED_DOCS
+ON_CLEANUP_FAILURE=AT10_RESULT_FAIL_AND_HUMAN_REMEDIATION
+NO_COLLECTION_SWEEP=YES
+
+FUTURE_PROOF_NAMESPACE=proof/nw008/at-10/acceptance-demo/
+
 REQUESTED_RUN_COUNT=4
 SYNTHETIC_ONLY=YES
 MAX_DISTINCT_RUN_IDS=4
 MAX_DOCUMENT_CREATES=4
-MAX_DOCUMENT_READS=8
+MAX_DOCUMENT_READS=12
 MAX_DOCUMENT_DELETES=4
-MAX_NETWORK_CALLS=16
+MAX_NETWORK_CALLS=20
 MAX_EXECUTION_MINUTES=10
 
 NEW_IAM_REQUIRED=NO
@@ -549,6 +902,14 @@ GHL_LIVE_CALLS=0
 REAL_CUSTOMER_DATA=0
 EXTERNAL_EFFECTS=0
 
+AR-01=PASS
+AR-02=PASS
+AR-03=PASS
+AR-04=PASS
+AR-05=PASS
+AR-06=PASS
+AR-07=PASS
+
 AT10_IMPLEMENTATION_AUTHORIZED=NO
 AT10_EXECUTION_AUTHORIZED=NO
 AT10_COMPLETION_CLAIM_AUTHORIZED=NO
@@ -557,5 +918,5 @@ HUMAN_SIGNATURE=PENDING_EXPLICIT_APPROVAL
 ```
 
 ```text
-STOP_CODE=NW008_AT10_ACCEPTANCE_DEMO_AUTHORIZATION_PACKET_READY_FOR_HUMAN_REVIEW
+STOP_CODE=NW008_AT10_ACCEPTANCE_DEMO_AUTH_PACKET_R1_READY_FOR_GOVERNANCE_REVIEW
 ```
