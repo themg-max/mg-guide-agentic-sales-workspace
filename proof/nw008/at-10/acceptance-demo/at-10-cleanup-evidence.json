@@ -1,0 +1,12 @@
+{
+  "cleanup_performed": true,
+  "cleanup_required": true,
+  "cleanup_verified_not_found": true,
+  "documents_deleted": [
+    "run_nw006_ambiguous_contact_001",
+    "run_nw006_failed_001",
+    "run_nw006_stage_denied_001",
+    "run_nw006_success_001"
+  ],
+  "network_calls": 0
+}

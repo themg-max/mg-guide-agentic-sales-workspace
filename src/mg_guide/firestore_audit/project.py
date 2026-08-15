@@ -218,6 +218,11 @@ def _content_fingerprint_body(audit_with_recorded_at: Mapping[str, Any]) -> Dict
     return body
 
 
+def content_fingerprint_body(audit_with_recorded_at: Mapping[str, Any]) -> Dict[str, Any]:
+    """Public stable alias for the content_fingerprint body."""
+    return _content_fingerprint_body(audit_with_recorded_at)
+
+
 def project_workflow_run_audit(
     packet: Mapping[str, Any],
     projection_context: ProjectionContext,

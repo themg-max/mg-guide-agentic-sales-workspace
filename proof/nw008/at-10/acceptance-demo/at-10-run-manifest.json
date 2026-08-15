@@ -1,0 +1,21 @@
+{
+  "AT10_ACCEPTANCE_SET": [
+    "run_nw006_success_001",
+    "run_nw006_stage_denied_001",
+    "run_nw006_ambiguous_contact_001",
+    "run_nw006_failed_001"
+  ],
+  "AT10_ACCEPTANCE_SET_SIZE": 4,
+  "AUTHORIZATION_DECISION": "AUTHORIZED_FOR_IMPLEMENTATION_ONLY",
+  "AUTHORIZATION_ID": "MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_V1",
+  "EXTERNAL_EFFECTS": 0,
+  "FIRESTORE_NETWORK_OPERATIONS": 0,
+  "NETWORK_CALLS": 0,
+  "RECORDS": [
+    "run_nw006_ambiguous_contact_001",
+    "run_nw006_failed_001",
+    "run_nw006_stage_denied_001",
+    "run_nw006_success_001"
+  ],
+  "STATUS": "PASS"
+}

@@ -22,7 +22,7 @@ from google.cloud import firestore
 
 from .canonicalize import fingerprint_hex
 from .models import TERMINAL_STATES
-from .project import _content_fingerprint_body
+from .project import content_fingerprint_body
 from .validate import validate_workflow_run_audit
 
 AUTHORIZED_PROJECT = "mg-devpost"
@@ -217,7 +217,7 @@ class FirestoreAuditStore:
             )
 
         stored = readback.get("integrity", {}).get("content_fingerprint")
-        recomputed = fingerprint_hex(_content_fingerprint_body(readback))
+        recomputed = fingerprint_hex(content_fingerprint_body(readback))
         if stored != recomputed:
             raise FirestoreAuditStoreError(
                 FIRESTORE_FINGERPRINT_MISMATCH,
