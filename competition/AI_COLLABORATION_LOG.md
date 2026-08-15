@@ -718,3 +718,42 @@
   - GHL / CRM calls
   - Marking AT-10 complete
 - **STOP:** `STOP_CODE=NW005_STAGE_B_AUTHORIZATION_PACKET_READY_FOR_REVIEW`
+
+### 2026-08-15 — NW-008 AT-10 AR-08 authority-sequence repair + current-state sync + implementation-grant prep
+
+- **Human owner / operator:** Aaron Chandler / repository maintainer
+- **Tool / AI surfaces:** VS Code + governed orchestrator + Copilot CLI runtime
+- **Objective:** Accept R1 proof architecture (AR-01…AR-07); add AR-08 authority-sequence binding only; reconcile durable current-state so NW-005 Stage B is no longer identified as the active blocker; prepare implementation-only grant request for human approval. No AT-10 implementation, no Firestore/network, no execution grant.
+- **Required preflight executed:** `pwd`; `git branch --show-current`; `git status --short --untracked-files=all`
+- **Branch guard:** not `main`; branch `plan/nw008-at10-acceptance-demo-authorization`; packet base `a25e4b622c53f32f11b9049c3081399e5fa8a470`
+- **AR-08 bound:**
+  - `AR-08=PASS` / `AR-08_NAME=AUTHORITY_SEQUENCE_BOUND`
+  - `IMPLEMENTATION_AUTHORIZATION_REQUIRED_BEFORE_IMPLEMENTATION=YES`
+  - `IMPLEMENTATION_AUTHORIZATION_MODE=IMPLEMENTATION_ONLY_NO_NETWORK`
+  - `EXECUTION_AUTHORIZATION_REQUIRED_AFTER_IMPLEMENTATION_REVIEW=YES`
+  - execution grant requires packet SHA + implementation subject SHA + execution code SHA + reviewer disposition
+  - `EXECUTION_CODE_SHA_MUST_EQUAL_IMPLEMENTATION_SUBJECT_SHA=YES`
+  - `EXECUTION_GRANT_BEFORE_IMPLEMENTATION_SUBJECT=FORBIDDEN`
+  - `IMPLEMENTATION_GRANT_AUTHORIZES_FIRESTORE=NO` / `IMPLEMENTATION_GRANT_AUTHORIZES_NETWORK=NO`
+  - `AT10_EXECUTION_AUTHORIZED=NO` / `AT10_COMPLETION_CLAIM_AUTHORIZED=NO`
+- **Current-state truth synchronized (historical facts preserved):**
+  - `NW005_STAGE_B_ENVIRONMENT_BINDING=COMPLETE`
+  - `NW005_STAGE_B_HUMAN_AUTHORIZATION=APPROVED`
+  - `NW005_STAGE_B_SMOKE=PASS`
+  - `AT10_CURRENT_PHASE=ACCEPTANCE_DEMO_AUTHORIZATION`
+  - `AT10_EXECUTION_AUTHORIZED=NO`
+  - `CURRENT_NEXT_LANE=NW008_AT10_ACCEPTANCE_DEMO_AUTHORIZATION`
+  - AT-8/AT-9 recorded **HISTORICAL_COMPLETE** under Tranche D (D1/D2); Tranche C-era PARTIAL snapshot preserved as historical
+- **Artifacts touched (planning/docs only):**
+  - `proof/nw008/at-10/nw-008-at10-acceptance-demo-authorization-packet.md` (AR-08)
+  - `proof/nw008/at-10/nw-008-at10-implementation-authorization.md` (grant request; not approved)
+  - `proof/nw008/nw-008-readiness-matrix.md`
+  - `competition/NEW_WORK_LEDGER.md`
+  - `competition/AI_COLLABORATION_LOG.md`
+- **Out of scope / refused this unit:**
+  - AT-10 runtime implementation
+  - Firestore client/network operations
+  - execution authorization decision / Firestore execution grant
+  - IAM / Secret Manager / Cloud Run / GHL mutation
+  - AT-10 completion claim
+- **STOP:** `STOP_CODE=NW008_AT10_AUTHORITY_SEQUENCE_READY_FOR_IMPLEMENTATION_GRANT_REVIEW`

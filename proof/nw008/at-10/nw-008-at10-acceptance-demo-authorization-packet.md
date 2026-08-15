@@ -619,6 +619,70 @@ COMPLETED_AT
 Plus the per-document and aggregate gates defined in this packet. Proof emission
 is not authorized by this planning packet.
 
+## AR-08 — Authority sequence bound (implementation before execution)
+
+R1 proof architecture (AR-01…AR-07) is accepted. AR-08 binds the **authority
+sequence** so neither implementation nor execution can self-activate out of
+order.
+
+```text
+AR-08=PASS
+AR-08_NAME=AUTHORITY_SEQUENCE_BOUND
+
+IMPLEMENTATION_AUTHORIZATION_REQUIRED_BEFORE_IMPLEMENTATION=YES
+
+IMPLEMENTATION_AUTHORIZATION_MODE=
+IMPLEMENTATION_ONLY_NO_NETWORK
+
+EXECUTION_AUTHORIZATION_REQUIRED_AFTER_IMPLEMENTATION_REVIEW=YES
+
+EXECUTION_AUTHORIZATION_REQUIRES_PACKET_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_IMPLEMENTATION_SUBJECT_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_EXECUTION_CODE_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_REVIEWER_DISPOSITION=YES
+
+EXECUTION_CODE_SHA_MUST_EQUAL_IMPLEMENTATION_SUBJECT_SHA=YES
+
+EXECUTION_GRANT_BEFORE_IMPLEMENTATION_SUBJECT=FORBIDDEN
+
+IMPLEMENTATION_GRANT_AUTHORIZES_FIRESTORE=NO
+IMPLEMENTATION_GRANT_AUTHORIZES_NETWORK=NO
+
+AT10_EXECUTION_AUTHORIZED=NO
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+```
+
+### Required sequence (frozen)
+
+1. **This packet** is reviewed/merged as the planning subject
+   (`AUTHORIZATION_PACKET_SHA`).
+2. **Implementation-only grant** is separately human-approved and merged
+   (`AUTHORIZED_FOR_IMPLEMENTATION_ONLY` /
+   `IMPLEMENTATION_ONLY_NO_NETWORK`). That grant does **not** authorize
+   Firestore, network, or execution.
+3. **Implementation** (offline acceptance-demo code + offline validation only)
+   proceeds under the implementation-only grant; emits
+   `IMPLEMENTATION_SUBJECT_SHA`.
+4. **Implementation review** + reviewer disposition.
+5. **Execution authorization** (separate decision artifact) may be requested
+   only after step 4, and must bind:
+   - `AUTHORIZED_PACKET_SHA`
+   - `IMPLEMENTATION_SUBJECT_SHA`
+   - `EXECUTION_CODE_SHA` (must equal `IMPLEMENTATION_SUBJECT_SHA`)
+   - reviewer disposition
+6. **Execution** (Firestore acceptance-demo) only under the execution grant.
+7. **Completion claim** only under separate
+   `AT10_COMPLETION_CLAIM_AUTHORIZED=YES` after successful authorized
+   execution evidence is reviewed.
+
+```text
+EXECUTION_GRANT_BEFORE_IMPLEMENTATION_SUBJECT=FORBIDDEN
+SELF_ACTIVATION=FORBIDDEN
+AT10_IMPLEMENTATION_AUTHORIZED=NO
+AT10_EXECUTION_AUTHORIZED=NO
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+```
+
 ## Explicitly prohibited
 
 This packet and any future execution under a grant derived from it forbid:
@@ -650,6 +714,9 @@ This packet and any future execution under a grant derived from it forbid:
 - principal or credential-source mismatch continuation
 - writing when any pre-create absence get is not `NOT_FOUND`
 - claiming the bounded acceptance set equals all production/historical runs
+- implementation before a merged implementation-only grant (AR-08)
+- execution grant before `IMPLEMENTATION_SUBJECT_SHA` exists (AR-08)
+- treating an implementation-only grant as Firestore/network authority (AR-08)
 
 ## Authority boundary
 
@@ -665,17 +732,60 @@ AT10_IMPLEMENTATION_AUTHORIZED=NO
 AT10_EXECUTION_AUTHORIZED=NO
 AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 ACCEPTANCE_DEMO_AUTHORIZED=NO
+
+IMPLEMENTATION_AUTHORIZATION_REQUIRED_BEFORE_IMPLEMENTATION=YES
+IMPLEMENTATION_AUTHORIZATION_MODE=IMPLEMENTATION_ONLY_NO_NETWORK
+EXECUTION_AUTHORIZATION_REQUIRED_AFTER_IMPLEMENTATION_REVIEW=YES
+EXECUTION_GRANT_BEFORE_IMPLEMENTATION_SUBJECT=FORBIDDEN
+IMPLEMENTATION_GRANT_AUTHORIZES_FIRESTORE=NO
+IMPLEMENTATION_GRANT_AUTHORIZES_NETWORK=NO
 ```
 
-Human approval, if granted later, must be recorded in a **separate** execution-
-authorization decision artifact (mirroring the Stage B pattern of
-`nw-005-stage-b-execution-authorization.md`). Approval text in chat is not a
-repository grant until that decision artifact exists and is merged under
-governance.
+Human approval must be recorded in **separate** decision artifacts under AR-08
+sequence (mirroring the Stage B pattern of
+`nw-005-stage-b-execution-authorization.md`, but split into implementation-
+only then execution):
+
+1. `proof/nw008/at-10/nw-008-at10-implementation-authorization.md` —
+   `AUTHORIZED_FOR_IMPLEMENTATION_ONLY` / `IMPLEMENTATION_ONLY_NO_NETWORK`
+2. a later execution-authorization decision artifact —
+   `AUTHORIZED_FOR_EXECUTION` only after implementation review, binding packet
+   SHA + implementation subject SHA + execution code SHA + reviewer disposition
+
+Approval text in chat is not a repository grant until the relevant decision
+artifact exists and is merged under governance.
 
 ## Human authorization request (not granted by this packet)
 
-A human maintainer may later grant execution under:
+### Next required grant (implementation-only — no network)
+
+After this packet is reviewed/merged, a human maintainer may grant
+**implementation only** under a separate artifact
+(`nw-008-at10-implementation-authorization.md`):
+
+```text
+AUTHORIZATION_ID=MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_V1
+REQUESTED_DECISION=AUTHORIZED_FOR_IMPLEMENTATION_ONLY
+AUTHORIZED_SCOPE=AT10_ACCEPTANCE_DEMO_IMPLEMENTATION_AND_OFFLINE_VALIDATION
+IMPLEMENTATION_AUTHORIZATION_MODE=IMPLEMENTATION_ONLY_NO_NETWORK
+NETWORK_OPERATIONS_AUTHORIZED=NO
+FIRESTORE_READS_AUTHORIZED=NO
+FIRESTORE_WRITES_AUTHORIZED=NO
+FIRESTORE_DELETES_AUTHORIZED=NO
+IAM_MUTATION_AUTHORIZED=NO
+SECRET_MUTATION_AUTHORIZED=NO
+CLOUD_RUN_AUTHORIZED=NO
+GHL_CRM_AUTHORIZED=NO
+AT10_EXECUTION_AUTHORIZED=NO
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+SELF_ACTIVATION=FORBIDDEN
+```
+
+### Later grant only (execution — after implementation review)
+
+Only after the implementation-only grant is approved/merged, implementation is
+complete, and reviewer disposition is recorded, a human maintainer may later
+grant **execution** under a separate execution-authorization decision artifact:
 
 ```text
 AUTHORIZATION_ID=MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_V1
@@ -701,21 +811,35 @@ REQUESTED_AT10_AGENT_FIELD_PATH=agent_steps.agents_used
 REQUESTED_AT10_TOOL_COUNT_FIELD_PATH=tool_call_counts
 REQUESTED_AT10_REASON_CODES_FIELD_PATH=reason_codes
 REQUESTED_AT10_DISPOSITION_FIELD_PATH=final_disposition
+EXECUTION_AUTHORIZATION_REQUIRES_PACKET_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_IMPLEMENTATION_SUBJECT_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_EXECUTION_CODE_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_REVIEWER_DISPOSITION=YES
+EXECUTION_CODE_SHA_MUST_EQUAL_IMPLEMENTATION_SUBJECT_SHA=YES
+EXECUTION_GRANT_BEFORE_IMPLEMENTATION_SUBJECT=FORBIDDEN
 ```
 
 **Do not self-activate AT-10.** Agent/orchestrator STOP is mandatory until a
-human records an explicit approval signature in a follow-on activation
-decision artifact.
+human records the required grant artifact for the current sequence step.
+Do **not** create the Firestore execution grant yet while only the
+implementation-only step is pending.
 
 ### Current authorization posture
 
 ```text
 HUMAN_SIGNATURE=PENDING_EXPLICIT_APPROVAL
 CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED
-BLOCKERS=HUMAN_EXECUTION_APPROVAL_REQUIRED
+BLOCKERS=IMPLEMENTATION_ONLY_GRANT_REQUIRED
+AT10_CURRENT_PHASE=ACCEPTANCE_DEMO_AUTHORIZATION
+CURRENT_NEXT_LANE=NW008_AT10_ACCEPTANCE_DEMO_AUTHORIZATION
 ENVIRONMENT_BINDING_COMPLETE=YES
 ENVIRONMENT_REUSED=YES
 STAGE_B_PROOF_REUSED=YES
+NW005_STAGE_B_ENVIRONMENT_BINDING=COMPLETE
+NW005_STAGE_B_HUMAN_AUTHORIZATION=APPROVED
+NW005_STAGE_B_SMOKE=PASS
+AT10_EXECUTION_AUTHORIZED=NO
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 ```
 
 ## Required future proof fields (blank until authorized execution)
@@ -788,7 +912,7 @@ SECRET_MUTATION=NO
 DEPLOYMENT_MUTATION=NO
 ```
 
-## Authorization readiness gate (R1)
+## Authorization readiness gate (R1 + AR-08)
 
 ```text
 AR-01=PASS
@@ -798,6 +922,7 @@ AR-04=PASS
 AR-05=PASS
 AR-06=PASS
 AR-07=PASS
+AR-08=PASS
 ```
 
 | Repair | Requirement | Packet status |
@@ -809,11 +934,14 @@ AR-07=PASS
 | AR-05 | Failure/cleanup matrix; no collection sweep | PASS |
 | AR-06 | Bounded acceptance set of 4; no global claim | PASS |
 | AR-07 | Frozen proof namespace + required proof bindings | PASS |
+| AR-08 | Authority sequence bound: implementation-only grant before impl; execution grant only after impl review + SHAs | PASS |
 
 Because all AR gates are PASS:
 
 ```text
-AUTHORIZATION_PACKET_STATUS=READY_FOR_HUMAN_EXECUTION_AUTHORIZATION_REVIEW
+AUTHORIZATION_PACKET_STATUS=READY_FOR_IMPLEMENTATION_GRANT_REVIEW
+AR_08=PASS
+AR-08_NAME=AUTHORITY_SEQUENCE_BOUND
 ```
 
 Still retained (unchanged authority):
@@ -825,9 +953,12 @@ AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 HUMAN_SIGNATURE=PENDING_EXPLICIT_APPROVAL
 CURRENT_GRANT_STATE=PROPOSED_NOT_AUTHORIZED
 ACCEPTANCE_DEMO_AUTHORIZED=NO
+IMPLEMENTATION_GRANT_AUTHORIZES_FIRESTORE=NO
+IMPLEMENTATION_GRANT_AUTHORIZES_NETWORK=NO
+EXECUTION_GRANT_BEFORE_IMPLEMENTATION_SUBJECT=FORBIDDEN
 ```
 
-## Current truth (this planning packet R1)
+## Current truth (this planning packet R1 + AR-08)
 
 ```text
 PACKET_REVISION=R1
@@ -836,8 +967,15 @@ CURRENT_MAIN=8f7fdd482c03dfee5e75159054d9ddf11dd793fe
 
 AUTHORIZATION_ID=MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_V1
 STATUS=PROPOSED_NOT_AUTHORIZED
-AUTHORIZATION_PACKET_STATUS=READY_FOR_HUMAN_EXECUTION_AUTHORIZATION_REVIEW
+AUTHORIZATION_PACKET_STATUS=READY_FOR_IMPLEMENTATION_GRANT_REVIEW
 REQUESTED_MODE=acceptance_demo
+
+AT10_CURRENT_PHASE=ACCEPTANCE_DEMO_AUTHORIZATION
+CURRENT_NEXT_LANE=NW008_AT10_ACCEPTANCE_DEMO_AUTHORIZATION
+
+NW005_STAGE_B_ENVIRONMENT_BINDING=COMPLETE
+NW005_STAGE_B_HUMAN_AUTHORIZATION=APPROVED
+NW005_STAGE_B_SMOKE=PASS
 
 ENVIRONMENT_REUSED=YES
 STAGE_B_PROOF_REUSED=YES
@@ -909,6 +1047,20 @@ AR-04=PASS
 AR-05=PASS
 AR-06=PASS
 AR-07=PASS
+AR-08=PASS
+AR-08_NAME=AUTHORITY_SEQUENCE_BOUND
+
+IMPLEMENTATION_AUTHORIZATION_REQUIRED_BEFORE_IMPLEMENTATION=YES
+IMPLEMENTATION_AUTHORIZATION_MODE=IMPLEMENTATION_ONLY_NO_NETWORK
+EXECUTION_AUTHORIZATION_REQUIRED_AFTER_IMPLEMENTATION_REVIEW=YES
+EXECUTION_AUTHORIZATION_REQUIRES_PACKET_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_IMPLEMENTATION_SUBJECT_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_EXECUTION_CODE_SHA=YES
+EXECUTION_AUTHORIZATION_REQUIRES_REVIEWER_DISPOSITION=YES
+EXECUTION_CODE_SHA_MUST_EQUAL_IMPLEMENTATION_SUBJECT_SHA=YES
+EXECUTION_GRANT_BEFORE_IMPLEMENTATION_SUBJECT=FORBIDDEN
+IMPLEMENTATION_GRANT_AUTHORIZES_FIRESTORE=NO
+IMPLEMENTATION_GRANT_AUTHORIZES_NETWORK=NO
 
 AT10_IMPLEMENTATION_AUTHORIZED=NO
 AT10_EXECUTION_AUTHORIZED=NO
@@ -918,5 +1070,5 @@ HUMAN_SIGNATURE=PENDING_EXPLICIT_APPROVAL
 ```
 
 ```text
-STOP_CODE=NW008_AT10_ACCEPTANCE_DEMO_AUTH_PACKET_R1_READY_FOR_GOVERNANCE_REVIEW
+STOP_CODE=NW008_AT10_AUTHORITY_SEQUENCE_READY_FOR_IMPLEMENTATION_GRANT_REVIEW
 ```
