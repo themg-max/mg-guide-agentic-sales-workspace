@@ -207,9 +207,13 @@ def test_d2_validator_fail_closed_on_nonzero_effects() -> None:
     sm = StateMachine(_deepcopy(_production_contract()))
     matrix = run_d2_attempt_matrix(sm, run_id="accept-d2-val")
     evidence = build_d2_evidence(
-        matrix, implementation_subject_sha="f" * 40, negative_controls={}
+        matrix,
+        implementation_subject_sha="f" * 40,
+        production_contract=_production_contract(),
     )
     assert validate_d2_proof(evidence) == "PASS"
+    assert evidence["DETERMINISTIC_REPLAY_BYTES_EQUAL"] is True
+    assert evidence["DETERMINISTIC_REPLAY_HASHES_EQUAL"] is True
     poisoned = dict(evidence)
     poisoned["FIRESTORE_WRITES"] = 1
     assert validate_d2_proof(poisoned) == "FAIL"
@@ -225,5 +229,4 @@ def test_d2_does_not_emit_durable_proof_namespace(tmp_path: Path) -> None:
         / "d2-at8"
     )
     assert not durable.exists()
-    # Local tmp rendering remains allowed for future P2 helpers; A2 leaves durable path empty.
-    assert list(tmp_path.iterdir()) == [] or True
+    assert list(tmp_path.iterdir()) == []

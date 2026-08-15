@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
+import re
 from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -410,6 +412,30 @@ def generate_final_proof(
 D2_PROOF_NAMESPACE = "proof/nw008/tranche-d/d2-at8"
 D2_CAP_SOURCE = "contracts/workflow_states.yaml"
 D2_PROOF_TIMESTAMP = "2026-08-15T12:00:00Z"
+D2_CAP_NODE = "invariants"
+D2_CONTROL_KEYS = tuple(f"NC_D2_{number}" for number in range(1, 11))
+D2_REPLAY_KEYS = (
+    "DETERMINISTIC_REPLAY_BYTES_EQUAL",
+    "DETERMINISTIC_REPLAY_HASHES_EQUAL",
+    "REPLAY_PRIMARY_OUTPUT",
+    "REPLAY_SECONDARY_OUTPUT",
+    "REPLAY_PRIMARY_SHA256",
+    "REPLAY_SECONDARY_SHA256",
+)
+
+
+@dataclass
+class D2EffectSpy:
+    """Collect local observations at every effect seam used by the D2 harness."""
+
+    ghl_live_calls: list[str] = field(default_factory=list)
+    ghl_writes: list[str] = field(default_factory=list)
+    firestore_writes: list[str] = field(default_factory=list)
+    external_effects: list[str] = field(default_factory=list)
+    transport_executor_calls: list[str] = field(default_factory=list)
+
+    def record_transport_call(self, label: str) -> None:
+        self.transport_executor_calls.append(label)
 
 
 def execute_d2_write_attempt(
@@ -438,10 +464,7 @@ def run_d2_attempt_matrix(
     """Execute offline note/stage attempt sequences and collect computable evidence."""
 
     runner = WorkflowRunner(state_machine=state_machine, allow_transport=False)
-    transport_calls: list[str] = []
-
-    def _transport(label: str):
-        transport_calls.append(label)
+    effect_spy = D2EffectSpy()
 
     note_decisions = []
     for _ in range(note_attempts):
@@ -450,9 +473,10 @@ def run_d2_attempt_matrix(
                 runner,
                 run_id=run_id,
                 write_kind="note",
-                transport_executor=lambda: _transport("note"),
+                transport_executor=lambda: effect_spy.record_transport_call("note"),
             ).as_dict()
         )
+    after_note = runner.ledger_for(run_id).snapshot()
 
     stage_decisions = []
     for _ in range(stage_attempts):
@@ -461,22 +485,35 @@ def run_d2_attempt_matrix(
                 runner,
                 run_id=run_id,
                 write_kind="stage",
-                transport_executor=lambda: _transport("stage"),
+                transport_executor=lambda: effect_spy.record_transport_call("stage"),
             ).as_dict()
         )
+    after_stage = runner.ledger_for(run_id).snapshot()
+
+    fresh_run_id = f"{run_id}:fresh"
+    fresh_run_reset = execute_d2_write_attempt(
+        runner,
+        run_id=fresh_run_id,
+        write_kind="note",
+        transport_executor=lambda: effect_spy.record_transport_call("fresh-note"),
+    ).as_dict()
 
     effects = {
-        "GHL_LIVE_CALLS": 0,
-        "GHL_WRITES": 0,
-        "FIRESTORE_WRITES": 0,
-        "EXTERNAL_EFFECTS": 0,
-        "TRANSPORT_ATTEMPTED": False,
-        "TRANSPORT_EXECUTOR_CALLS": list(transport_calls),
+        "GHL_LIVE_CALL_OBSERVATIONS": list(effect_spy.ghl_live_calls),
+        "GHL_LIVE_CALLS": len(effect_spy.ghl_live_calls),
+        "GHL_WRITE_OBSERVATIONS": list(effect_spy.ghl_writes),
+        "GHL_WRITES": len(effect_spy.ghl_writes),
+        "FIRESTORE_WRITE_OBSERVATIONS": list(effect_spy.firestore_writes),
+        "FIRESTORE_WRITES": len(effect_spy.firestore_writes),
+        "EXTERNAL_EFFECT_OBSERVATIONS": list(effect_spy.external_effects),
+        "EXTERNAL_EFFECTS": len(effect_spy.external_effects),
+        "TRANSPORT_EXECUTOR_CALLS": list(effect_spy.transport_executor_calls),
+        "TRANSPORT_ATTEMPTED": bool(effect_spy.transport_executor_calls),
     }
     return {
         "run_id": run_id,
-        "cap_source": getattr(state_machine, "cap_source", D2_CAP_SOURCE),
-        "cap_node": getattr(state_machine, "cap_node", "invariants"),
+        "cap_source": state_machine.cap_source,
+        "cap_node": state_machine.cap_node,
         "max_note_writes_per_run": state_machine.max_note_writes_per_run,
         "max_stage_writes_per_run": state_machine.max_stage_writes_per_run,
         "ledger_state_owner": LEDGER_STATE_OWNER,
@@ -486,94 +523,282 @@ def run_d2_attempt_matrix(
         "harness_cap_authority": WorkflowRunner.HARNESS_CAP_AUTHORITY,
         "note_decisions": note_decisions,
         "stage_decisions": stage_decisions,
-        "ledger_snapshot": runner.ledger_for(run_id).snapshot(),
+        "counter_observations": {
+            "after_note_sequence": after_note,
+            "after_stage_sequence": after_stage,
+        },
+        "ledger_snapshot": after_stage,
+        "fresh_run_reset": fresh_run_reset,
+        "fresh_run_ledger_snapshot": runner.ledger_for(fresh_run_id).snapshot(),
         "effects": effects,
     }
+
+
+def _d2_base_evidence(
+    matrix: Mapping[str, Any],
+    *,
+    implementation_subject_sha: str,
+    controls: Mapping[str, str],
+) -> Dict[str, Any]:
+    effects = matrix["effects"]
+    evidence: Dict[str, Any] = {
+        "IMPLEMENTATION_SUBJECT_SHA": implementation_subject_sha,
+        "CAP_SOURCE": matrix["cap_source"],
+        "CAP_NODE": matrix["cap_node"],
+        "LEDGER_STATE_OWNER": matrix["ledger_state_owner"],
+        "ENFORCEMENT_DECISION_OWNER": matrix["enforcement_decision_owner"],
+        "RUNNER_AUTHORITY": matrix["runner_authority"],
+        "AGENT_CAP_AUTHORITY": matrix["agent_cap_authority"],
+        "HARNESS_CAP_AUTHORITY": matrix["harness_cap_authority"],
+        "MAX_NOTE_WRITES_PER_RUN": matrix["max_note_writes_per_run"],
+        "MAX_STAGE_WRITES_PER_RUN": matrix["max_stage_writes_per_run"],
+        "NOTE_DECISIONS": list(matrix["note_decisions"]),
+        "STAGE_DECISIONS": list(matrix["stage_decisions"]),
+        "COUNTER_OBSERVATIONS": dict(matrix["counter_observations"]),
+        "LEDGER_SNAPSHOT": dict(matrix["ledger_snapshot"]),
+        "FRESH_RUN_RESET": dict(matrix["fresh_run_reset"]),
+        "FRESH_RUN_LEDGER_SNAPSHOT": dict(matrix["fresh_run_ledger_snapshot"]),
+        "GHL_LIVE_CALL_OBSERVATIONS": list(effects["GHL_LIVE_CALL_OBSERVATIONS"]),
+        "GHL_LIVE_CALLS": effects["GHL_LIVE_CALLS"],
+        "GHL_WRITE_OBSERVATIONS": list(effects["GHL_WRITE_OBSERVATIONS"]),
+        "GHL_WRITES": effects["GHL_WRITES"],
+        "FIRESTORE_WRITE_OBSERVATIONS": list(
+            effects["FIRESTORE_WRITE_OBSERVATIONS"]
+        ),
+        "FIRESTORE_WRITES": effects["FIRESTORE_WRITES"],
+        "EXTERNAL_EFFECT_OBSERVATIONS": list(
+            effects["EXTERNAL_EFFECT_OBSERVATIONS"]
+        ),
+        "EXTERNAL_EFFECTS": effects["EXTERNAL_EFFECTS"],
+        "TRANSPORT_ATTEMPTED": effects["TRANSPORT_ATTEMPTED"],
+        "TRANSPORT_EXECUTOR_CALLS": list(effects["TRANSPORT_EXECUTOR_CALLS"]),
+    }
+    evidence.update({key: controls[key] for key in D2_CONTROL_KEYS})
+    return evidence
+
+
+def _canonical_d2_output(evidence: Mapping[str, Any]) -> str:
+    return json.dumps(
+        evidence, ensure_ascii=True, separators=(",", ":"), sort_keys=True
+    ) + "\n"
 
 
 def build_d2_evidence(
     matrix: Mapping[str, Any],
     *,
     implementation_subject_sha: str,
-    negative_controls: Optional[Mapping[str, str]] = None,
+    production_contract: Mapping[str, Any],
 ) -> Dict[str, Any]:
-    """Assemble computable D2 evidence. Does not trust caller PASS labels."""
+    """Build governed D2 evidence and independently render it twice."""
 
-    note = list(matrix.get("note_decisions") or [])
-    stage = list(matrix.get("stage_decisions") or [])
-    effects = dict(matrix.get("effects") or {})
-    evidence: Dict[str, Any] = {
-        "IMPLEMENTATION_SUBJECT_SHA": implementation_subject_sha,
-        "CAP_SOURCE": matrix.get("cap_source", D2_CAP_SOURCE),
-        "CAP_NODE": matrix.get("cap_node", "invariants"),
-        "LEDGER_STATE_OWNER": matrix.get("ledger_state_owner", LEDGER_STATE_OWNER),
-        "ENFORCEMENT_DECISION_OWNER": matrix.get(
-            "enforcement_decision_owner", ENFORCEMENT_DECISION_OWNER
-        ),
-        "RUNNER_AUTHORITY": matrix.get(
-            "runner_authority", WorkflowRunner.RUNNER_AUTHORITY
-        ),
-        "AGENT_CAP_AUTHORITY": matrix.get("agent_cap_authority", False),
-        "HARNESS_CAP_AUTHORITY": matrix.get("harness_cap_authority", False),
-        "MAX_NOTE_WRITES_PER_RUN": matrix.get("max_note_writes_per_run"),
-        "MAX_STAGE_WRITES_PER_RUN": matrix.get("max_stage_writes_per_run"),
-        "NOTE_DECISIONS": note,
-        "STAGE_DECISIONS": stage,
-        "LEDGER_SNAPSHOT": dict(matrix.get("ledger_snapshot") or {}),
-        "GHL_LIVE_CALLS": int(effects.get("GHL_LIVE_CALLS", 0)),
-        "GHL_WRITES": int(effects.get("GHL_WRITES", 0)),
-        "FIRESTORE_WRITES": int(effects.get("FIRESTORE_WRITES", 0)),
-        "EXTERNAL_EFFECTS": int(effects.get("EXTERNAL_EFFECTS", 0)),
-        "TRANSPORT_ATTEMPTED": bool(effects.get("TRANSPORT_ATTEMPTED", False)),
-        "TRANSPORT_EXECUTOR_CALLS": list(effects.get("TRANSPORT_EXECUTOR_CALLS") or []),
-    }
-    if negative_controls:
-        evidence.update({k: v for k, v in negative_controls.items()})
+    primary_controls = compute_d2_negative_controls(production_contract)
+    evidence = _d2_base_evidence(
+        matrix,
+        implementation_subject_sha=implementation_subject_sha,
+        controls=primary_controls,
+    )
+    primary_output = _canonical_d2_output(evidence)
+
+    replay_matrix = run_d2_attempt_matrix(
+        StateMachine(deepcopy(dict(production_contract))),
+        run_id=matrix["run_id"],
+    )
+    replay_controls = compute_d2_negative_controls(production_contract)
+    replay_evidence = _d2_base_evidence(
+        replay_matrix,
+        implementation_subject_sha=implementation_subject_sha,
+        controls=replay_controls,
+    )
+    replay_output = _canonical_d2_output(replay_evidence)
+    primary_hash = hashlib.sha256(primary_output.encode("utf-8")).hexdigest()
+    replay_hash = hashlib.sha256(replay_output.encode("utf-8")).hexdigest()
+    evidence.update(
+        {
+            "DETERMINISTIC_REPLAY_BYTES_EQUAL": primary_output == replay_output,
+            "DETERMINISTIC_REPLAY_HASHES_EQUAL": primary_hash == replay_hash,
+            "REPLAY_PRIMARY_OUTPUT": primary_output,
+            "REPLAY_SECONDARY_OUTPUT": replay_output,
+            "REPLAY_PRIMARY_SHA256": primary_hash,
+            "REPLAY_SECONDARY_SHA256": replay_hash,
+        }
+    )
     evidence["PROOF_STATUS"] = validate_d2_proof(evidence)
     return evidence
 
 
+def _is_zero_int(value: Any) -> bool:
+    return type(value) is int and value == 0
+
+
+def _validate_d2_effects(evidence: Mapping[str, Any]) -> bool:
+    observation_pairs = (
+        ("GHL_LIVE_CALLS", "GHL_LIVE_CALL_OBSERVATIONS"),
+        ("GHL_WRITES", "GHL_WRITE_OBSERVATIONS"),
+        ("FIRESTORE_WRITES", "FIRESTORE_WRITE_OBSERVATIONS"),
+        ("EXTERNAL_EFFECTS", "EXTERNAL_EFFECT_OBSERVATIONS"),
+    )
+    required = {
+        key for pair in observation_pairs for key in pair
+    } | {"TRANSPORT_ATTEMPTED", "TRANSPORT_EXECUTOR_CALLS"}
+    if not required.issubset(evidence):
+        return False
+    for count_key, observations_key in observation_pairs:
+        count = evidence[count_key]
+        observations = evidence[observations_key]
+        if not isinstance(observations, list) or type(count) is not int:
+            return False
+        if count != len(observations) or not _is_zero_int(count):
+            return False
+    transport_calls = evidence["TRANSPORT_EXECUTOR_CALLS"]
+    transport_attempted = evidence["TRANSPORT_ATTEMPTED"]
+    if not isinstance(transport_calls, list) or type(transport_attempted) is not bool:
+        return False
+    return transport_attempted == bool(transport_calls) and not transport_attempted
+
+
+def _validate_d2_sequence(
+    decisions: Any, *, write_kind: str, main_run_id: Optional[str] = None
+) -> Optional[str]:
+    if not isinstance(decisions, list) or len(decisions) != 2:
+        return None
+    expected = (("PERMIT", 0, 1), ("REFUSE", 1, 1))
+    run_id: Optional[str] = None
+    for item, (decision, before, after) in zip(decisions, expected):
+        if not isinstance(item, Mapping):
+            return None
+        if (
+            item.get("decision") != decision
+            or item.get("write_kind") != write_kind
+            or item.get("before") != before
+            or item.get("after") != after
+            or item.get("max") != 1
+            or item.get("decision_owner") != ENFORCEMENT_DECISION_OWNER
+            or item.get("transport_attempted") is not False
+        ):
+            return None
+        item_run_id = item.get("run_id")
+        if not isinstance(item_run_id, str) or not item_run_id:
+            return None
+        run_id = run_id or item_run_id
+        if item_run_id != run_id:
+            return None
+    if main_run_id is not None and run_id != main_run_id:
+        return None
+    return run_id
+
+
 def validate_d2_proof(evidence: Mapping[str, Any]) -> str:
-    """Fail closed on nonzero effects or missing authority/SHA binding."""
+    """Validate complete final-proof evidence without absence defaults."""
 
-    sha = evidence.get("IMPLEMENTATION_SUBJECT_SHA")
-    if not isinstance(sha, str) or len(sha.strip()) < 7:
+    required_base = {
+        "IMPLEMENTATION_SUBJECT_SHA",
+        "CAP_SOURCE",
+        "CAP_NODE",
+        "LEDGER_STATE_OWNER",
+        "ENFORCEMENT_DECISION_OWNER",
+        "RUNNER_AUTHORITY",
+        "AGENT_CAP_AUTHORITY",
+        "HARNESS_CAP_AUTHORITY",
+        "MAX_NOTE_WRITES_PER_RUN",
+        "MAX_STAGE_WRITES_PER_RUN",
+        "NOTE_DECISIONS",
+        "STAGE_DECISIONS",
+        "COUNTER_OBSERVATIONS",
+        "LEDGER_SNAPSHOT",
+        "FRESH_RUN_RESET",
+        "FRESH_RUN_LEDGER_SNAPSHOT",
+        "GHL_LIVE_CALL_OBSERVATIONS",
+        "GHL_LIVE_CALLS",
+        "GHL_WRITE_OBSERVATIONS",
+        "GHL_WRITES",
+        "FIRESTORE_WRITE_OBSERVATIONS",
+        "FIRESTORE_WRITES",
+        "EXTERNAL_EFFECT_OBSERVATIONS",
+        "EXTERNAL_EFFECTS",
+        "TRANSPORT_ATTEMPTED",
+        "TRANSPORT_EXECUTOR_CALLS",
+        *D2_CONTROL_KEYS,
+    }
+    if not (required_base | set(D2_REPLAY_KEYS)).issubset(evidence):
         return "FAIL"
-    if evidence.get("ENFORCEMENT_DECISION_OWNER") != ENFORCEMENT_DECISION_OWNER:
+    sha = evidence["IMPLEMENTATION_SUBJECT_SHA"]
+    if not isinstance(sha, str) or re.fullmatch(r"[0-9a-fA-F]{40}", sha) is None:
         return "FAIL"
-    if evidence.get("LEDGER_STATE_OWNER") != LEDGER_STATE_OWNER:
+    if (
+        evidence["CAP_SOURCE"] != D2_CAP_SOURCE
+        or evidence["CAP_NODE"] != D2_CAP_NODE
+        or evidence["ENFORCEMENT_DECISION_OWNER"] != ENFORCEMENT_DECISION_OWNER
+        or evidence["LEDGER_STATE_OWNER"] != LEDGER_STATE_OWNER
+        or evidence["RUNNER_AUTHORITY"] != WorkflowRunner.RUNNER_AUTHORITY
+        or evidence["AGENT_CAP_AUTHORITY"] is not False
+        or evidence["HARNESS_CAP_AUTHORITY"] is not False
+        or evidence["MAX_NOTE_WRITES_PER_RUN"] != 1
+        or evidence["MAX_STAGE_WRITES_PER_RUN"] != 1
+    ):
         return "FAIL"
-    if evidence.get("RUNNER_AUTHORITY") != WorkflowRunner.RUNNER_AUTHORITY:
+    if any(evidence[key] != "PASS" for key in D2_CONTROL_KEYS):
         return "FAIL"
-    if evidence.get("AGENT_CAP_AUTHORITY") not in (False, "NO", 0):
-        return "FAIL"
-    if evidence.get("HARNESS_CAP_AUTHORITY") not in (False, "NO", 0):
-        return "FAIL"
-    if evidence.get("CAP_SOURCE") != D2_CAP_SOURCE and not str(
-        evidence.get("CAP_SOURCE", "")
-    ).endswith("workflow_states.yaml"):
-        # Temporary test contracts may override numeric caps but source label remains yaml path
-        # unless explicitly temporary; still require a non-empty source string.
-        if not evidence.get("CAP_SOURCE"):
-            return "FAIL"
-    for key in ("GHL_LIVE_CALLS", "GHL_WRITES", "FIRESTORE_WRITES", "EXTERNAL_EFFECTS"):
-        if int(evidence.get(key, 0) or 0) != 0:
-            return "FAIL"
-    if evidence.get("TRANSPORT_ATTEMPTED") is True:
-        return "FAIL"
-    if list(evidence.get("TRANSPORT_EXECUTOR_CALLS") or []):
+    if not _validate_d2_effects(evidence):
         return "FAIL"
 
-    note = list(evidence.get("NOTE_DECISIONS") or [])
-    stage = list(evidence.get("STAGE_DECISIONS") or [])
-    for decisions in (note, stage):
-        for item in decisions:
-            if item.get("decision_owner") != ENFORCEMENT_DECISION_OWNER:
-                return "FAIL"
-            if item.get("transport_attempted") is True:
-                return "FAIL"
-            if item.get("decision") not in {"PERMIT", "REFUSE"}:
-                return "FAIL"
+    note_run_id = _validate_d2_sequence(
+        evidence["NOTE_DECISIONS"], write_kind="note"
+    )
+    if note_run_id is None:
+        return "FAIL"
+    if (
+        _validate_d2_sequence(
+            evidence["STAGE_DECISIONS"],
+            write_kind="stage",
+            main_run_id=note_run_id,
+        )
+        is None
+    ):
+        return "FAIL"
+    if evidence["COUNTER_OBSERVATIONS"] != {
+        "after_note_sequence": {"note": 1, "stage": 0},
+        "after_stage_sequence": {"note": 1, "stage": 1},
+    } or evidence["LEDGER_SNAPSHOT"] != {"note": 1, "stage": 1}:
+        return "FAIL"
+
+    fresh = evidence["FRESH_RUN_RESET"]
+    if not isinstance(fresh, Mapping):
+        return "FAIL"
+    if (
+        fresh.get("decision") != "PERMIT"
+        or fresh.get("write_kind") != "note"
+        or fresh.get("before") != 0
+        or fresh.get("after") != 1
+        or fresh.get("max") != 1
+        or fresh.get("decision_owner") != ENFORCEMENT_DECISION_OWNER
+        or fresh.get("transport_attempted") is not False
+        or not isinstance(fresh.get("run_id"), str)
+        or not fresh["run_id"]
+        or fresh["run_id"] == note_run_id
+        or evidence["FRESH_RUN_LEDGER_SNAPSHOT"] != {"note": 1, "stage": 0}
+    ):
+        return "FAIL"
+
+    primary_output = evidence["REPLAY_PRIMARY_OUTPUT"]
+    secondary_output = evidence["REPLAY_SECONDARY_OUTPUT"]
+    primary_hash = evidence["REPLAY_PRIMARY_SHA256"]
+    secondary_hash = evidence["REPLAY_SECONDARY_SHA256"]
+    if (
+        evidence["DETERMINISTIC_REPLAY_BYTES_EQUAL"] is not True
+        or evidence["DETERMINISTIC_REPLAY_HASHES_EQUAL"] is not True
+        or not isinstance(primary_output, str)
+        or not isinstance(secondary_output, str)
+        or primary_output != secondary_output
+        or not isinstance(primary_hash, str)
+        or not isinstance(secondary_hash, str)
+        or re.fullmatch(r"[0-9a-f]{64}", primary_hash) is None
+        or primary_hash != secondary_hash
+        or hashlib.sha256(primary_output.encode("utf-8")).hexdigest() != primary_hash
+    ):
+        return "FAIL"
+    bound_base = {key: evidence[key] for key in required_base}
+    if _canonical_d2_output(bound_base) != primary_output:
+        return "FAIL"
     return "PASS"
 
 
@@ -646,15 +871,19 @@ def compute_d2_negative_controls(
         fresh.decision == "PERMIT" and fresh.before == 0 and fresh.after == 1
     )
 
-    # NC-D2-8 nonzero effect forces validator FAIL
+    # NC-D2-8 nonzero observed effects fail the shared effect validator.
     matrix = run_d2_attempt_matrix(sm, run_id="nc-effects")
-    good = build_d2_evidence(matrix, implementation_subject_sha="a" * 40)
-    bad_ghl = dict(good)
+    good_effects = dict(matrix["effects"])
+    bad_ghl = dict(good_effects)
+    bad_ghl["GHL_WRITE_OBSERVATIONS"] = ["forbidden-write"]
     bad_ghl["GHL_WRITES"] = 1
-    bad_effects = dict(good)
+    bad_effects = dict(good_effects)
+    bad_effects["EXTERNAL_EFFECT_OBSERVATIONS"] = ["forbidden-effect"]
     bad_effects["EXTERNAL_EFFECTS"] = 1
     controls["NC_D2_8"] = _status(
-        validate_d2_proof(bad_ghl) == "FAIL" and validate_d2_proof(bad_effects) == "FAIL"
+        _validate_d2_effects(good_effects)
+        and not _validate_d2_effects(bad_ghl)
+        and not _validate_d2_effects(bad_effects)
     )
 
     # NC-D2-9 temporary contract note cap=2

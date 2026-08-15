@@ -144,6 +144,7 @@ def test_td2_10_deterministic_replay(sm: StateMachine) -> None:
     assert first["note_decisions"] == second["note_decisions"]
     assert first["stage_decisions"] == second["stage_decisions"]
     assert first["ledger_snapshot"] == second["ledger_snapshot"]
+    assert first["fresh_run_reset"] == second["fresh_run_reset"]
 
 
 def test_td2_11_zero_external_effects(sm: StateMachine) -> None:
@@ -155,18 +156,45 @@ def test_td2_11_zero_external_effects(sm: StateMachine) -> None:
     assert effects["EXTERNAL_EFFECTS"] == 0
     assert effects["TRANSPORT_ATTEMPTED"] is False
     assert effects["TRANSPORT_EXECUTOR_CALLS"] == []
+    assert effects["GHL_LIVE_CALL_OBSERVATIONS"] == []
+    assert effects["GHL_WRITE_OBSERVATIONS"] == []
+    assert effects["FIRESTORE_WRITE_OBSERVATIONS"] == []
+    assert effects["EXTERNAL_EFFECT_OBSERVATIONS"] == []
 
 
-def test_td2_12_proof_binds_implementation_subject_sha(sm: StateMachine) -> None:
+def test_td2_12_proof_binds_implementation_subject_sha(
+    sm: StateMachine, production_contract: dict
+) -> None:
     """A2 does not emit durable proof files; binding is verified in-memory."""
     sha = "1234567890abcdef1234567890abcdef12345678"
     matrix = run_d2_attempt_matrix(sm, run_id="td2-12")
-    evidence = build_d2_evidence(matrix, implementation_subject_sha=sha)
+    evidence = build_d2_evidence(
+        matrix,
+        implementation_subject_sha=sha,
+        production_contract=production_contract,
+    )
     assert evidence["IMPLEMENTATION_SUBJECT_SHA"] == sha
     assert validate_d2_proof(evidence) == "PASS"
+    assert evidence["DETERMINISTIC_REPLAY_BYTES_EQUAL"] is True
+    assert evidence["DETERMINISTIC_REPLAY_HASHES_EQUAL"] is True
+    assert evidence["REPLAY_PRIMARY_OUTPUT"] == evidence["REPLAY_SECONDARY_OUTPUT"]
+    assert evidence["REPLAY_PRIMARY_SHA256"] == evidence["REPLAY_SECONDARY_SHA256"]
     missing = dict(evidence)
     missing["IMPLEMENTATION_SUBJECT_SHA"] = ""
     assert validate_d2_proof(missing) == "FAIL"
+
+
+def test_td2_fresh_run_reset_and_independent_counters(sm: StateMachine) -> None:
+    matrix = run_d2_attempt_matrix(sm, run_id="fresh-reset")
+    assert matrix["counter_observations"] == {
+        "after_note_sequence": {"note": 1, "stage": 0},
+        "after_stage_sequence": {"note": 1, "stage": 1},
+    }
+    assert matrix["fresh_run_reset"]["run_id"] == "fresh-reset:fresh"
+    assert matrix["fresh_run_reset"]["decision"] == "PERMIT"
+    assert matrix["fresh_run_reset"]["before"] == 0
+    assert matrix["fresh_run_reset"]["after"] == 1
+    assert matrix["fresh_run_ledger_snapshot"] == {"note": 1, "stage": 0}
 
 
 def test_nc_d2_1_through_10_computed(production_contract: dict) -> None:
@@ -174,6 +202,59 @@ def test_nc_d2_1_through_10_computed(production_contract: dict) -> None:
     for number in range(1, 11):
         key = f"NC_D2_{number}"
         assert controls[key] == "PASS", controls
+
+
+def test_d2_evidence_builder_does_not_accept_caller_control_labels() -> None:
+    assert "negative_controls" not in inspect.signature(build_d2_evidence).parameters
+
+
+@pytest.mark.parametrize(
+    "poison",
+    [
+        "missing-note-decision",
+        "wrong-first-decision",
+        "wrong-second-after",
+        "missing-nc-control",
+        "forged-nc-fail",
+        "missing-effect-key",
+        "wrong-cap-source",
+        "malformed-sha",
+        "transport-call",
+        "nonzero-external-effect",
+    ],
+)
+def test_d2_validator_rejects_poisoned_evidence(
+    sm: StateMachine, production_contract: dict, poison: str
+) -> None:
+    evidence = build_d2_evidence(
+        run_d2_attempt_matrix(sm, run_id=f"poison-{poison}"),
+        implementation_subject_sha="a" * 40,
+        production_contract=production_contract,
+    )
+    poisoned = deepcopy(evidence)
+    if poison == "missing-note-decision":
+        poisoned["NOTE_DECISIONS"].pop(0)
+    elif poison == "wrong-first-decision":
+        poisoned["NOTE_DECISIONS"][0]["decision"] = "REFUSE"
+    elif poison == "wrong-second-after":
+        poisoned["NOTE_DECISIONS"][1]["after"] = 2
+    elif poison == "missing-nc-control":
+        del poisoned["NC_D2_5"]
+    elif poison == "forged-nc-fail":
+        poisoned["NC_D2_5"] = "FAIL"
+    elif poison == "missing-effect-key":
+        del poisoned["GHL_WRITES"]
+    elif poison == "wrong-cap-source":
+        poisoned["CAP_SOURCE"] = "tmp/workflow_states.yaml"
+    elif poison == "malformed-sha":
+        poisoned["IMPLEMENTATION_SUBJECT_SHA"] = "not-a-40-character-sha"
+    elif poison == "transport-call":
+        poisoned["TRANSPORT_EXECUTOR_CALLS"] = ["forbidden"]
+        poisoned["TRANSPORT_ATTEMPTED"] = True
+    elif poison == "nonzero-external-effect":
+        poisoned["EXTERNAL_EFFECT_OBSERVATIONS"] = ["forbidden"]
+        poisoned["EXTERNAL_EFFECTS"] = 1
+    assert validate_d2_proof(poisoned) == "FAIL"
 
 
 def test_nc_d2_1_harness_cannot_override_caps(sm: StateMachine) -> None:

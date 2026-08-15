@@ -21,13 +21,22 @@ from orchestration.nw008_tranche_c import (
 
 
 @pytest.fixture
-def harness(repo_root: Path) -> Nw008TrancheCHarness:
-    return Nw008TrancheCHarness(repo_root=repo_root)
+def harness(repo_root: Path, tmp_path: Path) -> Nw008TrancheCHarness:
+    return Nw008TrancheCHarness(
+        repo_root=repo_root,
+        proof_root=tmp_path / "nw008-tranche-c-proof",
+    )
 
 
 @pytest.fixture
 def result(harness: Nw008TrancheCHarness):
     return harness.run()
+
+
+def test_harness_proof_output_is_pytest_local(
+    harness: Nw008TrancheCHarness, repo_root: Path
+) -> None:
+    assert harness.proof_root != repo_root / "proof" / "nw008" / "tranche-c"
 
 
 def test_governed_short_circuit_boundaries(result):
