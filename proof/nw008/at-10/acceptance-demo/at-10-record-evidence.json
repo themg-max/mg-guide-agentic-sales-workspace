@@ -1,0 +1,21 @@
+{
+  "acceptance_set_complete": true,
+  "dispositions": [
+    "blocked",
+    "completed",
+    "completed_with_review",
+    "failed"
+  ],
+  "field_paths": {
+    "agents": "agent_steps.agents_used",
+    "final_disposition": "final_disposition",
+    "reason_codes": "reason_codes",
+    "tool_counts": "tool_call_counts"
+  },
+  "run_ids": [
+    "run_nw006_success_001",
+    "run_nw006_stage_denied_001",
+    "run_nw006_ambiguous_contact_001",
+    "run_nw006_failed_001"
+  ]
+}
