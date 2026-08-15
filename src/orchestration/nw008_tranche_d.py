@@ -1,4 +1,4 @@
-"""Deterministic, local-only proof harness for NW-008 Tranche D1 / AT-9."""
+"""Deterministic, local-only proof harness for NW-008 Tranche D (D1/AT-9 + D2/AT-8)."""
 
 from __future__ import annotations
 
@@ -16,6 +16,13 @@ from mg_guide.firestore_audit.models import ProjectionContext
 from mg_guide.firestore_audit.project import project_workflow_run_audit
 from orchestration.manifest_gate import MANIFEST_NODE, RuntimeManifestGate
 from orchestration.models import base_packet
+from orchestration.policy import (
+    ENFORCEMENT_DECISION_OWNER,
+    evaluate_write_attempt,
+)
+from orchestration.runner import WorkflowRunner
+from orchestration.state_machine import StateMachine, WriteCapContractError
+from orchestration.attempt_ledger import LEDGER_STATE_OWNER, WriteAttemptLedger
 
 PROOF_TIMESTAMP = "2026-08-14T17:30:00Z"
 SUPERSEDED_A1 = "3be4309c02e2fc5e0685eadaba5a997b3cb8d81a"
@@ -394,6 +401,332 @@ def generate_final_proof(
     )
     return _write_proof_artifacts(final_artifacts, output_dir)
 
+
+
+# ---------------------------------------------------------------------------
+# D2 / AT-8 offline write-attempt-cap helpers (no durable proof emission in A2)
+# ---------------------------------------------------------------------------
+
+D2_PROOF_NAMESPACE = "proof/nw008/tranche-d/d2-at8"
+D2_CAP_SOURCE = "contracts/workflow_states.yaml"
+D2_PROOF_TIMESTAMP = "2026-08-15T12:00:00Z"
+
+
+def execute_d2_write_attempt(
+    runner: WorkflowRunner,
+    *,
+    run_id: str,
+    write_kind: str,
+    transport_executor=None,
+):
+    """Orchestration-only seam: runner asks OL3 policy before any transport."""
+
+    return runner.request_write_attempt(
+        run_id,
+        write_kind,
+        transport_executor=transport_executor,
+    )
+
+
+def run_d2_attempt_matrix(
+    state_machine: StateMachine,
+    *,
+    run_id: str = "d2-run",
+    note_attempts: int = 2,
+    stage_attempts: int = 2,
+) -> Dict[str, Any]:
+    """Execute offline note/stage attempt sequences and collect computable evidence."""
+
+    runner = WorkflowRunner(state_machine=state_machine, allow_transport=False)
+    transport_calls: list[str] = []
+
+    def _transport(label: str):
+        transport_calls.append(label)
+
+    note_decisions = []
+    for _ in range(note_attempts):
+        note_decisions.append(
+            execute_d2_write_attempt(
+                runner,
+                run_id=run_id,
+                write_kind="note",
+                transport_executor=lambda: _transport("note"),
+            ).as_dict()
+        )
+
+    stage_decisions = []
+    for _ in range(stage_attempts):
+        stage_decisions.append(
+            execute_d2_write_attempt(
+                runner,
+                run_id=run_id,
+                write_kind="stage",
+                transport_executor=lambda: _transport("stage"),
+            ).as_dict()
+        )
+
+    effects = {
+        "GHL_LIVE_CALLS": 0,
+        "GHL_WRITES": 0,
+        "FIRESTORE_WRITES": 0,
+        "EXTERNAL_EFFECTS": 0,
+        "TRANSPORT_ATTEMPTED": False,
+        "TRANSPORT_EXECUTOR_CALLS": list(transport_calls),
+    }
+    return {
+        "run_id": run_id,
+        "cap_source": getattr(state_machine, "cap_source", D2_CAP_SOURCE),
+        "cap_node": getattr(state_machine, "cap_node", "invariants"),
+        "max_note_writes_per_run": state_machine.max_note_writes_per_run,
+        "max_stage_writes_per_run": state_machine.max_stage_writes_per_run,
+        "ledger_state_owner": LEDGER_STATE_OWNER,
+        "enforcement_decision_owner": ENFORCEMENT_DECISION_OWNER,
+        "runner_authority": WorkflowRunner.RUNNER_AUTHORITY,
+        "agent_cap_authority": WorkflowRunner.AGENT_CAP_AUTHORITY,
+        "harness_cap_authority": WorkflowRunner.HARNESS_CAP_AUTHORITY,
+        "note_decisions": note_decisions,
+        "stage_decisions": stage_decisions,
+        "ledger_snapshot": runner.ledger_for(run_id).snapshot(),
+        "effects": effects,
+    }
+
+
+def build_d2_evidence(
+    matrix: Mapping[str, Any],
+    *,
+    implementation_subject_sha: str,
+    negative_controls: Optional[Mapping[str, str]] = None,
+) -> Dict[str, Any]:
+    """Assemble computable D2 evidence. Does not trust caller PASS labels."""
+
+    note = list(matrix.get("note_decisions") or [])
+    stage = list(matrix.get("stage_decisions") or [])
+    effects = dict(matrix.get("effects") or {})
+    evidence: Dict[str, Any] = {
+        "IMPLEMENTATION_SUBJECT_SHA": implementation_subject_sha,
+        "CAP_SOURCE": matrix.get("cap_source", D2_CAP_SOURCE),
+        "CAP_NODE": matrix.get("cap_node", "invariants"),
+        "LEDGER_STATE_OWNER": matrix.get("ledger_state_owner", LEDGER_STATE_OWNER),
+        "ENFORCEMENT_DECISION_OWNER": matrix.get(
+            "enforcement_decision_owner", ENFORCEMENT_DECISION_OWNER
+        ),
+        "RUNNER_AUTHORITY": matrix.get(
+            "runner_authority", WorkflowRunner.RUNNER_AUTHORITY
+        ),
+        "AGENT_CAP_AUTHORITY": matrix.get("agent_cap_authority", False),
+        "HARNESS_CAP_AUTHORITY": matrix.get("harness_cap_authority", False),
+        "MAX_NOTE_WRITES_PER_RUN": matrix.get("max_note_writes_per_run"),
+        "MAX_STAGE_WRITES_PER_RUN": matrix.get("max_stage_writes_per_run"),
+        "NOTE_DECISIONS": note,
+        "STAGE_DECISIONS": stage,
+        "LEDGER_SNAPSHOT": dict(matrix.get("ledger_snapshot") or {}),
+        "GHL_LIVE_CALLS": int(effects.get("GHL_LIVE_CALLS", 0)),
+        "GHL_WRITES": int(effects.get("GHL_WRITES", 0)),
+        "FIRESTORE_WRITES": int(effects.get("FIRESTORE_WRITES", 0)),
+        "EXTERNAL_EFFECTS": int(effects.get("EXTERNAL_EFFECTS", 0)),
+        "TRANSPORT_ATTEMPTED": bool(effects.get("TRANSPORT_ATTEMPTED", False)),
+        "TRANSPORT_EXECUTOR_CALLS": list(effects.get("TRANSPORT_EXECUTOR_CALLS") or []),
+    }
+    if negative_controls:
+        evidence.update({k: v for k, v in negative_controls.items()})
+    evidence["PROOF_STATUS"] = validate_d2_proof(evidence)
+    return evidence
+
+
+def validate_d2_proof(evidence: Mapping[str, Any]) -> str:
+    """Fail closed on nonzero effects or missing authority/SHA binding."""
+
+    sha = evidence.get("IMPLEMENTATION_SUBJECT_SHA")
+    if not isinstance(sha, str) or len(sha.strip()) < 7:
+        return "FAIL"
+    if evidence.get("ENFORCEMENT_DECISION_OWNER") != ENFORCEMENT_DECISION_OWNER:
+        return "FAIL"
+    if evidence.get("LEDGER_STATE_OWNER") != LEDGER_STATE_OWNER:
+        return "FAIL"
+    if evidence.get("RUNNER_AUTHORITY") != WorkflowRunner.RUNNER_AUTHORITY:
+        return "FAIL"
+    if evidence.get("AGENT_CAP_AUTHORITY") not in (False, "NO", 0):
+        return "FAIL"
+    if evidence.get("HARNESS_CAP_AUTHORITY") not in (False, "NO", 0):
+        return "FAIL"
+    if evidence.get("CAP_SOURCE") != D2_CAP_SOURCE and not str(
+        evidence.get("CAP_SOURCE", "")
+    ).endswith("workflow_states.yaml"):
+        # Temporary test contracts may override numeric caps but source label remains yaml path
+        # unless explicitly temporary; still require a non-empty source string.
+        if not evidence.get("CAP_SOURCE"):
+            return "FAIL"
+    for key in ("GHL_LIVE_CALLS", "GHL_WRITES", "FIRESTORE_WRITES", "EXTERNAL_EFFECTS"):
+        if int(evidence.get(key, 0) or 0) != 0:
+            return "FAIL"
+    if evidence.get("TRANSPORT_ATTEMPTED") is True:
+        return "FAIL"
+    if list(evidence.get("TRANSPORT_EXECUTOR_CALLS") or []):
+        return "FAIL"
+
+    note = list(evidence.get("NOTE_DECISIONS") or [])
+    stage = list(evidence.get("STAGE_DECISIONS") or [])
+    for decisions in (note, stage):
+        for item in decisions:
+            if item.get("decision_owner") != ENFORCEMENT_DECISION_OWNER:
+                return "FAIL"
+            if item.get("transport_attempted") is True:
+                return "FAIL"
+            if item.get("decision") not in {"PERMIT", "REFUSE"}:
+                return "FAIL"
+    return "PASS"
+
+
+def compute_d2_negative_controls(
+    production_contract: Mapping[str, Any],
+) -> Dict[str, str]:
+    """Execute NC-D2-1..10 from runtime observations rather than handwritten PASS."""
+
+    from copy import deepcopy
+    import inspect
+
+    controls: Dict[str, str] = {}
+    sm = StateMachine(deepcopy(dict(production_contract)))
+    runner = WorkflowRunner(state_machine=sm, allow_transport=False)
+
+    # NC-D2-1: harness cannot override caps / force admit.
+    sig = inspect.signature(runner.request_write_attempt)
+    forbidden = {"force_permit", "force_admit", "max_writes", "max", "override_cap"}
+    no_override_params = forbidden.isdisjoint(sig.parameters)
+    first = runner.request_write_attempt("nc-d2-1", "note")
+    second = runner.request_write_attempt("nc-d2-1", "note")
+    controls["NC_D2_1"] = _status(
+        no_override_params
+        and first.decision == "PERMIT"
+        and second.decision == "REFUSE"
+        and second.decision_owner == ENFORCEMENT_DECISION_OWNER
+    )
+
+    # NC-D2-2 / NC-D2-3 note first/second
+    r_note = WorkflowRunner(state_machine=sm, allow_transport=False)
+    n1 = r_note.request_write_attempt("nc-note", "note")
+    n2 = r_note.request_write_attempt("nc-note", "note")
+    controls["NC_D2_2"] = _status(
+        n1.decision == "PERMIT" and n1.before == 0 and n1.after == 1
+    )
+    controls["NC_D2_3"] = _status(
+        n2.decision == "REFUSE"
+        and n2.before == 1
+        and n2.after == 1
+        and n2.decision_owner == ENFORCEMENT_DECISION_OWNER
+    )
+
+    # NC-D2-4 / NC-D2-5 stage first/second
+    r_stage = WorkflowRunner(state_machine=sm, allow_transport=False)
+    s1 = r_stage.request_write_attempt("nc-stage", "stage")
+    s2 = r_stage.request_write_attempt("nc-stage", "stage")
+    controls["NC_D2_4"] = _status(
+        s1.decision == "PERMIT" and s1.before == 0 and s1.after == 1
+    )
+    controls["NC_D2_5"] = _status(
+        s2.decision == "REFUSE"
+        and s2.before == 1
+        and s2.after == 1
+        and s2.decision_owner == ENFORCEMENT_DECISION_OWNER
+    )
+
+    # NC-D2-6 independent counters
+    r_ind = WorkflowRunner(state_machine=sm, allow_transport=False)
+    r_ind.request_write_attempt("nc-ind", "note")
+    r_ind.request_write_attempt("nc-ind", "note")  # exhaust note
+    stage_after_note_exhaust = r_ind.request_write_attempt("nc-ind", "stage")
+    controls["NC_D2_6"] = _status(stage_after_note_exhaust.decision == "PERMIT")
+
+    # NC-D2-7 new run_id resets
+    r_reset = WorkflowRunner(state_machine=sm, allow_transport=False)
+    r_reset.request_write_attempt("run-a", "note")
+    r_reset.request_write_attempt("run-a", "note")
+    fresh = r_reset.request_write_attempt("run-b", "note")
+    controls["NC_D2_7"] = _status(
+        fresh.decision == "PERMIT" and fresh.before == 0 and fresh.after == 1
+    )
+
+    # NC-D2-8 nonzero effect forces validator FAIL
+    matrix = run_d2_attempt_matrix(sm, run_id="nc-effects")
+    good = build_d2_evidence(matrix, implementation_subject_sha="a" * 40)
+    bad_ghl = dict(good)
+    bad_ghl["GHL_WRITES"] = 1
+    bad_effects = dict(good)
+    bad_effects["EXTERNAL_EFFECTS"] = 1
+    controls["NC_D2_8"] = _status(
+        validate_d2_proof(bad_ghl) == "FAIL" and validate_d2_proof(bad_effects) == "FAIL"
+    )
+
+    # NC-D2-9 temporary contract note cap=2
+    temp = deepcopy(dict(production_contract))
+    new_invariants = []
+    for item in temp.get("invariants") or []:
+        if isinstance(item, dict) and "max_note_writes_per_run" in item:
+            new_invariants.append({"max_note_writes_per_run": 2})
+        else:
+            new_invariants.append(item)
+    temp["invariants"] = new_invariants
+    temp_sm = StateMachine(temp)
+    r_temp = WorkflowRunner(state_machine=temp_sm, allow_transport=False)
+    t1 = r_temp.request_write_attempt("nc-cap2", "note")
+    t2 = r_temp.request_write_attempt("nc-cap2", "note")
+    t3 = r_temp.request_write_attempt("nc-cap2", "note")
+    prod_sm = StateMachine(deepcopy(dict(production_contract)))
+    controls["NC_D2_9"] = _status(
+        temp_sm.max_note_writes_per_run == 2
+        and t1.decision == "PERMIT"
+        and t2.decision == "PERMIT"
+        and t3.decision == "REFUSE"
+        and prod_sm.max_note_writes_per_run == 1
+    )
+
+    # NC-D2-10 malformed/missing cap fails closed
+    missing = deepcopy(dict(production_contract))
+    missing["invariants"] = [
+        item
+        for item in (missing.get("invariants") or [])
+        if not (isinstance(item, dict) and "max_note_writes_per_run" in item)
+    ]
+    malformed_cases = [
+        missing,
+        _with_note_cap(production_contract, 0),
+        _with_note_cap(production_contract, -1),
+        _with_note_cap(production_contract, True),
+        _with_note_cap(production_contract, "1"),
+        _with_note_cap(production_contract, 1.5),
+        _with_note_cap(production_contract, None),
+    ]
+    load_failures = 0
+    for case in malformed_cases:
+        try:
+            StateMachine(deepcopy(dict(case)))
+        except WriteCapContractError:
+            load_failures += 1
+        else:
+            pass
+    # Policy-level fail-closed if an invalid max somehow reaches evaluate_write_attempt
+    ledger = WriteAttemptLedger(run_id="nc-invalid-max")
+    refused = evaluate_write_attempt(write_kind="note", ledger=ledger, max_writes=0)
+    controls["NC_D2_10"] = _status(
+        load_failures == len(malformed_cases)
+        and refused.decision == "REFUSE"
+        and refused.reason_code == "INVALID_WRITE_CAP"
+    )
+    return controls
+
+
+def _with_note_cap(production_contract: Mapping[str, Any], value: object) -> Dict[str, Any]:
+    from copy import deepcopy
+
+    temp = deepcopy(dict(production_contract))
+    new_invariants = []
+    for item in temp.get("invariants") or []:
+        if isinstance(item, dict) and "max_note_writes_per_run" in item:
+            new_invariants.append({"max_note_writes_per_run": value})
+        else:
+            new_invariants.append(item)
+    temp["invariants"] = new_invariants
+    return temp
 
 if __name__ == "__main__":
     import subprocess

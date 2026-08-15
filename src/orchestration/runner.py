@@ -14,8 +14,14 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
+from .attempt_ledger import WriteAttemptLedger, WriteAttemptLedgerRegistry
 from .models import FixtureSidecar, RunRegistry, base_packet
-from .policy import bound_intents, evaluate_policy
+from .policy import (
+    WriteAttemptDecision,
+    bound_intents,
+    evaluate_policy,
+    evaluate_write_attempt,
+)
 from .state_machine import StateMachine, TransitionError
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -59,15 +65,75 @@ def load_sidecar(path: Path) -> FixtureSidecar:
 
 
 class WorkflowRunner:
+    """Phase 1 / D2 offline runner.
+
+    RUNNER_AUTHORITY=ORCHESTRATION_ONLY — the runner invokes OL3 policy before
+    any transport boundary and never owns write-cap decisions itself.
+    """
+
+    RUNNER_AUTHORITY = "ORCHESTRATION_ONLY"
+    AGENT_CAP_AUTHORITY = False
+    HARNESS_CAP_AUTHORITY = False
+
     def __init__(
         self,
         state_machine: Optional[StateMachine] = None,
         registry: Optional[RunRegistry] = None,
         fixtures_dir: Optional[Path] = None,
+        *,
+        allow_transport: bool = False,
     ):
         self.sm = state_machine or StateMachine.from_yaml(DEFAULT_WORKFLOW)
         self.registry = registry or RunRegistry()
         self.fixtures_dir = fixtures_dir or DEFAULT_FIXTURES
+        self.allow_transport = bool(allow_transport)
+        self._write_ledgers = WriteAttemptLedgerRegistry()
+        self.write_attempt_trace: List[Dict[str, Any]] = []
+
+    def ledger_for(self, run_id: str) -> WriteAttemptLedger:
+        return self._write_ledgers.for_run(run_id)
+
+    def request_write_attempt(
+        self,
+        run_id: str,
+        write_kind: str,
+        *,
+        transport_executor: Optional[Any] = None,
+    ) -> WriteAttemptDecision:
+        """Invoke OL3 write-attempt policy before any transport boundary.
+
+        Caps come only from the loaded StateMachine/contract. The harness cannot
+        force PERMIT, supply an alternate max, or own the refusal decision.
+        D2 offline posture keeps transport disabled unless allow_transport=True
+        is explicitly set on the runner (not used in D2 acceptance).
+        """
+        kind = str(write_kind or "").strip().lower()
+        max_writes = self.sm.write_cap_for(kind)
+        ledger = self.ledger_for(run_id)
+        decision = evaluate_write_attempt(
+            write_kind=kind,
+            ledger=ledger,
+            max_writes=max_writes,
+        )
+        # Transport boundary: only reachable after PERMIT and only when enabled.
+        if decision.decision == "PERMIT" and self.allow_transport and callable(
+            transport_executor
+        ):
+            transport_executor()
+            decision = WriteAttemptDecision(
+                decision=decision.decision,
+                write_kind=decision.write_kind,
+                before=decision.before,
+                after=decision.after,
+                max=decision.max,
+                reason_code=decision.reason_code,
+                decision_owner=decision.decision_owner,
+                transport_attempted=True,
+                run_id=decision.run_id,
+            )
+        # REFUSE path never enters transport, even if an executor was supplied.
+        self.write_attempt_trace.append(decision.as_dict())
+        return decision
 
     def run_fixture(
         self,
@@ -206,6 +272,19 @@ class WorkflowRunner:
                 max_note=self.sm.max_note_intents,
                 max_stage=self.sm.max_stage_intents,
             )
+            # OL3 write-attempt caps gate each planned intent before transport.
+            admitted_intents = {"note": [], "stage": []}
+            for kind in ("note", "stage"):
+                for intent in intents.get(kind) or []:
+                    attempt = self.request_write_attempt(run_id, kind)
+                    if attempt.decision == "PERMIT":
+                        admitted_intents[kind].append(intent)
+                    else:
+                        codes = list(packet["policy"].get("reason_codes") or [])
+                        if attempt.reason_code not in codes:
+                            codes.append(attempt.reason_code)
+                        packet["policy"]["reason_codes"] = codes
+            intents = admitted_intents
             packet["mutation_intents"] = intents
             packet["mutations"] = {
                 "lifecycle": "intent_only",
@@ -223,7 +302,7 @@ class WorkflowRunner:
                     "verified": False,
                 },
             }
-            # Phase 1: no external mutation execution.
+            # Phase 1 / D2: no external mutation execution / transport.
             packet["external_effects"] = 0
             packet = self._apply_brief(packet, decision)
 

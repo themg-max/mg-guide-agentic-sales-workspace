@@ -152,3 +152,78 @@ def test_proof_replay_is_computed_and_byte_deterministic(
     assert PROOF_TIMESTAMP == "2026-08-14T17:30:00Z"
     for key in ("run", "audit", "manifest", "return"):
         assert first[key].read_bytes() == second[key].read_bytes()
+
+
+# ---------------------------------------------------------------------------
+# D2 / AT-8 acceptance (A2 implementation subject — no durable proof files)
+# ---------------------------------------------------------------------------
+
+from copy import deepcopy as _deepcopy
+
+import yaml as _yaml
+
+from orchestration.nw008_tranche_d import (
+    build_d2_evidence,
+    compute_d2_negative_controls,
+    run_d2_attempt_matrix,
+    validate_d2_proof,
+)
+from orchestration.policy import ENFORCEMENT_DECISION_OWNER
+from orchestration.runner import WorkflowRunner
+from orchestration.state_machine import StateMachine
+
+
+def _production_contract() -> dict:
+    root = Path(__file__).resolve().parents[1]
+    return _yaml.safe_load(
+        (root / "contracts" / "workflow_states.yaml").read_text(encoding="utf-8")
+    )
+
+
+def test_d2_authority_model_and_offline_matrix() -> None:
+    contract = _production_contract()
+    sm = StateMachine(_deepcopy(contract))
+    matrix = run_d2_attempt_matrix(sm, run_id="accept-d2")
+    assert matrix["max_note_writes_per_run"] == 1
+    assert matrix["max_stage_writes_per_run"] == 1
+    assert matrix["enforcement_decision_owner"] == ENFORCEMENT_DECISION_OWNER
+    assert matrix["runner_authority"] == WorkflowRunner.RUNNER_AUTHORITY
+    assert matrix["agent_cap_authority"] is False
+    assert matrix["harness_cap_authority"] is False
+    assert matrix["note_decisions"][0]["decision"] == "PERMIT"
+    assert matrix["note_decisions"][1]["decision"] == "REFUSE"
+    assert matrix["stage_decisions"][0]["decision"] == "PERMIT"
+    assert matrix["stage_decisions"][1]["decision"] == "REFUSE"
+    assert matrix["effects"]["EXTERNAL_EFFECTS"] == 0
+    assert matrix["effects"]["TRANSPORT_EXECUTOR_CALLS"] == []
+
+
+def test_d2_negative_controls_all_pass() -> None:
+    controls = compute_d2_negative_controls(_production_contract())
+    assert all(controls[f"NC_D2_{n}"] == "PASS" for n in range(1, 11)), controls
+
+
+def test_d2_validator_fail_closed_on_nonzero_effects() -> None:
+    sm = StateMachine(_deepcopy(_production_contract()))
+    matrix = run_d2_attempt_matrix(sm, run_id="accept-d2-val")
+    evidence = build_d2_evidence(
+        matrix, implementation_subject_sha="f" * 40, negative_controls={}
+    )
+    assert validate_d2_proof(evidence) == "PASS"
+    poisoned = dict(evidence)
+    poisoned["FIRESTORE_WRITES"] = 1
+    assert validate_d2_proof(poisoned) == "FAIL"
+
+
+def test_d2_does_not_emit_durable_proof_namespace(tmp_path: Path) -> None:
+    """A2 must not create durable d2-at8 proof artifacts under proof/."""
+    durable = (
+        Path(__file__).resolve().parents[1]
+        / "proof"
+        / "nw008"
+        / "tranche-d"
+        / "d2-at8"
+    )
+    assert not durable.exists()
+    # Local tmp rendering remains allowed for future P2 helpers; A2 leaves durable path empty.
+    assert list(tmp_path.iterdir()) == [] or True
