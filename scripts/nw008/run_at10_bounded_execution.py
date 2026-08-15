@@ -216,6 +216,14 @@ def _require_git_success(arguments: Sequence[str], failure: str) -> str:
     return result.stdout.strip()
 
 
+def _require_git_blob(arguments: Sequence[str], failure: str) -> str:
+    result = _run_git(arguments)
+    if result.returncode != 0:
+        detail = result.stderr.strip() or result.stdout.strip()
+        raise BoundedExecutionError(GOVERNANCE_REJECTED, f"{failure}: {detail}")
+    return result.stdout
+
+
 def verify_source_binding(subject_sha: str, execution_code_sha: str) -> None:
     """Require runtime sources to match the reviewed implementation subject."""
     if subject_sha != execution_code_sha:
@@ -253,10 +261,17 @@ def verify_source_binding(subject_sha: str, execution_code_sha: str) -> None:
 
 def verify_execution_authorization(
     authorization_artifact: Path,
+    authorization_decision_sha: str,
     subject_sha: str,
     execution_code_sha: str,
 ) -> None:
-    """Reject stale, uncommitted, or incompletely bound execution authority."""
+    """Require an approved grant whose exact blob is merged on origin/main."""
+    if re.fullmatch(r"[0-9a-f]{40}", authorization_decision_sha) is None:
+        raise BoundedExecutionError(
+            GOVERNANCE_REJECTED,
+            "authorization decision must be a full lowercase 40-character Git SHA",
+        )
+
     artifact = authorization_artifact.resolve()
     try:
         relative = artifact.relative_to(REPO_ROOT)
@@ -312,6 +327,29 @@ def verify_execution_authorization(
                 f"authorization artifact does not bind run_id={run_id!r}",
             )
 
+    _require_git_success(
+        [
+            "merge-base",
+            "--is-ancestor",
+            authorization_decision_sha,
+            "origin/main",
+        ],
+        "authorization decision is not an ancestor of origin/main",
+    )
+    decision_text = _require_git_blob(
+        ["show", f"{authorization_decision_sha}:{relative}"],
+        "approved grant is absent from the authorization decision",
+    )
+    origin_main_text = _require_git_blob(
+        ["show", f"origin/main:{relative}"],
+        "approved grant is absent from origin/main",
+    )
+    if decision_text != text or origin_main_text != text:
+        raise BoundedExecutionError(
+            GOVERNANCE_REJECTED,
+            "local approved grant does not exactly match the authorization decision and origin/main",
+        )
+
 
 def _load_projected_records(recorded_at: str) -> Dict[str, Dict[str, Any]]:
     records: Dict[str, Dict[str, Any]] = {}
@@ -345,6 +383,7 @@ class At10BoundedExecutor:
         proof_dir: Path,
         implementation_subject_sha: str,
         execution_code_sha: str,
+        authorization_decision_sha: str,
         now: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
     ) -> None:
         if implementation_subject_sha != execution_code_sha:
@@ -352,10 +391,16 @@ class At10BoundedExecutor:
                 GOVERNANCE_REJECTED,
                 "EXECUTION_CODE_SHA must equal IMPLEMENTATION_SUBJECT_SHA",
             )
+        if re.fullmatch(r"[0-9a-f]{40}", authorization_decision_sha) is None:
+            raise BoundedExecutionError(
+                GOVERNANCE_REJECTED,
+                "authorization decision must be a full lowercase 40-character Git SHA",
+            )
         self.gateway = gateway
         self.proof_dir = proof_dir
         self.implementation_subject_sha = implementation_subject_sha
         self.execution_code_sha = execution_code_sha
+        self.authorization_decision_sha = authorization_decision_sha
         self.now = now
 
     def run(
@@ -454,6 +499,7 @@ class At10BoundedExecutor:
             "RUN_IDS": list(RUN_ALLOWLIST),
             "IMPLEMENTATION_SUBJECT_SHA": self.implementation_subject_sha,
             "EXECUTION_CODE_SHA": self.execution_code_sha,
+            "AUTHORIZATION_DECISION_SHA": self.authorization_decision_sha,
             "STARTED_AT": started_at,
             "COMPLETED_AT": self.now().isoformat(),
             "COUNTERS": counters,
@@ -498,6 +544,7 @@ class At10BoundedExecutor:
             "FIRESTORE_NETWORK_OPERATIONS": counters["total"],
             "IMPLEMENTATION_SUBJECT_SHA": self.implementation_subject_sha,
             "EXECUTION_CODE_SHA": self.execution_code_sha,
+            "AUTHORIZATION_DECISION_SHA": self.authorization_decision_sha,
         }
 
         (self.proof_dir / "at-10-run-manifest.json").write_text(
@@ -523,6 +570,7 @@ class At10BoundedExecutor:
                     "",
                     f"IMPLEMENTATION_SUBJECT_SHA={self.implementation_subject_sha}",
                     f"EXECUTION_CODE_SHA={self.execution_code_sha}",
+                    f"AUTHORIZATION_DECISION_SHA={self.authorization_decision_sha}",
                     "AT10_COMPLETION_CLAIM_AUTHORIZED=NO",
                     "AT10_COMPLETE=NO",
                     "",
@@ -542,6 +590,7 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--implementation-subject-sha", required=True)
     parser.add_argument("--execution-code-sha", required=True)
+    parser.add_argument("--authorization-decision-sha", required=True)
     parser.add_argument("--authorization-artifact", type=Path, required=True)
     parser.add_argument("--proof-dir", type=Path, default=DEFAULT_PROOF_DIR)
     return parser.parse_args()
@@ -555,6 +604,7 @@ def main() -> int:
     )
     verify_execution_authorization(
         args.authorization_artifact,
+        args.authorization_decision_sha,
         args.implementation_subject_sha,
         args.execution_code_sha,
     )
@@ -565,6 +615,7 @@ def main() -> int:
         proof_dir=args.proof_dir,
         implementation_subject_sha=args.implementation_subject_sha,
         execution_code_sha=args.execution_code_sha,
+        authorization_decision_sha=args.authorization_decision_sha,
     )
     result = executor.run()
     print(json.dumps(result, indent=2, sort_keys=True))

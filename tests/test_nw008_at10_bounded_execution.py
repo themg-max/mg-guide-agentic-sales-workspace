@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ast
+import argparse
 import json
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -24,6 +26,7 @@ from scripts.nw008.run_at10_bounded_execution import (
     BoundedExecutionError,
     BoundedFirestoreGateway,
     OperationCounter,
+    main,
     _load_projected_records,
 )
 
@@ -110,6 +113,80 @@ def test_target_is_exact_and_not_runtime_configurable() -> None:
     )
 
 
+def test_approved_but_unmerged_authorization_rejected_before_client(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    import scripts.nw008.run_at10_bounded_execution as runner
+
+    authorization = tmp_path / "approved-grant.md"
+    authorization.write_text(
+        "\n".join(
+            (
+                "DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION",
+                "STATUS=HUMAN_APPROVED",
+                "HUMAN_SIGNATURE=APPROVED",
+                "AT10_EXECUTION_AUTHORIZED=YES",
+                "AT10_COMPLETION_CLAIM_AUTHORIZED=NO",
+                "AT10_COMPLETE=NO",
+                f"IMPLEMENTATION_SUBJECT_SHA={TEST_SHA}",
+                f"EXECUTION_CODE_SHA={TEST_SHA}",
+                "PROJECT=mg-devpost",
+                "DATABASE=devpost-google-contest",
+                "LOCATION=us-east4",
+                "COLLECTION=workflow_runs",
+                "MAX_DISTINCT_RUN_IDS=4",
+                "MAX_DOCUMENT_CREATES=4",
+                "MAX_DOCUMENT_READS=12",
+                "MAX_DOCUMENT_DELETES=4",
+                "MAX_NETWORK_CALLS=20",
+                "MAX_EXECUTION_MINUTES=10",
+                "FIRESTORE_LIST_AUTHORIZED=NO",
+                "FIRESTORE_QUERY_AUTHORIZED=NO",
+                "COLLECTION_SWEEP_AUTHORIZED=NO",
+                *RUN_ALLOWLIST,
+            )
+        ),
+        encoding="utf-8",
+    )
+    network_calls = 0
+    client_creations = 0
+
+    def fake_run_git(arguments: list[str]) -> subprocess.CompletedProcess[str]:
+        if arguments[:2] == ["merge-base", "--is-ancestor"]:
+            return subprocess.CompletedProcess(arguments, 1, "", "")
+        return subprocess.CompletedProcess(arguments, 0, "", "")
+
+    def fail_if_client_created() -> Any:
+        nonlocal client_creations, network_calls
+        client_creations += 1
+        network_calls += 1
+        raise AssertionError("Firestore client must not be created")
+
+    monkeypatch.setattr(runner, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(runner, "_run_git", fake_run_git)
+    monkeypatch.setattr(runner, "verify_source_binding", lambda *_: None)
+    monkeypatch.setattr(runner, "_create_firestore_client", fail_if_client_created)
+    monkeypatch.setattr(
+        runner,
+        "_parse_args",
+        lambda: argparse.Namespace(
+            implementation_subject_sha=TEST_SHA,
+            execution_code_sha=TEST_SHA,
+            authorization_decision_sha="b" * 40,
+            authorization_artifact=authorization,
+            proof_dir=tmp_path / "proof",
+        ),
+    )
+
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        main()
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "not an ancestor of origin/main" in excinfo.value.message
+    assert client_creations == 0
+    assert network_calls == 0
+
+
 def test_operation_after_ten_minutes_fails_closed_before_network() -> None:
     times = iter((0.0, 601.0))
     client = FakeFirestoreClient()
@@ -186,6 +263,7 @@ def test_precreate_and_postdelete_checks_count_as_reads(tmp_path: Path) -> None:
         tmp_path,
         TEST_SHA,
         TEST_SHA,
+        TEST_SHA,
     )
     result = executor.run(
         _load_projected_records("2026-08-15T16:00:00+00:00")
@@ -237,6 +315,7 @@ def test_proof_counters_equal_executor_counters(tmp_path: Path) -> None:
     executor = At10BoundedExecutor(
         gateway,
         tmp_path,
+        TEST_SHA,
         TEST_SHA,
         TEST_SHA,
     )
