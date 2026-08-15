@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import copy
 import inspect
+import subprocess
 from dataclasses import replace
 from pathlib import Path
 
@@ -305,6 +306,16 @@ def test_proof_subject_sha_integrity(repo_root: Path):
     ok, detail = verify_proof_subject_sha(
         payload["implementation_subject_sha"], repo_root
     )
+    if not ok:
+        is_shallow = subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip() == "true"
+        if is_shallow and "PROOF_SUBJECT_SHA_EXISTS=false" in detail:
+            pytest.skip("durable proof subject is outside the shallow checkout")
     assert ok, detail
 
 
