@@ -15,12 +15,47 @@ class TransitionError(ValueError):
     """Illegal workflow transition."""
 
 
+class WriteCapContractError(ValueError):
+    """Raised when write-attempt caps cannot be loaded fail-closed from contract."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(f"INVALID_WRITE_CAP_CONTRACT: {detail}")
+
+
 @dataclass(frozen=True)
 class Transition:
     source: str
     target: str
     when: str
     reason_code: Optional[str] = None
+
+
+def _invariant_map(contract: Dict[str, Any]) -> Dict[str, Any]:
+    raw = contract.get("invariants")
+    if raw is None:
+        return {}
+    if not isinstance(raw, list):
+        raise WriteCapContractError("invariants must be a list")
+    merged: Dict[str, Any] = {}
+    for item in raw:
+        if not isinstance(item, dict):
+            raise WriteCapContractError("each invariant entry must be a mapping")
+        merged.update(item)
+    return merged
+
+
+def require_positive_int_cap(invariants: Dict[str, Any], field: str) -> int:
+    """Normalize and validate a write/intent cap. Fail closed on any invalid value."""
+
+    if field not in invariants:
+        raise WriteCapContractError(f"missing {field}")
+    value = invariants[field]
+    # bool is a subclass of int; reject explicitly.
+    if isinstance(value, bool) or not isinstance(value, int) or value < 1:
+        raise WriteCapContractError(
+            f"{field} must be a positive integer >= 1; got {value!r}"
+        )
+    return value
 
 
 class StateMachine:
@@ -56,13 +91,37 @@ class StateMachine:
                     "extraction_abort_threshold and stage_transition_confidence_min must be distinct"
                 )
 
-        self.max_note_intents = 1
-        self.max_stage_intents = 1
+        invariants = _invariant_map(contract)
+        # CONTRACT_LOADING_REPAIR: write caps are authoritative from workflow_states.yaml.
+        self.max_note_writes_per_run = require_positive_int_cap(
+            invariants, "max_note_writes_per_run"
+        )
+        self.max_stage_writes_per_run = require_positive_int_cap(
+            invariants, "max_stage_writes_per_run"
+        )
+        self.max_note_intents = require_positive_int_cap(
+            invariants, "max_note_intents_per_run"
+        )
+        self.max_stage_intents = require_positive_int_cap(
+            invariants, "max_stage_intents_per_run"
+        )
+        self.cap_source = "contracts/workflow_states.yaml"
+        self.cap_node = "invariants"
 
     @classmethod
     def from_yaml(cls, path: Path) -> "StateMachine":
         data = yaml.safe_load(path.read_text(encoding="utf-8"))
         return cls(data)
+
+    def write_cap_for(self, write_kind: str) -> int:
+        kind = str(write_kind or "").strip().lower()
+        if kind == "note":
+            return self.max_note_writes_per_run
+        if kind == "stage":
+            return self.max_stage_writes_per_run
+        raise WriteCapContractError(
+            f"unsupported write kind for cap lookup: {write_kind!r}"
+        )
 
     def is_terminal(self, state: str) -> bool:
         meta = self.states.get(state)
