@@ -280,6 +280,19 @@ ACTIVE_GRANT_ALLOWED_KEYS = frozenset(
         "HUMAN_APPROVER_EMAIL",
         "HUMAN_APPROVER_NAME",
         "APPROVED_AT",
+        "NETWORK_OPERATIONS_AUTHORIZED",
+        "FIRESTORE_CREATES_AUTHORIZED",
+        "FIRESTORE_READS_AUTHORIZED",
+        "FIRESTORE_DELETES_AUTHORIZED",
+        "ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR",
+        "DATA",
+        "COLLECTION_FANOUT",
+        "NO_COLLECTION_SWEEP",
+        "GHL_CRM_AUTHORIZED",
+        "IAM_MUTATION_AUTHORIZED",
+        "SECRET_MUTATION_AUTHORIZED",
+        "CLOUD_RUN_AUTHORIZED",
+        "REAL_CUSTOMER_DATA_AUTHORIZED",
         "AT10_EXECUTION_AUTHORIZED",
         "AT10_COMPLETION_CLAIM_AUTHORIZED",
         "AT10_COMPLETE",
@@ -379,6 +392,19 @@ def validate_active_grant_fields(
         "HUMAN_SIGNATURE": "APPROVED",
         "HUMAN_APPROVER_EMAIL": ACTIVE_GRANT_APPROVER_EMAIL,
         "HUMAN_APPROVER_NAME": ACTIVE_GRANT_APPROVER_NAME,
+        "NETWORK_OPERATIONS_AUTHORIZED": "YES",
+        "FIRESTORE_CREATES_AUTHORIZED": "YES",
+        "FIRESTORE_READS_AUTHORIZED": "YES",
+        "FIRESTORE_DELETES_AUTHORIZED": "YES",
+        "ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR": "YES",
+        "DATA": "synthetic_only",
+        "COLLECTION_FANOUT": "1",
+        "NO_COLLECTION_SWEEP": "YES",
+        "GHL_CRM_AUTHORIZED": "NO",
+        "IAM_MUTATION_AUTHORIZED": "NO",
+        "SECRET_MUTATION_AUTHORIZED": "NO",
+        "CLOUD_RUN_AUTHORIZED": "NO",
+        "REAL_CUSTOMER_DATA_AUTHORIZED": "NO",
         "AT10_EXECUTION_AUTHORIZED": "YES",
         "AT10_COMPLETION_CLAIM_AUTHORIZED": "NO",
         "AT10_COMPLETE": "NO",
@@ -429,6 +455,15 @@ def validate_active_grant_fields(
     approved_at = fields["APPROVED_AT"]
     if APPROVED_AT_PATTERN.fullmatch(approved_at) is None:
         _reject_grant(f"ACTIVE GRANT APPROVED_AT is malformed: {approved_at!r}")
+    try:
+        approved_datetime = datetime.fromisoformat(approved_at)
+    except ValueError:
+        _reject_grant(f"ACTIVE GRANT APPROVED_AT is malformed: {approved_at!r}")
+    if (
+        approved_datetime.tzinfo is None
+        or approved_datetime.utcoffset() is None
+    ):
+        _reject_grant("ACTIVE GRANT APPROVED_AT must be timezone-aware")
 
     return dict(fields)
 

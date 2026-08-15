@@ -57,6 +57,22 @@ def _active_grant_lines(
         ("HUMAN_APPROVER_EMAIL", "themg@themiliare-group.com"),
         ("HUMAN_APPROVER_NAME", "AARON PRESTON CHANDLER"),
         ("APPROVED_AT", approved_at),
+        ("NETWORK_OPERATIONS_AUTHORIZED", "YES"),
+        ("FIRESTORE_CREATES_AUTHORIZED", "YES"),
+        ("FIRESTORE_READS_AUTHORIZED", "YES"),
+        ("FIRESTORE_DELETES_AUTHORIZED", "YES"),
+        (
+            "ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR",
+            "YES",
+        ),
+        ("DATA", "synthetic_only"),
+        ("COLLECTION_FANOUT", "1"),
+        ("NO_COLLECTION_SWEEP", "YES"),
+        ("GHL_CRM_AUTHORIZED", "NO"),
+        ("IAM_MUTATION_AUTHORIZED", "NO"),
+        ("SECRET_MUTATION_AUTHORIZED", "NO"),
+        ("CLOUD_RUN_AUTHORIZED", "NO"),
+        ("REAL_CUSTOMER_DATA_AUTHORIZED", "NO"),
         ("AT10_EXECUTION_AUTHORIZED", execution_authorized),
         ("AT10_COMPLETION_CLAIM_AUTHORIZED", "NO"),
         ("AT10_COMPLETE", "NO"),
@@ -274,6 +290,60 @@ def test_malformed_approval_timestamp_is_rejected() -> None:
     assert "APPROVED_AT is malformed" in excinfo.value.message
 
 
+@pytest.mark.parametrize(
+    "approved_at",
+    (
+        "2026-13-15T12:33:00-04:00",
+        "2026-02-30T12:33:00-04:00",
+        "2026-08-15T24:33:00-04:00",
+        "2026-08-15T12:60:00-04:00",
+        "2026-08-15T12:33:60-04:00",
+        "2026-08-15T12:33:00+24:00",
+        "2026-08-15T12:33:00",
+    ),
+)
+def test_semantically_invalid_approval_timestamp_is_rejected(
+    approved_at: str,
+) -> None:
+    text = _canonical_approved_grant_text(approved_at=approved_at)
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "APPROVED_AT" in excinfo.value.message
+
+
+def test_missing_network_operations_authorization_is_rejected() -> None:
+    text = _canonical_approved_grant_text(
+        omit={"NETWORK_OPERATIONS_AUTHORIZED"}
+    )
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "NETWORK_OPERATIONS_AUTHORIZED" in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "field",
+    (
+        "FIRESTORE_CREATES_AUTHORIZED",
+        "FIRESTORE_READS_AUTHORIZED",
+        "FIRESTORE_DELETES_AUTHORIZED",
+        "ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR",
+    ),
+)
+def test_required_firestore_authorization_set_to_no_is_rejected(
+    field: str,
+) -> None:
+    text = _canonical_approved_grant_text(
+        omit={field},
+        extra_lines=(f"{field}=NO",),
+    )
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert field in excinfo.value.message
+
+
 def test_canonical_approved_active_block_passes() -> None:
     text = _canonical_approved_grant_text()
     fields = parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
@@ -283,7 +353,26 @@ def test_canonical_approved_active_block_passes() -> None:
     assert fields["AT10_COMPLETION_CLAIM_AUTHORIZED"] == "NO"
     assert fields["AT10_COMPLETE"] == "NO"
     assert fields["APPROVED_AT"] == CANONICAL_APPROVED_AT
+    assert fields["NETWORK_OPERATIONS_AUTHORIZED"] == "YES"
+    assert fields["FIRESTORE_CREATES_AUTHORIZED"] == "YES"
+    assert fields["FIRESTORE_READS_AUTHORIZED"] == "YES"
+    assert fields["FIRESTORE_DELETES_AUTHORIZED"] == "YES"
+    assert (
+        fields["ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR"]
+        == "YES"
+    )
+    assert fields["DATA"] == "synthetic_only"
+    assert fields["COLLECTION_FANOUT"] == "1"
+    assert fields["NO_COLLECTION_SWEEP"] == "YES"
+    assert fields["GHL_CRM_AUTHORIZED"] == "NO"
+    assert fields["IAM_MUTATION_AUTHORIZED"] == "NO"
+    assert fields["SECRET_MUTATION_AUTHORIZED"] == "NO"
+    assert fields["CLOUD_RUN_AUTHORIZED"] == "NO"
+    assert fields["REAL_CUSTOMER_DATA_AUTHORIZED"] == "NO"
     assert fields["RUN_ALLOWLIST"] == ",".join(RUN_ALLOWLIST)
+    assert fields["FIRESTORE_LIST_AUTHORIZED"] == "NO"
+    assert fields["FIRESTORE_QUERY_AUTHORIZED"] == "NO"
+    assert fields["COLLECTION_SWEEP_AUTHORIZED"] == "NO"
     assert fields["OUT_OF_BAND_FIRESTORE_PROBES_AUTHORIZED"] == "NO"
     assert fields["PR53_AUTHORITY_REUSABLE"] == "NO"
 
