@@ -259,13 +259,198 @@ def verify_source_binding(subject_sha: str, execution_code_sha: str) -> None:
     )
 
 
+ACTIVE_GRANT_BEGIN = "BEGIN_AT10_ACTIVE_GRANT"
+ACTIVE_GRANT_END = "END_AT10_ACTIVE_GRANT"
+ACTIVE_GRANT_DECISION = "AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION"
+ACTIVE_GRANT_APPROVER_EMAIL = "themg@themiliare-group.com"
+ACTIVE_GRANT_APPROVER_NAME = "AARON PRESTON CHANDLER"
+APPROVED_AT_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:[+-]\d{2}:\d{2}|Z)$"
+)
+ACTIVE_GRANT_LINE_PATTERN = re.compile(
+    r"^(?P<key>[A-Z][A-Z0-9_]*)=(?P<value>.*)$"
+)
+
+# Closed field set. Unknown keys are rejected fail-closed.
+ACTIVE_GRANT_ALLOWED_KEYS = frozenset(
+    {
+        "STATUS",
+        "DECISION",
+        "HUMAN_SIGNATURE",
+        "HUMAN_APPROVER_EMAIL",
+        "HUMAN_APPROVER_NAME",
+        "APPROVED_AT",
+        "AT10_EXECUTION_AUTHORIZED",
+        "AT10_COMPLETION_CLAIM_AUTHORIZED",
+        "AT10_COMPLETE",
+        "IMPLEMENTATION_SUBJECT_SHA",
+        "EXECUTION_CODE_SHA",
+        "PROJECT",
+        "DATABASE",
+        "LOCATION",
+        "COLLECTION",
+        "RUN_ALLOWLIST",
+        "MAX_DISTINCT_RUN_IDS",
+        "MAX_DOCUMENT_CREATES",
+        "MAX_DOCUMENT_READS",
+        "MAX_DOCUMENT_DELETES",
+        "MAX_NETWORK_CALLS",
+        "MAX_EXECUTION_MINUTES",
+        "FIRESTORE_LIST_AUTHORIZED",
+        "FIRESTORE_QUERY_AUTHORIZED",
+        "COLLECTION_SWEEP_AUTHORIZED",
+        "OUT_OF_BAND_FIRESTORE_PROBES_AUTHORIZED",
+        "PR53_AUTHORITY_REUSABLE",
+    }
+)
+
+
+def _reject_grant(message: str) -> None:
+    raise BoundedExecutionError(GOVERNANCE_REJECTED, message)
+
+
+def extract_active_grant_block(text: str) -> str:
+    """Return the body of the single canonical ACTIVE GRANT block."""
+    begin_token = ACTIVE_GRANT_BEGIN
+    end_token = ACTIVE_GRANT_END
+    begins = [match.start() for match in re.finditer(re.escape(begin_token), text)]
+    ends = [match.start() for match in re.finditer(re.escape(end_token), text)]
+    if len(begins) == 0 or len(ends) == 0:
+        _reject_grant("authorization artifact must contain exactly one ACTIVE GRANT block")
+    if len(begins) != 1 or len(ends) != 1:
+        _reject_grant("authorization artifact must contain exactly one ACTIVE GRANT block")
+
+    begin_at = begins[0]
+    end_at = ends[0]
+    begin_line_end = text.find("\n", begin_at)
+    if begin_line_end < 0:
+        _reject_grant("ACTIVE GRANT begin marker is malformed")
+    if end_at <= begin_line_end:
+        _reject_grant("ACTIVE GRANT end marker must follow the begin marker")
+
+    # Ensure markers occupy their own lines (allow surrounding whitespace only).
+    begin_line_start = text.rfind("\n", 0, begin_at) + 1
+    begin_line = text[begin_line_start:begin_line_end].strip()
+    if begin_line != begin_token:
+        _reject_grant("ACTIVE GRANT begin marker must occupy its own line")
+
+    end_line_end = text.find("\n", end_at)
+    if end_line_end < 0:
+        end_line_end = len(text)
+    end_line_start = text.rfind("\n", 0, end_at) + 1
+    end_line = text[end_line_start:end_line_end].strip()
+    if end_line != end_token:
+        _reject_grant("ACTIVE GRANT end marker must occupy its own line")
+
+    return text[begin_line_end + 1 : end_line_start]
+
+
+def parse_active_grant_fields(block_body: str) -> Dict[str, str]:
+    """Parse KEY=VALUE fields from one ACTIVE GRANT body fail-closed."""
+    fields: Dict[str, str] = {}
+    for raw_line in block_body.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = ACTIVE_GRANT_LINE_PATTERN.fullmatch(line)
+        if match is None:
+            _reject_grant(f"ACTIVE GRANT contains malformed line {raw_line!r}")
+        key = match.group("key")
+        value = match.group("value")
+        if key not in ACTIVE_GRANT_ALLOWED_KEYS:
+            _reject_grant(f"ACTIVE GRANT contains unknown field {key!r}")
+        if key in fields:
+            _reject_grant(f"ACTIVE GRANT contains duplicate key {key!r}")
+        if value != value.strip() or value == "":
+            _reject_grant(f"ACTIVE GRANT field {key!r} has a malformed value")
+        fields[key] = value
+    return fields
+
+
+def validate_active_grant_fields(
+    fields: Mapping[str, str],
+    subject_sha: str,
+    execution_code_sha: str,
+) -> Dict[str, str]:
+    """Require the canonical approved ACTIVE GRANT field set."""
+    required = {
+        "STATUS": "HUMAN_APPROVED",
+        "DECISION": ACTIVE_GRANT_DECISION,
+        "HUMAN_SIGNATURE": "APPROVED",
+        "HUMAN_APPROVER_EMAIL": ACTIVE_GRANT_APPROVER_EMAIL,
+        "HUMAN_APPROVER_NAME": ACTIVE_GRANT_APPROVER_NAME,
+        "AT10_EXECUTION_AUTHORIZED": "YES",
+        "AT10_COMPLETION_CLAIM_AUTHORIZED": "NO",
+        "AT10_COMPLETE": "NO",
+        "IMPLEMENTATION_SUBJECT_SHA": subject_sha,
+        "EXECUTION_CODE_SHA": execution_code_sha,
+        "PROJECT": PROJECT,
+        "DATABASE": DATABASE,
+        "LOCATION": LOCATION,
+        "COLLECTION": COLLECTION,
+        "RUN_ALLOWLIST": ",".join(RUN_ALLOWLIST),
+        "MAX_DISTINCT_RUN_IDS": str(len(RUN_ALLOWLIST)),
+        "MAX_DOCUMENT_CREATES": str(MAX_CREATES),
+        "MAX_DOCUMENT_READS": str(MAX_READS),
+        "MAX_DOCUMENT_DELETES": str(MAX_DELETES),
+        "MAX_NETWORK_CALLS": str(MAX_TOTAL_OPERATIONS),
+        "MAX_EXECUTION_MINUTES": "10",
+        "FIRESTORE_LIST_AUTHORIZED": "NO",
+        "FIRESTORE_QUERY_AUTHORIZED": "NO",
+        "COLLECTION_SWEEP_AUTHORIZED": "NO",
+        "OUT_OF_BAND_FIRESTORE_PROBES_AUTHORIZED": "NO",
+        "PR53_AUTHORITY_REUSABLE": "NO",
+    }
+
+    expected_keys = set(required) | {"APPROVED_AT"}
+    missing_keys = sorted(expected_keys - set(fields))
+    if missing_keys:
+        _reject_grant(f"ACTIVE GRANT is missing required field {missing_keys[0]!r}")
+
+    extra_keys = sorted(set(fields) - expected_keys)
+    if extra_keys:
+        _reject_grant(f"ACTIVE GRANT contains unknown field {extra_keys[0]!r}")
+
+    decision = fields.get("DECISION", "")
+    if decision != ACTIVE_GRANT_DECISION:
+        if "PENDING" in decision.upper():
+            _reject_grant("ACTIVE GRANT decision is pending and not authorized")
+        _reject_grant(
+            f"ACTIVE GRANT decision token {decision!r} is noncanonical"
+        )
+
+    for key, expected in required.items():
+        actual = fields[key]
+        if actual != expected:
+            _reject_grant(
+                f"ACTIVE GRANT field {key!r} must equal {expected!r}, got {actual!r}"
+            )
+
+    approved_at = fields["APPROVED_AT"]
+    if APPROVED_AT_PATTERN.fullmatch(approved_at) is None:
+        _reject_grant(f"ACTIVE GRANT APPROVED_AT is malformed: {approved_at!r}")
+
+    return dict(fields)
+
+
+def parse_and_validate_active_grant(
+    text: str,
+    subject_sha: str,
+    execution_code_sha: str,
+) -> Dict[str, str]:
+    """Extract and validate exactly one canonical ACTIVE GRANT from artifact text."""
+    body = extract_active_grant_block(text)
+    fields = parse_active_grant_fields(body)
+    return validate_active_grant_fields(fields, subject_sha, execution_code_sha)
+
+
 def verify_execution_authorization(
     authorization_artifact: Path,
     authorization_decision_sha: str,
     subject_sha: str,
     execution_code_sha: str,
 ) -> None:
-    """Require an approved grant whose exact blob is merged on origin/main."""
+    """Require an approved ACTIVE GRANT whose exact blob is merged on origin/main."""
     if re.fullmatch(r"[0-9a-f]{40}", authorization_decision_sha) is None:
         raise BoundedExecutionError(
             GOVERNANCE_REJECTED,
@@ -291,41 +476,9 @@ def verify_execution_authorization(
     )
 
     text = artifact.read_text(encoding="utf-8")
-    required_markers = (
-        "DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION",
-        "STATUS=HUMAN_APPROVED",
-        "HUMAN_SIGNATURE=APPROVED",
-        "AT10_EXECUTION_AUTHORIZED=YES",
-        "AT10_COMPLETION_CLAIM_AUTHORIZED=NO",
-        "AT10_COMPLETE=NO",
-        f"IMPLEMENTATION_SUBJECT_SHA={subject_sha}",
-        f"EXECUTION_CODE_SHA={execution_code_sha}",
-        f"PROJECT={PROJECT}",
-        f"DATABASE={DATABASE}",
-        f"LOCATION={LOCATION}",
-        f"COLLECTION={COLLECTION}",
-        f"MAX_DISTINCT_RUN_IDS={len(RUN_ALLOWLIST)}",
-        f"MAX_DOCUMENT_CREATES={MAX_CREATES}",
-        f"MAX_DOCUMENT_READS={MAX_READS}",
-        f"MAX_DOCUMENT_DELETES={MAX_DELETES}",
-        f"MAX_NETWORK_CALLS={MAX_TOTAL_OPERATIONS}",
-        "MAX_EXECUTION_MINUTES=10",
-        "FIRESTORE_LIST_AUTHORIZED=NO",
-        "FIRESTORE_QUERY_AUTHORIZED=NO",
-        "COLLECTION_SWEEP_AUTHORIZED=NO",
-    )
-    missing = [marker for marker in required_markers if marker not in text]
-    if missing:
-        raise BoundedExecutionError(
-            GOVERNANCE_REJECTED,
-            f"authorization artifact is missing required binding {missing[0]!r}",
-        )
-    for run_id in RUN_ALLOWLIST:
-        if run_id not in text:
-            raise BoundedExecutionError(
-                GOVERNANCE_REJECTED,
-                f"authorization artifact does not bind run_id={run_id!r}",
-            )
+    # Only the canonical ACTIVE GRANT block confers authority. Explanatory or
+    # pending prose outside the block cannot satisfy execution grant checks.
+    parse_and_validate_active_grant(text, subject_sha, execution_code_sha)
 
     _require_git_success(
         [
