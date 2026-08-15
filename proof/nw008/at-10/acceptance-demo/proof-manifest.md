@@ -1,4 +1,12 @@
-# NW-008 AT-10 offline acceptance-demo proof
+# NW-008 AT-10 bounded Firestore acceptance-demo proof
 
-This directory is the frozen future-proof namespace for the offline acceptance-demo lane.
-It is intentionally local-only and does not invoke any external service.
+Single bounded live execution under merged PR #53 grant.
+
+AUTHORIZATION_PACKET_SHA=`6702cb138195a48b9dbbb9b447ae742a57f07f31`
+AUTHORIZATION_DECISION_SHA=`cac45058efbc637731e26923cb3e424b0f061115`
+IMPLEMENTATION_SUBJECT_SHA=`156cc85679cf87733f1a8a0b1d0a3a8340994fdd`
+EXECUTION_CODE_SHA=`156cc85679cf87733f1a8a0b1d0a3a8340994fdd`
+
+AT10_EXECUTION_OCCURRED=YES
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+AT10_COMPLETE=NO
