@@ -1,0 +1,137 @@
+{
+  "agent_cap_authority": "NO",
+  "at_id": "AT-8",
+  "cap_node": "invariants",
+  "cap_source": "contracts/workflow_states.yaml",
+  "counter_observations": {
+    "after_note_sequence": {
+      "note": 1,
+      "stage": 0
+    },
+    "after_stage_sequence": {
+      "note": 1,
+      "stage": 1
+    }
+  },
+  "deterministic_replay_bytes_equal": true,
+  "deterministic_replay_hashes_equal": true,
+  "effects": {
+    "EXTERNAL_EFFECTS": 0,
+    "EXTERNAL_EFFECT_OBSERVATIONS": [],
+    "FIRESTORE_WRITES": 0,
+    "FIRESTORE_WRITE_OBSERVATIONS": [],
+    "GHL_LIVE_CALLS": 0,
+    "GHL_LIVE_CALL_OBSERVATIONS": [],
+    "GHL_WRITES": 0,
+    "GHL_WRITE_OBSERVATIONS": [],
+    "TRANSPORT_ATTEMPTED": false,
+    "TRANSPORT_EXECUTOR_CALLS": []
+  },
+  "enforcement_decision_owner": "OL3_ORCHESTRATION_POLICY",
+  "fresh_run_ledger_snapshot": {
+    "note": 1,
+    "stage": 0
+  },
+  "fresh_run_reset": {
+    "after": 1,
+    "before": 0,
+    "decision": "PERMIT",
+    "decision_owner": "OL3_ORCHESTRATION_POLICY",
+    "max": 1,
+    "reason_code": "WRITE_ATTEMPT_ADMITTED",
+    "run_id": "at-08:fresh",
+    "transport_attempted": false,
+    "write_kind": "note"
+  },
+  "harness_cap_authority": "NO",
+  "implementation_subject_sha": "b68bd533d5d0fce9194fd72e2df793372e30db01",
+  "ledger_snapshot": {
+    "note": 1,
+    "stage": 1
+  },
+  "ledger_state_owner": "WRITE_ATTEMPT_LEDGER",
+  "max_note_writes_per_run": 1,
+  "max_stage_writes_per_run": 1,
+  "nc_d2_results": {
+    "NC_D2_1": "PASS",
+    "NC_D2_10": "PASS",
+    "NC_D2_2": "PASS",
+    "NC_D2_3": "PASS",
+    "NC_D2_4": "PASS",
+    "NC_D2_5": "PASS",
+    "NC_D2_6": "PASS",
+    "NC_D2_7": "PASS",
+    "NC_D2_8": "PASS",
+    "NC_D2_9": "PASS"
+  },
+  "note_decisions": [
+    {
+      "after": 1,
+      "before": 0,
+      "decision": "PERMIT",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_ADMITTED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "note"
+    },
+    {
+      "after": 1,
+      "before": 1,
+      "decision": "REFUSE",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_CAP_EXCEEDED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "note"
+    }
+  ],
+  "proof_clock": "2026-08-15T12:00:00Z",
+  "proof_id": "NW008-D2-AT8",
+  "proof_namespace": "proof/nw008/tranche-d/d2-at8",
+  "proof_validator": "PASS",
+  "replay_primary_sha256": "37880dc1f1044abdc1e638230eee4676096c2e9dfb4d0c08f5f1addf56f663e1",
+  "replay_secondary_sha256": "37880dc1f1044abdc1e638230eee4676096c2e9dfb4d0c08f5f1addf56f663e1",
+  "run_id": "at-08",
+  "runner_authority": "ORCHESTRATION_ONLY",
+  "stage_decisions": [
+    {
+      "after": 1,
+      "before": 0,
+      "decision": "PERMIT",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_ADMITTED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "stage"
+    },
+    {
+      "after": 1,
+      "before": 1,
+      "decision": "REFUSE",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_CAP_EXCEEDED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "stage"
+    }
+  ],
+  "td2_results": {
+    "TD2_01": "PASS",
+    "TD2_02": "PASS",
+    "TD2_03": "PASS",
+    "TD2_04": "PASS",
+    "TD2_05": "PASS",
+    "TD2_06": "PASS",
+    "TD2_07": "PASS",
+    "TD2_08": "PASS",
+    "TD2_09": "PASS",
+    "TD2_10": "PASS",
+    "TD2_11": "PASS",
+    "TD2_12": "PASS"
+  }
+}

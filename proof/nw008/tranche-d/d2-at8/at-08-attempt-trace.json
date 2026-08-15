@@ -1,0 +1,85 @@
+{
+  "fresh_run_ledger_snapshot": {
+    "note": 1,
+    "stage": 0
+  },
+  "fresh_run_reset": {
+    "after": 1,
+    "before": 0,
+    "decision": "PERMIT",
+    "decision_owner": "OL3_ORCHESTRATION_POLICY",
+    "max": 1,
+    "reason_code": "WRITE_ATTEMPT_ADMITTED",
+    "run_id": "at-08:fresh",
+    "transport_attempted": false,
+    "write_kind": "note"
+  },
+  "implementation_subject_sha": "b68bd533d5d0fce9194fd72e2df793372e30db01",
+  "independent_counters": {
+    "after_note_sequence": {
+      "note": 1,
+      "stage": 0
+    },
+    "after_stage_sequence": {
+      "note": 1,
+      "stage": 1
+    }
+  },
+  "note_sequence": [
+    {
+      "after": 1,
+      "attempt": 1,
+      "before": 0,
+      "decision": "PERMIT",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_ADMITTED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "note"
+    },
+    {
+      "after": 1,
+      "attempt": 2,
+      "before": 1,
+      "decision": "REFUSE",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_CAP_EXCEEDED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "note"
+    }
+  ],
+  "proof_id": "NW008-D2-AT8",
+  "refusal_before_transport": true,
+  "run_id": "at-08",
+  "stage_sequence": [
+    {
+      "after": 1,
+      "attempt": 1,
+      "before": 0,
+      "decision": "PERMIT",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_ADMITTED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "stage"
+    },
+    {
+      "after": 1,
+      "attempt": 2,
+      "before": 1,
+      "decision": "REFUSE",
+      "decision_owner": "OL3_ORCHESTRATION_POLICY",
+      "max": 1,
+      "reason_code": "WRITE_ATTEMPT_CAP_EXCEEDED",
+      "run_id": "at-08",
+      "transport_attempted": false,
+      "write_kind": "stage"
+    }
+  ],
+  "transport_attempted": false,
+  "transport_executor_calls": []
+}

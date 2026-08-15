@@ -219,8 +219,9 @@ def test_d2_validator_fail_closed_on_nonzero_effects() -> None:
     assert validate_d2_proof(poisoned) == "FAIL"
 
 
-def test_d2_does_not_emit_durable_proof_namespace(tmp_path: Path) -> None:
-    """A2 must not create durable d2-at8 proof artifacts under proof/."""
+def test_d2_durable_p2_proof_namespace_is_valid() -> None:
+    """Authorized P2 durable d2-at8 proof must validate against frozen A2R."""
+    a2r = "b68bd533d5d0fce9194fd72e2df793372e30db01"
     durable = (
         Path(__file__).resolve().parents[1]
         / "proof"
@@ -228,5 +229,34 @@ def test_d2_does_not_emit_durable_proof_namespace(tmp_path: Path) -> None:
         / "tranche-d"
         / "d2-at8"
     )
-    assert not durable.exists()
-    assert list(tmp_path.iterdir()) == []
+    assert durable.is_dir()
+    expected_names = {
+        "at-08-run.json",
+        "at-08-attempt-trace.json",
+        "proof-manifest.md",
+        "proof-return.yaml",
+    }
+    actual_names = {path.name for path in durable.iterdir() if path.is_file()}
+    assert actual_names == expected_names
+
+    payload = _yaml.safe_load(
+        (durable / "proof-return.yaml").read_text(encoding="utf-8")
+    )
+    assert payload["implementation_subject_sha"] == a2r
+    assert validate_d2_proof(payload["evidence"]) == "PASS"
+    assert payload["proof_validator"] == "PASS"
+    assert payload["deterministic_proof_replay"] == "PASS"
+    assert all(
+        payload["td2_results"][f"TD2_{n:02d}"] == "PASS" for n in range(1, 13)
+    ), payload["td2_results"]
+    assert all(
+        payload["nc_d2_results"][f"NC_D2_{n}"] == "PASS" for n in range(1, 11)
+    ), payload["nc_d2_results"]
+    assert payload["effects"] == {
+        "GHL_LIVE_CALLS": 0,
+        "GHL_WRITES": 0,
+        "FIRESTORE_WRITES": 0,
+        "EXTERNAL_EFFECTS": 0,
+        "TRANSPORT_ATTEMPTED": False,
+        "TRANSPORT_EXECUTOR_CALLS": [],
+    }
