@@ -16,7 +16,7 @@ from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional,
 
 from .canonicalize import fingerprint_hex
 from .models import default_stage_a_context
-from .project import _content_fingerprint_body, project_workflow_run_audit
+from .project import content_fingerprint_body, project_workflow_run_audit
 from .validate import validate_workflow_run_audit
 
 AT10_ACCEPTANCE_SET = (
@@ -47,7 +47,7 @@ MAX_LOCAL_DELETES = 4
 
 LOCAL_CAP_EXCEEDED = "LOCAL_CAP_EXCEEDED"
 FINGERPRINT_MISMATCH = "FINGERPRINT_MISMATCH"
-FIRESTORE_CREATE_CONFLICT = "FIRESTORE_CREATE_CONFLICT"
+OFFLINE_CREATE_CONFLICT = "OFFLINE_CREATE_CONFLICT"
 
 PROOF_NAMESPACE = Path("proof/nw008/at-10/acceptance-demo")
 
@@ -198,8 +198,8 @@ def verify_fingerprint_gate(
     if not isinstance(stored, str) or not stored:
         raise AcceptanceDemoValidationError("readback integrity.content_fingerprint missing")
 
-    recomputed = fingerprint_hex(_content_fingerprint_body(readback))
-    expected = fingerprint_hex(_content_fingerprint_body(projected))
+    recomputed = fingerprint_hex(content_fingerprint_body(readback))
+    expected = fingerprint_hex(content_fingerprint_body(projected))
 
     if recomputed != stored:
         raise AcceptanceDemoValidationError(
@@ -284,7 +284,7 @@ class OfflineAcceptanceDemoStore:
             )
         if run_id in self._docs:
             raise AcceptanceDemoValidationError(
-                f"{FIRESTORE_CREATE_CONFLICT}: document workflow_runs/{run_id} already exists"
+                f"{OFFLINE_CREATE_CONFLICT}: document workflow_runs/{run_id} already exists"
             )
         self._check_create_cap()
 

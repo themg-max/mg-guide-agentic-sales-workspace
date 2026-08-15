@@ -7,12 +7,12 @@ import pytest
 
 from mg_guide.firestore_audit.acceptance_demo import (
     AT10_ACCEPTANCE_SET,
-    FIRESTORE_CREATE_CONFLICT,
     FINGERPRINT_MISMATCH,
     LOCAL_CAP_EXCEEDED,
     MAX_LOCAL_CREATES,
     MAX_LOCAL_DELETES,
     MAX_LOCAL_READS,
+    OFFLINE_CREATE_CONFLICT,
     AcceptanceDemoValidationError,
     OfflineAcceptanceDemoStore,
     simulate_acceptance_demo,
@@ -98,7 +98,7 @@ def test_create_exact_rejects_duplicate_run() -> None:
     store.create_exact("run_nw006_success_001", audit)
     with pytest.raises(AcceptanceDemoValidationError) as excinfo:
         store.create_exact("run_nw006_success_001", audit)
-    assert FIRESTORE_CREATE_CONFLICT in str(excinfo.value)
+    assert OFFLINE_CREATE_CONFLICT in str(excinfo.value)
     assert "already exists" in str(excinfo.value)
 
 
