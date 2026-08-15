@@ -7,12 +7,13 @@ completion claim.
 ```text
 EXECUTION_ATTEMPT_1_RECONCILED=YES
 
-NEW_IMPLEMENTATION_SUBJECT_SHA=01c323a6a8a1f06149314f7d235db3cbed0f500c
-NEW_EXECUTION_CODE_SHA=01c323a6a8a1f06149314f7d235db3cbed0f500c
+NEW_IMPLEMENTATION_SUBJECT_SHA=3a3ff660b7cc6fe34eae9856eaca4fc643d84c0b
+NEW_EXECUTION_CODE_SHA=3a3ff660b7cc6fe34eae9856eaca4fc643d84c0b
 SHA_EQUALITY=PASS
 
 OFFLINE_VALIDATION_RESULT=PASS
 PHASE1_DETERMINISTIC=PASS
+UNMERGED_GRANT_REJECTION=PASS
 NETWORK_CALLS=0
 FIRESTORE_NETWORK_OPERATIONS=0
 EXTERNAL_EFFECTS=0
@@ -22,7 +23,7 @@ AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 AT10_COMPLETE=NO
 
 REVIEWER_DISPOSITION=PENDING
-STOP_CODE=NW008_AT10_RERUN_IMPLEMENTATION_READY_FOR_FORMAL_REVIEW
+STOP_CODE=NW008_AT10_RERUN_IMPLEMENTATION_R1_READY_FOR_FINAL_REVIEW
 ```
 
 ## Reviewed implementation scope
@@ -55,6 +56,13 @@ NO_OUT_OF_BAND_PROBES=YES
 SAME_LIFECYCLE_CLEANUP=YES
 SAME_EXECUTOR_PROOF_EMISSION=YES
 AT10_COMPLETE_HARD_CODED_NO=YES
+
+AUTHORIZATION_DECISION_SHA_REQUIRED=YES
+AUTHORIZATION_DECISION_FULL_40_CHAR_SHA_REQUIRED=YES
+AUTHORIZATION_DECISION_IS_ANCESTOR_OF_ORIGIN_MAIN_REQUIRED=YES
+APPROVED_GRANT_PRESENT_ON_ORIGIN_MAIN_REQUIRED=YES
+APPROVED_GRANT_EXACT_BLOB_MATCH_REQUIRED=YES
+FIRESTORE_CLIENT_CREATED_BEFORE_MERGED_GRANT_PROVENANCE=NO
 ```
 
 The exact run allowlist is:
@@ -68,8 +76,10 @@ run_nw006_failed_001
 
 All Firestore create, exact get, and delete calls flow through one gateway and
 one pre-call counter. The CLI verifies committed human authority, exact SHA
-binding, fixed target, caps, allowlist, source-tree equality, and a clean
-execution-source worktree before constructing a Firestore client.
+binding, fixed target, caps, allowlist, source-tree equality, a clean
+execution-source worktree, a full authorization decision SHA that is an
+ancestor of `origin/main`, and exact approved-grant blob equality at both the
+decision commit and live `origin/main` before constructing a Firestore client.
 
 ## Offline validation
 
@@ -83,12 +93,18 @@ The focused test suite proves:
 - precreate and postdelete exact checks count toward the 12 reads;
 - static call-site validation rejects helper bypass of the bounded counter;
 - emitted proof counters equal the executor counter;
+- an approved but locally committed/unmerged grant is rejected before Firestore
+  client construction with zero network calls;
 - all emitted completion markers remain `AT10_COMPLETE=NO`.
 
 ```text
-OFFLINE_TESTS=11
-OFFLINE_TESTS_PASSED=11
+OFFLINE_TESTS=12
+OFFLINE_TESTS_PASSED=12
 OFFLINE_VALIDATION_RESULT=PASS
+APPROVED_BUT_UNMERGED_AUTHORIZATION_REJECTED=PASS
+FIRESTORE_CLIENT_CREATED=NO
+NETWORK_CALLS=0
+UNMERGED_GRANT_REJECTION=PASS
 ```
 
 Deterministic Phase 1 validation also passed:
