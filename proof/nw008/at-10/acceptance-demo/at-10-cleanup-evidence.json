@@ -2,11 +2,22 @@
   "cleanup_performed": true,
   "cleanup_required": true,
   "cleanup_verified_not_found": true,
+  "completed_at": "2026-08-15T15:41:41.934522+00:00",
+  "document_creates": 4,
+  "document_deletes": 4,
+  "document_reads": 12,
   "documents_deleted": [
-    "run_nw006_ambiguous_contact_001",
-    "run_nw006_failed_001",
+    "run_nw006_success_001",
     "run_nw006_stage_denied_001",
-    "run_nw006_success_001"
+    "run_nw006_ambiguous_contact_001",
+    "run_nw006_failed_001"
   ],
-  "network_calls": 0
+  "network_calls": 20,
+  "postdelete_results": {
+    "run_nw006_ambiguous_contact_001": "NOT_FOUND",
+    "run_nw006_failed_001": "NOT_FOUND",
+    "run_nw006_stage_denied_001": "NOT_FOUND",
+    "run_nw006_success_001": "NOT_FOUND"
+  },
+  "started_at": "2026-08-15T15:41:38.607954+00:00"
 }

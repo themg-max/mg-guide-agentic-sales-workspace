@@ -12,6 +12,48 @@
     "reason_codes": "reason_codes",
     "tool_counts": "tool_call_counts"
   },
+  "records": {
+    "run_nw006_ambiguous_contact_001": {
+      "expected_projected_content_fingerprint": "c5991fa623712a93ddfa447637c3e0e4d51b16208970af41f1a5b0a07405b66e",
+      "final_disposition": "blocked",
+      "fingerprint_gate": "PASS",
+      "packet": "packet-ambiguous-contact.blocked.json",
+      "path": "workflow_runs/run_nw006_ambiguous_contact_001",
+      "recomputed_content_fingerprint": "c5991fa623712a93ddfa447637c3e0e4d51b16208970af41f1a5b0a07405b66e",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "c5991fa623712a93ddfa447637c3e0e4d51b16208970af41f1a5b0a07405b66e"
+    },
+    "run_nw006_failed_001": {
+      "expected_projected_content_fingerprint": "81475fa9f1b2dcfc006a5b3c295baa73e7c7058443e658b3b58e2ef74c6acba7",
+      "final_disposition": "failed",
+      "fingerprint_gate": "PASS",
+      "packet": "packet-tool-failure.failed.json",
+      "path": "workflow_runs/run_nw006_failed_001",
+      "recomputed_content_fingerprint": "81475fa9f1b2dcfc006a5b3c295baa73e7c7058443e658b3b58e2ef74c6acba7",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "81475fa9f1b2dcfc006a5b3c295baa73e7c7058443e658b3b58e2ef74c6acba7"
+    },
+    "run_nw006_stage_denied_001": {
+      "expected_projected_content_fingerprint": "ba3ad61bd4814fdfe34d8526c9416b1baf953f1ac8d982ad3ee39a8526e312ed",
+      "final_disposition": "completed_with_review",
+      "fingerprint_gate": "PASS",
+      "packet": "packet-stage-change-denied.completed_with_review.json",
+      "path": "workflow_runs/run_nw006_stage_denied_001",
+      "recomputed_content_fingerprint": "ba3ad61bd4814fdfe34d8526c9416b1baf953f1ac8d982ad3ee39a8526e312ed",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "ba3ad61bd4814fdfe34d8526c9416b1baf953f1ac8d982ad3ee39a8526e312ed"
+    },
+    "run_nw006_success_001": {
+      "expected_projected_content_fingerprint": "d38116e7424d785667f9042d45455a9f590b1969f564505c217235fb7df5aade",
+      "final_disposition": "completed",
+      "fingerprint_gate": "PASS",
+      "packet": "packet-success.completed.json",
+      "path": "workflow_runs/run_nw006_success_001",
+      "recomputed_content_fingerprint": "d38116e7424d785667f9042d45455a9f590b1969f564505c217235fb7df5aade",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "d38116e7424d785667f9042d45455a9f590b1969f564505c217235fb7df5aade"
+    }
+  },
   "run_ids": [
     "run_nw006_success_001",
     "run_nw006_stage_denied_001",
