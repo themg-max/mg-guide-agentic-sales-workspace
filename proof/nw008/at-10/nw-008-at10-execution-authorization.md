@@ -5,18 +5,32 @@
 It does **not** itself execute Firestore, claim AT-10 complete, or authorize
 completion claims. Self-activation is **FORBIDDEN**.
 
-Human decision is required before any Firestore network operation.
+Human approval on this artifact authorizes a **single bounded** AT-10 Firestore
+acceptance-demo execution against the frozen synthetic run set only. Completion
+claim authority remains separate and is **not** granted here.
 
 ```text
 AUTHORIZATION_ID=MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_V1
 PACKET_KIND=AT10_BOUNDED_FIRESTORE_EXECUTION_AUTHORIZATION
-STATUS=PENDING_HUMAN_DECISION
+STATUS=HUMAN_APPROVED
 SELF_ACTIVATION=FORBIDDEN
 
-DECISION=PENDING_HUMAN_EXECUTION_AUTHORIZATION
-AT10_EXECUTION_AUTHORIZED=NO
+DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
+HUMAN_SIGNATURE=APPROVED
+HUMAN_APPROVER=themg@themiliare-group.com
+APPROVED_AT=2026-08-15T11:28:00-04:00
+
+AT10_EXECUTION_AUTHORIZED=YES
 AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 AT10_COMPLETE=NO
+
+NETWORK_OPERATIONS_AUTHORIZED=YES
+FIRESTORE_CREATES_AUTHORIZED=YES
+FIRESTORE_READS_AUTHORIZED=YES
+FIRESTORE_DELETES_AUTHORIZED=YES
+FIRESTORE_LIST_AUTHORIZED=NO
+FIRESTORE_QUERY_AUTHORIZED=NO
+COLLECTION_SWEEP_AUTHORIZED=NO
 
 AUTHORIZATION_PACKET_SHA=6702cb138195a48b9dbbb9b447ae742a57f07f31
 IMPLEMENTATION_SUBJECT_SHA=156cc85679cf87733f1a8a0b1d0a3a8340994fdd
@@ -28,20 +42,21 @@ REVIEWER_DISPOSITION=FAVORABLE_HUMAN_CONFIRMED
 
 ## Purpose
 
-Record the separate post-implementation-review lane that may, **only after an
-explicit human decision on a merged revision of this artifact**, authorize a
-single bounded AT-10 Firestore acceptance-demo execution against the frozen
-synthetic run set.
-
-Until human decision flips the grant:
+Record the separate post-implementation-review human execution grant for a
+single bounded AT-10 Firestore acceptance-demo run against the frozen synthetic
+allowlist. This grant is active only for the exact identity, target, caps, and
+operation permissions bound below.
 
 ```text
-DECISION=PENDING_HUMAN_EXECUTION_AUTHORIZATION
-AT10_EXECUTION_AUTHORIZED=NO
-FIRESTORE_READS_AUTHORIZED=NO
-FIRESTORE_WRITES_AUTHORIZED=NO
-FIRESTORE_DELETES_AUTHORIZED=NO
-NETWORK_OPERATIONS_AUTHORIZED=NO
+DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
+AT10_EXECUTION_AUTHORIZED=YES
+NETWORK_OPERATIONS_AUTHORIZED=YES
+FIRESTORE_CREATES_AUTHORIZED=YES
+FIRESTORE_READS_AUTHORIZED=YES
+FIRESTORE_DELETES_AUTHORIZED=YES
+FIRESTORE_LIST_AUTHORIZED=NO
+FIRESTORE_QUERY_AUTHORIZED=NO
+COLLECTION_SWEEP_AUTHORIZED=NO
 ```
 
 ## Authority sequence (AR-08) — satisfied predecessors
@@ -55,12 +70,12 @@ NETWORK_OPERATIONS_AUTHORIZED=NO
 4. Implementation review PR **#52** human-approved and merged:
    `IMPLEMENTATION_REVIEW_MERGE_SHA=1609cc463741b84faa90845749171e31e01079f0`
    with `REVIEWER_DISPOSITION=FAVORABLE_HUMAN_CONFIRMED`.
-5. **This** execution authorization decision artifact (current step) —
-   pending human decision.
-6. Execution only under a later human-approved grant on this artifact
-   (`AT10_EXECUTION_AUTHORIZED=YES`).
+5. **This** execution authorization decision artifact — human-approved bounded
+   Firestore execution grant (`DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION`).
+6. Bounded execution only under this grant with
+   `AT10_EXECUTION_AUTHORIZED=YES` and the operation permissions below.
 7. Completion claim only under a separate later
-   `AT10_COMPLETION_CLAIM_AUTHORIZED=YES` (not this step).
+   `AT10_COMPLETION_CLAIM_AUTHORIZED=YES` (not this artifact).
 
 ```text
 EXECUTION_CODE_SHA_MUST_EQUAL_IMPLEMENTATION_SUBJECT_SHA=YES
@@ -70,17 +85,9 @@ SHA_EQUALITY=PASS
 IMPLEMENTATION_SUBJECT_IS_ANCESTOR_OF_MAIN=YES
 ```
 
-## Authorized execution target (if and only if later approved)
+## Authorized execution target
 
-If and only if a human later sets on a **merged** revision of this artifact:
-
-```text
-DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
-HUMAN_SIGNATURE=APPROVED
-AT10_EXECUTION_AUTHORIZED=YES
-```
-
-then — and only then — the authorized target is exactly:
+The authorized target is exactly:
 
 ```text
 PROJECT=mg-devpost
@@ -100,7 +107,25 @@ run_nw006_failed_001
 No other project, database, location, collection, or run id is authorized by
 this artifact.
 
-## Caps (hard bounds if later approved)
+## Operation permissions (bounded call graph)
+
+```text
+NETWORK_OPERATIONS_AUTHORIZED=YES
+FIRESTORE_CREATES_AUTHORIZED=YES
+FIRESTORE_READS_AUTHORIZED=YES
+FIRESTORE_DELETES_AUTHORIZED=YES
+FIRESTORE_LIST_AUTHORIZED=NO
+FIRESTORE_QUERY_AUTHORIZED=NO
+COLLECTION_SWEEP_AUTHORIZED=NO
+NO_COLLECTION_SWEEP=YES
+COLLECTION_FANOUT=1
+```
+
+Allowed operations are limited to explicit document-path create, get/read, and
+delete for the four allowlisted run ids. Collection list, query, and sweep are
+prohibited.
+
+## Caps (hard bounds)
 
 ```text
 MAX_DISTINCT_RUN_IDS=4
@@ -117,7 +142,7 @@ NO_COLLECTION_SWEEP=YES
 Execution must stop on first bound breach. Collection listing/sweep beyond the
 four explicit run document paths is forbidden.
 
-## Prohibited (always, including after any future approval of this artifact)
+## Prohibited (always under this grant)
 
 ```text
 GHL_CRM_AUTHORIZED=NO
@@ -126,61 +151,72 @@ SECRET_MUTATION_AUTHORIZED=NO
 CLOUD_RUN_AUTHORIZED=NO
 REAL_CUSTOMER_DATA_AUTHORIZED=NO
 
+FIRESTORE_LIST_AUTHORIZED=NO
+FIRESTORE_QUERY_AUTHORIZED=NO
+COLLECTION_SWEEP_AUTHORIZED=NO
+
 AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 AT10_COMPLETE=NO
 ```
 
 Also forbidden:
 
-- treating this pending artifact as an active execution grant;
-- agent/orchestrator self-activation;
-- any Firestore create/get/delete/list/query while
-  `AT10_EXECUTION_AUTHORIZED=NO`;
-- any network call to GCP or third parties while this decision is pending;
+- agent/orchestrator self-activation without this human-approved grant;
+- any project/database/collection/run id outside the bound target/allowlist;
 - mutating IAM, secrets, Cloud Run, or GHL/CRM;
 - using real customer data;
-- claiming AT-10 complete from this authorization step alone;
+- claiming AT-10 complete from this authorization alone;
 - reopening NW-005 Stage B smoke as a substitute for AT-10.
 
-## What this pending PR authorizes right now
+## Current grant state
 
 ```text
-AUTHORIZED_NOW=DOCUMENTATION_OF_PENDING_EXECUTION_DECISION_ONLY
+STATUS=HUMAN_APPROVED
+DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
+HUMAN_SIGNATURE=APPROVED
+HUMAN_APPROVER=themg@themiliare-group.com
+APPROVED_AT=2026-08-15T11:28:00-04:00
+AT10_EXECUTION_AUTHORIZED=YES
+NETWORK_OPERATIONS_AUTHORIZED=YES
+FIRESTORE_CREATES_AUTHORIZED=YES
+FIRESTORE_READS_AUTHORIZED=YES
+FIRESTORE_DELETES_AUTHORIZED=YES
+FIRESTORE_LIST_AUTHORIZED=NO
+FIRESTORE_QUERY_AUTHORIZED=NO
+COLLECTION_SWEEP_AUTHORIZED=NO
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+AT10_COMPLETE=NO
 FIRESTORE_EXECUTION_OCCURRED=NO
-NETWORK_CALLS=0
-FIRESTORE_NETWORK_OPERATIONS=0
-EXTERNAL_EFFECTS=0
 ```
 
-Creating and merging a **pending** form of this artifact does not authorize
-execution. Only an explicit human flip to
-`DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION` with
-`HUMAN_SIGNATURE=APPROVED` and `AT10_EXECUTION_AUTHORIZED=YES` on a merged
-revision authorizes bounded execution.
+This artifact authorizes bounded execution only. It does not record that
+execution has occurred and does not authorize an AT-10 completion claim.
 
-## Human decision block (required)
+## Human decision block (approved)
 
 ```text
-DECISION=PENDING_HUMAN_EXECUTION_AUTHORIZATION
-HUMAN_SIGNATURE=PENDING
-HUMAN_APPROVER=
-APPROVED_AT=
-AT10_EXECUTION_AUTHORIZED=NO
+DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
+HUMAN_SIGNATURE=APPROVED
+HUMAN_APPROVER=themg@themiliare-group.com
+APPROVED_AT=2026-08-15T11:28:00-04:00
+AT10_EXECUTION_AUTHORIZED=YES
 AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 AT10_COMPLETE=NO
 ```
 
-A chat acknowledgement is not a substitute for an explicit repository decision
-on this artifact.
+A chat acknowledgement is not a substitute for this explicit repository
+decision. Approval is limited to the bounded target, allowlist, caps, and
+operation permissions above.
 
 ## Stop
 
 ```text
-STOP_CODE=NW008_AT10_EXECUTION_AUTHORIZATION_PR_READY_FOR_HUMAN_DECISION
-DECISION=PENDING_HUMAN_EXECUTION_AUTHORIZATION
-AT10_EXECUTION_AUTHORIZED=NO
+STOP_CODE=NW008_AT10_BOUNDED_EXECUTION_GRANT_READY_FOR_FORMAL_REVIEW
+DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
+STATUS=HUMAN_APPROVED
+HUMAN_SIGNATURE=APPROVED
+AT10_EXECUTION_AUTHORIZED=YES
 AT10_COMPLETION_CLAIM_AUTHORIZED=NO
 AT10_COMPLETE=NO
-DO_NOT_EXECUTE_FIRESTORE=YES
 DO_NOT_CLAIM_AT10_COMPLETE=YES
 ```
