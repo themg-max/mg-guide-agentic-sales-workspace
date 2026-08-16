@@ -27,6 +27,8 @@ competition repository. It does not contain private control-plane records.
 | File | Purpose |
 | --- | --- |
 | [`GOVERNANCE_PROFILE.yaml`](GOVERNANCE_PROFILE.yaml) | Public machine-readable governance profile |
+| [`required-pr-checks.md`](required-pr-checks.md) | Repo-local PR review classes and required-check policy (authoritative when present on `main`) |
+| [`REQUIRED_PR_CHECKS.md`](REQUIRED_PR_CHECKS.md) | Earlier required-check convention record; defer to `required-pr-checks.md` on conflict |
 | [`EXECUTION_MANIFEST.schema.yaml`](EXECUTION_MANIFEST.schema.yaml) | Schema for bounded execution manifests |
 | [`PROOF_RETURN.schema.yaml`](PROOF_RETURN.schema.yaml) | Schema for proof-return packets |
 | [`PUBLIC_PRIVATE_BOUNDARY.md`](PUBLIC_PRIVATE_BOUNDARY.md) | What may and may not cross the public boundary |
