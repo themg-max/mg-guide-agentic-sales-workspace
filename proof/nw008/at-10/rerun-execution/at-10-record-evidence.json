@@ -1,0 +1,43 @@
+{
+  "AT10_COMPLETE": "NO",
+  "COUNTERS": {
+    "creates": 4,
+    "deletes": 4,
+    "reads": 12,
+    "total": 20
+  },
+  "RECORDS": {
+    "run_nw006_ambiguous_contact_001": {
+      "expected_projected_content_fingerprint": "1e25b0308e9cfd16b5aa2426f1a91b8ce1e7201deb42cb2a7c40c563248486e7",
+      "fingerprint_gate": "PASS",
+      "path": "workflow_runs/run_nw006_ambiguous_contact_001",
+      "recomputed_content_fingerprint": "1e25b0308e9cfd16b5aa2426f1a91b8ce1e7201deb42cb2a7c40c563248486e7",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "1e25b0308e9cfd16b5aa2426f1a91b8ce1e7201deb42cb2a7c40c563248486e7"
+    },
+    "run_nw006_failed_001": {
+      "expected_projected_content_fingerprint": "484929d720616394cd1c4972b073504e57f433f32880171a286c541b75d3f6e4",
+      "fingerprint_gate": "PASS",
+      "path": "workflow_runs/run_nw006_failed_001",
+      "recomputed_content_fingerprint": "484929d720616394cd1c4972b073504e57f433f32880171a286c541b75d3f6e4",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "484929d720616394cd1c4972b073504e57f433f32880171a286c541b75d3f6e4"
+    },
+    "run_nw006_stage_denied_001": {
+      "expected_projected_content_fingerprint": "95a47ac03afeef0f91fca461fbdb4b96581f74b49c5a79bec422637e883c379f",
+      "fingerprint_gate": "PASS",
+      "path": "workflow_runs/run_nw006_stage_denied_001",
+      "recomputed_content_fingerprint": "95a47ac03afeef0f91fca461fbdb4b96581f74b49c5a79bec422637e883c379f",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "95a47ac03afeef0f91fca461fbdb4b96581f74b49c5a79bec422637e883c379f"
+    },
+    "run_nw006_success_001": {
+      "expected_projected_content_fingerprint": "c6b9576bb47509f3c8f4c46fbfa260eb49f1fea38b9cd1091217700b09e5fb88",
+      "fingerprint_gate": "PASS",
+      "path": "workflow_runs/run_nw006_success_001",
+      "recomputed_content_fingerprint": "c6b9576bb47509f3c8f4c46fbfa260eb49f1fea38b9cd1091217700b09e5fb88",
+      "required_paths_present": true,
+      "stored_content_fingerprint": "c6b9576bb47509f3c8f4c46fbfa260eb49f1fea38b9cd1091217700b09e5fb88"
+    }
+  }
+}
