@@ -4,12 +4,11 @@
 
 ```text
 PR63_MERGE_SHA=04ec0cc1a46589c242e6c20fbb1ce6356d4b8245
-IMPLEMENTATION_SUBJECT_SHA=PENDING_INITIAL_IMPLEMENTATION_COMMIT
+IMPLEMENTATION_SUBJECT_SHA=8c18a10faff28b658638da9e0d9752c8710e0e23
 ```
 
-The implementation subject SHA is recorded in a follow-up closeout commit so
-this artifact can refer to the immutable implementation commit without a
-self-referential commit hash.
+The implementation subject is the initial implementation commit; this
+follow-up closeout commit records it without a self-referential commit hash.
 
 ## Frozen changed paths
 
