@@ -11,6 +11,8 @@ import pytest
 import yaml
 
 from scripts.nw008.run_at10_bounded_execution import (
+    ACTIVE_GRANT_BEGIN,
+    ACTIVE_GRANT_END,
     BOUND_EXCEEDED,
     COLLECTION,
     DATABASE,
@@ -27,10 +29,87 @@ from scripts.nw008.run_at10_bounded_execution import (
     BoundedFirestoreGateway,
     OperationCounter,
     main,
+    parse_and_validate_active_grant,
     _load_projected_records,
 )
 
 TEST_SHA = "a" * 40
+CANONICAL_APPROVED_AT = "2026-08-15T12:33:00-04:00"
+
+
+def _active_grant_lines(
+    *,
+    decision: str = "AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION",
+    status: str = "HUMAN_APPROVED",
+    human_signature: str = "APPROVED",
+    approved_at: str = CANONICAL_APPROVED_AT,
+    execution_authorized: str = "YES",
+    subject_sha: str = TEST_SHA,
+    execution_code_sha: str = TEST_SHA,
+    extra_lines: tuple[str, ...] = (),
+    omit: frozenset[str] | set[str] | None = None,
+) -> list[str]:
+    omitted = set(omit or ())
+    fields = [
+        ("STATUS", status),
+        ("DECISION", decision),
+        ("HUMAN_SIGNATURE", human_signature),
+        ("HUMAN_APPROVER_EMAIL", "themg@themiliare-group.com"),
+        ("HUMAN_APPROVER_NAME", "AARON PRESTON CHANDLER"),
+        ("APPROVED_AT", approved_at),
+        ("NETWORK_OPERATIONS_AUTHORIZED", "YES"),
+        ("FIRESTORE_CREATES_AUTHORIZED", "YES"),
+        ("FIRESTORE_READS_AUTHORIZED", "YES"),
+        ("FIRESTORE_DELETES_AUTHORIZED", "YES"),
+        (
+            "ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR",
+            "YES",
+        ),
+        ("DATA", "synthetic_only"),
+        ("COLLECTION_FANOUT", "1"),
+        ("NO_COLLECTION_SWEEP", "YES"),
+        ("GHL_CRM_AUTHORIZED", "NO"),
+        ("IAM_MUTATION_AUTHORIZED", "NO"),
+        ("SECRET_MUTATION_AUTHORIZED", "NO"),
+        ("CLOUD_RUN_AUTHORIZED", "NO"),
+        ("REAL_CUSTOMER_DATA_AUTHORIZED", "NO"),
+        ("AT10_EXECUTION_AUTHORIZED", execution_authorized),
+        ("AT10_COMPLETION_CLAIM_AUTHORIZED", "NO"),
+        ("AT10_COMPLETE", "NO"),
+        ("IMPLEMENTATION_SUBJECT_SHA", subject_sha),
+        ("EXECUTION_CODE_SHA", execution_code_sha),
+        ("PROJECT", "mg-devpost"),
+        ("DATABASE", "devpost-google-contest"),
+        ("LOCATION", "us-east4"),
+        ("COLLECTION", "workflow_runs"),
+        ("RUN_ALLOWLIST", ",".join(RUN_ALLOWLIST)),
+        ("MAX_DISTINCT_RUN_IDS", "4"),
+        ("MAX_DOCUMENT_CREATES", "4"),
+        ("MAX_DOCUMENT_READS", "12"),
+        ("MAX_DOCUMENT_DELETES", "4"),
+        ("MAX_NETWORK_CALLS", "20"),
+        ("MAX_EXECUTION_MINUTES", "10"),
+        ("FIRESTORE_LIST_AUTHORIZED", "NO"),
+        ("FIRESTORE_QUERY_AUTHORIZED", "NO"),
+        ("COLLECTION_SWEEP_AUTHORIZED", "NO"),
+        ("OUT_OF_BAND_FIRESTORE_PROBES_AUTHORIZED", "NO"),
+        ("PR53_AUTHORITY_REUSABLE", "NO"),
+    ]
+    body = [f"{key}={value}" for key, value in fields if key not in omitted]
+    body.extend(extra_lines)
+    return [ACTIVE_GRANT_BEGIN, *body, ACTIVE_GRANT_END]
+
+
+def _canonical_approved_grant_text(**kwargs: Any) -> str:
+    prose = [
+        "# Example explanatory prose (not authoritative)",
+        "DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION",
+        "STATUS=HUMAN_APPROVED",
+        "HUMAN_SIGNATURE=APPROVED",
+        "AT10_EXECUTION_AUTHORIZED=YES",
+        "",
+    ]
+    return "\n".join([*prose, *_active_grant_lines(**kwargs), ""])
 
 
 class FakeSnapshot:
@@ -120,35 +199,7 @@ def test_approved_but_unmerged_authorization_rejected_before_client(
     import scripts.nw008.run_at10_bounded_execution as runner
 
     authorization = tmp_path / "approved-grant.md"
-    authorization.write_text(
-        "\n".join(
-            (
-                "DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION",
-                "STATUS=HUMAN_APPROVED",
-                "HUMAN_SIGNATURE=APPROVED",
-                "AT10_EXECUTION_AUTHORIZED=YES",
-                "AT10_COMPLETION_CLAIM_AUTHORIZED=NO",
-                "AT10_COMPLETE=NO",
-                f"IMPLEMENTATION_SUBJECT_SHA={TEST_SHA}",
-                f"EXECUTION_CODE_SHA={TEST_SHA}",
-                "PROJECT=mg-devpost",
-                "DATABASE=devpost-google-contest",
-                "LOCATION=us-east4",
-                "COLLECTION=workflow_runs",
-                "MAX_DISTINCT_RUN_IDS=4",
-                "MAX_DOCUMENT_CREATES=4",
-                "MAX_DOCUMENT_READS=12",
-                "MAX_DOCUMENT_DELETES=4",
-                "MAX_NETWORK_CALLS=20",
-                "MAX_EXECUTION_MINUTES=10",
-                "FIRESTORE_LIST_AUTHORIZED=NO",
-                "FIRESTORE_QUERY_AUTHORIZED=NO",
-                "COLLECTION_SWEEP_AUTHORIZED=NO",
-                *RUN_ALLOWLIST,
-            )
-        ),
-        encoding="utf-8",
-    )
+    authorization.write_text(_canonical_approved_grant_text(), encoding="utf-8")
     network_calls = 0
     client_creations = 0
 
@@ -185,6 +236,145 @@ def test_approved_but_unmerged_authorization_rejected_before_client(
     assert "not an ancestor of origin/main" in excinfo.value.message
     assert client_creations == 0
     assert network_calls == 0
+
+
+def test_pending_active_block_with_approved_prose_is_rejected() -> None:
+    text = "\n".join(
+        [
+            "# Outside prose must never authorize execution",
+            "DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION",
+            "STATUS=HUMAN_APPROVED",
+            "HUMAN_SIGNATURE=APPROVED",
+            "AT10_EXECUTION_AUTHORIZED=YES",
+            "APPROVED_AT=2026-08-15T12:33:00-04:00",
+            "",
+            *_active_grant_lines(
+                decision="PENDING_HUMAN_EXECUTION_AUTHORIZATION",
+                status="PENDING_HUMAN_DECISION",
+                human_signature="PENDING",
+                execution_authorized="NO",
+            ),
+            "",
+        ]
+    )
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "pending" in excinfo.value.message.lower()
+
+
+def test_conflicting_duplicate_decision_keys_are_rejected() -> None:
+    text = _canonical_approved_grant_text(
+        extra_lines=("DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION",)
+    )
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "duplicate key" in excinfo.value.message
+
+
+def test_two_active_blocks_are_rejected() -> None:
+    block = "\n".join(_active_grant_lines())
+    text = f"{block}\n\n{block}\n"
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "exactly one ACTIVE GRANT block" in excinfo.value.message
+
+
+def test_malformed_approval_timestamp_is_rejected() -> None:
+    text = _canonical_approved_grant_text(approved_at="2026-08-15 12:33:00")
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "APPROVED_AT is malformed" in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "approved_at",
+    (
+        "2026-13-15T12:33:00-04:00",
+        "2026-02-30T12:33:00-04:00",
+        "2026-08-15T24:33:00-04:00",
+        "2026-08-15T12:60:00-04:00",
+        "2026-08-15T12:33:60-04:00",
+        "2026-08-15T12:33:00+24:00",
+        "2026-08-15T12:33:00",
+    ),
+)
+def test_semantically_invalid_approval_timestamp_is_rejected(
+    approved_at: str,
+) -> None:
+    text = _canonical_approved_grant_text(approved_at=approved_at)
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "APPROVED_AT" in excinfo.value.message
+
+
+def test_missing_network_operations_authorization_is_rejected() -> None:
+    text = _canonical_approved_grant_text(
+        omit={"NETWORK_OPERATIONS_AUTHORIZED"}
+    )
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert "NETWORK_OPERATIONS_AUTHORIZED" in excinfo.value.message
+
+
+@pytest.mark.parametrize(
+    "field",
+    (
+        "FIRESTORE_CREATES_AUTHORIZED",
+        "FIRESTORE_READS_AUTHORIZED",
+        "FIRESTORE_DELETES_AUTHORIZED",
+        "ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR",
+    ),
+)
+def test_required_firestore_authorization_set_to_no_is_rejected(
+    field: str,
+) -> None:
+    text = _canonical_approved_grant_text(
+        omit={field},
+        extra_lines=(f"{field}=NO",),
+    )
+    with pytest.raises(BoundedExecutionError) as excinfo:
+        parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert excinfo.value.code == GOVERNANCE_REJECTED
+    assert field in excinfo.value.message
+
+
+def test_canonical_approved_active_block_passes() -> None:
+    text = _canonical_approved_grant_text()
+    fields = parse_and_validate_active_grant(text, TEST_SHA, TEST_SHA)
+    assert fields["DECISION"] == "AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION"
+    assert fields["STATUS"] == "HUMAN_APPROVED"
+    assert fields["AT10_EXECUTION_AUTHORIZED"] == "YES"
+    assert fields["AT10_COMPLETION_CLAIM_AUTHORIZED"] == "NO"
+    assert fields["AT10_COMPLETE"] == "NO"
+    assert fields["APPROVED_AT"] == CANONICAL_APPROVED_AT
+    assert fields["NETWORK_OPERATIONS_AUTHORIZED"] == "YES"
+    assert fields["FIRESTORE_CREATES_AUTHORIZED"] == "YES"
+    assert fields["FIRESTORE_READS_AUTHORIZED"] == "YES"
+    assert fields["FIRESTORE_DELETES_AUTHORIZED"] == "YES"
+    assert (
+        fields["ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR"]
+        == "YES"
+    )
+    assert fields["DATA"] == "synthetic_only"
+    assert fields["COLLECTION_FANOUT"] == "1"
+    assert fields["NO_COLLECTION_SWEEP"] == "YES"
+    assert fields["GHL_CRM_AUTHORIZED"] == "NO"
+    assert fields["IAM_MUTATION_AUTHORIZED"] == "NO"
+    assert fields["SECRET_MUTATION_AUTHORIZED"] == "NO"
+    assert fields["CLOUD_RUN_AUTHORIZED"] == "NO"
+    assert fields["REAL_CUSTOMER_DATA_AUTHORIZED"] == "NO"
+    assert fields["RUN_ALLOWLIST"] == ",".join(RUN_ALLOWLIST)
+    assert fields["FIRESTORE_LIST_AUTHORIZED"] == "NO"
+    assert fields["FIRESTORE_QUERY_AUTHORIZED"] == "NO"
+    assert fields["COLLECTION_SWEEP_AUTHORIZED"] == "NO"
+    assert fields["OUT_OF_BAND_FIRESTORE_PROBES_AUTHORIZED"] == "NO"
+    assert fields["PR53_AUTHORITY_REUSABLE"] == "NO"
 
 
 def test_operation_after_ten_minutes_fails_closed_before_network() -> None:
