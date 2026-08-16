@@ -1,0 +1,125 @@
+# NW-008 AT-10 — Rerun Bounded Firestore Execution Authorization V2
+
+**This is the canonical active execution-grant record for the rerun lane bound to
+the merged R1.1 implementation (PR #56).**
+
+This artifact does not execute Firestore. It records the explicit human approval
+for a single bounded AT-10 Firestore acceptance-demo rerun. It does not authorize
+AT-10 completion claims.
+
+PR #53 authority is exhausted and must not be reused. PR #55 remains closed and
+superseded; it is not reusable. The subject is the exact merged R1.1 commit
+`a20becf273c0d65404edb8c4fdeb4ddee37af5e2`.
+
+```text
+BEGIN_AT10_ACTIVE_GRANT
+STATUS=HUMAN_APPROVED
+DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
+HUMAN_SIGNATURE=APPROVED
+HUMAN_APPROVER_EMAIL=themg@themiliare-group.com
+HUMAN_APPROVER_NAME=AARON PRESTON CHANDLER
+APPROVED_AT=2026-08-16T09:28:34-04:00
+NETWORK_OPERATIONS_AUTHORIZED=YES
+FIRESTORE_CREATES_AUTHORIZED=YES
+FIRESTORE_READS_AUTHORIZED=YES
+FIRESTORE_DELETES_AUTHORIZED=YES
+ALL_FIRESTORE_OPERATIONS_MUST_FLOW_THROUGH_BOUNDED_EXECUTOR=YES
+DATA=synthetic_only
+COLLECTION_FANOUT=1
+NO_COLLECTION_SWEEP=YES
+GHL_CRM_AUTHORIZED=NO
+IAM_MUTATION_AUTHORIZED=NO
+SECRET_MUTATION_AUTHORIZED=NO
+CLOUD_RUN_AUTHORIZED=NO
+REAL_CUSTOMER_DATA_AUTHORIZED=NO
+AT10_EXECUTION_AUTHORIZED=YES
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+AT10_COMPLETE=NO
+IMPLEMENTATION_SUBJECT_SHA=a20becf273c0d65404edb8c4fdeb4ddee37af5e2
+EXECUTION_CODE_SHA=a20becf273c0d65404edb8c4fdeb4ddee37af5e2
+PROJECT=mg-devpost
+DATABASE=devpost-google-contest
+LOCATION=us-east4
+COLLECTION=workflow_runs
+RUN_ALLOWLIST=run_nw006_success_001,run_nw006_stage_denied_001,run_nw006_ambiguous_contact_001,run_nw006_failed_001
+MAX_DISTINCT_RUN_IDS=4
+MAX_DOCUMENT_CREATES=4
+MAX_DOCUMENT_READS=12
+MAX_DOCUMENT_DELETES=4
+MAX_NETWORK_CALLS=20
+MAX_EXECUTION_MINUTES=10
+FIRESTORE_LIST_AUTHORIZED=NO
+FIRESTORE_QUERY_AUTHORIZED=NO
+COLLECTION_SWEEP_AUTHORIZED=NO
+OUT_OF_BAND_FIRESTORE_PROBES_AUTHORIZED=NO
+PR53_AUTHORITY_REUSABLE=NO
+END_AT10_ACTIVE_GRANT
+```
+
+## Execution target and bounds
+
+The approved execution target is exactly:
+
+```text
+PROJECT=mg-devpost
+DATABASE=devpost-google-contest
+LOCATION=us-east4
+COLLECTION=workflow_runs
+DATA=synthetic_only
+RUN_IDS=
+run_nw006_success_001
+run_nw006_stage_denied_001
+run_nw006_ambiguous_contact_001
+run_nw006_failed_001
+```
+
+Hard caps remain:
+
+```text
+MAX_DISTINCT_RUN_IDS=4
+MAX_DOCUMENT_CREATES=4
+MAX_DOCUMENT_READS=12
+MAX_DOCUMENT_DELETES=4
+MAX_NETWORK_CALLS=20
+MAX_EXECUTION_MINUTES=10
+COLLECTION_FANOUT=1
+NO_COLLECTION_SWEEP=YES
+```
+
+Allowed operations are limited to explicit path create/get/delete for the four
+allowlisted run IDs through the governed executor bound to execution code
+`a20becf273c0d65404edb8c4fdeb4ddee37af5e2`. Collection list, query, sweep,
+out-of-band probes, and any IAM/secret/Cloud Run/CRM mutation remain forbidden.
+
+## Authority and approval state
+
+```text
+AUTHORIZATION_ID=MG_GUIDE_NW008_AT10_FIRESTORE_AUDIT_ACCEPTANCE_DEMO_RERUN_V2
+IMPLEMENTATION_SUBJECT_SHA=a20becf273c0d65404edb8c4fdeb4ddee37af5e2
+EXECUTION_CODE_SHA=a20becf273c0d65404edb8c4fdeb4ddee37af5e2
+IMPLEMENTATION_REVIEW_PR=56
+IMPLEMENTATION_REVIEW_MERGE_SHA=cc910ebdfbc87d3df903f1f4354064ea9497ddfc
+PR53_AUTHORITY_REUSABLE=NO
+PR55_AUTHORITY_REUSABLE=NO
+AT10_EXECUTION_AUTHORIZED=YES
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+AT10_COMPLETE=NO
+FIRESTORE_EXECUTION_OCCURRED=NO
+```
+
+This authorizes only the bounded execution decision. It does not authorize an
+AT-10 completion claim or any Firestore execution during this documentation step.
+
+## Stop
+
+```text
+STOP_CODE=NW008_AT10_RERUN_AUTH_V2_APPROVED_READY_FOR_FINAL_REVIEW
+STATUS=HUMAN_APPROVED
+DECISION=AUTHORIZED_FOR_BOUNDED_FIRESTORE_EXECUTION
+AT10_EXECUTION_AUTHORIZED=YES
+AT10_COMPLETION_CLAIM_AUTHORIZED=NO
+AT10_COMPLETE=NO
+FIRESTORE_EXECUTION_OCCURRED=NO
+DO_NOT_EXECUTE_FIRESTORE=YES
+DO_NOT_CLAIM_AT10_COMPLETE=YES
+```
