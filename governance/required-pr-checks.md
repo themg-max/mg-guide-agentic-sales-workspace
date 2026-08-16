@@ -6,7 +6,9 @@ POLICY_SCOPE=PR_REVIEW_AND_REQUIRED_CHECKS
 POLICY_AUTHORITY=REPOSITORY_LOCAL
 POLICY_ID=mg-guide-pr-review-required-checks-v1
 RECORDED_AT_UTC=2026-08-16T15:21:00Z
-STATUS=AUTHORITATIVE_FOR_MG_GUIDE_REVIEWERS
+STATUS=AUTHORITATIVE_WHEN_PRESENT_ON_MAIN
+EFFECTIVE_REF=main
+EFFECTIVE_CONDITION=MERGED_TO_MAIN
 ```
 
 ## 1. Purpose and authority
@@ -117,7 +119,7 @@ Legend:
 | PR class | `PLANNING_ARTIFACT` | `RUNTIME_HARNESS` | `EXECUTION_PROOF` | `REVIEWER_DISPOSITION_FILE` | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `planning_only` | REQUIRED | NOT_APPLICABLE | NOT_APPLICABLE | NOT_APPLICABLE | No runtime mutation; plan must be path-bounded |
-| `proof_only` | CONDITIONAL | NOT_APPLICABLE | REQUIRED | CONDITIONAL | Proof under `proof/**`; disposition when closing a reviewed unit |
+| `proof_only` | CONDITIONAL | NOT_APPLICABLE | REQUIRED_IF_CLAIMED | CONDITIONAL | Proof under `proof/**`; disposition when closing a reviewed unit |
 | `authorization` | CONDITIONAL | NOT_APPLICABLE | NOT_APPLICABLE | CONDITIONAL | Explicit grant/auth artifact; does not itself execute |
 | `execution_proof` | CONDITIONAL | CONDITIONAL | REQUIRED | CONDITIONAL | Must cite prior authorization; no silent scope expansion |
 | `completion_decision` | CONDITIONAL | NOT_APPLICABLE | REQUIRED_IF_CLAIMED | REQUIRED | Decision must reference evidence / prior PRs |
@@ -134,8 +136,12 @@ REVIEWER_DISPOSITION_FILE=NOT_APPLICABLE
 ```
 
 A `planning_only` PR must not introduce executable external mutation paths or
-claim live execution. Required check policy in §5 still applies (CI green at
-head) so the tree remains merge-safe.
+claim live execution. Required-check evaluation procedure in §6 still applies
+(CI green at head) so the tree remains merge-safe.
+
+Proof-only reconciliation or closeout artifacts may bind previously merged
+execution evidence and do not require a new execution proof merely because the
+PR is `proof_only`.
 
 ### 4.3 Artifact location conventions (MG Guide)
 
@@ -231,8 +237,17 @@ Emit **only** when **all** of the following hold:
    (including higher-risk surface rules in §5).
 3. **Proof obligations pass** for the class (§4), including authorization
    linkage when required.
-4. **Mergeability is clean** (mergeable into base; no conflict; human merge
-   authority satisfied per process).
+4. **Mergeability is clean** (mergeable into base; no conflict).
+5. **Human merge authorization is satisfied** for execution of the merge.
+
+```text
+REVIEWER_READY_FOR_MERGE_IS_ADVISORY=YES
+HUMAN_MERGE_AUTHORITY_REQUIRED=YES
+```
+
+Reviewer readiness to merge is advisory; human merge authorization is required
+to execute the merge but is not a prerequisite for the reviewer to issue
+`READY_FOR_MERGE`.
 
 ### 7.2 Non-ready outcomes (informative)
 
