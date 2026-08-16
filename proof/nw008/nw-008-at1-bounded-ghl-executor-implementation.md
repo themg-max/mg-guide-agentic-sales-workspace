@@ -10,10 +10,9 @@ IMPLEMENTATION_SUBJECT_SHA=8c18a10faff28b658638da9e0d9752c8710e0e23
 The implementation subject is the initial implementation commit; this
 follow-up closeout commit records it without a self-referential commit hash.
 
-## Frozen changed paths
+## Implementation and final-hardening paths
 
 - `src/integrations/ghl/bounded_at1_executor.py`
-- `src/integrations/ghl/__init__.py`
 - `fixtures/ghl/at1-bounded-executor.json`
 - `tests/integrations/ghl/test_bounded_at1_executor.py`
 - `proof/nw008/nw-008-at1-bounded-ghl-executor-implementation.md`
@@ -60,24 +59,35 @@ so a rejected write consumes its attempt budget. The deterministic transport
 rejects operations outside the exact AT-1 surface and validates fixture order
 and arguments.
 
+The fixture-only transport validates the complete fixture root before it selects
+a case: `source=synthetic_only`, `network_enabled=false`,
+`ghl_live_client=false`, and `firestore_client=false` are required with exact
+types and values. Unknown root fields are refused as broadened fixture policy.
+
 ## Deterministic verification
 
 | Command | Result |
 | --- | --- |
-| `PYTHONPATH=src .venv/bin/python -m pytest tests/integrations/ghl/test_bounded_at1_executor.py` | PASS — 12 tests |
+| `PYTHONPATH=src .venv/bin/python -m pytest tests/integrations/ghl/test_bounded_at1_executor.py` | PASS — 17 tests |
+| `PYTHONPATH=src .venv/bin/python -m pytest tests/integrations/ghl` | PASS — 24 tests |
 | `PYTHONPATH=src .venv/bin/python scripts/verify_phase1_deterministic.py` | PASS — 6 validation sections |
 | `git diff --check` | PASS |
 | `.venv/bin/python -m json.tool fixtures/ghl/at1-bounded-executor.json` | PASS |
 
-The focused test surface covers B1 through B12: success; contact and
+The focused test surface covers B1 through B14: success; contact and
 opportunity absence; write rejections; note and stage read-back mismatches;
 second note and stage attempts refused before transport; malformed binding;
 unexpected operation; and no calls after terminal failure.
+It additionally proves that malformed or broadened fixture policy is refused
+before transport construction. B13 stops on an initial-stage mismatch before
+either write; B14 preserves the consumed successful note-write budget when the
+create response lacks a valid note ID.
 
 ```text
 PHASE1_DETERMINISTIC_VALIDATION=PASS
-PHASE1_CI_RESULT=PASS
-PHASE1_CI_RUN=31958954505
+FINAL_PHASE1_CI_RESULT=PENDING_FINAL_HEAD_CI
+FINAL_PHASE1_CI_RUN=PENDING_FINAL_HEAD_CI
+FINAL_PHASE1_CI_HEAD_SHA=PENDING_FINAL_HEAD_CI
 NETWORK_EXECUTION_OCCURRED=NO
 GHL_EXECUTION_OCCURRED=NO
 FIRESTORE_EXECUTION_OCCURRED=NO

@@ -24,6 +24,13 @@ EXACT_OPERATION_ORDER = (
     "get-opportunity",
 )
 _ALLOWED_OPERATIONS = frozenset(EXACT_OPERATION_ORDER)
+_FIXTURE_POLICY = {
+    "source": "synthetic_only",
+    "network_enabled": False,
+    "ghl_live_client": False,
+    "firestore_client": False,
+}
+_FIXTURE_ROOT_FIELDS = frozenset({*_FIXTURE_POLICY, "binding", "cases"})
 
 
 class InputContractError(ValueError):
@@ -40,6 +47,10 @@ class TerminalStateError(RuntimeError):
 
 class WriteAttemptRefusedError(RuntimeError):
     """Raised before transport when a write attempt budget is exhausted."""
+
+
+class FixturePolicyError(ValueError):
+    """Raised when a fixture could permit data or effects outside the offline policy."""
 
 
 @dataclass(frozen=True)
@@ -99,9 +110,45 @@ class GhlFixtureTransport(Protocol):
 class DeterministicGhlFixtureTransport:
     """Consumes an ordered synthetic fixture case with no client or network support."""
 
-    def __init__(self, calls: Sequence[Mapping[str, Any]]) -> None:
-        self._calls = list(calls)
+    def __init__(self, fixture: Mapping[str, Any], case_id: str) -> None:
+        self._validate_fixture_policy(fixture)
+        cases = fixture["cases"]
+        case = cases.get(case_id)
+        if not isinstance(case, Mapping):
+            raise FixturePolicyError(f"fixture case {case_id!r} must be an object")
+        calls = case.get("calls")
+        if not isinstance(calls, Sequence) or isinstance(calls, (str, bytes)):
+            raise FixturePolicyError(f"fixture case {case_id!r} requires a calls array")
+        if not all(isinstance(call, Mapping) for call in calls):
+            raise FixturePolicyError(f"fixture case {case_id!r} calls must be objects")
+        self._calls = [dict(call) for call in calls]
         self.calls: list[tuple[str, dict[str, str]]] = []
+
+    @staticmethod
+    def _validate_fixture_policy(fixture: Mapping[str, Any]) -> None:
+        if not isinstance(fixture, Mapping):
+            raise FixturePolicyError("fixture root must be an object")
+        actual_fields = set(fixture)
+        if actual_fields != _FIXTURE_ROOT_FIELDS:
+            missing = sorted(_FIXTURE_ROOT_FIELDS.difference(actual_fields))
+            extra = sorted(actual_fields.difference(_FIXTURE_ROOT_FIELDS))
+            raise FixturePolicyError(
+                f"fixture root fields must be exact; missing={missing}, extra={extra}"
+            )
+        for field_name, expected_value in _FIXTURE_POLICY.items():
+            actual_value = fixture[field_name]
+            if isinstance(expected_value, bool):
+                valid = type(actual_value) is bool and actual_value is expected_value
+            else:
+                valid = type(actual_value) is str and actual_value == expected_value
+            if not valid:
+                raise FixturePolicyError(
+                    f"fixture policy requires {field_name}={expected_value!r}"
+                )
+        if not isinstance(fixture["binding"], Mapping):
+            raise FixturePolicyError("fixture binding must be an object")
+        if not isinstance(fixture["cases"], Mapping):
+            raise FixturePolicyError("fixture cases must be an object")
 
     def dispatch(
         self, operation_id: str, arguments: Mapping[str, str]

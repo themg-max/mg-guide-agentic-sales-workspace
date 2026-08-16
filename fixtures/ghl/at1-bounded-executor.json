@@ -33,11 +33,24 @@
         {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "not_found", "error_code": "SYNTHETIC_404"}}
       ]
     },
+    "initial_stage_mismatch": {
+      "calls": [
+        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
+        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "unexpected-synthetic-stage"}}}
+      ]
+    },
     "note_write_rejected": {
       "calls": [
         {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
         {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
         {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "rejected", "error_code": "SYNTHETIC_WRITE_DENIED"}}
+      ]
+    },
+    "note_write_response_invalid": {
+      "calls": [
+        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
+        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
+        {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "ok", "record": {}}}
       ]
     },
     "note_readback_mismatch": {
