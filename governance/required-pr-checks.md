@@ -238,7 +238,6 @@ Emit **only** when **all** of the following hold:
 3. **Proof obligations pass** for the class (§4), including authorization
    linkage when required.
 4. **Mergeability is clean** (mergeable into base; no conflict).
-5. **Human merge authorization is satisfied** for execution of the merge.
 
 ```text
 REVIEWER_READY_FOR_MERGE_IS_ADVISORY=YES
