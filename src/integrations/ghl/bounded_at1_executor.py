@@ -1,0 +1,312 @@
+"""Fixture-only, exact-ID executor for the NW-008 AT-1 operation sequence."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Mapping, Protocol, Sequence
+
+
+PIPELINE_METADATA_RUNTIME_READ_REQUIRED = "NO"
+NETWORK_ENABLED = "NO"
+GHL_LIVE_CLIENT = "NO"
+FIRESTORE_CLIENT = "NO"
+NOTE_WRITE_ATTEMPTS_MAX = 1
+NOTE_WRITES_SUCCEEDED_MAX = 1
+STAGE_WRITE_ATTEMPTS_MAX = 1
+STAGE_WRITES_SUCCEEDED_MAX = 1
+
+EXACT_OPERATION_ORDER = (
+    "get-contact",
+    "get-opportunity",
+    "create-note",
+    "get-note",
+    "update-opportunity",
+    "get-opportunity",
+)
+_ALLOWED_OPERATIONS = frozenset(EXACT_OPERATION_ORDER)
+
+
+class InputContractError(ValueError):
+    """Raised when an AT-1 binding is missing, malformed, or broadened."""
+
+
+class UnexpectedOperationError(ValueError):
+    """Raised when a fixture transport receives an operation outside AT-1."""
+
+
+class TerminalStateError(RuntimeError):
+    """Raised if any caller tries to dispatch after a terminal failure."""
+
+
+class WriteAttemptRefusedError(RuntimeError):
+    """Raised before transport when a write attempt budget is exhausted."""
+
+
+@dataclass(frozen=True)
+class BoundedAt1Input:
+    """The complete public AT-1 binding contract; values must be synthetic in tests."""
+
+    location_id: str
+    contact_id: str
+    opportunity_id: str
+    expected_initial_stage_id: str
+    authorized_final_stage_id: str
+    expected_note_content_or_fingerprint: str
+
+    def __post_init__(self) -> None:
+        for field_name, value in self.__dict__.items():
+            if not isinstance(value, str) or not value.strip():
+                raise InputContractError(f"{field_name} must be a non-empty string")
+
+    @classmethod
+    def from_mapping(cls, value: Mapping[str, Any]) -> "BoundedAt1Input":
+        expected_fields = {
+            "location_id",
+            "contact_id",
+            "opportunity_id",
+            "expected_initial_stage_id",
+            "authorized_final_stage_id",
+            "expected_note_content_or_fingerprint",
+        }
+        actual_fields = set(value)
+        if actual_fields != expected_fields:
+            missing = sorted(expected_fields.difference(actual_fields))
+            extra = sorted(actual_fields.difference(expected_fields))
+            raise InputContractError(
+                f"AT-1 binding fields must be exact; missing={missing}, extra={extra}"
+            )
+        return cls(**dict(value))
+
+
+@dataclass(frozen=True)
+class FixtureResponse:
+    """A deterministic response that never represents a network request."""
+
+    status: str
+    record: Mapping[str, Any] = field(default_factory=dict)
+    error_code: str | None = None
+
+
+class GhlFixtureTransport(Protocol):
+    """Transport seam deliberately limited to pre-authored fixture responses."""
+
+    def dispatch(
+        self, operation_id: str, arguments: Mapping[str, str]
+    ) -> FixtureResponse:
+        """Return one deterministic response for an allowed exact-ID operation."""
+
+
+class DeterministicGhlFixtureTransport:
+    """Consumes an ordered synthetic fixture case with no client or network support."""
+
+    def __init__(self, calls: Sequence[Mapping[str, Any]]) -> None:
+        self._calls = list(calls)
+        self.calls: list[tuple[str, dict[str, str]]] = []
+
+    def dispatch(
+        self, operation_id: str, arguments: Mapping[str, str]
+    ) -> FixtureResponse:
+        if operation_id not in _ALLOWED_OPERATIONS:
+            raise UnexpectedOperationError(
+                f"{operation_id} is outside the bounded AT-1 operation surface"
+            )
+        if not self._calls:
+            raise UnexpectedOperationError(
+                f"fixture did not authorize another {operation_id} call"
+            )
+
+        expected = self._calls.pop(0)
+        if expected.get("operation_id") != operation_id:
+            raise UnexpectedOperationError(
+                f"fixture expected {expected.get('operation_id')!r}, got {operation_id!r}"
+            )
+        expected_arguments = expected.get("arguments", {})
+        if expected_arguments != dict(arguments):
+            raise UnexpectedOperationError(
+                f"fixture arguments differ for {operation_id}: "
+                f"expected {expected_arguments!r}, got {dict(arguments)!r}"
+            )
+
+        self.calls.append((operation_id, dict(arguments)))
+        return FixtureResponse(
+            status=str(expected.get("response", {}).get("status", "error")),
+            record=dict(expected.get("response", {}).get("record", {})),
+            error_code=expected.get("response", {}).get("error_code"),
+        )
+
+    def assert_exhausted(self) -> None:
+        if self._calls:
+            raise AssertionError(f"fixture calls were not consumed: {self._calls!r}")
+
+
+@dataclass(frozen=True)
+class BoundedAt1Result:
+    """Immutable proof of the bounded execution and its independent counters."""
+
+    disposition: str
+    failure_code: str | None
+    operations: tuple[str, ...]
+    note_write_attempts: int
+    note_writes_succeeded: int
+    stage_write_attempts: int
+    stage_writes_succeeded: int
+    note_readback_verified: bool
+    stage_readback_verified: bool
+    further_transport_calls_authorized: bool
+    stop_and_preserve_proof: bool
+
+
+class BoundedAt1GhlExecutor:
+    """Runs only the prescribed AT-1 sequence against a deterministic fixture seam."""
+
+    def __init__(self, transport: GhlFixtureTransport) -> None:
+        self._transport = transport
+        self._operations: list[str] = []
+        self._write_attempts = {"note": 0, "stage": 0}
+        self._writes_succeeded = {"note": 0, "stage": 0}
+        self._terminal = False
+        self._note_readback_verified = False
+        self._stage_readback_verified = False
+
+    def execute(self, binding: BoundedAt1Input) -> BoundedAt1Result:
+        """Execute once in model order; every failure is terminal and non-retrying."""
+        contact = self._dispatch(
+            "get-contact", {"location_id": binding.location_id, "contact_id": binding.contact_id}
+        )
+        if contact.status != "ok":
+            return self._fail("CONTACT_NOT_FOUND")
+
+        opportunity = self._dispatch(
+            "get-opportunity",
+            {
+                "location_id": binding.location_id,
+                "opportunity_id": binding.opportunity_id,
+            },
+        )
+        if opportunity.status != "ok":
+            return self._fail("OPPORTUNITY_NOT_FOUND")
+        if opportunity.record.get("stage_id") != binding.expected_initial_stage_id:
+            return self._fail("INITIAL_STAGE_MISMATCH")
+
+        self._consume_write_attempt("note")
+        created_note = self._dispatch(
+            "create-note",
+            {
+                "location_id": binding.location_id,
+                "contact_id": binding.contact_id,
+                "content_or_fingerprint": binding.expected_note_content_or_fingerprint,
+            },
+        )
+        if created_note.status != "ok":
+            return self._fail("NOTE_WRITE_REJECTED")
+        self._record_write_success("note")
+        note_id = created_note.record.get("note_id")
+        if not isinstance(note_id, str) or not note_id:
+            return self._fail("NOTE_WRITE_RESPONSE_INVALID")
+
+        note = self._dispatch(
+            "get-note",
+            {
+                "location_id": binding.location_id,
+                "contact_id": binding.contact_id,
+                "note_id": note_id,
+            },
+        )
+        if note.status != "ok" or (
+            note.record.get("content_or_fingerprint")
+            != binding.expected_note_content_or_fingerprint
+        ):
+            return self._fail("NOTE_READBACK_MISMATCH", preserve_proof=True)
+        self._note_readback_verified = True
+
+        self._consume_write_attempt("stage")
+        updated_opportunity = self._dispatch(
+            "update-opportunity",
+            {
+                "location_id": binding.location_id,
+                "opportunity_id": binding.opportunity_id,
+                "stage_id": binding.authorized_final_stage_id,
+            },
+        )
+        if updated_opportunity.status != "ok":
+            return self._fail("STAGE_WRITE_REJECTED")
+        self._record_write_success("stage")
+
+        readback_opportunity = self._dispatch(
+            "get-opportunity",
+            {
+                "location_id": binding.location_id,
+                "opportunity_id": binding.opportunity_id,
+            },
+        )
+        if (
+            readback_opportunity.status != "ok"
+            or readback_opportunity.record.get("stage_id")
+            != binding.authorized_final_stage_id
+        ):
+            return self._fail("STAGE_READBACK_MISMATCH", preserve_proof=True)
+        self._stage_readback_verified = True
+        return self._result(disposition="completed")
+
+    def _dispatch(
+        self, operation_id: str, arguments: Mapping[str, str]
+    ) -> FixtureResponse:
+        if self._terminal:
+            raise TerminalStateError("further transport calls are not authorized")
+        if operation_id not in _ALLOWED_OPERATIONS:
+            raise UnexpectedOperationError(
+                f"{operation_id} is outside the bounded AT-1 operation surface"
+            )
+        self._operations.append(operation_id)
+        return self._transport.dispatch(operation_id, arguments)
+
+    def _consume_write_attempt(self, write_kind: str) -> None:
+        maximum = NOTE_WRITE_ATTEMPTS_MAX if write_kind == "note" else STAGE_WRITE_ATTEMPTS_MAX
+        if self._write_attempts[write_kind] >= maximum:
+            self._terminal = True
+            raise WriteAttemptRefusedError(
+                f"second {write_kind} write attempt refused before transport"
+            )
+        self._write_attempts[write_kind] += 1
+
+    def _record_write_success(self, write_kind: str) -> None:
+        maximum = (
+            NOTE_WRITES_SUCCEEDED_MAX
+            if write_kind == "note"
+            else STAGE_WRITES_SUCCEEDED_MAX
+        )
+        if self._writes_succeeded[write_kind] >= maximum:
+            self._terminal = True
+            raise WriteAttemptRefusedError(
+                f"second {write_kind} write success refused before transport"
+            )
+        self._writes_succeeded[write_kind] += 1
+
+    def _fail(self, failure_code: str, *, preserve_proof: bool = False) -> BoundedAt1Result:
+        self._terminal = True
+        return self._result(
+            disposition="failed",
+            failure_code=failure_code,
+            stop_and_preserve_proof=preserve_proof,
+        )
+
+    def _result(
+        self,
+        *,
+        disposition: str,
+        failure_code: str | None = None,
+        stop_and_preserve_proof: bool = False,
+    ) -> BoundedAt1Result:
+        return BoundedAt1Result(
+            disposition=disposition,
+            failure_code=failure_code,
+            operations=tuple(self._operations),
+            note_write_attempts=self._write_attempts["note"],
+            note_writes_succeeded=self._writes_succeeded["note"],
+            stage_write_attempts=self._write_attempts["stage"],
+            stage_writes_succeeded=self._writes_succeeded["stage"],
+            note_readback_verified=self._note_readback_verified,
+            stage_readback_verified=self._stage_readback_verified,
+            further_transport_calls_authorized=not self._terminal,
+            stop_and_preserve_proof=stop_and_preserve_proof,
+        )
