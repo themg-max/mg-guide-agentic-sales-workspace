@@ -3,7 +3,7 @@
 ```text
 WORK_ITEM=NW-008
 ARTIFACT=proof/nw008/nw-008-safe-env-ghl-mutation-authorization-plan.md
-ACTION=CREATE
+ACTION=UPDATE
 OWNER=VS_CODE_ORCHESTRATOR
 STATUS=PLANNING_ONLY
 DECISION=NOT_AUTHORIZED_FOR_GHL_EXECUTION
@@ -11,6 +11,7 @@ PRIMARY_TARGET=AT-1
 RUNTIME_MUTATION=NO
 GHL_EXECUTION_OCCURRED=NO
 FIRESTORE_EXECUTION_OCCURRED=NO
+FINAL_EXECUTION_CAPS_APPROVED=NO
 ```
 
 ## Purpose and boundary
@@ -24,6 +25,9 @@ Environment isolation is not inferred from synthetic record status. The
 canonical GHL location is not classified as a test environment, so its
 privately allowlisted synthetic records do not satisfy this plan's isolated
 safe-environment requirement.
+
+Candidate call caps below are planning estimates only. They are not an approved
+execution budget and must not be treated as grant counters.
 
 ## Phase A — PR #60 closeout capture
 
@@ -96,6 +100,20 @@ it explicitly denies `create-note`, `update-opportunity`, and
 execution lane must implement and review those bounded paths rather than
 repurpose the offline adapter or bypass it with raw REST.
 
+```text
+AT1_BOUNDED_GHL_EXECUTOR_AVAILABLE=NO
+AT1_REQUIRED_RUNTIME_OPERATIONS_IMPLEMENTED=NO
+AT1_IMPLEMENTATION_READY=NO
+IMPLEMENTATION_READY=NO
+PIPELINE_METADATA_RUNTIME_READ_REQUIRED=TO_BE_DETERMINED
+```
+
+`PIPELINE_METADATA_RUNTIME_READ_REQUIRED=TO_BE_DETERMINED` means a future
+authorization decision must decide whether `get-pipelines` is required at
+runtime for stage-name resolution, or whether privately bound stage IDs make
+that call unnecessary. Until that decision is recorded, the candidate sequence
+retains the call as a planning placeholder only.
+
 The candidate sequence uses exact privately bound synthetic contact and
 opportunity IDs. It deliberately excludes broad contact or opportunity search:
 
@@ -103,29 +121,30 @@ opportunity IDs. It deliberately excludes broad contact or opportunity search:
 AT1_EXPECTED_CALL_SEQUENCE=
   1. execute_operation:get-contact [READ; exact synthetic contact ID]
   2. execute_operation:get-opportunity [READ; exact synthetic opportunity ID; verify initial stage]
-  3. execute_operation:get-pipelines [READ; resolve the bound pipeline stage IDs to exact stage names]
+  3. execute_operation:get-pipelines [READ; resolve the bound pipeline stage IDs to exact stage names; subject to PIPELINE_METADATA_RUNTIME_READ_REQUIRED]
   4. execute_operation:create-note [WRITE; one note on the exact synthetic contact]
   5. execute_operation:get-note [READ-BACK; exact created note ID and exact body match]
   6. execute_operation:update-opportunity [WRITE; pipelineStageId only]
   7. execute_operation:get-opportunity [READ-BACK; exact opportunity ID and final stage match]
 ```
 
-No pagination, retry, alternate operation, search expansion, or fallback call
-is included. A missing, ambiguous, failed, or mismatched result must stop the
-run without any additional GHL call.
-
 ## Phase D — Safe-environment requirements
 
-Merged repository evidence states that no isolated GHL test location is
-available and that the canonical GHL location is not a test environment. The
-repository proves a synthetic contact only in that canonical location under a
-private read-only allowlist; it does not prove a synthetic contact in an
+Merged repository evidence proves privately bound synthetic records exist in
+the canonical GHL location under a read-only grant. That location is not an
+isolated test environment. No synthetic contact or opportunity is proven in an
 isolated mutation-safe location.
 
 ```text
+CANONICAL_LOCATION_SYNTHETIC_RECORD_EXISTS=YES
+
 ISOLATED_GHL_TEST_LOCATION=NO
 TEST_LOCATION_ID=NOT_PROVEN
 PRODUCTION_LOCATION_EXCLUDED=YES
+
+SYNTHETIC_CONTACT_IN_ISOLATED_TEST_LOCATION=NO
+SYNTHETIC_OPPORTUNITY_IN_ISOLATED_TEST_LOCATION=NO
+ISOLATED_SAFE_ENV_FIXTURE_READY=NO
 
 SYNTHETIC_CONTACT_AVAILABLE=NO
 SYNTHETIC_CONTACT_ID=NOT_PROVEN_IN_AN_ISOLATED_TEST_LOCATION
@@ -133,6 +152,7 @@ SYNTHETIC_CONTACT_ID=NOT_PROVEN_IN_AN_ISOLATED_TEST_LOCATION
 EXPECTED_INITIAL_STAGE=discovery_scheduled
 EXPECTED_FINAL_STAGE=discovery_complete
 
+ENVIRONMENT_READY=NO
 SAFE_ENV_READY=NO
 AT1_EXECUTION_AUTHORIZABLE=NO
 STOP=YES
@@ -148,14 +168,22 @@ stage, and the allowed final stage without publishing identifiers or secrets.
 
 The candidate budget is derived directly from the seven-step sequence above:
 three pre-mutation reads, two mandatory mutation read-backs, and two writes.
+These values are **candidate planning caps only**. They are not approved
+execution counters and do not authorize any call.
 
 ```text
 MAX_NOTE_CREATES=1
 MAX_STAGE_TRANSITIONS=1
-MAX_GHL_WRITES=2
+
+CANDIDATE_MAX_GHL_READS=5
+CANDIDATE_MAX_GHL_WRITES=2
+CANDIDATE_MAX_TOTAL_GHL_CALLS=7
 
 MAX_GHL_READS=5
+MAX_GHL_WRITES=2
 MAX_TOTAL_GHL_CALLS=7
+
+FINAL_EXECUTION_CAPS_APPROVED=NO
 ```
 
 | Candidate operation | Exact operation | Maximum calls | Effect |
@@ -175,7 +203,9 @@ allowed.
 
 Candidate operations remain unapproved until a separate human authorization
 artifact binds the exact environment, records, implementation SHA, proof
-destination, expiry, and one-shot counters.
+destination, expiry, and one-shot counters. Until
+`FINAL_EXECUTION_CAPS_APPROVED=YES` on that separate grant, no runtime may
+treat the candidate numbers above as an executable budget.
 
 Forbidden operations and data include:
 
@@ -192,6 +222,30 @@ Forbidden operations and data include:
 - production locations, real customers, prospects, or other non-synthetic
   records;
 - any call beyond the listed operation and per-operation caps.
+
+## Phase E.1 — Failure, retry, and cleanup policy (non-authorizing)
+
+These machine-readable refusal rules apply to any future AT-1 design review.
+They do not authorize execution.
+
+```text
+AUTOMATIC_RETRY_AUTHORIZED=NO
+ALTERNATE_OPERATION_AUTHORIZED=NO
+SEARCH_EXPANSION_AUTHORIZED=NO
+PAGINATION_AUTHORIZED=NO
+FALLBACK_TRANSPORT_AUTHORIZED=NO
+
+ON_FAILURE_AFTER_ANY_WRITE=STOP_AND_PRESERVE_PROOF
+AUTOMATIC_COMPENSATING_MUTATION_AUTHORIZED=NO
+AUTOMATIC_CLEANUP_AUTHORIZED=NO
+SECOND_EXECUTION_ATTEMPT_AUTHORIZED=NO
+```
+
+A missing, ambiguous, failed, or mismatched result must stop without any
+additional GHL call beyond the exact planned step that failed. After any write
+has occurred, failure handling is stop-and-preserve-proof only: no automatic
+retry, no compensating mutation, no automatic cleanup, and no second execution
+attempt under this planning artifact.
 
 ## Phase F — Future AT-1 proof contract
 
@@ -211,10 +265,13 @@ A future execution proof must establish all of the following:
 9. Audit evidence preserved the ordered calls, redacted identifiers, outcomes,
    reason codes, disposition, and counters.
 10. No unauthorized tool call, retry, search, fallback, or transport occurred.
-11. Every per-operation and aggregate counter remained within the grant.
-12. Cleanup/restore was explicit. Under these candidate caps, the dedicated
-    synthetic note and final stage remain in the disposable test location;
-    deletion or a restoring stage transition is not authorized.
+11. Every per-operation and aggregate counter remained within the separately
+    approved grant (not these candidate planning caps).
+12. Cleanup/restore was explicit. Automatic cleanup is not authorized by this
+    plan. Under candidate design, the dedicated synthetic note and final stage
+    remain in the disposable test location unless a later grant authorizes a
+    separate cleanup action; deletion or a restoring stage transition is not
+    authorized here.
 13. No real customer data was accessed.
 
 This plan does not authorize a Firestore audit write. If the future proof
@@ -224,14 +281,25 @@ the GHL grant must not be treated as Firestore authority.
 ## Initial decision
 
 ```text
+ENVIRONMENT_READY=NO
+IMPLEMENTATION_READY=NO
 SAFE_ENV_READY=NO
+FINAL_EXECUTION_CAPS_APPROVED=NO
+
+AT1_BOUNDED_GHL_EXECUTOR_AVAILABLE=NO
+AT1_REQUIRED_RUNTIME_OPERATIONS_IMPLEMENTED=NO
+AT1_IMPLEMENTATION_READY=NO
 
 AT1_EXECUTION_AUTHORIZABLE=NO
 AT1_EXECUTION_AUTHORIZED=NO
 AT1_COMPLETE=NO
 
+GHL_READS_AUTHORIZED=NO
+GHL_WRITES_AUTHORIZED=NO
+GHL_EXECUTION_AUTHORIZED=NO
+
 GHL_EXECUTION_OCCURRED=NO
 FIRESTORE_EXECUTION_OCCURRED=NO
 
-STOP_CODE=NW008_AT1_SAFE_ENV_GHL_AUTHORIZATION_PLAN_READY_FOR_REVIEW
+STOP_CODE=NW008_AT1_SAFE_ENV_PLAN_NORMALIZED_READY_FOR_FORMAL_REVIEW
 ```
