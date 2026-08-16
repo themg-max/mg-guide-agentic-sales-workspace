@@ -16,9 +16,9 @@ write operations, credential creation/expansion, IAM/secrets/deployment changes,
 Firestore mutation, raw REST fallback, search/list/pagination, retry, or
 compensating mutation.
 
-Self-activation is **FORBIDDEN**. No external CRM read may run until human
-countersignature fields below are non-pending and `GRANT_STATE` is flipped by an
-explicit human approving authority.
+Self-activation remains **FORBIDDEN**. Human countersignature is **APPROVED**.
+External CRM reads and MCP discovery are authorized only within the hard caps and
+expiry of this grant. AT-1 mutation execution remains unauthorized.
 
 ## Bound Track A baseline (frozen)
 
@@ -40,50 +40,52 @@ AT-1 execution unauthorized.
 
 ```text
 REQUEST_INITIATOR=VS_CODE_ORCHESTRATOR_OPERATOR_LANE
-APPROVING_AUTHORITY=PENDING_EXPLICIT_HUMAN_AUTHORITY
-GRANT_STATE=READY_FOR_HUMAN_COUNTERSIGNATURE
-HUMAN_COUNTERSIGNATURE=PENDING
-HUMAN_APPROVER=PENDING
-APPROVED_AT=PENDING
+APPROVING_AUTHORITY=HUMAN_GHL_SPACE_OWNER
+HUMAN_COUNTERSIGNATURE=APPROVED
+HUMAN_APPROVER=THEMG@themiliare-group.com
+APPROVED_AT=2026-08-16T23:59:18Z
+APPROVAL_STATEMENT=I authorize NW008_AT1_RO_EXTERNAL_VERIFY_001 read-only external verification only, bound to TRACK_A_READINESS_BASELINE_SHA=7e5982e2ffe3cd873550f18e8a2f37a97d497e8a, with MUTATION_CALLS_MAX=0, CRM_RECORD_READS_MAX=4, expiry 60 minutes after approval. AT-1 execution remains unauthorized.
+GRANT_STATE=AUTHORIZED_READ_ONLY_EXTERNAL_VERIFICATION
 SELF_ACTIVATION=FORBIDDEN
 EXPIRY=60_MINUTES_AFTER_APPROVAL
-```
-
-### Human countersignature block (fill only by approving human)
-
-```text
-# Human approver completes all fields below to activate this grant.
-# Leave PENDING until signed. Do not self-activate.
-
-HUMAN_COUNTERSIGNATURE=PENDING
-HUMAN_APPROVER=
-APPROVED_AT=
-APPROVAL_STATEMENT=
-# Required approval statement when signing:
-# "I authorize NW008_AT1_RO_EXTERNAL_VERIFY_001 read-only external verification
-#  only, bound to TRACK_A_READINESS_BASELINE_SHA=7e5982e2ffe3cd873550f18e8a2f37a97d497e8a,
-#  with MUTATION_CALLS_MAX=0, CRM_RECORD_READS_MAX=4, expiry 60 minutes after approval.
-#  AT-1 execution remains unauthorized."
-
-GRANT_STATE_AFTER_SIGNATURE=AUTHORIZED_READ_ONLY_EXTERNAL_VERIFICATION
-```
-
-Until countersigned:
-
-```text
-EXTERNAL_READS_AUTHORIZED=NO
-MCP_DISCOVERY_AUTHORIZED=NO
-OPERATOR_EXECUTION_AUTHORIZED=NO
-```
-
-After valid countersignature (and only until expiry):
-
-```text
 EXTERNAL_READS_AUTHORIZED=YES
 MCP_DISCOVERY_AUTHORIZED=YES
 OPERATOR_EXECUTION_AUTHORIZED=YES_READ_ONLY_WITHIN_GRANT
 AT1_EXECUTION_AUTHORIZED=NO
 AT1_COMPLETE=NO
+```
+
+### Human countersignature record (immutable once committed)
+
+```text
+# Authoritative countersignature — do not reintroduce PENDING duplicates.
+HUMAN_COUNTERSIGNATURE=APPROVED
+HUMAN_APPROVER=THEMG@themiliare-group.com
+APPROVED_AT=2026-08-16T23:59:18Z
+APPROVAL_STATEMENT=I authorize NW008_AT1_RO_EXTERNAL_VERIFY_001 read-only external verification only, bound to TRACK_A_READINESS_BASELINE_SHA=7e5982e2ffe3cd873550f18e8a2f37a97d497e8a, with MUTATION_CALLS_MAX=0, CRM_RECORD_READS_MAX=4, expiry 60 minutes after approval. AT-1 execution remains unauthorized.
+GRANT_STATE=AUTHORIZED_READ_ONLY_EXTERNAL_VERIFICATION
+```
+
+Historical pre-signature template (inactive; retained for audit trail only):
+
+```text
+# INACTIVE_TEMPLATE — superseded by APPROVED countersignature above
+# HUMAN_COUNTERSIGNATURE=PENDING
+# HUMAN_APPROVER=
+# APPROVED_AT=
+# APPROVAL_STATEMENT=
+# GRANT_STATE_AFTER_SIGNATURE=AUTHORIZED_READ_ONLY_EXTERNAL_VERIFICATION
+```
+
+## Credential scope gate (previously verified)
+
+```text
+CREDENTIAL_SCOPE_GATE=PASS
+LOCATIONS_READONLY_VERIFIED=YES
+CONTACTS_READONLY_VERIFIED=YES
+OPPORTUNITIES_READONLY_VERIFIED=YES
+WRITE_SCOPES_OBSERVED=NO
+EXPECTED_READONLY_SCOPES=locations.readonly;contacts.readonly;opportunities.readonly
 ```
 
 ## Hard caps
@@ -151,10 +153,16 @@ BLOCKED_CREDENTIAL_CREATE_OR_EXPAND=YES
 
 ## Expected credential scopes (read-only)
 
-Before any operator use, verify integration scopes in the GHL UI against:
+Credential scope gate already recorded above (`CREDENTIAL_SCOPE_GATE=PASS`).
+Re-confirm in GHL UI only if the connector credential changes. Expected scopes:
 
 ```text
 EXPECTED_READONLY_SCOPES=locations.readonly;contacts.readonly;opportunities.readonly
+CREDENTIAL_SCOPE_GATE=PASS
+LOCATIONS_READONLY_VERIFIED=YES
+CONTACTS_READONLY_VERIFIED=YES
+OPPORTUNITIES_READONLY_VERIFIED=YES
+WRITE_SCOPES_OBSERVED=NO
 ```
 
 PIT / token handling:
@@ -202,7 +210,7 @@ NW008_BINDING_OF_REUSED_SYNTHETIC_CONTACT=ALLOWED_ONLY_AFTER_PROVENANCE_RECORDED
 Record reuse provenance in the **private** operator evidence pack before binding
 the contact to NW-008 reads. Public repo remains free of private IDs.
 
-## Post-countersignature operator procedure (do not run before approval)
+## Post-countersignature operator procedure (authorized within expiry)
 
 ### A. Credential scope gate
 
@@ -295,11 +303,12 @@ This grant never flips `AT1_EXECUTION_AUTHORIZED` to YES.
 
 ## Relationship to Track A readiness
 
-| Surface | State at grant authoring |
+| Surface | State at authorization commit |
 | --- | --- |
 | Deterministic executor (fixtures) | VERIFIED (`DETERMINISTIC_EXECUTOR_READY=YES`) |
-| External GHL environment | NOT VERIFIED |
-| This grant | `READY_FOR_HUMAN_COUNTERSIGNATURE` |
+| External GHL environment | NOT YET VERIFIED (reads authorized, not executed in this commit) |
+| This grant | `AUTHORIZED_READ_ONLY_EXTERNAL_VERIFICATION` |
+| Credential scope gate | PASS (readonly scopes; no write scopes observed) |
 | AT-1 mutation execution | UNAUTHORIZED |
 
 Updating Track A external flags requires a post-verification proof amendment after
@@ -308,13 +317,13 @@ a countersigned operator run completes within caps and expiry.
 ## STOP
 
 ```text
-STOP_CODE=NW008_AT1_RO_EXTERNAL_VERIFY_GRANT_READY_FOR_HUMAN_COUNTERSIGNATURE
+STOP_CODE=NW008_AT1_RO_EXTERNAL_VERIFY_GRANT_AUTHORIZED
 GRANT_ID=NW008_AT1_RO_EXTERNAL_VERIFY_001
-GRANT_STATE=READY_FOR_HUMAN_COUNTERSIGNATURE
+GRANT_STATE=AUTHORIZED_READ_ONLY_EXTERNAL_VERIFICATION
 BOUND_TRACK_A_BASELINE_SHA=7e5982e2ffe3cd873550f18e8a2f37a97d497e8a
 MUTATION_CALLS_MAX=0
 CRM_RECORD_READS_MAX=4
 AT1_EXECUTION_AUTHORIZED=NO
 AT1_COMPLETE=NO
-NEXT=HUMAN_COUNTERSIGNATURE_REQUIRED_BEFORE_ANY_EXTERNAL_READ
+NEXT=EXECUTE_BOUNDED_READ_ONLY_EXTERNAL_VERIFICATION_WITHIN_EXPIRY
 ```
