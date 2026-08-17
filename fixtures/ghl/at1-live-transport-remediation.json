@@ -1,0 +1,510 @@
+{
+  "source": "synthetic_only",
+  "network_enabled": false,
+  "ghl_live_client": false,
+  "firestore_client": false,
+  "binding": {
+    "location_id": "synthetic-location-remediation",
+    "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID",
+    "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+    "expected_initial_stage_id": "synthetic-stage-initial",
+    "authorized_final_stage_id": "synthetic-stage-final",
+    "expected_note_content_or_fingerprint": "synthetic-note-content-SENTINEL_NOTE_CONTENT"
+  },
+  "cases": {
+    "success": {
+      "responses": [
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-contact",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-stage-initial"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "create-note",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "note_id": "synthetic-note-SENTINEL_NOTE_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-note",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "note_id": "synthetic-note-SENTINEL_NOTE_ID",
+                  "content_or_fingerprint": "synthetic-note-content-SENTINEL_NOTE_CONTENT"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "update-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-stage-final"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "nested_failure_op3": {
+      "responses": [
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-contact",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-stage-initial"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "create-note",
+                "success": false,
+                "status": 400,
+                "payload": {},
+                "error": "SYNTHETIC_VALIDATION_REJECTED"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "is_error_op3": {
+      "responses": [
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-contact",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-stage-initial"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": true,
+            "content": [
+              {
+                "operationId": "create-note",
+                "success": false,
+                "status": 400,
+                "payload": {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "missing_note_id": {
+      "responses": [
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-contact",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-stage-initial"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "create-note",
+                "success": true,
+                "status": 200,
+                "payload": {}
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "wrong_initial_stage": {
+      "responses": [
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-contact",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-wrong-stage"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "wrong_note_content": {
+      "responses": [
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-contact",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-stage-initial"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "create-note",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "note_id": "synthetic-note-SENTINEL_NOTE_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-note",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "note_id": "synthetic-note-SENTINEL_NOTE_ID",
+                  "content_or_fingerprint": "synthetic-wrong-content"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "wrong_final_stage": {
+      "responses": [
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-contact",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-stage-initial"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "create-note",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "note_id": "synthetic-note-SENTINEL_NOTE_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-note",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "note_id": "synthetic-note-SENTINEL_NOTE_ID",
+                  "content_or_fingerprint": "synthetic-note-content-SENTINEL_NOTE_CONTENT"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "update-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "jsonrpc": "2.0",
+          "id": "__REQUEST_ID__",
+          "result": {
+            "isError": false,
+            "content": [
+              {
+                "operationId": "get-opportunity",
+                "success": true,
+                "status": 200,
+                "payload": {
+                  "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+                  "stage_id": "synthetic-wrong-final-stage"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

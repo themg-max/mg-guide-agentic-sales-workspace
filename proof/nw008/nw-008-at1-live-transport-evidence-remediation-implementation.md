@@ -1,0 +1,55 @@
+# NW-008 AT-1 Live Transport Evidence Remediation — Implementation
+
+```text
+IMPLEMENTATION_ID=NW008_AT1_LIVE_TRANSPORT_EVIDENCE_REMEDIATION_IMPL_001
+CLASSIFICATION=implementation
+
+SOURCE_PLAN_HEAD_SHA=d580fddf103c179d0ccbdf9c374b0e20b7acfe0c
+SOURCE_PLAN_MERGE_SHA=3c89056f346e23aa09e6b3a0d5b36a84cd2c6134
+IMPLEMENTATION_BASE_SHA=3c89056f346e23aa09e6b3a0d5b36a84cd2c6134
+
+B24_B38=PASS
+CRASH_WINDOW_RESTART_CASES=PASS
+EXISTING_B1_B23=PASS
+GHL_TEST_SUITE=PASS
+FULL_DETERMINISTIC_SUITE=PASS
+
+NETWORK_CALLS_EXECUTED=0
+GHL_CALLS_EXECUTED=0
+MCP_INITIALIZE_CALLS_EXECUTED=0
+
+LIVE_GHL_EXECUTION_AUTHORIZED=NO
+GRANT009_PREPARATION_AUTHORIZED=NO
+GRANT009_EXECUTION_AUTHORIZED=NO
+
+GRANT_008_STATE=CONSUMED
+AT1_COMPLETE=NO
+
+NEXT=IMPLEMENTATION_REVIEW
+```
+
+## Scope implemented
+
+- Added durable offline execution store with atomic claim, ordinal consumption,
+  durable request/response evidence capture, protocol/business ledgers, restart
+  refusal semantics, and sanitized public projection.
+- Added bounded live-transport adapter with injected established-session seam
+  only, exact envelope validation, fail-closed layered MCP parsing, no retry,
+  and request/response pre-parse evidence ordering.
+- Strengthened bounded executor semantic gates per PR70 contract while
+  preserving fixed six-operation order and one-attempt write budgets.
+- Added offline remediation fixture + tests covering B24-B38 and crash-window
+  restart refusal cases.
+
+## Validation run
+
+```text
+PYTHONPATH=src /tmp/mg-guide-venv313/bin/python -m pytest -q tests/integrations/ghl/test_at1_live_transport_remediation.py
+PYTHONPATH=src /tmp/mg-guide-venv313/bin/python -m pytest -q tests/integrations/ghl/test_bounded_at1_executor.py
+PYTHONPATH=src /tmp/mg-guide-venv313/bin/python -m pytest -q tests/integrations/ghl
+PYTHONPATH=src /tmp/mg-guide-venv313/bin/python scripts/verify_phase1_deterministic.py
+git diff --check
+```
+
+Synthetic test completion does not alter historical project truth:
+`GRANT_008_STATE=CONSUMED` and `AT1_COMPLETE=NO`.

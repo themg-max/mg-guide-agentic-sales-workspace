@@ -258,6 +258,16 @@ class BoundedAt1Result:
     stage_writes_succeeded: int
     note_readback_verified: bool
     stage_readback_verified: bool
+    expected_initial_stage_verified: bool
+    final_stage_readback_verified: bool
+    protocol_call_count: int
+    business_call_count: int
+    request_capture_count: int
+    response_capture_count: int
+    retry_used: bool
+    terminal_failure_code: str | None
+    business_effect_truth: str
+    at1_complete: bool
     further_transport_calls_authorized: bool
     stop_and_preserve_proof: bool
 
@@ -276,6 +286,7 @@ class BoundedAt1GhlExecutor:
         self._write_attempts = {"note": 0, "stage": 0}
         self._writes_succeeded = {"note": 0, "stage": 0}
         self._terminal = False
+        self._expected_initial_stage_verified = False
         self._note_readback_verified = False
         self._stage_readback_verified = False
 
@@ -289,6 +300,11 @@ class BoundedAt1GhlExecutor:
         )
         if contact.status != "ok":
             return self._fail("CONTACT_NOT_FOUND")
+        contact_identity = self._identity_from_record(contact.record, ("contact_id", "id"))
+        if contact_identity != binding.contact_id:
+            self._record_transport_semantic(success=False)
+            return self._fail("CONTACT_ID_MISMATCH")
+        self._record_transport_semantic(success=True)
 
         opportunity = self._dispatch_read(
             "get-opportunity",
@@ -299,8 +315,17 @@ class BoundedAt1GhlExecutor:
         )
         if opportunity.status != "ok":
             return self._fail("OPPORTUNITY_NOT_FOUND")
+        opportunity_identity = self._identity_from_record(
+            opportunity.record, ("opportunity_id", "id")
+        )
+        if opportunity_identity != binding.opportunity_id:
+            self._record_transport_semantic(success=False)
+            return self._fail("OPPORTUNITY_ID_MISMATCH")
         if opportunity.record.get("stage_id") != binding.expected_initial_stage_id:
+            self._record_transport_semantic(success=False)
             return self._fail("INITIAL_STAGE_MISMATCH")
+        self._expected_initial_stage_verified = True
+        self._record_transport_semantic(success=True)
 
         created_note = self._dispatch_write(
             "create-note",
@@ -316,7 +341,9 @@ class BoundedAt1GhlExecutor:
         self._record_write_success("note")
         note_id = created_note.record.get("note_id")
         if not isinstance(note_id, str) or not note_id:
+            self._record_transport_semantic(success=False)
             return self._fail("NOTE_WRITE_RESPONSE_INVALID")
+        self._record_transport_semantic(success=True)
 
         note = self._dispatch_read(
             "get-note",
@@ -330,8 +357,13 @@ class BoundedAt1GhlExecutor:
             note.record.get("content_or_fingerprint")
             != binding.expected_note_content_or_fingerprint
         ):
+            self._record_transport_semantic(success=False)
+            return self._fail("NOTE_READBACK_MISMATCH", preserve_proof=True)
+        if note.record.get("note_id") != note_id:
+            self._record_transport_semantic(success=False)
             return self._fail("NOTE_READBACK_MISMATCH", preserve_proof=True)
         self._note_readback_verified = True
+        self._record_transport_semantic(success=True)
 
         updated_opportunity = self._dispatch_write(
             "update-opportunity",
@@ -344,7 +376,14 @@ class BoundedAt1GhlExecutor:
         )
         if updated_opportunity.status != "ok":
             return self._fail("STAGE_WRITE_REJECTED")
+        updated_identity = self._identity_from_record(
+            updated_opportunity.record, ("opportunity_id", "id")
+        )
+        if updated_identity != binding.opportunity_id:
+            self._record_transport_semantic(success=False)
+            return self._fail("STAGE_WRITE_REJECTED")
         self._record_write_success("stage")
+        self._record_transport_semantic(success=True)
 
         readback_opportunity = self._dispatch_read(
             "get-opportunity",
@@ -355,11 +394,17 @@ class BoundedAt1GhlExecutor:
         )
         if (
             readback_opportunity.status != "ok"
+            or self._identity_from_record(
+                readback_opportunity.record, ("opportunity_id", "id")
+            )
+            != binding.opportunity_id
             or readback_opportunity.record.get("stage_id")
             != binding.authorized_final_stage_id
         ):
+            self._record_transport_semantic(success=False)
             return self._fail("STAGE_READBACK_MISMATCH", preserve_proof=True)
         self._stage_readback_verified = True
+        self._record_transport_semantic(success=True)
         return self._result(disposition="completed")
 
     def _dispatch_read(
@@ -410,6 +455,16 @@ class BoundedAt1GhlExecutor:
             )
         self._write_attempts[write_kind] += 1
 
+    @staticmethod
+    def _identity_from_record(
+        record: Mapping[str, Any], keys: tuple[str, str]
+    ) -> str | None:
+        for field_name in keys:
+            value = record.get(field_name)
+            if isinstance(value, str) and value:
+                return value
+        return None
+
     def _record_write_success(self, write_kind: str) -> None:
         maximum = (
             NOTE_WRITES_SUCCEEDED_MAX
@@ -425,11 +480,20 @@ class BoundedAt1GhlExecutor:
 
     def _fail(self, failure_code: str, *, preserve_proof: bool = False) -> BoundedAt1Result:
         self._terminal = True
+        if hasattr(self._transport, "record_terminal_failure"):
+            self._transport.record_terminal_failure(  # type: ignore[attr-defined]
+                failure_code,
+                business_effect_truth="NO",
+            )
         return self._result(
             disposition="failed",
             failure_code=failure_code,
             stop_and_preserve_proof=preserve_proof,
         )
+
+    def _record_transport_semantic(self, *, success: bool) -> None:
+        if hasattr(self._transport, "record_semantic_outcome"):
+            self._transport.record_semantic_outcome(success=success)  # type: ignore[attr-defined]
 
     def _result(
         self,
@@ -438,6 +502,31 @@ class BoundedAt1GhlExecutor:
         failure_code: str | None = None,
         stop_and_preserve_proof: bool = False,
     ) -> BoundedAt1Result:
+        projection: Mapping[str, Any] = {}
+        if hasattr(self._transport, "public_projection"):
+            projection = self._transport.public_projection()  # type: ignore[attr-defined]
+
+        expected_initial_stage_verified = bool(
+            projection.get(
+                "expected_initial_stage_verified", self._expected_initial_stage_verified
+            )
+        )
+        note_readback_verified = bool(
+            projection.get("note_readback_verified", self._note_readback_verified)
+        )
+        final_stage_readback_verified = bool(
+            projection.get(
+                "final_stage_readback_verified", self._stage_readback_verified
+            )
+        )
+        business_effect_truth = str(
+            projection.get(
+                "business_effect_truth", "YES" if disposition == "completed" else "NO"
+            )
+        )
+        at1_complete = bool(
+            projection.get("at1_complete", disposition == "completed")
+        )
         return BoundedAt1Result(
             disposition=disposition,
             failure_code=failure_code,
@@ -446,8 +535,18 @@ class BoundedAt1GhlExecutor:
             note_writes_succeeded=self._writes_succeeded["note"],
             stage_write_attempts=self._write_attempts["stage"],
             stage_writes_succeeded=self._writes_succeeded["stage"],
-            note_readback_verified=self._note_readback_verified,
-            stage_readback_verified=self._stage_readback_verified,
+            note_readback_verified=note_readback_verified,
+            stage_readback_verified=final_stage_readback_verified,
+            expected_initial_stage_verified=expected_initial_stage_verified,
+            final_stage_readback_verified=final_stage_readback_verified,
+            protocol_call_count=int(projection.get("protocol_call_count", 0)),
+            business_call_count=int(projection.get("business_call_count", len(self._operations))),
+            request_capture_count=int(projection.get("request_capture_count", 0)),
+            response_capture_count=int(projection.get("response_capture_count", 0)),
+            retry_used=bool(projection.get("retry_used", False)),
+            terminal_failure_code=projection.get("terminal_failure_code", failure_code),
+            business_effect_truth=business_effect_truth,
+            at1_complete=at1_complete,
             further_transport_calls_authorized=not self._terminal,
             stop_and_preserve_proof=stop_and_preserve_proof,
         )
