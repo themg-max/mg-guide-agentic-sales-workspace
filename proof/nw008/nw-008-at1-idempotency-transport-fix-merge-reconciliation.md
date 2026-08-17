@@ -1,0 +1,88 @@
+# NW-008 — AT-1 Idempotency Transport Fix Merge Reconciliation
+
+## Reconciliation authority
+
+```text
+PR_NUMBER=65
+REVIEWED_HEAD_SHA=0e7a3d541b917caa2f710ff9553a0281b3d9501a
+PR65_MERGE_SHA=0411a20ebb8d5c9e9fc7e7fbd4978c6a30606703
+RECONCILIATION_SCOPE=POST_MERGE_SOURCE_AND_PROOF_VERIFICATION_ONLY
+MERGE_RECONCILIATION_EXECUTION_AUTHORITY=NO
+```
+
+## Merge verification
+
+```text
+git merge-base --is-ancestor \
+  0e7a3d541b917caa2f710ff9553a0281b3d9501a \
+  origin/main
+```
+
+Result: exit 0.
+
+```text
+CORRECTED_RUNTIME_MAIN_REACHABLE=YES
+PR65_MERGE_SHA=0411a20ebb8d5c9e9fc7e7fbd4978c6a30606703
+```
+
+## Durable source present on origin/main
+
+```text
+src/integrations/ghl/at1_live_transport_serializer.py
+src/integrations/ghl/bounded_at1_executor.py
+src/integrations/ghl/__init__.py
+tests/integrations/ghl/test_bounded_at1_executor.py
+proof/nw008/nw-008-at1-idempotency-transport-fix-proof.md
+```
+
+```text
+AT1_SERIALIZER_DURABLE=YES
+AT1_EXECUTOR_DURABLE=YES
+AT1_PACKAGE_EXPORT_DURABLE=YES
+AT1_TESTS_DURABLE=YES
+AT1_FIX_PROOF_DURABLE=YES
+FIVE_CORE_FILES_DURABLE=YES
+```
+
+## Live wire contract and safety records
+
+```text
+CREATE_NOTE_LIVE_WIRE_MAPPING=PASS
+GET_NOTE_LIVE_WIRE_MAPPING=PASS
+UPDATE_OPPORTUNITY_LIVE_WIRE_MAPPING=PASS
+
+EXECUTION_CONTEXT_PREVALIDATED=YES
+MALFORMED_CONTEXT_TOTAL_TRANSPORT_CALLS=0
+
+SIX_OPERATION_ORDER_UNCHANGED=YES
+WRITE_ATTEMPT_CAPS_UNCHANGED=YES
+RETRY_SEMANTICS_UNCHANGED=YES
+
+NETWORK_EXECUTION_OCCURRED=NO
+CRM_MUTATION_OCCURRED=NO
+
+GRANT_007_STATE=CONSUMED_TERMINAL_FAILURE
+GRANT_007_RETRY_AUTHORIZED=NO
+
+GRANT_008_PREPARATION_READY=YES
+GRANT_008_EXECUTION_AUTHORIZED=NO
+AT1_EXECUTION_AUTHORIZED=NO
+AT1_COMPLETE=NO
+```
+
+## Proof-only boundary
+
+This artifact is a post-merge reconciliation only. It verifies source durability and proof integrity on `origin/main` without modifying runtime code or executing GHL transport.
+
+```text
+RECONCILIATION_SCOPE=POST_MERGE_SOURCE_AND_PROOF_VERIFICATION_ONLY
+RECONCILIATION_PROOF_ONLY=YES
+RECONCILIATION_RUNTIME_MUTATION=NO
+RECONCILIATION_GHL_TRANSPORT=NO
+```
+
+## STOP
+
+```text
+STOP_CODE=NW008_PR65_MERGE_RECONCILED_PROOF_ONLY
+```
