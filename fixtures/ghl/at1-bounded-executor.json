@@ -14,75 +14,483 @@
   "cases": {
     "success": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
-        {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "ok", "record": {"note_id": "synthetic-note-at1"}}},
-        {"operation_id": "get-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "note_id": "synthetic-note-at1"}, "response": {"status": "ok", "record": {"content_or_fingerprint": "synthetic-at1-note-fingerprint"}}},
-        {"operation_id": "update-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1", "stage_id": "synthetic-stage-final"}, "response": {"status": "ok", "record": {"opportunity_id": "synthetic-opportunity-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-final"}}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "synthetic-stage-initial"
+            }
+          }
+        },
+        {
+          "operation_id": "create-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "note_id": "synthetic-note-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1",
+              "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+            }
+          }
+        },
+        {
+          "operation_id": "update-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1",
+            "stage_id": "synthetic-stage-final"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "synthetic-stage-final"
+            }
+          }
+        }
       ]
     },
     "contact_not_found": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "not_found", "error_code": "SYNTHETIC_404"}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "not_found",
+            "error_code": "SYNTHETIC_404"
+          }
+        }
       ]
     },
     "opportunity_not_found": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "not_found", "error_code": "SYNTHETIC_404"}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "not_found",
+            "error_code": "SYNTHETIC_404"
+          }
+        }
       ]
     },
     "initial_stage_mismatch": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "unexpected-synthetic-stage"}}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "unexpected-synthetic-stage"
+            }
+          }
+        }
       ]
     },
     "note_write_rejected": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
-        {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "rejected", "error_code": "SYNTHETIC_WRITE_DENIED"}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "synthetic-stage-initial"
+            }
+          }
+        },
+        {
+          "operation_id": "create-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+          },
+          "response": {
+            "status": "rejected",
+            "error_code": "SYNTHETIC_WRITE_DENIED"
+          }
+        }
       ]
     },
     "note_write_response_invalid": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
-        {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "ok", "record": {}}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "synthetic-stage-initial"
+            }
+          }
+        },
+        {
+          "operation_id": "create-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+          },
+          "response": {
+            "status": "ok",
+            "record": {}
+          }
+        }
       ]
     },
     "note_readback_mismatch": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
-        {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "ok", "record": {"note_id": "synthetic-note-at1"}}},
-        {"operation_id": "get-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "note_id": "synthetic-note-at1"}, "response": {"status": "ok", "record": {"content_or_fingerprint": "wrong-synthetic-fingerprint"}}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "synthetic-stage-initial"
+            }
+          }
+        },
+        {
+          "operation_id": "create-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "note_id": "synthetic-note-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1",
+              "content_or_fingerprint": "wrong-synthetic-fingerprint"
+            }
+          }
+        }
       ]
     },
     "stage_write_rejected": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
-        {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "ok", "record": {"note_id": "synthetic-note-at1"}}},
-        {"operation_id": "get-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "note_id": "synthetic-note-at1"}, "response": {"status": "ok", "record": {"content_or_fingerprint": "synthetic-at1-note-fingerprint"}}},
-        {"operation_id": "update-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1", "stage_id": "synthetic-stage-final"}, "response": {"status": "rejected", "error_code": "SYNTHETIC_WRITE_DENIED"}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "synthetic-stage-initial"
+            }
+          }
+        },
+        {
+          "operation_id": "create-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "note_id": "synthetic-note-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1",
+              "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+            }
+          }
+        },
+        {
+          "operation_id": "update-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1",
+            "stage_id": "synthetic-stage-final"
+          },
+          "response": {
+            "status": "rejected",
+            "error_code": "SYNTHETIC_WRITE_DENIED"
+          }
+        }
       ]
     },
     "stage_readback_mismatch": {
       "calls": [
-        {"operation_id": "get-contact", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"}, "response": {"status": "ok", "record": {"contact_id": "synthetic-contact-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "synthetic-stage-initial"}}},
-        {"operation_id": "create-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "content_or_fingerprint": "synthetic-at1-note-fingerprint"}, "response": {"status": "ok", "record": {"note_id": "synthetic-note-at1"}}},
-        {"operation_id": "get-note", "arguments": {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1", "note_id": "synthetic-note-at1"}, "response": {"status": "ok", "record": {"content_or_fingerprint": "synthetic-at1-note-fingerprint"}}},
-        {"operation_id": "update-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1", "stage_id": "synthetic-stage-final"}, "response": {"status": "ok", "record": {"opportunity_id": "synthetic-opportunity-at1"}}},
-        {"operation_id": "get-opportunity", "arguments": {"location_id": "synthetic-location-at1", "opportunity_id": "synthetic-opportunity-at1"}, "response": {"status": "ok", "record": {"stage_id": "unexpected-synthetic-stage"}}}
+        {
+          "operation_id": "get-contact",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "contact_id": "synthetic-contact-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "synthetic-stage-initial"
+            }
+          }
+        },
+        {
+          "operation_id": "create-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-note",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "contact_id": "synthetic-contact-at1",
+            "note_id": "synthetic-note-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "note_id": "synthetic-note-at1",
+              "content_or_fingerprint": "synthetic-at1-note-fingerprint"
+            }
+          }
+        },
+        {
+          "operation_id": "update-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1",
+            "stage_id": "synthetic-stage-final"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1"
+            }
+          }
+        },
+        {
+          "operation_id": "get-opportunity",
+          "arguments": {
+            "location_id": "synthetic-location-at1",
+            "opportunity_id": "synthetic-opportunity-at1"
+          },
+          "response": {
+            "status": "ok",
+            "record": {
+              "opportunity_id": "synthetic-opportunity-at1",
+              "stage_id": "unexpected-synthetic-stage"
+            }
+          }
+        }
       ]
     },
-    "second_note_attempt": {"calls": []},
-    "second_stage_attempt": {"calls": []},
-    "invalid_binding": {"calls": []},
-    "unexpected_operation": {"calls": []}
+    "second_note_attempt": {
+      "calls": []
+    },
+    "second_stage_attempt": {
+      "calls": []
+    },
+    "invalid_binding": {
+      "calls": []
+    },
+    "unexpected_operation": {
+      "calls": []
+    }
   }
 }
