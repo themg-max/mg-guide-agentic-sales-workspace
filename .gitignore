@@ -85,3 +85,6 @@ playwright-report/
 *.dll
 *.o
 *.a
+
+# Local private operator packages (never commit)
+local/
