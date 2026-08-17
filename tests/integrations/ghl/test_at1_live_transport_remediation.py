@@ -258,6 +258,7 @@ def test_b31_protocol_and_business_ledgers_are_separate(tmp_path: Path) -> None:
 
     assert result.disposition == "completed"
     assert projection["protocol_call_count"] == 2
+    assert projection["business_attempt_count"] == 6
     assert projection["business_call_count"] == 6
 
 
@@ -350,6 +351,8 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
         owner_id="owner-1",
     )
     adapter_a.dispatch(envelope)
+    # Simulate executor semantic completion so the ordinal is fully resolved.
+    adapter_a.record_semantic_outcome(True)
     assert len(session_a.dispatch_log) == 1
 
     store_b = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
@@ -462,6 +465,8 @@ def test_b36a_next_ordinal_refused_after_pre_dispatch_crash(tmp_path: Path) -> N
     assert session.dispatch_log == []
     projection = adapter.public_projection()
     assert projection["business_effect_truth"] == "UNKNOWN"
+    assert projection["business_attempt_count"] == 1
+    assert projection["business_call_count"] == 0
 
 
 def test_b36b_next_ordinal_refused_after_unresolved_dispatch(tmp_path: Path) -> None:
@@ -508,6 +513,153 @@ def test_b36b_next_ordinal_refused_after_unresolved_dispatch(tmp_path: Path) -> 
     assert session.dispatch_log == []
     projection = adapter.public_projection()
     assert projection["business_effect_truth"] == "UNKNOWN"
+    assert projection["business_attempt_count"] == 1
+    assert projection["business_call_count"] == 1
+
+
+def test_b36c_next_ordinal_refused_after_response_captured_pre_parse(
+    tmp_path: Path,
+) -> None:
+    """Crash after response capture / before parse: OP2 must be refused before transport."""
+    db_path = tmp_path / "at1-remediation-crash-response-pre-parse.sqlite3"
+    serializer = At1LiveTransportSerializer()
+    binding = _binding()
+    op1_envelope = serializer.build_execute_operation_call(
+        "get-contact",
+        {"location_id": binding.location_id, "contact_id": binding.contact_id},
+    )
+    op2_envelope = serializer.build_execute_operation_call(
+        "get-opportunity",
+        {
+            "location_id": binding.location_id,
+            "opportunity_id": binding.opportunity_id,
+        },
+    )
+    response_envelope = {
+        "jsonrpc": "2.0",
+        "id": "synthetic-crash-request-next-3",
+        "result": {
+            "isError": False,
+            "structuredContent": {
+                "success": True,
+                "data": {"id": "SENTINEL_CONTACT_ID"},
+            },
+        },
+    }
+
+    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store.acquire_claim("grant-run-crash-response-pre-parse", "owner-1")
+    store.record_attempt(
+        grant_run_id="grant-run-crash-response-pre-parse",
+        operation_ordinal=1,
+        operation_id="get-contact",
+        request_id="synthetic-crash-request-next-3",
+        request_envelope=op1_envelope,
+    )
+    store.mark_dispatched(
+        grant_run_id="grant-run-crash-response-pre-parse",
+        operation_ordinal=1,
+    )
+    store.capture_response(
+        grant_run_id="grant-run-crash-response-pre-parse",
+        operation_ordinal=1,
+        response_envelope=response_envelope,
+    )
+
+    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    session = ScriptedEstablishedSession(responses=[])
+    adapter = At1LiveTransportAdapter(
+        session=session,
+        store=restarted_store,
+        grant_run_id="grant-run-crash-response-pre-parse",
+        owner_id="owner-1",
+    )
+    with pytest.raises(RunContinuationRefusedError):
+        adapter.dispatch(op2_envelope)
+    assert session.dispatch_log == []
+    projection = adapter.public_projection()
+    assert projection["business_effect_truth"] == "UNKNOWN"
+    assert projection["business_attempt_count"] == 1
+    assert projection["business_call_count"] == 1
+    private = restarted_store.list_private_attempts("grant-run-crash-response-pre-parse")
+    assert private[0]["state"] == "RESPONSE_CAPTURED"
+    assert private[0]["parse_success"] is None
+    assert private[0]["semantic_success"] is None
+
+
+def test_b36d_next_ordinal_refused_after_parsed_pre_semantic(
+    tmp_path: Path,
+) -> None:
+    """Crash after parse / before semantic: OP2 must be refused before transport."""
+    db_path = tmp_path / "at1-remediation-crash-parsed-pre-semantic.sqlite3"
+    serializer = At1LiveTransportSerializer()
+    binding = _binding()
+    op1_envelope = serializer.build_execute_operation_call(
+        "get-contact",
+        {"location_id": binding.location_id, "contact_id": binding.contact_id},
+    )
+    op2_envelope = serializer.build_execute_operation_call(
+        "get-opportunity",
+        {
+            "location_id": binding.location_id,
+            "opportunity_id": binding.opportunity_id,
+        },
+    )
+    response_envelope = {
+        "jsonrpc": "2.0",
+        "id": "synthetic-crash-request-next-4",
+        "result": {
+            "isError": False,
+            "structuredContent": {
+                "success": True,
+                "data": {"id": "SENTINEL_CONTACT_ID"},
+            },
+        },
+    }
+
+    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store.acquire_claim("grant-run-crash-parsed-pre-semantic", "owner-1")
+    store.record_attempt(
+        grant_run_id="grant-run-crash-parsed-pre-semantic",
+        operation_ordinal=1,
+        operation_id="get-contact",
+        request_id="synthetic-crash-request-next-4",
+        request_envelope=op1_envelope,
+    )
+    store.mark_dispatched(
+        grant_run_id="grant-run-crash-parsed-pre-semantic",
+        operation_ordinal=1,
+    )
+    store.capture_response(
+        grant_run_id="grant-run-crash-parsed-pre-semantic",
+        operation_ordinal=1,
+        response_envelope=response_envelope,
+    )
+    store.record_parse_outcome(
+        grant_run_id="grant-run-crash-parsed-pre-semantic",
+        operation_ordinal=1,
+        success=True,
+    )
+
+    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    session = ScriptedEstablishedSession(responses=[])
+    adapter = At1LiveTransportAdapter(
+        session=session,
+        store=restarted_store,
+        grant_run_id="grant-run-crash-parsed-pre-semantic",
+        owner_id="owner-1",
+    )
+    with pytest.raises(RunContinuationRefusedError):
+        adapter.dispatch(op2_envelope)
+    assert session.dispatch_log == []
+    projection = adapter.public_projection()
+    assert projection["business_effect_truth"] == "UNKNOWN"
+    assert projection["business_attempt_count"] == 1
+    assert projection["business_call_count"] == 1
+    private = restarted_store.list_private_attempts("grant-run-crash-parsed-pre-semantic")
+    assert private[0]["state"] == "RESPONSE_CAPTURED"
+    assert private[0]["parse_success"] is True
+    assert private[0]["semantic_success"] is None
 
 
 def test_b37_concurrent_atomic_claim_rejects_second_owner(tmp_path: Path) -> None:

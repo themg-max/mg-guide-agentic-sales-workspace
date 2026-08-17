@@ -195,27 +195,36 @@ class At1ExecutionStore:
         return int(row["max_ordinal"])
 
     def require_run_continuable(self, grant_run_id: str) -> None:
-        """Fail closed if any prior attempt is unresolved or the run is terminal."""
-        row = self._connection.execute(
+        """Fail closed if any prior attempt is unresolved or the run is terminal.
+
+        A prior RESPONSE_CAPTURED attempt is continuable only when both parse and
+        semantic processing are durably complete. Pre-dispatch, post-dispatch,
+        pre-parse, pre-semantic, and TERMINAL states poison the grant/run.
+        """
+        rows = self._connection.execute(
             """
-            SELECT state, operation_ordinal
+            SELECT state, operation_ordinal, parse_success, semantic_success
             FROM attempts
             WHERE grant_run_id = ?
-              AND (
-                  state = ?
-                  OR state = ?
-                  OR state = ?
-              )
             ORDER BY operation_ordinal ASC
-            LIMIT 1
             """,
-            (grant_run_id, ATTEMPT_RECORDED, DISPATCHED, TERMINAL),
-        ).fetchone()
-        if row is not None:
-            raise RunContinuationRefusedError(
-                f"grant_run_id {grant_run_id!r} cannot continue: "
-                f"ordinal {row['operation_ordinal']} is in state {row['state']!r}"
-            )
+            (grant_run_id,),
+        ).fetchall()
+        for row in rows:
+            state = row["state"]
+            if state in (ATTEMPT_RECORDED, DISPATCHED, TERMINAL):
+                raise RunContinuationRefusedError(
+                    f"grant_run_id {grant_run_id!r} cannot continue: "
+                    f"ordinal {row['operation_ordinal']} is in state {state!r}"
+                )
+            if state == RESPONSE_CAPTURED and (
+                row["parse_success"] is None or row["semantic_success"] is None
+            ):
+                raise RunContinuationRefusedError(
+                    f"grant_run_id {grant_run_id!r} cannot continue: "
+                    f"ordinal {row['operation_ordinal']} is in state {state!r} "
+                    "without durable parse and semantic completion"
+                )
 
     def record_attempt(
         self,
@@ -549,7 +558,20 @@ class At1ExecutionStore:
                 (grant_run_id,),
             ).fetchone()["count"]
         )
-        business_call_count = len(attempts)
+        # Attempt truth: every durably recorded business ordinal.
+        business_attempt_count = len(attempts)
+        # Transport truth: durable DISPATCHED ledger events only.
+        business_call_count = int(
+            self._connection.execute(
+                """
+                SELECT COUNT(*) AS count
+                FROM business_ledger
+                WHERE grant_run_id = ?
+                  AND event_type = ?
+                """,
+                (grant_run_id, DISPATCHED),
+            ).fetchone()["count"]
+        )
         note_write_attempts = sum(
             1 for attempt in attempts if attempt["operation_id"] == "create-note"
         )
@@ -596,6 +618,13 @@ class At1ExecutionStore:
         )
         has_unresolved_attempt = any(
             attempt["state"] in (ATTEMPT_RECORDED, DISPATCHED)
+            or (
+                attempt["state"] == RESPONSE_CAPTURED
+                and (
+                    attempt["parse_success"] is None
+                    or attempt["semantic_success"] is None
+                )
+            )
             for attempt in attempts
         )
         had_successful_or_plausible_write = any(
@@ -633,6 +662,7 @@ class At1ExecutionStore:
         ]
         return {
             "protocol_call_count": protocol_call_count,
+            "business_attempt_count": business_attempt_count,
             "business_call_count": business_call_count,
             "note_write_attempts": note_write_attempts,
             "note_writes_succeeded": note_writes_succeeded,

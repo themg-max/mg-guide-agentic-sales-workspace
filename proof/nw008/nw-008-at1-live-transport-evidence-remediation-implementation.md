@@ -18,6 +18,9 @@ PYTHON_39_COMPATIBILITY_VERIFIED=YES
 
 RUN_TERMINALITY_PERSISTS_ACROSS_RESTART=YES
 NEXT_ORDINAL_AFTER_UNRESOLVED_ATTEMPT_REFUSED=YES
+RESPONSE_CAPTURE_PRE_PARSE_RESTART_REFUSED=YES
+PARSE_PRE_SEMANTIC_RESTART_REFUSED=YES
+BUSINESS_CALL_COUNT_FROM_DISPATCH_LEDGER=YES
 
 B27_BUSINESS_EFFECT_TRUTH=UNKNOWN
 B29_BUSINESS_EFFECT_TRUTH=UNKNOWN
@@ -135,3 +138,74 @@ New deterministic tests cover the gaps:
 - `B36B`: next ordinal refused after unresolved dispatch.
 - `B27`, `B29`, `B30`: business-effect truth is `UNKNOWN` after a plausible
   write without conclusive readback.
+
+## Crash-window and dispatch-count repair
+
+Two additional fail-closed gaps were closed after the durable-semantics repair:
+
+1. **RESPONSE_CAPTURED without durable parse/semantic completion.**
+   `require_run_continuable()` now treats a prior `RESPONSE_CAPTURED` attempt as
+   continuable only when both `parse_success` and `semantic_success` are
+   durably set. Crash after response capture / before parse, or after parse /
+   before semantic processing, poisons the grant/run and refuses the next
+   ordinal before transport with `RunContinuationRefusedError`.
+   `business_effect_truth` remains `UNKNOWN` for these unresolved windows.
+
+2. **Independent attempt vs transport counts.** `compute_public_projection()`
+   now derives:
+   - `business_attempt_count` from durably recorded attempts (`len(attempts)`);
+   - `business_call_count` from durable `DISPATCHED` events in the business
+     ledger (not from attempt row count).
+
+   Serializer shapes and the fixed six-operation contract are unchanged.
+   Conservative `business_effect_truth=UNKNOWN` behavior from the prior repair
+   is preserved.
+
+New/extended deterministic tests:
+
+- `B36A` / `B36B`: assert `business_attempt_count` and `business_call_count`
+  (0 vs 1 dispatch) for pre-dispatch and post-dispatch crash windows.
+- `B36C`: next ordinal refused after response-captured / pre-parse crash.
+- `B36D`: next ordinal refused after parsed / pre-semantic crash.
+
+```text
+RESPONSE_CAPTURE_PRE_PARSE_RESTART_REFUSED=YES
+PARSE_PRE_SEMANTIC_RESTART_REFUSED=YES
+BUSINESS_CALL_COUNT_FROM_DISPATCH_LEDGER=YES
+```
+
+## Validation run (Python 3.9 — crash-window repair)
+
+```text
+PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl/test_at1_live_transport_remediation.py
+PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl/test_bounded_at1_executor.py
+PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl
+PYTHONPATH=src python3.9 scripts/verify_phase1_deterministic.py
+PYTHONPATH=src python3.9 -m pytest -q
+git diff --check
+# forbidden network/credential scan on changed files: clean
+```
+
+Results:
+
+```text
+B24_B38=PASS
+CRASH_WINDOW_RESTART_CASES=PASS
+EXISTING_B1_B23=PASS
+GHL_TEST_SUITE=PASS
+FULL_DETERMINISTIC_SUITE=PASS
+PYTHON_39_COMPATIBILITY_VERIFIED=YES
+RUN_TERMINALITY_PERSISTS_ACROSS_RESTART=YES
+NEXT_ORDINAL_AFTER_UNRESOLVED_ATTEMPT_REFUSED=YES
+RESPONSE_CAPTURE_PRE_PARSE_RESTART_REFUSED=YES
+PARSE_PRE_SEMANTIC_RESTART_REFUSED=YES
+BUSINESS_CALL_COUNT_FROM_DISPATCH_LEDGER=YES
+B27_BUSINESS_EFFECT_TRUTH=UNKNOWN
+B29_BUSINESS_EFFECT_TRUTH=UNKNOWN
+B30_BUSINESS_EFFECT_TRUTH=UNKNOWN
+GRANT_008_STATE=CONSUMED
+AT1_COMPLETE=NO
+LIVE_GHL_EXECUTION_AUTHORIZED=NO
+GRANT009_PREPARATION_AUTHORIZED=NO
+GRANT009_EXECUTION_AUTHORIZED=NO
+```
