@@ -10,6 +10,7 @@ from uuid import uuid4
 from .at1_execution_store import (
     At1ExecutionStore,
     DuplicateBusinessOrdinalError,
+    RunContinuationRefusedError,
 )
 from .bounded_at1_executor import FixtureResponse
 
@@ -89,6 +90,7 @@ class At1LiveTransportAdapter:
         self.store.append_protocol_call(self.grant_run_id, call_name, payload)
 
     def dispatch(self, envelope: Mapping[str, Any]) -> FixtureResponse:
+        self.store.require_run_continuable(self.grant_run_id)
         operation_id = self._validate_and_extract_operation(envelope)
         ordinal = self.store.next_operation_ordinal(self.grant_run_id)
         if ordinal > len(_EXACT_OPERATION_ORDER):

@@ -16,6 +16,13 @@ FULL_DETERMINISTIC_SUITE=PASS
 
 PYTHON_39_COMPATIBILITY_VERIFIED=YES
 
+RUN_TERMINALITY_PERSISTS_ACROSS_RESTART=YES
+NEXT_ORDINAL_AFTER_UNRESOLVED_ATTEMPT_REFUSED=YES
+
+B27_BUSINESS_EFFECT_TRUTH=UNKNOWN
+B29_BUSINESS_EFFECT_TRUTH=UNKNOWN
+B30_BUSINESS_EFFECT_TRUTH=UNKNOWN
+
 CI_COMPATIBILITY_DEFECT_FOUND=YES
 CI_COMPATIBILITY_DEFECT_CLASS=PYTHON_39_ZIP_STRICT_UNSUPPORTED
 CI_COMPATIBILITY_DEFECT_RUNTIME_IMPACT=NONE
@@ -94,4 +101,37 @@ EXISTING_B1_B23=PASS
 GHL_TEST_SUITE=PASS
 FULL_DETERMINISTIC_SUITE=PASS
 PYTHON_39_COMPATIBILITY_VERIFIED=YES
+RUN_TERMINALITY_PERSISTS_ACROSS_RESTART=YES
+NEXT_ORDINAL_AFTER_UNRESOLVED_ATTEMPT_REFUSED=YES
+B27_BUSINESS_EFFECT_TRUTH=UNKNOWN
+B29_BUSINESS_EFFECT_TRUTH=UNKNOWN
+B30_BUSINESS_EFFECT_TRUTH=UNKNOWN
 ```
+
+## Durable semantics repair
+
+Two reviewer-identified fail-closed gaps were tightened:
+
+1. **Run-terminal persistence across restart.** `At1ExecutionStore` now exposes
+   `require_run_continuable()`, which the adapter calls before every business
+   dispatch. If any prior ordinal is in `ATTEMPT_RECORDED`, `DISPATCHED`, or
+   `TERMINAL` state, the run is poisoned and all further business transport is
+   refused locally with `RunContinuationRefusedError`. This closes the gap where
+   a crash after recording an attempt (but before dispatch) or after dispatch
+   (but before response capture) previously allowed a correctly numbered next
+   operation to proceed.
+
+2. **Conservative business-effect truth.** `compute_public_projection()` no
+   longer collapses every terminal failure to `NO`. If a terminal failure occurs
+   after a write operation (`create-note` or `update-opportunity`) produced a
+   successful MCP parse, the truth is now `UNKNOWN`, preserving the possibility
+   that an external effect occurred. Failures before any write dispatch or after
+   a conclusively rejected write remain `NO`. All six predicates proven remains
+   `YES`.
+
+New deterministic tests cover the gaps:
+
+- `B36A`: next ordinal refused after pre-dispatch crash.
+- `B36B`: next ordinal refused after unresolved dispatch.
+- `B27`, `B29`, `B30`: business-effect truth is `UNKNOWN` after a plausible
+  write without conclusive readback.

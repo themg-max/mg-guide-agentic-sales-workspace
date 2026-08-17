@@ -19,6 +19,7 @@ from .at1_execution_store import (
     At1ExecutionStore,
     DuplicateBusinessOrdinalError,
     ExecutionClaimError,
+    RunContinuationRefusedError,
 )
 from .at1_live_transport_adapter import (
     At1LiveTransportAdapter,
@@ -48,6 +49,7 @@ __all__ = [
     "OperationNotAllowedError",
     "PostGrantControlPlaneCallRefusedError",
     "RequestMappingError",
+    "RunContinuationRefusedError",
     "TerminalStateError",
     "TransportEnvelopeError",
     "UnexpectedOperationError",

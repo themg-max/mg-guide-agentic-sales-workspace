@@ -31,6 +31,10 @@ class AttemptStateError(RuntimeError):
     """Raised when a state transition violates the durable attempt contract."""
 
 
+class RunContinuationRefusedError(RuntimeError):
+    """Raised when a grant/run cannot continue due to an unresolved prior attempt."""
+
+
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -189,6 +193,29 @@ class At1ExecutionStore:
         if row["max_ordinal"] is None:
             return None
         return int(row["max_ordinal"])
+
+    def require_run_continuable(self, grant_run_id: str) -> None:
+        """Fail closed if any prior attempt is unresolved or the run is terminal."""
+        row = self._connection.execute(
+            """
+            SELECT state, operation_ordinal
+            FROM attempts
+            WHERE grant_run_id = ?
+              AND (
+                  state = ?
+                  OR state = ?
+                  OR state = ?
+              )
+            ORDER BY operation_ordinal ASC
+            LIMIT 1
+            """,
+            (grant_run_id, ATTEMPT_RECORDED, DISPATCHED, TERMINAL),
+        ).fetchone()
+        if row is not None:
+            raise RunContinuationRefusedError(
+                f"grant_run_id {grant_run_id!r} cannot continue: "
+                f"ordinal {row['operation_ordinal']} is in state {row['state']!r}"
+            )
 
     def record_attempt(
         self,
@@ -567,14 +594,21 @@ class At1ExecutionStore:
             ),
             None,
         )
-        has_unresolved_dispatch = any(
-            attempt["state"] == DISPATCHED and attempt["response_envelope"] is None
+        has_unresolved_attempt = any(
+            attempt["state"] in (ATTEMPT_RECORDED, DISPATCHED)
             for attempt in attempts
         )
-        if has_unresolved_dispatch:
+        had_successful_or_plausible_write = any(
+            attempt["operation_id"] in {"create-note", "update-opportunity"}
+            and attempt["parse_success"] is True
+            for attempt in attempts
+        )
+        if has_unresolved_attempt:
             business_effect_truth = "UNKNOWN"
         elif terminal_failure_code is not None:
-            business_effect_truth = "NO"
+            business_effect_truth = (
+                "UNKNOWN" if had_successful_or_plausible_write else "NO"
+            )
         elif (
             business_call_count == 6
             and expected_initial_stage_verified

@@ -17,6 +17,7 @@ from integrations.ghl import (
     DuplicateBusinessOrdinalError,
     ExecutionClaimError,
     PostGrantControlPlaneCallRefusedError,
+    RunContinuationRefusedError,
 )
 from integrations.ghl.bounded_at1_executor import EXACT_OPERATION_ORDER
 
@@ -193,6 +194,7 @@ def test_b27_missing_created_note_id_blocks_op4(tmp_path: Path) -> None:
     assert result.disposition == "failed"
     assert result.failure_code == "NOTE_WRITE_RESPONSE_INVALID"
     assert result.note_write_attempts == 1
+    assert result.business_effect_truth == "UNKNOWN"
     assert "get-note" not in [call["arguments"]["operationId"] for call in session.dispatch_log]
 
 
@@ -222,6 +224,7 @@ def test_b29_wrong_note_content_preserves_partial_effect_without_stage_write(
     assert result.failure_code == "NOTE_READBACK_MISMATCH"
     assert result.note_readback_verified is False
     assert result.stage_write_attempts == 0
+    assert result.business_effect_truth == "UNKNOWN"
     assert result.stop_and_preserve_proof is True
     assert "update-opportunity" not in [
         call["arguments"]["operationId"] for call in session.dispatch_log
@@ -240,6 +243,7 @@ def test_b30_wrong_final_stage_fails_completion_and_preserves_consumed_stage_att
     assert result.stage_write_attempts == 1
     assert result.stage_writes_succeeded == 1
     assert result.final_stage_readback_verified is False
+    assert result.business_effect_truth == "UNKNOWN"
     assert result.at1_complete is False
 
 
@@ -268,7 +272,7 @@ def test_b32_second_same_process_attempt_is_refused_before_transport(
         tmp_path,
         "success",
     )
-    with pytest.raises(DuplicateBusinessOrdinalError):
+    with pytest.raises(RunContinuationRefusedError):
         second_executor.execute(_binding(), _context())
 
     assert len(session.dispatch_log) == first_attempt_call_count
@@ -382,7 +386,7 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
         grant_run_id="grant-run-crash-before-dispatch",
         owner_id="owner-1",
     )
-    with pytest.raises(DuplicateBusinessOrdinalError):
+    with pytest.raises(RunContinuationRefusedError):
         adapter_c.dispatch(envelope)
 
     store_d = At1ExecutionStore(
@@ -411,11 +415,99 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
         grant_run_id="grant-run-crash-after-dispatch",
         owner_id="owner-1",
     )
-    with pytest.raises(DuplicateBusinessOrdinalError):
+    with pytest.raises(RunContinuationRefusedError):
         adapter_d.dispatch(envelope)
     assert (
         adapter_d.public_projection()["business_effect_truth"] == "UNKNOWN"
     )
+
+
+def test_b36a_next_ordinal_refused_after_pre_dispatch_crash(tmp_path: Path) -> None:
+    """Crash after attempt record / before dispatch: OP2 must be refused before transport."""
+    db_path = tmp_path / "at1-remediation-crash-before-dispatch-next.sqlite3"
+    serializer = At1LiveTransportSerializer()
+    binding = _binding()
+    op1_envelope = serializer.build_execute_operation_call(
+        "get-contact",
+        {"location_id": binding.location_id, "contact_id": binding.contact_id},
+    )
+    op2_envelope = serializer.build_execute_operation_call(
+        "get-opportunity",
+        {
+            "location_id": binding.location_id,
+            "opportunity_id": binding.opportunity_id,
+        },
+    )
+
+    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store.acquire_claim("grant-run-crash-before-dispatch-next", "owner-1")
+    store.record_attempt(
+        grant_run_id="grant-run-crash-before-dispatch-next",
+        operation_ordinal=1,
+        operation_id="get-contact",
+        request_id="synthetic-crash-request-next-1",
+        request_envelope=op1_envelope,
+    )
+
+    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    session = ScriptedEstablishedSession(responses=[])
+    adapter = At1LiveTransportAdapter(
+        session=session,
+        store=restarted_store,
+        grant_run_id="grant-run-crash-before-dispatch-next",
+        owner_id="owner-1",
+    )
+    with pytest.raises(RunContinuationRefusedError):
+        adapter.dispatch(op2_envelope)
+    assert session.dispatch_log == []
+    projection = adapter.public_projection()
+    assert projection["business_effect_truth"] == "UNKNOWN"
+
+
+def test_b36b_next_ordinal_refused_after_unresolved_dispatch(tmp_path: Path) -> None:
+    """Crash after dispatch / before response capture: OP2 must be refused before transport."""
+    db_path = tmp_path / "at1-remediation-crash-after-dispatch-next.sqlite3"
+    serializer = At1LiveTransportSerializer()
+    binding = _binding()
+    op1_envelope = serializer.build_execute_operation_call(
+        "get-contact",
+        {"location_id": binding.location_id, "contact_id": binding.contact_id},
+    )
+    op2_envelope = serializer.build_execute_operation_call(
+        "get-opportunity",
+        {
+            "location_id": binding.location_id,
+            "opportunity_id": binding.opportunity_id,
+        },
+    )
+
+    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store.acquire_claim("grant-run-crash-after-dispatch-next", "owner-1")
+    store.record_attempt(
+        grant_run_id="grant-run-crash-after-dispatch-next",
+        operation_ordinal=1,
+        operation_id="get-contact",
+        request_id="synthetic-crash-request-next-2",
+        request_envelope=op1_envelope,
+    )
+    store.mark_dispatched(
+        grant_run_id="grant-run-crash-after-dispatch-next",
+        operation_ordinal=1,
+    )
+
+    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    session = ScriptedEstablishedSession(responses=[])
+    adapter = At1LiveTransportAdapter(
+        session=session,
+        store=restarted_store,
+        grant_run_id="grant-run-crash-after-dispatch-next",
+        owner_id="owner-1",
+    )
+    with pytest.raises(RunContinuationRefusedError):
+        adapter.dispatch(op2_envelope)
+    assert session.dispatch_log == []
+    projection = adapter.public_projection()
+    assert projection["business_effect_truth"] == "UNKNOWN"
 
 
 def test_b37_concurrent_atomic_claim_rejects_second_owner(tmp_path: Path) -> None:
