@@ -6,16 +6,16 @@ OWNER_LANE=Human GHL Space Owner + VS Code / Orchestrator
 BRANCH=impl/nw008-at1-safe-environment-readiness
 RESULT_006_SHA=84c863a1c62ed7f2d6900660e007110024096a7d
 HUMAN_FINAL_STAGE_DISPOSITION=NW008_AT1_FINAL_STAGE_HUMAN_DISPOSITION_001
-RECORDED_AT_UTC=2026-08-17T10:45:13Z
+HUMAN_FINAL_STAGE_CORRECTION=NW008_AT1_FINAL_STAGE_HUMAN_DISPOSITION_CORRECTION_001
+PRIOR_HUMAN_DISPOSITION_SHA=f2a2dbc9b3bedb161e7dc09c0ee883ce77c5bea2
+RECORDED_AT_UTC=2026-08-17T11:16:32Z
 ```
 
 ## Scope
 
 This artifact records whether the intended direct GHL execution credential
-exposes the two AT-1 write operations required by the executor contract:
-
-- `create-note`
-- `update-opportunity`
+exposes the AT-1 write operations and the human-verified MG_Guide API v2.0
+Private Integration Token (PIT) scopes required by the executor contract.
 
 Verification is **non-mutating only**. No note was created. No opportunity was
 updated. No PIT was created or rotated. No Secret Manager write and no IAM
@@ -34,6 +34,8 @@ AT1_EXECUTION_AUTHORIZED=NO
 
 ## Method
 
+### A) Operation schema / catalog (prior non-mutating MCP metadata)
+
 ```text
 CREDENTIAL_SOURCE=GCP_SECRET_MANAGER:GHL_MCP_PRIVATE_TOKEN
 GCP_PROJECT=ai-rolodex-to-crm
@@ -42,7 +44,7 @@ EXECUTION_ENDPOINT=https://services.leadconnectorhq.com/mcp/anthropic/v2
 METHOD=MCP_TOOLS_LIST_PLUS_SEARCH_AND_DESCRIBE_OPERATION_METADATA
 ```
 
-Procedure:
+Procedure (already recorded; not re-executed in this update):
 
 1. Resolve the direct GHL PIT from Secret Manager (read-only secret access).
 2. MCP `initialize` once.
@@ -52,7 +54,29 @@ Procedure:
 6. Record schema/catalog presence only. Do not call `execute_operation` for
    either write.
 
+### B) Human-verified MG_Guide PIT scope configuration (this update)
+
+```text
+SCOPE_EVIDENCE_SOURCE=HUMAN_VERIFIED_MG_GUIDE_API_V2_PRIVATE_INTEGRATION_SCOPE_CONFIGURATION
+SCOPE_VERIFICATION_METHOD=HUMAN_OWNER_CONSOLE_REVIEW_RECORDED_BY_ORCHESTRATOR
+SCOPE_NETWORK_MUTATION=NO
+```
+
+The human GHL space owner verified the MG_Guide API v2.0 Private Integration
+scope configuration and reported the following scope presence flags for the
+intended AT-1 credential surface:
+
+```text
+CONTACTS_READONLY_SCOPE_PRESENT=YES
+CONTACTS_WRITE_SCOPE_PRESENT=YES
+OPPORTUNITIES_READONLY_SCOPE_PRESENT=YES
+OPPORTUNITIES_WRITE_SCOPE_PRESENT=YES
+LOCATIONS_READONLY_SCOPE_PRESENT=YES
+```
+
 ## Results
+
+### Operation schema availability
 
 ```text
 DIRECT_GHL_SECRET_SOURCE_RESOLVED=YES
@@ -60,10 +84,10 @@ DIRECT_GHL_PIT_PRESENT=YES
 MCP_PROTOCOL_INITIALIZE_EXECUTED=YES
 INIT_HTTP=200
 
+CREATE_NOTE_OPERATION_SCHEMA_AVAILABLE=YES
+UPDATE_OPPORTUNITY_OPERATION_SCHEMA_AVAILABLE=YES
 CREATE_NOTE_WRITE_CAPABILITY_VERIFIED=YES
 UPDATE_OPPORTUNITY_WRITE_CAPABILITY_VERIFIED=YES
-
-AT1_WRITE_CREDENTIAL_READY=YES
 ```
 
 Notes:
@@ -72,39 +96,56 @@ Notes:
   path) without error.
 - `update-opportunity` describe returned a live operation schema (`PUT`
   opportunity update path) without error.
-- This proves connector/catalog write-operation availability for the current
-  PIT surface. It does **not** authorize AT-1 execution, does not prove a fresh
-  pre-execution stage read, and does not clear the human final-stage mapping
-  stop.
+- Schema presence proves connector/catalog write-operation availability for the
+  current PIT surface. It does **not** by itself authorize AT-1 execution.
+
+### Required AT-1 scope set
+
+```text
+AT1_REQUIRED_SCOPES=contacts.readonly,contacts.write,opportunities.readonly,opportunities.write
+
+CONTACTS_READONLY_SCOPE_PRESENT=YES
+CONTACTS_WRITE_SCOPE_PRESENT=YES
+OPPORTUNITIES_READONLY_SCOPE_PRESENT=YES
+OPPORTUNITIES_WRITE_SCOPE_PRESENT=YES
+LOCATIONS_READONLY_SCOPE_PRESENT=YES
+
+AT1_REQUIRED_SCOPE_SET_COMPLETE=YES
+AT1_WRITE_CREDENTIAL_SCOPE_VERIFIED=YES
+AT1_WRITE_CREDENTIAL_READY=YES
+```
 
 ## Relationship to final-stage disposition
 
 ```text
-HUMAN_FINAL_STAGE_PRIVATE_MAPPING_COMPLETE=NO
-AUTHORIZED_FINAL_STAGE_VERIFIED=NO
-READ_ONLY_ENVIRONMENT_READY=NO
-ENVIRONMENT_READY=NO
+HUMAN_FINAL_STAGE_CORRECTION=APPROVED
+CORRECTED_HUMAN_STAGE_MATCH_COUNT=1
+PRIVATE_FINAL_STAGE_ID_BOUND=YES
+AUTHORIZED_FINAL_STAGE_VERIFIED=YES
+AT1_WRITE_OPERATION_SCHEMA_READY=YES
+AT1_WRITE_CREDENTIAL_SCOPE_VERIFIED=YES
+AT1_WRITE_CREDENTIAL_READY=YES
 AT1_EXECUTION_AUTHORIZED=NO
 AT1_COMPLETE=NO
 ```
 
-Even with `AT1_WRITE_CREDENTIAL_READY=YES`, AT-1 remains blocked until the
-human final-stage private mapping is uniquely resolved and a separate
-environment-readiness / execution authorization gate is granted.
+Write-credential readiness is complete. AT-1 mutation execution remains
+**not** authorized by this artifact.
 
 ## Decision
 
 ```text
-IF CREATE_NOTE_WRITE_CAPABILITY_VERIFIED=YES
-AND UPDATE_OPPORTUNITY_WRITE_CAPABILITY_VERIFIED=YES:
+IF CREATE_NOTE_OPERATION_SCHEMA_AVAILABLE=YES
+AND UPDATE_OPPORTUNITY_OPERATION_SCHEMA_AVAILABLE=YES
+AND AT1_REQUIRED_SCOPE_SET_COMPLETE=YES:
+  AT1_WRITE_CREDENTIAL_SCOPE_VERIFIED=YES
   AT1_WRITE_CREDENTIAL_READY=YES
-  NEXT=FINAL_ENVIRONMENT_READINESS_REVIEW
+  NEXT=TRACK_A_ENVIRONMENT_READY_CLOSEOUT
   AT1_EXECUTION_AUTHORIZED=NO
 ```
 
-Observed path matches the both-YES branch for credential readiness only.
-Final environment readiness remains blocked by the human final-stage mapping
-stop (`NW008_HUMAN_FINAL_STAGE_PRIVATE_MAPPING_NOT_UNIQUE`).
+Observed path matches the ready branch for credential scope + schema only.
+No write was executed.
 
 ## Explicit non-actions
 
@@ -120,20 +161,22 @@ DID_NOT_WRITE_SECRET_MANAGER=YES
 DID_NOT_MODIFY_IAM=YES
 DID_NOT_EXPAND_SCOPES=YES
 DID_NOT_AUTHORIZE_AT1_EXECUTION=YES
-DID_NOT_CLAIM_ENVIRONMENT_READY=YES
+DID_NOT_PERFORM_CRM_MUTATION=YES
 ```
 
 ## STOP
 
 ```text
-STOP_CODE=NW008_AT1_WRITE_CREDENTIAL_READINESS_RECORDED
-CREATE_NOTE_WRITE_CAPABILITY_VERIFIED=YES
-UPDATE_OPPORTUNITY_WRITE_CAPABILITY_VERIFIED=YES
+STOP_CODE=NW008_AT1_WRITE_CREDENTIAL_READINESS_SCOPE_VERIFIED
+CREATE_NOTE_OPERATION_SCHEMA_AVAILABLE=YES
+UPDATE_OPPORTUNITY_OPERATION_SCHEMA_AVAILABLE=YES
+CONTACTS_WRITE_SCOPE_PRESENT=YES
+OPPORTUNITIES_WRITE_SCOPE_PRESENT=YES
+AT1_REQUIRED_SCOPE_SET_COMPLETE=YES
+AT1_WRITE_CREDENTIAL_SCOPE_VERIFIED=YES
 AT1_WRITE_CREDENTIAL_READY=YES
 MUTATION_CALLS_EXECUTED=0
-ENVIRONMENT_READY=NO
 AT1_EXECUTION_AUTHORIZED=NO
 AT1_COMPLETE=NO
-NEXT=FINAL_ENVIRONMENT_READINESS_REVIEW
-BLOCKER=HUMAN_FINAL_STAGE_PRIVATE_MAPPING_NOT_UNIQUE
+NEXT=TRACK_A_ENVIRONMENT_READY_CLOSEOUT
 ```
