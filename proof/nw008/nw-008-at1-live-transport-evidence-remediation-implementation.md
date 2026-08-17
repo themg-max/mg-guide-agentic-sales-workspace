@@ -14,6 +14,13 @@ EXISTING_B1_B23=PASS
 GHL_TEST_SUITE=PASS
 FULL_DETERMINISTIC_SUITE=PASS
 
+PYTHON_39_COMPATIBILITY_VERIFIED=YES
+
+CI_COMPATIBILITY_DEFECT_FOUND=YES
+CI_COMPATIBILITY_DEFECT_CLASS=PYTHON_39_ZIP_STRICT_UNSUPPORTED
+CI_COMPATIBILITY_DEFECT_RUNTIME_IMPACT=NONE
+CI_COMPATIBILITY_REPAIR_TEST_ONLY=YES
+
 NETWORK_CALLS_EXECUTED=0
 GHL_CALLS_EXECUTED=0
 MCP_INITIALIZE_CALLS_EXECUTED=0
@@ -53,3 +60,38 @@ git diff --check
 
 Synthetic test completion does not alter historical project truth:
 `GRANT_008_STATE=CONSUMED` and `AT1_COMPLETE=NO`.
+
+## CI compatibility repair
+
+A Python 3.9 compatibility defect was identified in
+`tests/integrations/ghl/test_at1_live_transport_remediation.py` after the
+initial implementation validation:
+
+- `zip(..., strict=True)` is only available in Python 3.10+ and caused
+  `test_b24_exact_serializer_contract` to fail on CI under Python 3.9 with
+  `TypeError: zip() takes no keyword arguments`.
+- The repair replaced the strict zip with an explicit cardinality assertion
+  (`assert len(private_attempts) == len(expected)`) followed by a plain
+  `zip(private_attempts, expected)`. The exact cardinality and order validation
+  is preserved; no runtime code was changed.
+
+## Validation run (Python 3.9)
+
+```text
+PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl/test_at1_live_transport_remediation.py
+PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl/test_bounded_at1_executor.py
+PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl
+PYTHONPATH=src python3.9 scripts/verify_phase1_deterministic.py
+PYTHONPATH=src python3.9 -m pytest -q
+git diff --check
+```
+
+Results:
+
+```text
+B24_B38=PASS
+EXISTING_B1_B23=PASS
+GHL_TEST_SUITE=PASS
+FULL_DETERMINISTIC_SUITE=PASS
+PYTHON_39_COMPATIBILITY_VERIFIED=YES
+```

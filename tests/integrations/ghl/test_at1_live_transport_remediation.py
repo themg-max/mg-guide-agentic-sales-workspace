@@ -140,7 +140,8 @@ def test_b24_exact_serializer_contract(tmp_path: Path) -> None:
         ),
     ]
 
-    for attempt, expected_envelope in zip(private_attempts, expected, strict=True):
+    assert len(private_attempts) == len(expected)
+    for attempt, expected_envelope in zip(private_attempts, expected):
         assert attempt["request_envelope"] == expected_envelope
         serialized = json.dumps(attempt["request_envelope"], sort_keys=True)
         for forbidden_alias in (
