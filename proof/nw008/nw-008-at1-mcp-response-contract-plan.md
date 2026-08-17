@@ -61,39 +61,96 @@ wire-schema authority:
 ## 3. Composite authority decision
 
 The response contract has three authority layers. All three must be frozen at
-compatible versions before live readiness can pass.
+compatible versions before live readiness can pass. Protocol and schema
+selection are planning-time only. Runtime must bind to one pre-frozen composite
+contract; it must not discover, negotiate, or switch schemas.
 
 | Layer | Required authority | Identified now | Version/revision frozen now | Decision |
 | --- | --- | --- | --- | --- |
-| JSON-RPC response | Official JSON-RPC 2.0 specification, especially Response Object and Error Object | Yes | Protocol version `2.0`; no immutable repository snapshot captured by this planning unit | Standards layer identified, snapshot still required |
-| MCP tool result | Official Model Context Protocol schema and tools specification matching the established session's negotiated `protocolVersion` | Candidate authority identified | No negotiated protocol version, schema revision, or digest is available under this unit's authority | Not frozen |
+| JSON-RPC response | Official JSON-RPC 2.0 specification, especially Response Object and Error Object | Yes | Protocol version `2.0`; no immutable repository snapshot captured by this planning unit | Locator identified; snapshot still required |
+| MCP tool result | Official Model Context Protocol tools/result schema for one planning-selected supported protocol version | Locator yes | Supported protocol version not selected; schema revision/digest not captured | Locator identified; tool-result schema not frozen |
 | HighLevel `execute_operation` result | Official HighLevel MCP provider schema or provider-owned source revision defining the exact wrapper and content encoding | No | No | Blocking gap |
 
-Locator citations for later authorized source capture:
+### 3.1 Supported MCP protocol version selection (no dynamic runtime selection)
+
+The repository must freeze exactly one supported MCP protocol version before any
+parser or live-session implementation binds to MCP result shapes. Pre-grant
+session establishment may only accept a negotiated protocol version that equals
+that frozen supported version. A negotiated mismatch is terminal fail-closed.
+Runtime schema selection, multi-version decode tables, and post-grant schema
+discovery are forbidden.
+
+```text
+SUPPORTED_MCP_PROTOCOL_VERSION_SELECTION_REQUIRED=YES
+PRE_GRANT_NEGOTIATED_VERSION_MUST_EQUAL_SUPPORTED_VERSION=YES
+RUNTIME_SCHEMA_SELECTION_ALLOWED=NO
+POST_GRANT_SCHEMA_DISCOVERY_ALLOWED=NO
+SUPPORTED_MCP_PROTOCOL_VERSION=NOT_SELECTED
+```
+
+Locator citations for later authorized source capture (locators only; not
+retrieval evidence and not a selected version):
 
 - JSON-RPC 2.0: <https://www.jsonrpc.org/specification>
 - MCP specification index: <https://modelcontextprotocol.io/specification/>
-- MCP tools result: <https://modelcontextprotocol.io/specification/2025-06-18/server/tools>
+- MCP tools result candidate page:
+  <https://modelcontextprotocol.io/specification/2025-06-18/server/tools>
 - MCP authoritative schema repository:
   <https://github.com/modelcontextprotocol/specification/tree/main/schema>
 
-These URLs are source locators, not evidence of remote retrieval in this unit.
-The dated MCP URL is a known candidate, not the selected version. A later
-contract implementation unit must select the version that exactly matches the
-pre-grant established session's negotiated protocol version and must capture an
-immutable upstream revision and digest.
+The dated MCP URL is a known candidate locator only. It is not the supported
+protocol version and must not be treated as selected until a later source-capture
+unit freezes an exact version, upstream revision, and digest.
+
+### 3.2 Provider-authority hierarchy
+
+Provider authority is ranked and exclusive. Lower ranks may be used only when
+higher ranks are unavailable and only under the stated conditions.
+
+| Rank | Path | Status in this plan | Rule |
+| --- | --- | --- | --- |
+| 1 | Official static HighLevel documentation or provider-owned schema artifact for `execute_operation` | Preferred; availability unknown | `HIGHLEVEL_PROVIDER_AUTHORITY_PATH_STATIC_DOC=ALLOWED` |
+| 2 | Separately authorized pre-grant advertised tool/output schema, only if the frozen supported MCP version defines such advertisement and the exact schema is captured, version-bound, and digest-bound before grant activation | Conditional fallback | `HIGHLEVEL_PROVIDER_AUTHORITY_PATH_PREGRANT_ADVERTISED_SCHEMA=CONDITIONALLY_ALLOWED_IF_MCP_SPEC_SUPPORTS_AND_SCHEMA_IS_CAPTURED_BOUND` |
+| Forbidden | Sample responses, synthetic fixtures, parser behavior, tests, one-time live observations, screenshots, or undocumented dumps | Forbidden as authority | `SAMPLE_RESPONSE_AS_SCHEMA_AUTHORITY=NO` |
 
 No allowed repository evidence identifies whether HighLevel emits its wrapper
 in `structuredContent`, in the JSON text of a typed `content` block, or in
 another provider-versioned representation. The synthetic fixture's direct,
 untyped object at `result.content[0]` cannot establish provider authority.
 
+### 3.3 Validation separation
+
+Generic HighLevel provider-wrapper validation is separate from
+operation-specific payload validation. The composite contract must freeze both:
+
+1. the provider wrapper (`operationId`, `success`, `status`, `payload` container,
+   and the exact encoding location); and
+2. the six AT-1 operation payload schemas (`get-contact`, `get-opportunity`,
+   `create-note`, `get-note`, `update-opportunity`, and the second
+   `get-opportunity` ordinal under the same operation payload schema).
+
+A response may not be treated as business-success unless both layers pass.
+Wrapper success does not authorize skipping operation payload schema checks.
+
 ```text
-JSONRPC_AUTHORITY_IDENTIFIED=YES
-JSONRPC_PROTOCOL_VERSION_IDENTIFIED=2.0
-MCP_BASE_AUTHORITY_IDENTIFIED=YES
-MCP_NEGOTIATED_PROTOCOL_VERSION_IDENTIFIED=NO
-HIGHLEVEL_EXECUTE_OPERATION_AUTHORITY_IDENTIFIED=NO
+GENERIC_PROVIDER_WRAPPER_VALIDATION_SEPARATE_FROM_OPERATION_PAYLOAD_VALIDATION=YES
+```
+
+### 3.4 Authority freeze status
+
+```text
+JSONRPC_AUTHORITY_LOCATOR_IDENTIFIED=YES
+JSONRPC_AUTHORITY_SNAPSHOT_FROZEN=NO
+
+MCP_AUTHORITY_LOCATOR_IDENTIFIED=YES
+MCP_TOOL_RESULT_SCHEMA_FROZEN=NO
+
+HIGHLEVEL_AUTHORITY_LOCATOR_IDENTIFIED=NO
+HIGHLEVEL_PROVIDER_CONTRACT_FROZEN=NO
+
+HIGHLEVEL_PROVIDER_AUTHORITY_PATH_STATIC_DOC=ALLOWED
+HIGHLEVEL_PROVIDER_AUTHORITY_PATH_PREGRANT_ADVERTISED_SCHEMA=CONDITIONALLY_ALLOWED_IF_MCP_SPEC_SUPPORTS_AND_SCHEMA_IS_CAPTURED_BOUND
+SAMPLE_RESPONSE_AS_SCHEMA_AUTHORITY=NO
 
 MCP_RESPONSE_SCHEMA_AUTHORITY_IDENTIFIED=NO
 MCP_RESPONSE_SCHEMA_VERSION_FROZEN=NO
@@ -123,28 +180,42 @@ capture; it is not a live authorization.
 
 ### 4.1 Version-freeze record required before implementation
 
-The later contract implementation PR must add a versioned repository contract
-and record all of:
+A later source-capture planning unit, then a separately authorized contract
+implementation unit, must freeze and record all of:
 
 ```text
-NEGOTIATED_MCP_PROTOCOL_VERSION=<exact value>
-MCP_SCHEMA_UPSTREAM_REPOSITORY=<official repository>
-MCP_SCHEMA_UPSTREAM_REVISION=<immutable commit or release>
-MCP_SCHEMA_FILE_SHA256=<digest>
+SUPPORTED_MCP_PROTOCOL_VERSION=<exact value selected at planning time>
+PRE_GRANT_NEGOTIATED_VERSION_MUST_EQUAL_SUPPORTED_VERSION=YES
+RUNTIME_SCHEMA_SELECTION_ALLOWED=NO
+POST_GRANT_SCHEMA_DISCOVERY_ALLOWED=NO
 
-HIGHLEVEL_SCHEMA_AUTHORITY=<official provider artifact>
+JSONRPC_AUTHORITY_SNAPSHOT_REVISION=<immutable source/revision>
+JSONRPC_AUTHORITY_SNAPSHOT_SHA256=<digest>
+
+MCP_SCHEMA_UPSTREAM_REPOSITORY=<official repository>
+MCP_SCHEMA_UPSTREAM_REVISION=<immutable commit or release matching supported version>
+MCP_SCHEMA_FILE_SHA256=<digest>
+MCP_TOOL_RESULT_SCHEMA_FROZEN=YES
+
+HIGHLEVEL_PROVIDER_AUTHORITY_PATH=<STATIC_DOC|PREGRANT_ADVERTISED>
+HIGHLEVEL_SCHEMA_AUTHORITY=<official provider artifact or captured advertisement>
 HIGHLEVEL_SCHEMA_VERSION=<exact provider version>
 HIGHLEVEL_SCHEMA_REVISION=<immutable revision where available>
 HIGHLEVEL_SCHEMA_SHA256=<digest of captured source>
+HIGHLEVEL_PROVIDER_CONTRACT_FROZEN=YES
+
+GENERIC_PROVIDER_WRAPPER_VALIDATION_SEPARATE_FROM_OPERATION_PAYLOAD_VALIDATION=YES
+OPERATION_PAYLOAD_SCHEMAS_FROZEN=YES
 
 COMPOSITE_CONTRACT_VERSION=<repository contract version>
 COMPOSITE_CONTRACT_SHA256=<digest>
 ```
 
-If an official HighLevel artifact has no immutable version or digest, the
-contract remains unfrozen. A screenshot, synthetic response, fixture, parser,
-test expectation, undocumented sample, or one-time live observation is not
-authority.
+If an official HighLevel artifact has no immutable version or digest, and the
+conditional pre-grant advertisement path is not both MCP-supported and
+captured/bound, the contract remains unfrozen. A screenshot, synthetic
+response, fixture, parser, test expectation, undocumented sample, or one-time
+live observation is not authority (`SAMPLE_RESPONSE_AS_SCHEMA_AUTHORITY=NO`).
 
 ## 5. Unsupported variants and fail-closed policy
 
@@ -246,22 +317,48 @@ CURRENT_ADAPTER_CONFORMS=NO
 CONTRACT_IMPLEMENTATION_CHANGE_REQUIRED=YES
 ```
 
-## 7. Follow-on implementation gate
+## 7. Follow-on gates
 
-No implementation may begin from this plan alone. A separately authorized
-contract implementation unit must:
+No implementation may begin from this plan alone.
 
-1. obtain the negotiated MCP protocol version through an authorized pre-grant
-   session-establishment process, not by a post-grant initialize or probe;
-2. capture the matching official MCP schema at an immutable revision;
-3. obtain official, provider-owned HighLevel `execute_operation` output schema
-   evidence without private binding or secret disclosure;
-4. freeze the composite schema and digests in the repository;
+### 7.1 Source-capture planning unit (next, after this plan merges)
+
+After this plan is reviewed and merged, a separate planning-only unit
+`NW008_AT1_MCP_RESPONSE_SOURCE_CAPTURE_001` must answer, without runtime
+mutation:
+
+1. what immutable JSON-RPC 2.0 source/revision is captured;
+2. what single supported MCP protocol version the reviewed runtime will accept;
+3. what immutable MCP tools/schema revision corresponds to that version;
+4. whether that version defines an advertised tool/output schema usable under
+   the conditional HighLevel authority path;
+5. whether an official static HighLevel `execute_operation` schema is available;
+6. if not, whether a future separately authorized pre-grant tools/schema
+   advertisement can satisfy provider authority under section 3.2;
+7. what exact wrapper fields are provider-defined;
+8. what exact operation payload schemas apply to each of the six AT-1 ops; and
+9. what composite contract version/digest will bind these layers.
+
+That unit still executes zero GHL/MCP/network calls unless a later explicit
+authority grants a different scope. This plan does not authorize that capture.
+
+### 7.2 Contract implementation unit (only after freeze)
+
+A separately authorized contract implementation unit may begin only after
+source capture freezes the composite contract. It must:
+
+1. bind exclusively to the frozen supported MCP protocol version and captured
+   schema digests;
+2. refuse any pre-grant negotiated protocol version that does not equal the
+   supported version;
+3. implement no runtime schema selection and no post-grant schema discovery;
+4. validate the generic provider wrapper separately from each operation payload
+   schema;
 5. update parser, fixtures, and tests in an implementation-class PR;
 6. add negative tests for every unsupported variant in section 5; and
 7. prove exact parser/schema conformance with deterministic offline tests.
 
-Until all items pass:
+Until all freeze and implementation gates pass:
 
 ```text
 AT1_LIVE_READINESS=FAIL
@@ -294,6 +391,26 @@ create a repair lane or reopen runtime scope.
 ## 9. Decision
 
 ```text
+SUPPORTED_MCP_PROTOCOL_VERSION_SELECTION_REQUIRED=YES
+PRE_GRANT_NEGOTIATED_VERSION_MUST_EQUAL_SUPPORTED_VERSION=YES
+RUNTIME_SCHEMA_SELECTION_ALLOWED=NO
+POST_GRANT_SCHEMA_DISCOVERY_ALLOWED=NO
+
+JSONRPC_AUTHORITY_LOCATOR_IDENTIFIED=YES
+JSONRPC_AUTHORITY_SNAPSHOT_FROZEN=NO
+
+MCP_AUTHORITY_LOCATOR_IDENTIFIED=YES
+MCP_TOOL_RESULT_SCHEMA_FROZEN=NO
+
+HIGHLEVEL_AUTHORITY_LOCATOR_IDENTIFIED=NO
+HIGHLEVEL_PROVIDER_CONTRACT_FROZEN=NO
+
+HIGHLEVEL_PROVIDER_AUTHORITY_PATH_STATIC_DOC=ALLOWED
+HIGHLEVEL_PROVIDER_AUTHORITY_PATH_PREGRANT_ADVERTISED_SCHEMA=CONDITIONALLY_ALLOWED_IF_MCP_SPEC_SUPPORTS_AND_SCHEMA_IS_CAPTURED_BOUND
+SAMPLE_RESPONSE_AS_SCHEMA_AUTHORITY=NO
+
+GENERIC_PROVIDER_WRAPPER_VALIDATION_SEPARATE_FROM_OPERATION_PAYLOAD_VALIDATION=YES
+
 MCP_RESPONSE_SCHEMA_AUTHORITY_IDENTIFIED=NO
 MCP_RESPONSE_SCHEMA_VERSION_FROZEN=NO
 
