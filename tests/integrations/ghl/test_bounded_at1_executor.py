@@ -8,9 +8,12 @@ from typing import Any, Callable
 import pytest
 
 from integrations.ghl import (
+    At1ExecutionContext,
+    At1LiveTransportSerializer,
     BoundedAt1GhlExecutor,
     BoundedAt1Input,
     DeterministicGhlFixtureTransport,
+    IdempotencyKeyError,
     InputContractError,
     TerminalStateError,
     UnexpectedOperationError,
@@ -23,8 +26,19 @@ FIXTURE_PATH = Path(__file__).resolve().parents[3] / "fixtures" / "ghl" / "at1-b
 FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 
 
+NOTE_IDEMPOTENCY_KEY = "private-note-key-at1-nw008"
+STAGE_IDEMPOTENCY_KEY = "private-stage-key-at1-nw008"
+
+
 def _binding() -> BoundedAt1Input:
     return BoundedAt1Input.from_mapping(FIXTURE["binding"])
+
+
+def _context() -> At1ExecutionContext:
+    return At1ExecutionContext(
+        note_idempotency_key=NOTE_IDEMPOTENCY_KEY,
+        stage_idempotency_key=STAGE_IDEMPOTENCY_KEY,
+    )
 
 
 def _executor(case_id: str) -> tuple[BoundedAt1GhlExecutor, DeterministicGhlFixtureTransport]:
@@ -35,7 +49,7 @@ def _executor(case_id: str) -> tuple[BoundedAt1GhlExecutor, DeterministicGhlFixt
 def test_b1_success_uses_exact_order_and_independent_counters() -> None:
     executor, transport = _executor("success")
 
-    result = executor.execute(_binding())
+    result = executor.execute(_binding(), _context())
 
     transport.assert_exhausted()
     assert result.disposition == "completed"
@@ -74,7 +88,7 @@ def test_b2_through_b7_fail_closed(
 ) -> None:
     executor, transport = _executor(case_id)
 
-    result = executor.execute(_binding())
+    result = executor.execute(_binding(), _context())
 
     transport.assert_exhausted()
     assert result.disposition == "failed"
@@ -112,17 +126,25 @@ def test_b11_unexpected_operation_is_refused_by_fixture_transport() -> None:
     _, transport = _executor("unexpected_operation")
 
     with pytest.raises(UnexpectedOperationError, match="outside the bounded"):
-        transport.dispatch("search-contacts-advanced", {})
+        transport.dispatch(
+            {
+                "tool": "execute_operation",
+                "arguments": {
+                    "operationId": "search-contacts-advanced",
+                    "params": {"path": {}, "query": {}, "body": {}},
+                },
+            }
+        )
 
     assert transport.calls == []
 
 
 def test_b12_terminal_failure_prevents_any_further_transport_call() -> None:
     executor, transport = _executor("note_write_rejected")
-    result = executor.execute(_binding())
+    result = executor.execute(_binding(), _context())
 
     with pytest.raises(TerminalStateError, match="not authorized"):
-        executor._dispatch("get-contact", {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"})
+        executor._dispatch_read("get-contact", {"location_id": "synthetic-location-at1", "contact_id": "synthetic-contact-at1"})
 
     assert result.further_transport_calls_authorized is False
     assert [operation for operation, _ in transport.calls] == [
@@ -158,7 +180,7 @@ def test_malformed_or_broadened_fixture_policy_is_refused_before_transport(
 def test_b13_initial_stage_mismatch_stops_before_write_attempts() -> None:
     executor, transport = _executor("initial_stage_mismatch")
 
-    result = executor.execute(_binding())
+    result = executor.execute(_binding(), _context())
 
     transport.assert_exhausted()
     assert result.disposition == "failed"
@@ -172,7 +194,7 @@ def test_b13_initial_stage_mismatch_stops_before_write_attempts() -> None:
 def test_b14_note_write_response_invalid_preserves_consumed_write_budget() -> None:
     executor, transport = _executor("note_write_response_invalid")
 
-    result = executor.execute(_binding())
+    result = executor.execute(_binding(), _context())
 
     transport.assert_exhausted()
     assert result.disposition == "failed"
@@ -182,3 +204,138 @@ def test_b14_note_write_response_invalid_preserves_consumed_write_budget() -> No
     assert result.stage_write_attempts == 0
     assert result.further_transport_calls_authorized is False
     assert len(transport.calls) == 3
+
+
+def test_b15_create_note_envelope_includes_idempotency_key() -> None:
+    executor, transport = _executor("success")
+
+    executor.execute(_binding(), _context())
+
+    create_note_envelope = next(
+        envelope
+        for envelope in transport.envelopes
+        if envelope["arguments"]["operationId"] == "create-note"
+    )
+    assert "idempotencyKey" in create_note_envelope["arguments"]
+    assert isinstance(create_note_envelope["arguments"]["idempotencyKey"], str)
+    assert create_note_envelope["arguments"]["idempotencyKey"]
+    assert (
+        create_note_envelope["arguments"]["idempotencyKey"]
+        == NOTE_IDEMPOTENCY_KEY
+    )
+
+
+def test_b16_update_opportunity_envelope_includes_idempotency_key() -> None:
+    executor, transport = _executor("success")
+
+    executor.execute(_binding(), _context())
+
+    update_envelope = next(
+        envelope
+        for envelope in transport.envelopes
+        if envelope["arguments"]["operationId"] == "update-opportunity"
+    )
+    assert "idempotencyKey" in update_envelope["arguments"]
+    assert isinstance(update_envelope["arguments"]["idempotencyKey"], str)
+    assert update_envelope["arguments"]["idempotencyKey"]
+    assert (
+        update_envelope["arguments"]["idempotencyKey"]
+        == STAGE_IDEMPOTENCY_KEY
+    )
+
+
+def test_b17_note_and_stage_idempotency_keys_are_distinct() -> None:
+    with pytest.raises(IdempotencyKeyError, match="distinct"):
+        At1ExecutionContext(
+            note_idempotency_key="same-key",
+            stage_idempotency_key="same-key",
+        )
+
+
+def test_b18_create_note_missing_idempotency_key_refuses_before_transport() -> None:
+    executor, transport = _executor("success")
+    context = At1ExecutionContext(
+        note_idempotency_key="",
+        stage_idempotency_key=STAGE_IDEMPOTENCY_KEY,
+    )
+
+    with pytest.raises(IdempotencyKeyError, match="private non-empty"):
+        executor.execute(_binding(), context)
+
+    write_calls = [op for op, _ in transport.calls if op == "create-note"]
+    write_envelopes = [
+        envelope
+        for envelope in transport.envelopes
+        if envelope["arguments"]["operationId"] == "create-note"
+    ]
+    assert write_calls == []
+    assert write_envelopes == []
+
+
+def test_b19_update_opportunity_missing_idempotency_key_refuses_before_transport() -> None:
+    executor, transport = _executor("success")
+    context = At1ExecutionContext(
+        note_idempotency_key=NOTE_IDEMPOTENCY_KEY,
+        stage_idempotency_key="   ",
+    )
+
+    with pytest.raises(IdempotencyKeyError, match="private non-empty"):
+        executor.execute(_binding(), context)
+
+    update_calls = [op for op, _ in transport.calls if op == "update-opportunity"]
+    update_envelopes = [
+        envelope
+        for envelope in transport.envelopes
+        if envelope["arguments"]["operationId"] == "update-opportunity"
+    ]
+    assert update_calls == []
+    assert update_envelopes == []
+
+
+def test_b20_read_envelopes_do_not_require_idempotency_keys() -> None:
+    serializer = At1LiveTransportSerializer()
+
+    get_contact = serializer.build_execute_operation_envelope(
+        "get-contact", {"location_id": "L", "contact_id": "C"}
+    )
+    get_opportunity = serializer.build_execute_operation_envelope(
+        "get-opportunity", {"location_id": "L", "opportunity_id": "O"}
+    )
+    get_note = serializer.build_execute_operation_envelope(
+        "get-note", {"location_id": "L", "contact_id": "C", "note_id": "N"}
+    )
+
+    for envelope in (get_contact, get_opportunity, get_note):
+        assert "idempotencyKey" not in envelope["arguments"]
+        assert envelope["arguments"]["operationId"] in {
+            "get-contact",
+            "get-opportunity",
+            "get-note",
+        }
+
+
+def test_b21_serializer_refuses_unbounded_operations() -> None:
+    serializer = At1LiveTransportSerializer()
+
+    with pytest.raises(ValueError, match="outside the bounded"):
+        serializer.build_execute_operation_envelope(
+            "delete-opportunity", {}, _context()
+        )
+
+
+def test_b22_write_attempt_budgets_and_no_retry_semantics_unchanged() -> None:
+    executor, transport = _executor("success")
+
+    result = executor.execute(_binding(), _context())
+
+    assert result.note_write_attempts == 1
+    assert result.stage_write_attempts == 1
+    assert len(transport.calls) == 6
+    assert [operation for operation, _ in transport.calls] == [
+        "get-contact",
+        "get-opportunity",
+        "create-note",
+        "get-note",
+        "update-opportunity",
+        "get-opportunity",
+    ]

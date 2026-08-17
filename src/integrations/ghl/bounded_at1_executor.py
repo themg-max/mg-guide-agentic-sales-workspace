@@ -5,6 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Protocol, Sequence
 
+from integrations.ghl.at1_live_transport_serializer import (
+    At1ExecutionContext,
+    At1LiveTransportSerializer,
+    IdempotencyKeyError,
+)
+
 
 PIPELINE_METADATA_RUNTIME_READ_REQUIRED = "NO"
 NETWORK_ENABLED = "NO"
@@ -101,10 +107,8 @@ class FixtureResponse:
 class GhlFixtureTransport(Protocol):
     """Transport seam deliberately limited to pre-authored fixture responses."""
 
-    def dispatch(
-        self, operation_id: str, arguments: Mapping[str, str]
-    ) -> FixtureResponse:
-        """Return one deterministic response for an allowed exact-ID operation."""
+    def dispatch(self, envelope: Mapping[str, Any]) -> FixtureResponse:
+        """Return one deterministic response for an allowed exact-ID envelope."""
 
 
 class DeterministicGhlFixtureTransport:
@@ -123,6 +127,7 @@ class DeterministicGhlFixtureTransport:
             raise FixturePolicyError(f"fixture case {case_id!r} calls must be objects")
         self._calls = [dict(call) for call in calls]
         self.calls: list[tuple[str, dict[str, str]]] = []
+        self.envelopes: list[dict[str, Any]] = []
 
     @staticmethod
     def _validate_fixture_policy(fixture: Mapping[str, Any]) -> None:
@@ -150,9 +155,14 @@ class DeterministicGhlFixtureTransport:
         if not isinstance(fixture["cases"], Mapping):
             raise FixturePolicyError("fixture cases must be an object")
 
-    def dispatch(
-        self, operation_id: str, arguments: Mapping[str, str]
-    ) -> FixtureResponse:
+    def dispatch(self, envelope: Mapping[str, Any]) -> FixtureResponse:
+        if not isinstance(envelope, Mapping):
+            raise UnexpectedOperationError("transport envelope must be an object")
+        arguments_map = dict(envelope.get("arguments", {}))
+        operation_id = arguments_map.get("operationId")
+        params = dict(arguments_map.get("params", {}))
+        body = dict(params.get("body", {}))
+
         if operation_id not in _ALLOWED_OPERATIONS:
             raise UnexpectedOperationError(
                 f"{operation_id} is outside the bounded AT-1 operation surface"
@@ -168,13 +178,14 @@ class DeterministicGhlFixtureTransport:
                 f"fixture expected {expected.get('operation_id')!r}, got {operation_id!r}"
             )
         expected_arguments = expected.get("arguments", {})
-        if expected_arguments != dict(arguments):
+        if expected_arguments != body:
             raise UnexpectedOperationError(
                 f"fixture arguments differ for {operation_id}: "
-                f"expected {expected_arguments!r}, got {dict(arguments)!r}"
+                f"expected {expected_arguments!r}, got {body!r}"
             )
 
-        self.calls.append((operation_id, dict(arguments)))
+        self.calls.append((operation_id, body))
+        self.envelopes.append(dict(envelope))
         return FixtureResponse(
             status=str(expected.get("response", {}).get("status", "error")),
             record=dict(expected.get("response", {}).get("record", {})),
@@ -206,8 +217,13 @@ class BoundedAt1Result:
 class BoundedAt1GhlExecutor:
     """Runs only the prescribed AT-1 sequence against a deterministic fixture seam."""
 
-    def __init__(self, transport: GhlFixtureTransport) -> None:
+    def __init__(
+        self,
+        transport: GhlFixtureTransport,
+        serializer: At1LiveTransportSerializer | None = None,
+    ) -> None:
         self._transport = transport
+        self._serializer = serializer or At1LiveTransportSerializer()
         self._operations: list[str] = []
         self._write_attempts = {"note": 0, "stage": 0}
         self._writes_succeeded = {"note": 0, "stage": 0}
@@ -215,15 +231,17 @@ class BoundedAt1GhlExecutor:
         self._note_readback_verified = False
         self._stage_readback_verified = False
 
-    def execute(self, binding: BoundedAt1Input) -> BoundedAt1Result:
+    def execute(
+        self, binding: BoundedAt1Input, context: At1ExecutionContext
+    ) -> BoundedAt1Result:
         """Execute once in model order; every failure is terminal and non-retrying."""
-        contact = self._dispatch(
+        contact = self._dispatch_read(
             "get-contact", {"location_id": binding.location_id, "contact_id": binding.contact_id}
         )
         if contact.status != "ok":
             return self._fail("CONTACT_NOT_FOUND")
 
-        opportunity = self._dispatch(
+        opportunity = self._dispatch_read(
             "get-opportunity",
             {
                 "location_id": binding.location_id,
@@ -235,14 +253,14 @@ class BoundedAt1GhlExecutor:
         if opportunity.record.get("stage_id") != binding.expected_initial_stage_id:
             return self._fail("INITIAL_STAGE_MISMATCH")
 
-        self._consume_write_attempt("note")
-        created_note = self._dispatch(
+        created_note = self._dispatch_write(
             "create-note",
             {
                 "location_id": binding.location_id,
                 "contact_id": binding.contact_id,
                 "content_or_fingerprint": binding.expected_note_content_or_fingerprint,
             },
+            context,
         )
         if created_note.status != "ok":
             return self._fail("NOTE_WRITE_REJECTED")
@@ -251,7 +269,7 @@ class BoundedAt1GhlExecutor:
         if not isinstance(note_id, str) or not note_id:
             return self._fail("NOTE_WRITE_RESPONSE_INVALID")
 
-        note = self._dispatch(
+        note = self._dispatch_read(
             "get-note",
             {
                 "location_id": binding.location_id,
@@ -266,20 +284,20 @@ class BoundedAt1GhlExecutor:
             return self._fail("NOTE_READBACK_MISMATCH", preserve_proof=True)
         self._note_readback_verified = True
 
-        self._consume_write_attempt("stage")
-        updated_opportunity = self._dispatch(
+        updated_opportunity = self._dispatch_write(
             "update-opportunity",
             {
                 "location_id": binding.location_id,
                 "opportunity_id": binding.opportunity_id,
                 "stage_id": binding.authorized_final_stage_id,
             },
+            context,
         )
         if updated_opportunity.status != "ok":
             return self._fail("STAGE_WRITE_REJECTED")
         self._record_write_success("stage")
 
-        readback_opportunity = self._dispatch(
+        readback_opportunity = self._dispatch_read(
             "get-opportunity",
             {
                 "location_id": binding.location_id,
@@ -295,17 +313,35 @@ class BoundedAt1GhlExecutor:
         self._stage_readback_verified = True
         return self._result(disposition="completed")
 
-    def _dispatch(
+    def _dispatch_read(
         self, operation_id: str, arguments: Mapping[str, str]
     ) -> FixtureResponse:
         if self._terminal:
             raise TerminalStateError("further transport calls are not authorized")
-        if operation_id not in _ALLOWED_OPERATIONS:
-            raise UnexpectedOperationError(
-                f"{operation_id} is outside the bounded AT-1 operation surface"
-            )
         self._operations.append(operation_id)
-        return self._transport.dispatch(operation_id, arguments)
+        envelope = self._serializer.build_execute_operation_envelope(
+            operation_id, arguments
+        )
+        return self._transport.dispatch(envelope)
+
+    def _dispatch_write(
+        self,
+        operation_id: str,
+        arguments: Mapping[str, str],
+        context: At1ExecutionContext,
+    ) -> FixtureResponse:
+        if self._terminal:
+            raise TerminalStateError("further transport calls are not authorized")
+        # Pre-transport hardening: validate the idempotency key before consuming
+        # any write attempt budget. A missing key refuses locally with zero
+        # transport calls and fail-closed semantics.
+        envelope = self._serializer.build_execute_operation_envelope(
+            operation_id, arguments, context
+        )
+        write_kind = "note" if operation_id == "create-note" else "stage"
+        self._consume_write_attempt(write_kind)
+        self._operations.append(operation_id)
+        return self._transport.dispatch(envelope)
 
     def _consume_write_attempt(self, write_kind: str) -> None:
         maximum = NOTE_WRITE_ATTEMPTS_MAX if write_kind == "note" else STAGE_WRITE_ATTEMPTS_MAX
