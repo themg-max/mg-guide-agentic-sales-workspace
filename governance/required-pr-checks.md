@@ -261,6 +261,94 @@ Common non-ready labels (non-exhaustive):
 | Conflicts or unclean mergeability | `NOT_MERGEABLE` |
 | Policy/docs-only disagreement without check failure | Address in review comments; do not invent extra required check names |
 
+### 7.3 External reviewer-tool unavailability
+
+Live GitHub connector / external reviewer-tool outages must **not** reopen
+implementation scope, force code repairs, or trigger repeated substantive PR
+reviews when the substantive review already passed.
+
+Apply this routing rule when **all** of the following hold:
+
+```text
+formal_verdict=BLOCKED_VERIFICATION_GAP
+substantive_verdict=PASS
+blocking_reason=live_github_unavailable
+```
+
+Then record:
+
+```text
+SUBSTANTIVE_REVIEW_COMPLETE=YES
+SUBSTANTIVE_REPAIR_REQUIRED=NO
+CODE_CHANGE_REQUIRED=NO
+NEW_REMEDIATION_LANE_REQUIRED=NO
+RE_REVIEW_IMPLEMENTATION_REQUIRED=NO
+NEXT=LIVE_PR_VERIFICATION_ONLY
+```
+
+Do **not** modify the reviewed PR for this reason alone.
+
+#### Operator live verification packet
+
+Independent operator / human verification uses repository-local GitHub access
+(for example `gh`) against the exact PR under review:
+
+```text
+gh pr view <PR> \
+  --json headRefOid,state,isDraft,mergeable,mergeStateStatus,baseRefName
+
+gh pr checks <PR>
+```
+
+Require **all** of:
+
+| Field | Required value |
+| --- | --- |
+| `headRefOid` | exact reviewed SHA |
+| `state` | `OPEN` |
+| `isDraft` | `false` |
+| `baseRefName` | `main` (unless the PR explicitly targets another authorized base) |
+| `mergeable` | `MERGEABLE` |
+| `mergeStateStatus` | `CLEAN` |
+| repository-required CI (§2.2) | `SUCCESS` on that exact head |
+
+If all pass:
+
+```text
+HUMAN_MERGE_READY=YES
+HUMAN_MERGE_RECOMMENDATION=YES
+NEXT=HUMAN_MERGE
+```
+
+The assistant reviewer **formal** verdict may remain:
+
+```text
+REVIEWER_FORMAL_VERDICT=BLOCKED_VERIFICATION_GAP
+```
+
+until independent GitHub connector access used by that reviewer is restored.
+That formal gap is a tool-access disposition only.
+
+#### Hard prohibitions while in verification-only state
+
+This verification-only state **must not**:
+
+- trigger code edits on the reviewed PR
+- reopen implementation scope
+- add tests because of the connector outage
+- create repair PRs for the connector outage
+- alter authorization / grant state
+- waive exact-head CI, mergeability, human merge authority, or repository-local
+  policy authority
+
+```text
+HUMAN_MERGE_AUTHORITY_REQUIRED=YES
+EXACT_HEAD_CI_REQUIRED=YES
+MERGEABILITY_REQUIRED=YES
+REPOSITORY_LOCAL_POLICY_AUTHORITY=YES
+CONNECTOR_OUTAGE_IS_NOT_CODE_DEFECT=YES
+```
+
 ---
 
 ## 8. What this policy does not do
@@ -272,6 +360,8 @@ Common non-ready labels (non-exhaustive):
 - Does **not** self-merge any PR
 - Does **not** retroactively alter historical merge legitimacy; it standardizes
   **forward** reviewer disposition for MG Guide
+- Does **not** treat external reviewer-tool / live GitHub connector unavailability
+  as a code defect when substantive review already passed
 
 ---
 
