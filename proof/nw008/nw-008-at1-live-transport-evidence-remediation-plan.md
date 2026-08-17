@@ -61,10 +61,11 @@ are:
    MCP `isError` or nested operation success;
 4. the created note ID was absent, but the runner still issued get-note;
 5. initial stage, note identity/content, and final stage were not compared;
-6. response envelopes were not retained;
+6. outbound request and inbound response envelopes were not retained;
 7. result flags were assigned rather than computed from response evidence; and
 8. protocol calls and business calls were conflated while retries and
-   post-failure probes occurred in the same process scope.
+   post-failure probes occurred in the same process scope, with no durable
+   grant/run claim that would survive process restart.
 
 ## 3. Immutable remediation contracts
 
@@ -172,38 +173,77 @@ or inference from control-flow continuation.
 ## 5. Evidence architecture
 
 ```text
+PRIVATE_REQUEST_ENVELOPE_CAPTURE_REQUIRED=YES
 PRIVATE_RESPONSE_ENVELOPE_CAPTURE_REQUIRED=YES
+REQUEST_CAPTURE_BEFORE_DISPATCH_REQUIRED=YES
+RESPONSE_CAPTURE_BEFORE_PARSE_REQUIRED=YES
+REQUEST_RESPONSE_CORRELATION_REQUIRED=YES
+REQUEST_RESPONSE_DIGEST_BINDING_REQUIRED=YES
 SANITIZED_PUBLIC_PROJECTION_REQUIRED=YES
 RESULT_FLAGS_MUST_BE_COMPUTED=YES
 HARDCODED_SUCCESS_FLAGS_FORBIDDEN=YES
 ```
 
-### Private response capture
+### Capture ordering
 
-The future adapter must durably capture each complete request-correlated MCP
-response envelope in a private, access-controlled execution package before the
-envelope is parsed or discarded. Each record must bind:
+Every future business call must follow this exact order:
+
+```text
+serializer output
+-> exact schema validation
+-> private request capture
+-> durable business-attempt record
+-> dispatch
+-> private response capture
+-> layered parse
+-> semantic comparison
+-> sanitized projection/result
+```
+
+Hard fail-closed rules:
+
+- if private request capture fails, do not dispatch;
+- if private response capture fails, stop before any later operation;
+- no request capture means no dispatch;
+- no response capture means no parse, no semantic comparison, and no later
+  business ordinal.
+
+### Private request and response capture
+
+The future adapter must durably capture the exact outbound serialized MCP
+request envelope in a private, access-controlled execution package after
+serializer schema validation and before dispatch. After transport returns, it
+must durably capture the complete inbound MCP response envelope before the
+envelope is parsed or discarded.
+
+Each paired private record must bind:
 
 - remediation implementation version and future grant/run identity;
 - process identity and monotonically increasing ledger ordinal;
 - JSON-RPC request ID and AT-1 operation ordinal;
-- transport outcome and complete MCP response envelope;
-- capture timestamp; and
-- a digest that allows the sanitized projection to bind to the private record.
+- exact outbound serialized request envelope;
+- transport outcome and complete inbound MCP response envelope;
+- capture timestamps for request and response;
+- request digest and response digest; and
+- correlation identifiers that bind the request/response pair and allow the
+  sanitized projection to bind to both private digests.
 
 The private package may contain private IDs, note content, nested response
-bodies, and error details. It must not be committed to the public repository or
-printed to public logs. Capture failure is terminal: no later business call is
-authorized when the evidence for the current call cannot be retained.
+bodies, idempotency keys, and error details. It must not be committed to the
+public repository or printed to public logs. Request-capture failure forbids
+dispatch of that ordinal. Response-capture failure is terminal for the run:
+later business calls are not authorized when the current call's response
+evidence cannot be retained.
 
 ### Sanitized public projection
 
-The public projection must be derived from captured records through an explicit
-allowlist. It may include operation ordinals, parser outcomes, computed
-predicates, counters, failure codes, and non-reversible private-record digests.
-It must exclude authorization headers, tokens, idempotency keys, raw private
-IDs, note content, and unreviewed response text. Sanitization must be tested
-against synthetic sentinel values.
+The public projection must be derived from captured request/response pairs
+through an explicit allowlist. It may include operation ordinals, parser
+outcomes, computed predicates, counters, failure codes, and non-reversible
+private request/response digests. It must exclude authorization headers,
+tokens, idempotency keys, raw private IDs, note content, full request bodies,
+and unreviewed response text. Sanitization must be tested against synthetic
+sentinel values.
 
 ### Computed result model
 
@@ -215,7 +255,8 @@ The result constructor must compute them from:
 
 - successful layered parsing for the corresponding operation;
 - exact identity/value comparisons;
-- process-scoped protocol and business ledgers;
+- process-scoped and grant/run-scoped protocol and business ledgers;
+- durable consumed attempt state;
 - consumed write-attempt budgets; and
 - terminal-state evidence.
 
@@ -228,8 +269,15 @@ required predicate computes `AT1_COMPLETE=NO`.
 ```text
 MCP_PROTOCOL_CALL_LEDGER_REQUIRED=YES
 GHL_BUSINESS_CALL_LEDGER_REQUIRED=YES
+GRANT_SCOPE_NO_RETRY_REQUIRED=YES
 PROCESS_SCOPE_NO_RETRY_REQUIRED=YES
+DURABLE_EXECUTION_CLAIM_REQUIRED=YES
+DURABLE_EXECUTION_CLAIM_ATOMIC=YES
+PROCESS_RESTART_MUST_NOT_RESET_ATTEMPT_HISTORY=YES
+CONCURRENT_EXECUTION_CLAIM_REJECTED=YES
 PRE_GRANT_CONTROL_PLANE_PROBING_REQUIRED_IF_NEEDED=YES
+PRE_GRANT_CONTROL_PLANE_READINESS_REQUIRES_SEPARATE_AUTHORITY=YES
+SESSION_IDENTITY_BOUND_TO_FUTURE_GRANT=YES
 POST_GRANT_PROBING_ALLOWED=NO
 ```
 
@@ -238,7 +286,9 @@ Two append-only ledgers are required:
 | Ledger | Included calls | Excluded calls |
 | --- | --- | --- |
 | MCP protocol | initialize, capability negotiation, health/control-plane probes | `execute_operation` business calls |
-| GHL business | each attempted `execute_operation`, recorded immediately before dispatch | initialize, negotiation, health/probe traffic |
+| GHL business | each attempted `execute_operation`, recorded after private request capture and immediately before dispatch | initialize, negotiation, health/probe traffic |
+
+### Process-scope and grant/run-scope no-retry
 
 The ledgers share one process-scoped execution guard. Creating another adapter,
 executor, or wrapper in the same process must not reset attempt history. Each
@@ -246,12 +296,27 @@ authorized business ordinal has one dispatch opportunity. A transport,
 protocol, parser, capture, or semantic failure consumes that ordinal and
 terminates the run; the same business operation cannot be attempted again.
 
+In addition, no-retry protection must be durable and grant/run-scoped:
+
+- a durable execution claim is keyed to the future grant/run identity;
+- claim acquisition is atomic and permits exactly one owner;
+- concurrent duplicate claim attempts for the same grant/run are rejected
+  before transport;
+- consumed ordinals and attempt history are persisted with the claim;
+- a fresh process or reconstructed executor using the same grant/run must load
+  the consumed attempt state and refuse duplicate transport locally;
+- process restart must not reset attempt history.
+
+### Control-plane readiness and session binding
+
 Any control-plane initialization or probing needed to establish readiness must
-finish before a future live grant becomes active and must be recorded in the
-protocol ledger. Once the future grant is active, initialize, reprobe,
-capability rediscovery, endpoint fallback, and session repair are forbidden.
-The already-established session may carry only the exact bounded business
-sequence. If it is unusable, execution stops without a business retry.
+finish before a future live grant becomes active, must be recorded in the
+protocol ledger, and requires separate readiness authority. Once the future
+grant is active, the already-established session identity is bound to that
+grant. Initialize, reprobe, capability rediscovery, endpoint fallback, and
+session repair are forbidden after grant activation. The bound session may
+carry only the exact bounded business sequence. If it is unusable, execution
+stops without a business retry.
 
 The sanitized result must report protocol and business counts independently.
 Protocol traffic must never increment or satisfy the six-call GHL business
@@ -284,10 +349,14 @@ PRIVATE_VALUES_IN_FIXTURES=NO
 | B33 | Post-grant initialize/probe rejected | After synthetic grant activation, initialize and probe requests are locally refused and absent from the transport log; no fallback session is created. |
 | B34 | Hard-coded result flag impossible by construction | Public result creation accepts evidence records, not success booleans; attempts to inject/override success flags are rejected, and contradictory fixture evidence computes failure. |
 | B35 | Private response capture to sanitized projection | A synthetic envelope with sentinel token, IDs, idempotency key, and note content is retained in the private sink; the public projection binds by digest and contains none of the sentinels. |
+| B36 | Grant/run retry survives process restart | After a synthetic ordinal is consumed under grant/run identity G, a new process that loads the same durable claim cannot redispatch that ordinal; refusal occurs before transport and the business ledger remains unchanged. |
+| B37 | Concurrent execution claim rejected | Atomic durable claim acquisition permits exactly one owner for grant/run identity G; a concurrent second owner is rejected before transport and creates zero business dispatch records. |
+| B38 | Outbound-request/inbound-response evidence pair | Exact serializer request is captured before dispatch; exact synthetic response is captured before parse; request id + operation ordinal + request/response digests correlate the pair; public projection binds both digests and contains no private sentinels. |
 
 Each fixture must also assert terminal call count, both ledgers, write-attempt and
-write-success counters, private capture count, sanitized projection, and
-computed completion state. There are no network-marked variants of B24-B35.
+write-success counters, private request/response capture counts, durable claim
+state, sanitized projection, and computed completion state. There are no
+network-marked variants of B24-B38.
 
 ## 8. Candidate future implementation paths
 
@@ -310,8 +379,9 @@ Expected responsibilities:
 - `at1_live_transport_serializer.py`: remain the only business wire-shape
   authority;
 - new bounded adapter: own established-session dispatch, layered MCP parsing,
-  process-scoped ledgers, private envelope capture, and sanitized projection;
-- remediation tests/fixtures: prove B24-B35 offline with synthetic values.
+  process-scoped and grant/run-scoped durable no-retry claims, private
+  request/response envelope capture, and sanitized projection;
+- remediation tests/fixtures: prove B24-B38 offline with synthetic values.
 
 The implementation unit must decide exact adapter and fixture filenames through
 normal repository review. It must not broaden the operation surface, add raw
@@ -323,17 +393,24 @@ compensating mutation.
 A future remediation implementation is reviewable only when all of the
 following are demonstrated without live traffic:
 
-1. B24-B35 pass deterministically and offline.
+1. B24-B38 pass deterministically and offline.
 2. Existing bounded executor and GHL integration tests remain green.
 3. Phase 1 deterministic validation passes at the exact implementation head.
 4. The reviewed serializer is the only source of business wire envelopes.
 5. All MCP success layers fail closed on missing or negative evidence.
 6. Semantic comparison gates prevent later calls exactly as specified.
-7. Private capture precedes parsing and public projection is allowlist-only.
-8. Result flags cannot be supplied or overridden by an execution script.
-9. Protocol and business ledgers reconcile independently.
-10. Process-scoped no-retry state survives wrapper reconstruction.
-11. No network test, GHL call, private binding, Grant 009 preparation, or live
+7. Exact outbound wire requests are privately recoverable before dispatch.
+8. Exact inbound responses are privately recoverable before parse.
+9. Sanitized proof binds to both request and response digests and is
+   allowlist-only.
+10. No request capture means no dispatch; no response capture stops the run
+    before any later operation.
+11. Result flags cannot be supplied or overridden by an execution script.
+12. Protocol and business ledgers reconcile independently.
+13. Process-scoped no-retry state survives wrapper reconstruction.
+14. Durable no-retry authority is grant/run-scoped and survives process restart.
+15. Concurrent duplicate grant/run claims fail closed before transport.
+16. No network test, GHL call, private binding, Grant 009 preparation, or live
     authority is included.
 
 Passing these gates would establish implementation readiness only. It would not
@@ -360,13 +437,17 @@ ADDITIONAL_MUTATION_CALLS_EXECUTED=0
 ## 11. STOP
 
 ```text
-STOP_CODE=NW008_AT1_LIVE_TRANSPORT_EVIDENCE_REMEDIATION_PLAN_READY_FOR_REVIEW
+STOP_CODE=NW008_AT1_LIVE_TRANSPORT_EVIDENCE_REMEDIATION_PLAN_HARDENED_FOR_REVIEW
 REMEDIATION_ID=NW008_AT1_LIVE_TRANSPORT_EVIDENCE_REMEDIATION_001
 REMEDIATION_PHASE=PLANNING
 CLASSIFICATION=planning_only
+GRANT_SCOPE_NO_RETRY_REQUIRED=YES
+PROCESS_RESTART_MUST_NOT_RESET_ATTEMPT_HISTORY=YES
+PRIVATE_REQUEST_ENVELOPE_CAPTURE_REQUIRED=YES
+REQUEST_CAPTURE_BEFORE_DISPATCH_REQUIRED=YES
 GRANT_008_STATE=CONSUMED
 AT1_COMPLETE=NO
 LIVE_GHL_EXECUTION_AUTHORIZED=NO
 GRANT009_AUTHORIZED=NO
-NEXT=REMEDIATION_PLAN_REVIEW
+NEXT=FINAL_PR70_REVIEWER_DISPOSITION
 ```
