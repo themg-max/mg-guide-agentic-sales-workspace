@@ -128,10 +128,10 @@ def test_b11_unexpected_operation_is_refused_by_fixture_transport() -> None:
     with pytest.raises(UnexpectedOperationError, match="outside the bounded"):
         transport.dispatch(
             {
-                "tool": "execute_operation",
+                "name": "execute_operation",
                 "arguments": {
                     "operationId": "search-contacts-advanced",
-                    "params": {"path": {}, "query": {}, "body": {}},
+                    "params": {"path": {}},
                 },
             }
         )
@@ -206,7 +206,7 @@ def test_b14_note_write_response_invalid_preserves_consumed_write_budget() -> No
     assert len(transport.calls) == 3
 
 
-def test_b15_create_note_envelope_includes_idempotency_key() -> None:
+def test_b15_live_wire_mapping_create_note() -> None:
     executor, transport = _executor("success")
 
     executor.execute(_binding(), _context())
@@ -216,6 +216,9 @@ def test_b15_create_note_envelope_includes_idempotency_key() -> None:
         for envelope in transport.envelopes
         if envelope["arguments"]["operationId"] == "create-note"
     )
+    assert create_note_envelope["name"] == "execute_operation"
+    assert sorted(create_note_envelope["arguments"]["params"]["path"]) == ["contactId"]
+    assert sorted(create_note_envelope["arguments"]["params"]["body"]) == ["body"]
     assert "idempotencyKey" in create_note_envelope["arguments"]
     assert isinstance(create_note_envelope["arguments"]["idempotencyKey"], str)
     assert create_note_envelope["arguments"]["idempotencyKey"]
@@ -225,7 +228,23 @@ def test_b15_create_note_envelope_includes_idempotency_key() -> None:
     )
 
 
-def test_b16_update_opportunity_envelope_includes_idempotency_key() -> None:
+def test_b16_live_wire_mapping_get_note() -> None:
+    executor, transport = _executor("success")
+
+    executor.execute(_binding(), _context())
+
+    get_note_envelope = next(
+        envelope
+        for envelope in transport.envelopes
+        if envelope["arguments"]["operationId"] == "get-note"
+    )
+    assert get_note_envelope["name"] == "execute_operation"
+    assert sorted(get_note_envelope["arguments"]["params"]["path"]) == ["contactId", "id"]
+    assert "body" not in get_note_envelope["arguments"]["params"]
+    assert "idempotencyKey" not in get_note_envelope["arguments"]
+
+
+def test_b17_live_wire_mapping_update_opportunity() -> None:
     executor, transport = _executor("success")
 
     executor.execute(_binding(), _context())
@@ -235,16 +254,37 @@ def test_b16_update_opportunity_envelope_includes_idempotency_key() -> None:
         for envelope in transport.envelopes
         if envelope["arguments"]["operationId"] == "update-opportunity"
     )
+    assert update_envelope["name"] == "execute_operation"
+    assert sorted(update_envelope["arguments"]["params"]["path"]) == ["id"]
+    assert sorted(update_envelope["arguments"]["params"]["body"]) == ["pipelineStageId"]
     assert "idempotencyKey" in update_envelope["arguments"]
     assert isinstance(update_envelope["arguments"]["idempotencyKey"], str)
     assert update_envelope["arguments"]["idempotencyKey"]
-    assert (
-        update_envelope["arguments"]["idempotencyKey"]
-        == STAGE_IDEMPOTENCY_KEY
+    assert update_envelope["arguments"]["idempotencyKey"] == STAGE_IDEMPOTENCY_KEY
+
+
+def test_b18_live_wire_mapping_reads() -> None:
+    serializer = At1LiveTransportSerializer()
+
+    get_contact = serializer.build_execute_operation_call(
+        "get-contact", {"location_id": "L", "contact_id": "C"}
+    )
+    get_opportunity = serializer.build_execute_operation_call(
+        "get-opportunity", {"location_id": "L", "opportunity_id": "O"}
     )
 
+    assert get_contact["name"] == "execute_operation"
+    assert sorted(get_contact["arguments"]["params"]["path"]) == ["contactId"]
+    assert "body" not in get_contact["arguments"]["params"]
+    assert "idempotencyKey" not in get_contact["arguments"]
 
-def test_b17_note_and_stage_idempotency_keys_are_distinct() -> None:
+    assert get_opportunity["name"] == "execute_operation"
+    assert sorted(get_opportunity["arguments"]["params"]["path"]) == ["id"]
+    assert "body" not in get_opportunity["arguments"]["params"]
+    assert "idempotencyKey" not in get_opportunity["arguments"]
+
+
+def test_b19_note_and_stage_idempotency_keys_are_distinct() -> None:
     with pytest.raises(IdempotencyKeyError, match="distinct"):
         At1ExecutionContext(
             note_idempotency_key="same-key",
@@ -252,78 +292,38 @@ def test_b17_note_and_stage_idempotency_keys_are_distinct() -> None:
         )
 
 
-def test_b18_create_note_missing_idempotency_key_refuses_before_transport() -> None:
+def test_b20_malformed_note_key_refuses_before_operation_one() -> None:
     executor, transport = _executor("success")
-    context = At1ExecutionContext(
-        note_idempotency_key="",
-        stage_idempotency_key=STAGE_IDEMPOTENCY_KEY,
-    )
-
     with pytest.raises(IdempotencyKeyError, match="private non-empty"):
-        executor.execute(_binding(), context)
-
-    write_calls = [op for op, _ in transport.calls if op == "create-note"]
-    write_envelopes = [
-        envelope
-        for envelope in transport.envelopes
-        if envelope["arguments"]["operationId"] == "create-note"
-    ]
-    assert write_calls == []
-    assert write_envelopes == []
+        At1ExecutionContext(
+            note_idempotency_key="",
+            stage_idempotency_key=STAGE_IDEMPOTENCY_KEY,
+        )
+    assert transport.calls == []
+    assert transport.envelopes == []
 
 
-def test_b19_update_opportunity_missing_idempotency_key_refuses_before_transport() -> None:
+def test_b21_malformed_stage_key_refuses_before_operation_one() -> None:
     executor, transport = _executor("success")
-    context = At1ExecutionContext(
-        note_idempotency_key=NOTE_IDEMPOTENCY_KEY,
-        stage_idempotency_key="   ",
-    )
-
     with pytest.raises(IdempotencyKeyError, match="private non-empty"):
-        executor.execute(_binding(), context)
-
-    update_calls = [op for op, _ in transport.calls if op == "update-opportunity"]
-    update_envelopes = [
-        envelope
-        for envelope in transport.envelopes
-        if envelope["arguments"]["operationId"] == "update-opportunity"
-    ]
-    assert update_calls == []
-    assert update_envelopes == []
+        At1ExecutionContext(
+            note_idempotency_key=NOTE_IDEMPOTENCY_KEY,
+            stage_idempotency_key="   ",
+        )
+    assert transport.calls == []
+    assert transport.envelopes == []
 
 
-def test_b20_read_envelopes_do_not_require_idempotency_keys() -> None:
-    serializer = At1LiveTransportSerializer()
-
-    get_contact = serializer.build_execute_operation_envelope(
-        "get-contact", {"location_id": "L", "contact_id": "C"}
-    )
-    get_opportunity = serializer.build_execute_operation_envelope(
-        "get-opportunity", {"location_id": "L", "opportunity_id": "O"}
-    )
-    get_note = serializer.build_execute_operation_envelope(
-        "get-note", {"location_id": "L", "contact_id": "C", "note_id": "N"}
-    )
-
-    for envelope in (get_contact, get_opportunity, get_note):
-        assert "idempotencyKey" not in envelope["arguments"]
-        assert envelope["arguments"]["operationId"] in {
-            "get-contact",
-            "get-opportunity",
-            "get-note",
-        }
-
-
-def test_b21_serializer_refuses_unbounded_operations() -> None:
+def test_b22_serializer_refuses_unbounded_operations() -> None:
     serializer = At1LiveTransportSerializer()
 
     with pytest.raises(ValueError, match="outside the bounded"):
-        serializer.build_execute_operation_envelope(
+        serializer.build_execute_operation_call(
             "delete-opportunity", {}, _context()
         )
 
 
-def test_b22_write_attempt_budgets_and_no_retry_semantics_unchanged() -> None:
+def test_b23_write_attempt_budgets_and_no_retry_semantics_unchanged() -> None:
     executor, transport = _executor("success")
 
     result = executor.execute(_binding(), _context())

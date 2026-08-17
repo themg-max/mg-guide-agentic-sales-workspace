@@ -21,34 +21,41 @@ budgets, and no-retry semantics.
 
 - Added `src/integrations/ghl/at1_live_transport_serializer.py`:
   - `At1ExecutionContext` — private container for `note_idempotency_key` and
-    `stage_idempotency_key`; enforces distinctness.
-  - `At1LiveTransportSerializer` — builds `execute_operation` envelopes for the
-    bounded AT-1 surface; reads require no idempotency key; writes require and
-    freeze a non-empty `idempotencyKey` at the top level of envelope arguments.
+    `stage_idempotency_key`; enforces strip non-empty and distinct keys.
+  - `At1LiveTransportSerializer` — performs exact operation-specific live MCP
+    serialization and emits a frozen outer seam:
+    `{name: "execute_operation", arguments: {...}}`.
   - `IdempotencyKeyError` — raised locally before transport when a required key
     is missing, blank, or duplicated.
 
 - Hardened `src/integrations/ghl/bounded_at1_executor.py`:
   - `BoundedAt1GhlExecutor.execute` now accepts an `At1ExecutionContext`.
+  - Execution context is prevalidated before operation 1.
   - Writes validate the idempotency key, then consume the attempt budget, then
-    build the envelope, then dispatch.
+    dispatch with exact path/body serialization.
   - Reads continue to dispatch without idempotency keys.
   - Six-operation order, attempt caps, and no-retry semantics are unchanged.
 
 - Updated `tests/integrations/ghl/test_bounded_at1_executor.py`:
   - All existing tests supply a private execution context and pass.
-  - Added deterministic tests proving idempotency serialization, distinct keys,
-    missing-key local refusal with zero write transport calls, and unaffected
-    read operations.
+  - Added deterministic exact wire-contract tests for `get-contact`,
+    `get-opportunity`, `create-note`, `get-note`, and `update-opportunity`.
+  - Added malformed context tests proving total transport calls remain zero.
 
 ## Verification Results
 
 ```text
 CREATE_NOTE_IDEMPOTENCY_SERIALIZATION=PASS
 UPDATE_OPPORTUNITY_IDEMPOTENCY_SERIALIZATION=PASS
+LIVE_WIRE_MAPPING_CREATE_NOTE=PASS
+LIVE_WIRE_MAPPING_GET_NOTE=PASS
+LIVE_WIRE_MAPPING_UPDATE_OPPORTUNITY=PASS
+LIVE_WIRE_MAPPING_READS=PASS
 
 CREATE_NOTE_MISSING_KEY_LOCAL_REFUSAL=PASS
 UPDATE_OPPORTUNITY_MISSING_KEY_LOCAL_REFUSAL=PASS
+EXECUTION_CONTEXT_PREVALIDATED=YES
+MALFORMED_CONTEXT_TOTAL_TRANSPORT_CALLS=0
 
 IDEMPOTENCY_KEYS_DISTINCT_TEST=PASS
 
@@ -66,9 +73,9 @@ GRANT_008_PREPARATION_AUTHORIZED=NO
 
 ### Test Runs
 
-- Focused bounded executor tests: `25 passed`
-- Full GHL integration tests: `32 passed`
-- Full deterministic test suite: `399 passed, 169 warnings`
+- Focused bounded executor tests: `26 passed`
+- Full GHL integration tests: `33 passed`
+- Full deterministic test suite: `400 passed, 169 warnings`
 - `git diff --check`: clean
 
 ## Governance

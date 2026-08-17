@@ -158,10 +158,19 @@ class DeterministicGhlFixtureTransport:
     def dispatch(self, envelope: Mapping[str, Any]) -> FixtureResponse:
         if not isinstance(envelope, Mapping):
             raise UnexpectedOperationError("transport envelope must be an object")
+        if envelope.get("name") != "execute_operation":
+            raise UnexpectedOperationError(
+                "transport envelope must call execute_operation"
+            )
         arguments_map = dict(envelope.get("arguments", {}))
         operation_id = arguments_map.get("operationId")
         params = dict(arguments_map.get("params", {}))
-        body = dict(params.get("body", {}))
+        path = params.get("path", {})
+        body = params.get("body", None)
+        if not isinstance(path, Mapping):
+            raise UnexpectedOperationError("params.path must be an object")
+        if body is not None and not isinstance(body, Mapping):
+            raise UnexpectedOperationError("params.body must be an object when present")
 
         if operation_id not in _ALLOWED_OPERATIONS:
             raise UnexpectedOperationError(
@@ -178,19 +187,58 @@ class DeterministicGhlFixtureTransport:
                 f"fixture expected {expected.get('operation_id')!r}, got {operation_id!r}"
             )
         expected_arguments = expected.get("arguments", {})
-        if expected_arguments != body:
+        if not isinstance(expected_arguments, Mapping):
+            raise UnexpectedOperationError("fixture expected arguments must be an object")
+
+        if not self._matches_expected_wire_arguments(
+            operation_id, dict(expected_arguments), dict(path), body
+        ):
             raise UnexpectedOperationError(
                 f"fixture arguments differ for {operation_id}: "
-                f"expected {expected_arguments!r}, got {body!r}"
+                f"expected {expected_arguments!r}, got path={dict(path)!r}, body={body!r}"
             )
 
-        self.calls.append((operation_id, body))
+        self.calls.append((operation_id, dict(expected_arguments)))
         self.envelopes.append(dict(envelope))
         return FixtureResponse(
             status=str(expected.get("response", {}).get("status", "error")),
             record=dict(expected.get("response", {}).get("record", {})),
             error_code=expected.get("response", {}).get("error_code"),
         )
+
+    @staticmethod
+    def _matches_expected_wire_arguments(
+        operation_id: str,
+        expected_arguments: Mapping[str, Any],
+        path: Mapping[str, Any],
+        body: Mapping[str, Any] | None,
+    ) -> bool:
+        if operation_id == "get-contact":
+            return path == {"contactId": expected_arguments.get("contact_id")} and body is None
+        if operation_id == "get-opportunity":
+            return path == {"id": expected_arguments.get("opportunity_id")} and body is None
+        if operation_id == "create-note":
+            return (
+                path == {"contactId": expected_arguments.get("contact_id")}
+                and body
+                == {"body": expected_arguments.get("content_or_fingerprint")}
+            )
+        if operation_id == "get-note":
+            return (
+                path
+                == {
+                    "contactId": expected_arguments.get("contact_id"),
+                    "id": expected_arguments.get("note_id"),
+                }
+                and body is None
+            )
+        if operation_id == "update-opportunity":
+            return (
+                path == {"id": expected_arguments.get("opportunity_id")}
+                and body
+                == {"pipelineStageId": expected_arguments.get("stage_id")}
+            )
+        return False
 
     def assert_exhausted(self) -> None:
         if self._calls:
@@ -235,6 +283,7 @@ class BoundedAt1GhlExecutor:
         self, binding: BoundedAt1Input, context: At1ExecutionContext
     ) -> BoundedAt1Result:
         """Execute once in model order; every failure is terminal and non-retrying."""
+        self._prevalidate_execution_context(context)
         contact = self._dispatch_read(
             "get-contact", {"location_id": binding.location_id, "contact_id": binding.contact_id}
         )
@@ -319,7 +368,7 @@ class BoundedAt1GhlExecutor:
         if self._terminal:
             raise TerminalStateError("further transport calls are not authorized")
         self._operations.append(operation_id)
-        envelope = self._serializer.build_execute_operation_envelope(
+        envelope = self._serializer.build_execute_operation_call(
             operation_id, arguments
         )
         return self._transport.dispatch(envelope)
@@ -335,13 +384,22 @@ class BoundedAt1GhlExecutor:
         # Pre-transport hardening: validate the idempotency key before consuming
         # any write attempt budget. A missing key refuses locally with zero
         # transport calls and fail-closed semantics.
-        envelope = self._serializer.build_execute_operation_envelope(
+        envelope = self._serializer.build_execute_operation_call(
             operation_id, arguments, context
         )
         write_kind = "note" if operation_id == "create-note" else "stage"
         self._consume_write_attempt(write_kind)
         self._operations.append(operation_id)
         return self._transport.dispatch(envelope)
+
+    @staticmethod
+    def _prevalidate_execution_context(context: At1ExecutionContext) -> None:
+        if not isinstance(context.note_idempotency_key, str) or not context.note_idempotency_key.strip():
+            raise IdempotencyKeyError("note_idempotency_key must be a private non-empty string")
+        if not isinstance(context.stage_idempotency_key, str) or not context.stage_idempotency_key.strip():
+            raise IdempotencyKeyError("stage_idempotency_key must be a private non-empty string")
+        if context.note_idempotency_key == context.stage_idempotency_key:
+            raise IdempotencyKeyError("note and stage idempotency keys must be distinct")
 
     def _consume_write_attempt(self, write_kind: str) -> None:
         maximum = NOTE_WRITE_ATTEMPTS_MAX if write_kind == "note" else STAGE_WRITE_ATTEMPTS_MAX

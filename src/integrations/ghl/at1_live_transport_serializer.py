@@ -30,9 +30,9 @@ class At1ExecutionContext:
 
     def __post_init__(self) -> None:
         for field_name, value in self.__dict__.items():
-            if not isinstance(value, str):
+            if not isinstance(value, str) or not value.strip():
                 raise IdempotencyKeyError(
-                    f"{field_name} must be a private string"
+                    f"{field_name} must be a private non-empty string"
                 )
         if self.note_idempotency_key == self.stage_idempotency_key:
             raise IdempotencyKeyError(
@@ -50,13 +50,13 @@ class At1LiveTransportSerializer:
 
     allowed_operations = AT1_ALLOWED_OPERATIONS
 
-    def build_execute_operation_envelope(
+    def build_execute_operation_arguments(
         self,
         operation_id: str,
         arguments: Mapping[str, Any],
         context: At1ExecutionContext | None = None,
     ) -> dict[str, Any]:
-        """Return the durable execute_operation envelope for ``operation_id``.
+        """Return exact execute_operation arguments for the bounded AT-1 surface.
 
         Raises:
             IdempotencyKeyError: if a write operation lacks a valid idempotency key.
@@ -67,14 +67,13 @@ class At1LiveTransportSerializer:
                 f"{operation_id} is outside the bounded AT-1 operation surface"
             )
 
-        envelope_arguments: dict[str, Any] = {
+        execute_operation_arguments: dict[str, Any] = {
             "operationId": operation_id,
-            "params": {
-                "path": {},
-                "query": {},
-                "body": dict(arguments),
-            },
+            "params": {"path": self._path_for(operation_id, arguments)},
         }
+        body = self._body_for(operation_id, arguments)
+        if body is not None:
+            execute_operation_arguments["params"]["body"] = body
 
         if operation_id in AT1_WRITE_OPERATIONS:
             if context is None:
@@ -90,9 +89,85 @@ class At1LiveTransportSerializer:
                 raise IdempotencyKeyError(
                     f"{operation_id} requires a private non-empty idempotencyKey"
                 )
-            envelope_arguments["idempotencyKey"] = key
+            execute_operation_arguments["idempotencyKey"] = key
 
+        return execute_operation_arguments
+
+    def build_execute_operation_call(
+        self,
+        operation_id: str,
+        arguments: Mapping[str, Any],
+        context: At1ExecutionContext | None = None,
+    ) -> dict[str, Any]:
+        """Return the frozen MCP call seam for execute_operation."""
         return {
-            "tool": "execute_operation",
-            "arguments": envelope_arguments,
+            "name": "execute_operation",
+            "arguments": self.build_execute_operation_arguments(
+                operation_id, arguments, context
+            ),
         }
+
+    def build_execute_operation_envelope(
+        self,
+        operation_id: str,
+        arguments: Mapping[str, Any],
+        context: At1ExecutionContext | None = None,
+    ) -> dict[str, Any]:
+        """Backwards-compatible alias for call construction."""
+        return self.build_execute_operation_call(operation_id, arguments, context)
+
+    @staticmethod
+    def _require_non_empty_string(
+        arguments: Mapping[str, Any], field_name: str, operation_id: str
+    ) -> str:
+        value = arguments.get(field_name)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(
+                f"{operation_id} requires {field_name} as a non-empty string"
+            )
+        return value
+
+    def _path_for(
+        self, operation_id: str, arguments: Mapping[str, Any]
+    ) -> dict[str, str]:
+        if operation_id == "get-contact":
+            return {
+                "contactId": self._require_non_empty_string(
+                    arguments, "contact_id", operation_id
+                )
+            }
+        if operation_id == "get-opportunity":
+            return {"id": self._require_non_empty_string(arguments, "opportunity_id", operation_id)}
+        if operation_id == "create-note":
+            return {
+                "contactId": self._require_non_empty_string(
+                    arguments, "contact_id", operation_id
+                )
+            }
+        if operation_id == "get-note":
+            return {
+                "contactId": self._require_non_empty_string(
+                    arguments, "contact_id", operation_id
+                ),
+                "id": self._require_non_empty_string(arguments, "note_id", operation_id),
+            }
+        if operation_id == "update-opportunity":
+            return {"id": self._require_non_empty_string(arguments, "opportunity_id", operation_id)}
+        raise ValueError(f"{operation_id} is outside the bounded AT-1 operation surface")
+
+    def _body_for(
+        self, operation_id: str, arguments: Mapping[str, Any]
+    ) -> dict[str, str] | None:
+        if operation_id == "create-note":
+            return {
+                "body": self._require_non_empty_string(
+                    arguments, "content_or_fingerprint", operation_id
+                )
+            }
+        if operation_id == "update-opportunity":
+            return {
+                "pipelineStageId": self._require_non_empty_string(
+                    arguments, "stage_id", operation_id
+                )
+            }
+        return None
