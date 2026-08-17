@@ -1,0 +1,143 @@
+# NW-008 AT-1 -- Completion Decision Reviewer Disposition 001
+
+```text
+REVIEW_ID=NW008_AT1_COMPLETION_DECISION_REVIEW_001
+REVIEW_CLASS=COMPLETION_DECISION_REVIEWER_DISPOSITION
+ARTIFACT_KIND=COMPLETION_DECISION_REVIEWER_DISPOSITION
+OWNER_LANE=VS Code / Orchestrator
+BRANCH=decision/nw008-at1-completion-001
+PR_NUMBER=69
+
+REVIEWED_COMPLETION_DECISION_SHA=811eb62eb0406f366377e4ea19be494b7d8641f3
+SOURCE_RESULT008_SHA=2b901ca234e55952439a3a995e0b1d039e3aea68
+SOURCE_RECONCILIATION_COMMIT_SHA=04dca73fcc9862c3e7fa5a88b2fd8aabd0c7312d
+SOURCE_RECONCILIATION_MERGE_SHA=ff2bc2a415daa08ae85eff142f55db4e83949b3a
+
+RECORDED_AT_UTC=2026-08-17T18:52:30Z
+NETWORK_TRANSPORT=NO
+```
+
+## Subject under review
+
+This disposition reviews the already-committed completion decision artifact
+only:
+
+`proof/nw008/nw-008-at1-completion-decision.md`
+
+at commit `811eb62eb0406f366377e4ea19be494b7d8641f3`.
+
+It does not re-open Result 008 execution, does not amend the controlling
+reconciliation, and does not authorize remediation or Grant 009.
+
+## Substantive verdict
+
+```text
+SUBSTANTIVE_VERDICT=PASS
+```
+
+The completion decision is semantically consistent with the controlling
+post-execution evidence chain and correctly closes Grant 008 without claiming
+AT-1 completion or new authority.
+
+## Reviewed decision truths (unchanged)
+
+The reviewer confirms the completion decision retains the following truths
+without semantic change:
+
+```text
+AT1_EXECUTION_OCCURRED=YES
+AT1_COMPLETION_RECONCILIATION=FAIL
+AT1_COMPLETE=NO
+
+GRANT_008_STATE=CONSUMED
+GRANT_008_RETRY_AUTHORIZED=NO
+NEW_GHL_AUTHORITY=NO
+
+BUSINESS_EFFECT_TRUTH=PARTIALLY_UNKNOWN_DUE_TO_MISSING_RESPONSE_EVIDENCE
+
+RESULT008_STATUS=HISTORICAL_EXECUTION_CLAIM
+RESULT008_RECONCILIATION_STATUS=CONTROLLING_POST_EXECUTION_EVIDENCE
+```
+
+## Scope and non-mutation checks
+
+```text
+COMPLETION_DECISION_SCOPE_VALID=YES
+RUNTIME_MUTATION_IN_DECISION_PR=NO
+GHL_EXECUTION_IN_DECISION_PR=NO
+REMEDIATION_SEPARATED=YES
+GRANT009_AUTHORIZED=NO
+```
+
+PR #69 remains a documentation/decision unit. This reviewer disposition adds
+only the required disposition artifact and does not mutate runtime, execute
+GHL, implement remediation, or authorize Grant 009.
+
+## Explicit non-claims
+
+```text
+AT1_COMPLETE=YES=NOT_CLAIMED
+BUSINESS_EFFECTS_FULLY_KNOWN=YES=NOT_CLAIMED
+GRANT_008_RETRY_AUTHORIZED=YES=NOT_CLAIMED
+GRANT009_AUTHORIZED=YES=NOT_CLAIMED
+NOTE_WRITE_DEFINITELY_FAILED=NOT_CLAIMED
+STAGE_WRITE_DEFINITELY_FAILED=NOT_CLAIMED
+NO_BUSINESS_EFFECT_OCCURRED=NOT_CLAIMED
+```
+
+## Evidence binding
+
+| Role | SHA / artifact | Status |
+| --- | --- | --- |
+| Reviewed completion decision | `811eb62eb0406f366377e4ea19be494b7d8641f3` | SUBJECT |
+| Completion decision artifact | `proof/nw008/nw-008-at1-completion-decision.md` | REVIEWED |
+| Contemporaneous execution claim | Result 008 at `2b901ca234e55952439a3a995e0b1d039e3aea68` | HISTORICAL_EXECUTION_CLAIM |
+| Controlling post-execution evidence | Reconciliation commit `04dca73fcc9862c3e7fa5a88b2fd8aabd0c7312d` | FAIL / CONTROLLING |
+| Durable merge of controlling evidence | PR #68 merge `ff2bc2a415daa08ae85eff142f55db4e83949b3a` | main-reachable |
+
+## Reviewer disposition
+
+```text
+REVIEWER_DISPOSITION=PASS_PENDING_FINAL_EXACT_HEAD_VERIFICATION
+```
+
+Substantive content of the completion decision PASSes independent review.
+Final merge readiness remains conditioned on exact-head Phase 1 deterministic
+validation SUCCESS for the commit that introduces this disposition artifact.
+
+## Non-actions of this review unit
+
+```text
+DID_NOT_CALL_GHL=YES
+DID_NOT_MCP_INITIALIZE=YES
+DID_NOT_EXECUTE_OPERATION=YES
+DID_NOT_RETRY=YES
+DID_NOT_COMPENSATE=YES
+DID_NOT_CLEANUP=YES
+DID_NOT_CREATE_GRANT009=YES
+DID_NOT_IMPLEMENT_REMEDIATION=YES
+DID_NOT_MUTATE_RUNTIME=YES
+DID_NOT_ALTER_COMPLETION_DECISION_SEMANTICS=YES
+ADDITIONAL_GHL_CALLS_EXECUTED=0
+ADDITIONAL_MUTATION_CALLS_EXECUTED=0
+```
+
+## STOP
+
+```text
+STOP_CODE=NW008_AT1_COMPLETION_DECISION_REVIEW_001_RECORDED
+REVIEW_ID=NW008_AT1_COMPLETION_DECISION_REVIEW_001
+REVIEW_CLASS=COMPLETION_DECISION_REVIEWER_DISPOSITION
+SUBSTANTIVE_VERDICT=PASS
+REVIEWER_DISPOSITION=PASS_PENDING_FINAL_EXACT_HEAD_VERIFICATION
+REVIEWED_COMPLETION_DECISION_SHA=811eb62eb0406f366377e4ea19be494b7d8641f3
+AT1_EXECUTION_OCCURRED=YES
+AT1_COMPLETION_RECONCILIATION=FAIL
+AT1_COMPLETE=NO
+GRANT_008_STATE=CONSUMED
+GRANT_008_RETRY_AUTHORIZED=NO
+NEW_GHL_AUTHORITY=NO
+GRANT009_AUTHORIZED=NO
+BUSINESS_EFFECT_TRUTH=PARTIALLY_UNKNOWN_DUE_TO_MISSING_RESPONSE_EVIDENCE
+NEXT=FINAL_PR69_REVIEWER_DISPOSITION
+```
