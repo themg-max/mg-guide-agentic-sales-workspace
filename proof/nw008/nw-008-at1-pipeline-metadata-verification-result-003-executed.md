@@ -1,0 +1,62 @@
+# NW-008 AT-1 -- Pipeline Metadata Verification Result 003 Execution Attempt
+
+```text
+GRANT_ID=NW008_AT1_PIPELINE_METADATA_VERIFY_003
+AUTHORIZED_GRANT_003_SHA=b0bb8fe3d0b80eef3e002345734203066501c22e
+ARTIFACT_KIND=BOUNDED_READ_ONLY_PIPELINE_METADATA_VERIFICATION_RESULT
+OWNER_LANE=VS Code / Orchestrator
+BRANCH=impl/nw008-at1-safe-environment-readiness
+RESULT=BLOCKED_PREEXECUTION
+STOP_CODE=GRANT003_DIRECT_GHL_CREDENTIAL_UNAVAILABLE
+RECORDED_AT_UTC=2026-08-17T01:21:12Z
+```
+
+## Pre-execution gate
+
+The authorized Grant 003 approval window was valid at preflight. The private
+target pipeline and current stage bindings were available without publication.
+However, the same direct GHL private-integration-token transport used for
+Result 002 could not be resolved from the available private secret sources.
+
+The only configured MCP credential is bound to the VS Code MG MCP proxy. Grant
+003 explicitly forbids use of that credential and forbids creating or modifying
+credentials. The operation therefore stopped before any transport call.
+
+```text
+DIRECT_GHL_PIT_PRESENT=NO
+PRIVATE_PIPELINE_ID_PRESENT=YES
+PRIVATE_CURRENT_STAGE_ID_PRESENT=YES
+PRIVATE_BINDING_PUBLICATION=NO
+```
+
+## Call counters and frozen authority
+
+```text
+PIPELINE_METADATA_LIST_CALLS_EXECUTED=0
+GET_PIPELINES_EXECUTION_ATTEMPTS=0
+CRM_RECORD_READS_EXECUTED=0
+MUTATION_CALLS_EXECUTED=0
+
+SEARCH_CALLS_EXECUTED=0
+FETCH_CALLS_EXECUTED=0
+LIST_LOCATIONS_CALLS_EXECUTED=0
+PAGINATION_USED=NO
+RETRY_USED=NO
+RAW_REST_FALLBACK_USED=NO
+
+PIPELINE_METADATA_VERIFIED=NO
+EXPECTED_INITIAL_STAGE_BOUND=NO
+AUTHORIZED_FINAL_STAGE_VERIFIED=NO
+AUTHORIZED_FINAL_STAGE_SELECTION_COUNT=0
+
+ENVIRONMENT_READY=NO
+AT1_EXECUTION_AUTHORIZED=NO
+AT1_COMPLETE=NO
+```
+
+## STOP
+
+```text
+STOP_CODE=GRANT003_DIRECT_GHL_CREDENTIAL_UNAVAILABLE
+NEXT=LOCATION_POLICY_AND_TRACK_A_READINESS_REVIEW
+```

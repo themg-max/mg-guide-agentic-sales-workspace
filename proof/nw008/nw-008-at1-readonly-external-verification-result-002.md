@@ -1,0 +1,215 @@
+# NW-008 AT-1 — Read-Only External Verification Result 002
+
+```text
+GRANT_ID=NW008_AT1_RO_EXTERNAL_VERIFY_002
+GRANT_PURPOSE=PARTIAL_EXTERNAL_BINDING_VERIFICATION
+RESULT=PARTIAL_EXTERNAL_BINDINGS_VERIFIED
+AUTHORIZED_GRANT_002_SHA=606670cec59ec6366e196ff99d0a1acf7ab10db6
+AUTHORIZED_GRANT_001_RESULT_SHA=31f5ce52cc681519928aed7b5a6bb1580a4660b7
+BOUND_TRACK_A_BASELINE_SHA=7e5982e2ffe3cd873550f18e8a2f37a97d497e8a
+BRANCH=impl/nw008-at1-safe-environment-readiness
+ARTIFACT_KIND=BOUNDED_READ_ONLY_EXTERNAL_VERIFICATION_RESULT
+OWNER_LANE=VS Code / Orchestrator
+RECORDED_AT_UTC=2026-08-17T00:50:30Z
+```
+
+## Disposition
+
+```text
+RESULT=PARTIAL_EXTERNAL_BINDINGS_VERIFIED
+
+EXACT_CONTACT_READ_VERIFIED=YES
+EXACT_OPPORTUNITY_READ_VERIFIED=YES
+
+OPPORTUNITY_CONTACT_BINDING_VERIFIED=YES
+OPPORTUNITY_LOCATION_BINDING_VERIFIED=YES
+
+PIPELINE_ID_CAPTURED_PRIVATELY=YES
+CURRENT_PIPELINE_STAGE_ID_CAPTURED_PRIVATELY=YES
+
+EXPECTED_INITIAL_STAGE_VERIFIED=NO
+AUTHORIZED_FINAL_STAGE_VERIFIED=NO
+
+EXTERNAL_ENVIRONMENT_VERIFIED=NO
+ENVIRONMENT_READY=NO
+EXPECTED_FULL_ENVIRONMENT_READY_RESULT=NO
+
+EXACT_AUTHORIZED_CRM_READS_COMPLETED=2
+PLANNED_EXACT_READS=2
+CRM_EXACT_READS_MAX=4
+MUTATION_CALLS_EXECUTED=0
+
+SEARCH_CALLS_EXECUTED=0
+FETCH_CALLS_EXECUTED=0
+LIST_LOCATIONS_CALLS_EXECUTED=0
+GET_PIPELINES_CALLS_EXECUTED=0
+RAW_REST_FALLBACK_USED=NO
+
+AT1_EXECUTION_AUTHORIZED=NO
+AT1_COMPLETE=NO
+```
+
+Partial external binding verification completed under grant
+`NW008_AT1_RO_EXTERNAL_VERIFY_002`. Exactly two authorized exact CRM reads were
+executed. No mutations, search, fetch, list_locations, or get-pipelines calls
+were executed. No live CRM record payloads or private IDs are included in this
+public artifact.
+
+## Scope executed
+
+```text
+SURFACE=anthropic_v2
+ENDPOINT=https://services.leadconnectorhq.com/mcp/anthropic/v2
+AUTH_MODE=private_integration_token_bearer_via_existing_secret
+MCP_INITIALIZE=YES
+TOOLS_CALLED=
+  execute_operation:get-contact
+  execute_operation:get-opportunity
+TOOLS_NOT_CALLED=
+  search
+  fetch
+  list_locations
+  search_operations
+  describe_operation
+  get-pipelines
+  create-note
+  get-note
+  update-opportunity
+  any_mutation
+PRIVATE_BINDING_SOURCE=NW013_CANONICAL_SYNTHETIC_RECORD_BINDING_PRIVATE_CONTROL_PLANE
+PRIVATE_IDS_IN_PUBLIC_PROOF=NO
+PIT_IN_PROOF=NO
+```
+
+## Contact exact-read verification (sanitized)
+
+```text
+OPERATION=execute_operation:get-contact
+HTTP_SUCCESS=YES
+BINDING_ID_MATCH=YES
+SYNTHETIC_IDENTITY_OBSERVED=YES
+PROVENANCE_TAGS_OBSERVED=mg-guide-synthetic;hackathon-demo;nw-013
+LOCATION_ID_PRESENT=YES
+PUBLIC_RECORD_PAYLOAD=WITHHELD
+```
+
+Operator private checks (not published):
+
+- returned contact id equals private allowlisted synthetic contact id
+- synthetic/demo designation consistent with NW-013 binding
+- NW-013 reuse provenance tags present on the live record
+
+## Opportunity exact-read verification (sanitized)
+
+```text
+OPERATION=execute_operation:get-opportunity
+HTTP_SUCCESS=YES
+BINDING_ID_MATCH=YES
+CONTACT_ID_BINDING_MATCH=YES
+LOCATION_ID_PRESENT=YES
+LOCATION_ID_MATCHES_CONTACT_LOCATION=YES
+PIPELINE_ID_PRESENT=YES
+PIPELINE_STAGE_ID_PRESENT=YES
+STATUS_OBSERVED_CLASS=open
+PUBLIC_RECORD_PAYLOAD=WITHHELD
+```
+
+Operator private checks (not published):
+
+- returned opportunity id equals private allowlisted synthetic opportunity id
+- opportunity.contactId equals allowlisted synthetic contact id
+- opportunity.locationId equals contact.locationId
+- opportunity.pipelineId captured in private operator evidence only
+- opportunity.pipelineStageId captured in private operator evidence only
+
+## Stage verification limits
+
+```text
+EXPECTED_INITIAL_STAGE_VERIFIED=NO
+AUTHORIZED_FINAL_STAGE_VERIFIED=NO
+REASON_EXPECTED_INITIAL=NO_PRIVATE_EXPECTED_INITIAL_STAGE_ID_BOUND_FOR_COMPARISON
+REASON_AUTHORIZED_FINAL=FINAL_STAGE_VERIFICATION_OUT_OF_SCOPE_FOR_PARTIAL_GRANT_AND_REQUIRES_PIPELINE_METADATA
+GET_PIPELINES_NOT_CALLED=YES
+```
+
+Pipeline id and current stage id were captured **privately** from the opportunity
+exact read. This result does **not** claim expected-initial or authorized-final
+stage verification.
+
+## Caps compliance
+
+| Cap / rule | Value | Observed |
+| --- | --- | --- |
+| `PLANNED_EXACT_READS` | 2 | 2 completed |
+| `CRM_EXACT_READS_MAX` | 4 | 2 used |
+| `MUTATION_CALLS_MAX` | 0 | 0 |
+| `GENERIC_HIGHLEVEL_SEARCH_AUTHORIZED` | NO | no search calls |
+| `BOUNDED_SEARCH_AUTHORIZED` | NO | no search calls |
+| `BLOCKED_MCP_TOOL_SEARCH` | YES | honored |
+| `BLOCKED_MCP_TOOL_FETCH` | YES | honored |
+| `BLOCKED_LIST_LOCATIONS_CALL` | YES | honored |
+| `BLOCKED_GET_PIPELINES_LIST_CALL` | YES | honored |
+| `RAW_REST_FALLBACK` | NO | MCP execute_operation only |
+| `AT1_EXECUTION_AUTHORIZED` | NO | remains NO |
+| PIT print / commit / proof | FORBIDDEN | not exposed |
+
+## Flags frozen after result 002
+
+```text
+EXTERNAL_ENVIRONMENT_VERIFIED=NO
+ENVIRONMENT_READY=NO
+EXPECTED_FULL_ENVIRONMENT_READY_RESULT=NO
+PARTIAL_EXTERNAL_BINDINGS_VERIFIED=YES
+AT1_EXECUTION_AUTHORIZED=NO
+AT1_COMPLETE=NO
+GRANT_002_STATE=EXECUTED_PARTIAL_SUCCESS_CLOSED
+```
+
+## Explicit non-actions
+
+```text
+DID_NOT_CALL_SEARCH=YES
+DID_NOT_CALL_FETCH=YES
+DID_NOT_CALL_LIST_LOCATIONS=YES
+DID_NOT_CALL_GET_PIPELINES=YES
+DID_NOT_EXECUTE_CREATE_NOTE=YES
+DID_NOT_EXECUTE_GET_NOTE=YES
+DID_NOT_EXECUTE_UPDATE_OPPORTUNITY=YES
+DID_NOT_RAW_REST_FALLBACK=YES
+DID_NOT_PRINT_PIT=YES
+DID_NOT_MODIFY_CREDENTIALS=YES
+DID_NOT_PUBLISH_PRIVATE_BINDING_IDS=YES
+DID_NOT_AUTHORIZE_AT1_EXECUTION=YES
+```
+
+## Why not ENVIRONMENT_READY
+
+This grant was explicitly partial:
+
+```text
+GRANT_PURPOSE=PARTIAL_EXTERNAL_BINDING_VERIFICATION
+EXPECTED_FULL_ENVIRONMENT_READY_RESULT=NO
+```
+
+Remaining gaps before any future full-readiness claim (separate grant required):
+
+```text
+GAP_EXACT_LOCATION_GET_BY_ID=YES
+GAP_EXACT_PIPELINE_GET_BY_ID_OR_NON_LIST_METADATA=YES
+GAP_EXPECTED_INITIAL_STAGE_PRIVATE_BINDING=YES
+GAP_AUTHORIZED_FINAL_STAGE_VERIFICATION=YES
+```
+
+## STOP
+
+```text
+STOP_CODE=NW008_AT1_RO_EXTERNAL_VERIFY_002_PARTIAL_BINDINGS_VERIFIED
+RESULT=PARTIAL_EXTERNAL_BINDINGS_VERIFIED
+GRANT_ID=NW008_AT1_RO_EXTERNAL_VERIFY_002
+EXTERNAL_ENVIRONMENT_VERIFIED=NO
+ENVIRONMENT_READY=NO
+MUTATION_CALLS_EXECUTED=0
+AT1_EXECUTION_AUTHORIZED=NO
+AT1_COMPLETE=NO
+NEXT=DO_NOT_PROCEED_TO_AT1_EXECUTION
+```
