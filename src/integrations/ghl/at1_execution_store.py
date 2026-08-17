@@ -217,13 +217,13 @@ class At1ExecutionStore:
                     f"grant_run_id {grant_run_id!r} cannot continue: "
                     f"ordinal {row['operation_ordinal']} is in state {state!r}"
                 )
-            if state == RESPONSE_CAPTURED and (
-                row["parse_success"] is None or row["semantic_success"] is None
+            if state == RESPONSE_CAPTURED and not (
+                row["parse_success"] == 1 and row["semantic_success"] == 1
             ):
                 raise RunContinuationRefusedError(
                     f"grant_run_id {grant_run_id!r} cannot continue: "
                     f"ordinal {row['operation_ordinal']} is in state {state!r} "
-                    "without durable parse and semantic completion"
+                    "without durable successful parse and semantic completion"
                 )
 
     def record_attempt(
@@ -620,9 +620,9 @@ class At1ExecutionStore:
             attempt["state"] in (ATTEMPT_RECORDED, DISPATCHED)
             or (
                 attempt["state"] == RESPONSE_CAPTURED
-                and (
-                    attempt["parse_success"] is None
-                    or attempt["semantic_success"] is None
+                and not (
+                    attempt["parse_success"] is True
+                    and attempt["semantic_success"] is True
                 )
             )
             for attempt in attempts

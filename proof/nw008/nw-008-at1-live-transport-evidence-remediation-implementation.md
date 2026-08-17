@@ -20,6 +20,10 @@ RUN_TERMINALITY_PERSISTS_ACROSS_RESTART=YES
 NEXT_ORDINAL_AFTER_UNRESOLVED_ATTEMPT_REFUSED=YES
 RESPONSE_CAPTURE_PRE_PARSE_RESTART_REFUSED=YES
 PARSE_PRE_SEMANTIC_RESTART_REFUSED=YES
+PARSE_FAILURE_PRE_TERMINAL_RESTART_REFUSED=YES
+SEMANTIC_FAILURE_PRE_TERMINAL_RESTART_REFUSED=YES
+RESPONSE_CAPTURED_CONTINUABLE_ONLY_AFTER_DURABLE_SUCCESS=YES
+UNRESOLVED_RESPONSE_CAPTURED_PROJECTS_UNKNOWN=YES
 BUSINESS_CALL_COUNT_FROM_DISPATCH_LEDGER=YES
 
 B27_BUSINESS_EFFECT_TRUTH=UNKNOWN
@@ -146,7 +150,7 @@ Two additional fail-closed gaps were closed after the durable-semantics repair:
 1. **RESPONSE_CAPTURED without durable parse/semantic completion.**
    `require_run_continuable()` now treats a prior `RESPONSE_CAPTURED` attempt as
    continuable only when both `parse_success` and `semantic_success` are
-   durably set. Crash after response capture / before parse, or after parse /
+   durably successful / True. Crash after response capture / before parse, or after parse /
    before semantic processing, poisons the grant/run and refuses the next
    ordinal before transport with `RunContinuationRefusedError`.
    `business_effect_truth` remains `UNKNOWN` for these unresolved windows.
@@ -167,10 +171,16 @@ New/extended deterministic tests:
   (0 vs 1 dispatch) for pre-dispatch and post-dispatch crash windows.
 - `B36C`: next ordinal refused after response-captured / pre-parse crash.
 - `B36D`: next ordinal refused after parsed / pre-semantic crash.
+- `B36E`: next ordinal refused after parse-failure / pre-terminal crash.
+- `B36F`: next ordinal refused after semantic-failure / pre-terminal crash.
 
 ```text
 RESPONSE_CAPTURE_PRE_PARSE_RESTART_REFUSED=YES
 PARSE_PRE_SEMANTIC_RESTART_REFUSED=YES
+PARSE_FAILURE_PRE_TERMINAL_RESTART_REFUSED=YES
+SEMANTIC_FAILURE_PRE_TERMINAL_RESTART_REFUSED=YES
+RESPONSE_CAPTURED_CONTINUABLE_ONLY_AFTER_DURABLE_SUCCESS=YES
+UNRESOLVED_RESPONSE_CAPTURED_PROJECTS_UNKNOWN=YES
 BUSINESS_CALL_COUNT_FROM_DISPATCH_LEDGER=YES
 ```
 
@@ -199,6 +209,10 @@ RUN_TERMINALITY_PERSISTS_ACROSS_RESTART=YES
 NEXT_ORDINAL_AFTER_UNRESOLVED_ATTEMPT_REFUSED=YES
 RESPONSE_CAPTURE_PRE_PARSE_RESTART_REFUSED=YES
 PARSE_PRE_SEMANTIC_RESTART_REFUSED=YES
+PARSE_FAILURE_PRE_TERMINAL_RESTART_REFUSED=YES
+SEMANTIC_FAILURE_PRE_TERMINAL_RESTART_REFUSED=YES
+RESPONSE_CAPTURED_CONTINUABLE_ONLY_AFTER_DURABLE_SUCCESS=YES
+UNRESOLVED_RESPONSE_CAPTURED_PROJECTS_UNKNOWN=YES
 BUSINESS_CALL_COUNT_FROM_DISPATCH_LEDGER=YES
 B27_BUSINESS_EFFECT_TRUTH=UNKNOWN
 B29_BUSINESS_EFFECT_TRUTH=UNKNOWN
