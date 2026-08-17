@@ -97,18 +97,20 @@ JSONRPC_AUTHORITY_SNAPSHOT_SHA256=8fe1edfdca511d309e712e47447457ea5159b728ec0207
 
 ```text
 MCP_PROTOCOL_VERSION_CANDIDATE=2025-11-25
-SUPPORTED_MCP_PROTOCOL_VERSION=UNKNOWN
+SUPPORTED_MCP_PROTOCOL_VERSION=2025-11-25
+PRE_GRANT_NEGOTIATED_VERSION_MUST_EQUAL_SUPPORTED_VERSION=YES
 ```
 
 `2025-11-25` is confirmed to exist as an official MCP protocol version: the
 specification index page and the authoritative schema repository both carry
 that dated revision, and the pinned `schema.ts` declares
-`LATEST_PROTOCOL_VERSION = "2025-11-25"`.
+`LATEST_PROTOCOL_VERSION = "2025-11-25"`. This unit freezes that value as the
+single supported protocol version for the future runtime.
 
-`SUPPORTED_MCP_PROTOCOL_VERSION` remains `UNKNOWN`. Compatibility with the
-intended HighLevel session cannot be established without live probing (the
-server's supported versions are only observable via `initialize`, which this
-unit forbids), so per the unit instructions the supported version is not set.
+Any future pre-grant `initialize` observation is a compatibility check against
+this pre-frozen version only. It must not dynamically choose, discover, or
+switch the supported version. A negotiated protocol version that does not equal
+`SUPPORTED_MCP_PROTOCOL_VERSION` is a terminal fail-closed condition.
 
 ### 4.2 Immutable schema capture
 
@@ -163,14 +165,15 @@ From pinned `tools.mdx`:
 - A tool returning structured content SHOULD also return the serialized JSON
   in a `TextContent` block for backwards compatibility.
 
-### 4.4 Advertised-schema capability of the candidate version
+### 4.4 Advertised-schema capability of the selected version
 
-The candidate version defines `Tool.outputSchema` and `structuredContent`, so
-the conditional pre-grant advertised-schema authority path from the contract
-plan section 3.2 is protocol-supported by this version:
+The selected supported version defines `Tool.outputSchema` and
+`structuredContent`, so the conditional pre-grant advertised-schema authority
+path from the contract plan section 3.2 is protocol-supported by this version:
 
 ```text
-MCP_ADVERTISED_SCHEMA_SUPPORTED_BY_CANDIDATE_VERSION=YES
+MCP_ADVERTISED_SCHEMA_SUPPORTED_BY_SELECTED_VERSION=YES
+PREGRANT_ADVERTISED_SCHEMA_PATH_ELIGIBLE=YES
 MCP_TOOL_RESULT_SCHEMA_CAPTURED=YES
 MCP_SCHEMA_REVISION_FROZEN=YES
 MCP_SCHEMA_UPSTREAM_REPOSITORY=github.com/modelcontextprotocol/specification
@@ -281,7 +284,8 @@ JSONRPC_AUTHORITY_CAPTURED=YES
 JSONRPC_REVISION_FROZEN=YES
 
 MCP_PROTOCOL_VERSION_CANDIDATE=2025-11-25
-SUPPORTED_MCP_PROTOCOL_VERSION=UNKNOWN
+SUPPORTED_MCP_PROTOCOL_VERSION=2025-11-25
+PRE_GRANT_NEGOTIATED_VERSION_MUST_EQUAL_SUPPORTED_VERSION=YES
 
 MCP_TOOL_RESULT_SCHEMA_CAPTURED=YES
 MCP_SCHEMA_REVISION_FROZEN=YES
@@ -290,7 +294,8 @@ STATIC_HIGHLEVEL_MCP_DOC_FOUND=YES
 STATIC_HIGHLEVEL_EXECUTE_OPERATION_TOOL_CONFIRMED=YES
 STATIC_HIGHLEVEL_EXECUTE_OPERATION_OUTPUT_SCHEMA_FOUND=NO
 
-MCP_ADVERTISED_SCHEMA_SUPPORTED_BY_CANDIDATE_VERSION=YES
+MCP_ADVERTISED_SCHEMA_SUPPORTED_BY_SELECTED_VERSION=YES
+PREGRANT_ADVERTISED_SCHEMA_PATH_ELIGIBLE=YES
 
 OPERATION_PAYLOAD_SCHEMAS_FROZEN=YES
 
@@ -309,9 +314,9 @@ Rationale:
    output schema and no content-encoding statement. The doc page is a living
    document with no immutable version, so even its prose cannot be
    digest-pinned durably.
-4. `SUPPORTED_MCP_PROTOCOL_VERSION` stays `UNKNOWN` because compatibility with
-   the intended HighLevel session cannot be established without live probing,
-   which this unit forbids.
+4. `SUPPORTED_MCP_PROTOCOL_VERSION` is frozen now to `2025-11-25`. A future
+   pre-grant `initialize` observation may only check that the server negotiates
+   exactly this version; it must not select or replace the supported version.
 
 Because the provider wrapper cannot be frozen statically:
 
@@ -321,10 +326,11 @@ COMPOSITE_CONTRACT_FREEZE_READY=NO
 ```
 
 The conditional fallback path from the contract plan section 3.2 remains
-available in principle: the candidate MCP version defines `Tool.outputSchema`
-and `structuredContent`, so a separately authorized pre-grant advertised
-schema, captured, version-bound, and digest-bound before grant activation,
-could satisfy provider authority. No `tools/list` was run in this unit.
+eligible: the selected MCP version defines `Tool.outputSchema` and
+`structuredContent` (`PREGRANT_ADVERTISED_SCHEMA_PATH_ELIGIBLE=YES`), so a
+separately authorized pre-grant advertised schema, captured, version-bound,
+and digest-bound before grant activation, could satisfy provider authority.
+No `tools/list` was run in this unit.
 
 ## 8. Next decision
 
@@ -347,9 +353,21 @@ This PR is `planning_only`. Its writable scope is exactly:
 proof/nw008/nw-008-at1-mcp-response-source-capture.md
 ```
 
-Validation performed at exact head
-`b84b6ff50bf80261f89feac168ed0cdcbcf07a35` (branch created directly from
-fetched `origin/main`):
+Provenance (plan base is not the PR exact head):
+
+```text
+PLAN_BASE_SHA=b84b6ff50bf80261f89feac168ed0cdcbcf07a35
+PR76_EXACT_HEAD=PENDING_POST_COMMIT
+PR76_PHASE1_DETERMINISTIC_CI=PENDING
+```
+
+`PLAN_BASE_SHA` is the `origin/main` tip from which this planning branch was
+created (PR #75 merge). It is not the PR #76 exact head. `PR76_EXACT_HEAD` is
+the tip commit of this PR after the supported-version freeze amendment.
+`PR76_PHASE1_DETERMINISTIC_CI` is recorded only after GitHub CI reports PASS
+on that exact head.
+
+Local validation on the amended working tree (before push):
 
 1. `git diff --check` — clean;
 2. exactly one changed path, equal to the path above;
@@ -361,9 +379,6 @@ fetched `origin/main`):
    `tools/list`, no `execute_operation`, no endpoint connectivity checks, no
    secret or private-binding access.
 
-The `Phase 1 deterministic validation` GitHub check is required on the PR at
-exact head.
-
 ```text
 NETWORK_CALLS_TO_LIVE_GHL_MCP=0
 GHL_CALLS_EXECUTED=0
@@ -372,6 +387,18 @@ MCP_CALLS_EXECUTED=0
 LIVE_GHL_EXECUTION_AUTHORIZED=NO
 GRANT009_PREPARATION_AUTHORIZED=NO
 GRANT009_EXECUTION_AUTHORIZED=NO
+
+SUPPORTED_MCP_PROTOCOL_VERSION=2025-11-25
+PRE_GRANT_NEGOTIATED_VERSION_MUST_EQUAL_SUPPORTED_VERSION=YES
+JSONRPC_REVISION_FROZEN=YES
+MCP_SCHEMA_REVISION_FROZEN=YES
+OPERATION_PAYLOAD_SCHEMAS_FROZEN=YES
+STATIC_HIGHLEVEL_EXECUTE_OPERATION_OUTPUT_SCHEMA_FOUND=NO
+HIGHLEVEL_PROVIDER_CONTRACT_FROZEN=NO
+COMPOSITE_CONTRACT_FREEZE_READY=NO
+PREGRANT_TOOLS_LIST_REQUIRED=YES
+MCP_ADVERTISED_SCHEMA_SUPPORTED_BY_SELECTED_VERSION=YES
+PREGRANT_ADVERTISED_SCHEMA_PATH_ELIGIBLE=YES
 
 NEXT=NW008_AT1_PREGRANT_MCP_CONTRACT_OBSERVATION_001_AUTHORIZATION_REVIEW
 STOP_CODE=NW008_AT1_MCP_RESPONSE_SOURCE_CAPTURE_READY_FOR_REVIEW
