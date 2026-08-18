@@ -10,16 +10,34 @@ BASE_REF=origin/main
 BASE_SHA=44f3daadf4e3d2dfd10d0fe3c180a7f425f39029
 AUTHORIZATION_BRANCH=auth/nw008-at1-describe-operation-contract-observation-001
 
-PRIOR_MERGED_AUTHORIZATION_PR=81
-PRIOR_MERGED_AUTHORIZATION_HEAD=6c4256e6872fcf0f3cef0b52618cd6d1e9c959bc
-PRIOR_MERGED_AUTHORIZATION_MERGE_SHA=44f3daadf4e3d2dfd10d0fe3c180a7f425f39029
+# Historical merged authority (PR #81)
+PR81_AUTHORIZATION_STATE=MERGED_EFFECTIVE
+PR81_AUTHORIZATION_PR=81
+PR81_AUTHORIZATION_REVIEWED_HEAD=6c4256e6872fcf0f3cef0b52618cd6d1e9c959bc
+PR81_AUTHORIZATION_MERGE_SHA=44f3daadf4e3d2dfd10d0fe3c180a7f425f39029
+OBSERVATION_EXECUTION_OCCURRED=NO
+OBSERVATION_AUTHORITY_CONSUMED=NO
+
+# Current refinement (PR #82)
+PR82_REFINEMENT_STATE=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
+PR82_REFINED_EVIDENCE_RULES_EFFECTIVE=NO
+EXECUTION_HOLD_PENDING_PR82_MERGE=YES
+PR82_SUPERSEDES_PR81_EVIDENCE_RULES_ON_MERGE=YES
+PR82_CREATES_NEW_OBSERVATION_AUTHORITY=NO
+PR82_CREATES_NEW_CALL_BUDGET=NO
+
 REFINEMENT=PR81_EVIDENCE_RULES_RESULT_REPRESENTATION_SESSION_JCS_LIFECYCLE
 
-STATUS=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
-AUTHORIZATION_EFFECTIVE=NO
-EFFECTIVE_CONDITION=HUMAN_REVIEW_AND_MERGE_TO_MAIN
+PR82_AUTHORIZATION_EFFECTIVE=NO
+PR82_EFFECTIVE_CONDITION=HUMAN_REVIEW_AND_MERGE_TO_MAIN
 SELF_ACTIVATION=FORBIDDEN
-OBSERVATION_EXECUTION_OCCURRED=NO
+
+TOTAL_AUTHORIZED_INITIALIZE_CALLS=1
+TOTAL_AUTHORIZED_INITIALIZED_NOTIFICATIONS=1
+TOTAL_AUTHORIZED_DESCRIBE_OPERATION_CALLS=5
+TOTAL_AUTHORIZED_EXECUTE_OPERATION_CALLS=0
+TOTAL_AUTHORIZED_GHL_BUSINESS_READS=0
+TOTAL_AUTHORIZED_GHL_MUTATIONS=0
 ```
 
 This unit proposes a narrowly bounded, read-only observation of the provider's
@@ -508,6 +526,8 @@ JCS_IMPLEMENTATION=<implementation identity>
 JCS_IMPLEMENTATION_VERSION=<version identity>
 JCS_IMPLEMENTATION_REVISION=<revision identity>
 JCS_CONFORMANCE_VECTOR_PASS=YES
+JCS_UNSUPPORTED_VALUE_POLICY=FAIL_CLOSED
+MULTI_REPRESENTATION_EQUIVALENCE=PARSED_JSON_VALUES_MUST_HAVE_IDENTICAL_RFC8785_JCS_BYTES
 ```
 
 Allowed implementation for this observation (must match prior NW-008 AT-1
@@ -525,11 +545,16 @@ conclusions.
 
 Raw transport-body digests must hash the exact received bytes without newline
 normalization. The proof must publish each digest subject or enough byte-exact
-content for independent reproduction. Credentials, cookies, authorization
-values, private tenant/location identifiers, private record identifiers, and
-session identifiers must be omitted or replaced with an explicit redaction
-marker before the proof artifact is written; no digest may require a reviewer
-to possess a secret or a live session identifier.
+content for independent reproduction. Preserve exact outer transport bytes and
+their raw digests independently from any RFC 8785 JCS canonical digests that
+may be computed over parsed JSON values. Preserve exact `content[*].text`
+bytes and record `CONTENT_TEXT_SHA256` independently from any JCS digest; do
+not conflate raw-text digests with JCS digests computed over parsed inner
+values. Credentials, cookies, authorization values, private tenant/location
+identifiers, private record identifiers, and session identifiers must be
+omitted or replaced with an explicit redaction marker before the proof artifact
+is written; no digest may require a reviewer to possess a secret or a live
+session identifier.
 
 ## 9. Authority and freeze decision rules
 
