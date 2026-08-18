@@ -77,6 +77,10 @@ The fail-closed observation established that:
 4. No MCP JSON-RPC envelope was received; version negotiation never occurred.
 5. The authorization permitted no retry, replacement call, or reconnect.
 
+Error 1010 is preserved as a client/browser-signature edge block. The evidence
+does not prove that the default Python User-Agent caused the block, and it does
+not prove that use of the Anthropic-designated path caused the block.
+
 ## 3. Endpoint and client matrix (documented evidence)
 
 ### 3.1 Documented endpoints
@@ -85,9 +89,19 @@ From PR #80 provider-output-authority-acquisition (`proof/nw008/nw-008-at1-provi
 
 | Pattern | Status | Source |
 | --- | --- | --- |
-| `https://services.leadconnectorhq.com/mcp/{client}/v2` | Documented | LeadConnector MCP doc |
-| `https://services.leadconnectorhq.com/mcp/anthropic/v2` | Live (for Claude-class clients) | LeadConnector MCP doc |
-| `https://services.leadconnectorhq.com/mcp/` | Documented as original endpoint | LeadConnector MCP doc |
+| `https://services.leadconnectorhq.com/mcp/{client}/v2` | Documented client-specific pattern | HighLevel MCP doc |
+| `https://services.leadconnectorhq.com/mcp/anthropic/v2` | Live; designated for Claude | HighLevel MCP doc |
+| `https://services.leadconnectorhq.com/mcp/` | Supported original endpoint for custom HTTP MCP clients | HighLevel MCP doc |
+
+The current official documentation also states that each MCP connection is
+attached to a single subaccount/location and that dedicated OpenAI and VS Code
+endpoints remain on the roadmap.
+
+```text
+HIGHLEVEL_MCP_DOC_STATUS=LIVING_SOURCE
+HIGHLEVEL_MCP_DOC_VERIFIED_AT_UTC=2026-08-18T12:32:23Z
+SOURCE_RECHECK_REQUIRED_BEFORE_FUTURE_AUTHORIZATION=YES
+```
 
 ### 3.2 Prior observation surface
 
@@ -101,47 +115,80 @@ AUTH_MODE=private_integration_token_bearer_via_gcp_secret_manager
 TRANSPORT_CLIENT=python_urllib_stdlib (Python 3.9.6, default User-Agent)
 ```
 
-The edge block attributed the rejection to "browser's signature" (`browser_signature_banned`), which correlates to the User-Agent or client fingerprint, not to the credential itself.
+The edge response classified the rejection as `browser_signature_banned`. That
+classification identifies a client/browser-signature edge block, but it does
+not isolate the default Python User-Agent or the selected path as causal.
+
+### 3.3 Runtime topology boundary
+
+The future HighLevel integration path requires an MG-owned GHL MCP client
+adapter that connects to HighLevel's remote provider MCP server. MG MCP is not
+in that runtime path; its role remains read-only governed context.
+
+```text
+HIGHLEVEL_MCP_ROLE=REMOTE_PROVIDER_MCP_SERVER
+MG_INTEGRATION_ROLE=GHL_MCP_CLIENT_ADAPTER
+MG_MCP_IN_RUNTIME_GHL_PATH=NO
+MG_MCP_ROLE=READ_ONLY_GOVERNED_CONTEXT
+```
+
+This topology is an architecture distinction only. It does not authorize or
+implement the adapter, activate a runtime connection, or validate any generic
+endpoint contract.
+
+### 3.4 Target-location gate
+
+The documented single-subaccount attachment model is architecture-ready, but
+no target location is selected or bound. A future target must be isolated or
+competition-approved and use synthetic or explicitly approved test data.
+
+```text
+TARGET_GHL_LOCATION_SELECTED=NO
+TARGET_GHL_LOCATION_CLASS=ISOLATED_OR_COMPETITION_APPROVED
+TARGET_GHL_LOCATION_ID_IN_PUBLIC_ARTIFACT=NO
+SYNTHETIC_OR_APPROVED_TEST_DATA_REQUIRED=YES
+LOCATION_BINDING_REQUIRES_SEPARATE_AUTHORIZATION=YES
+```
 
 ## 4. Planning questions and answers
 
 ### Q1. Is `/mcp/anthropic/v2` provider-supported for a custom Python/VS Code client, or only Claude-class clients?
 
-**Answer: UNKNOWN**
+**Answer: NO for the current client.**
 
-- **Evidence for Claude-only**: The endpoint path contains `/anthropic/` which
-  suggests it is intended for Anthropic/Claude clients. The Cloudflare error
-  1010 blocking a Python `urllib` client with default User-Agent on this
-  endpoint supports the hypothesis that client fingerprinting is enforced.
-- **Evidence against Claude-only**: The MCP documentation does not explicitly
-  state that `/mcp/anthropic/v2` rejects non-Anthropic clients. The
-  documentation describes `/mcp/{client}/v2` as a pattern.
-- **Gap**: No official HighLevel documentation defines which `{client}` values
-  are supported, what User-Agent patterns are allowed, or whether a generic
-  Python/VS Code client can use `/mcp/anthropic/v2`.
+- **Official designation**: The current HighLevel MCP documentation designates
+  `/mcp/anthropic/v2` for Claude.
+- **Current client**: The VS Code / MG Orchestrator is not Claude and therefore
+  is not the provider-designated client for that client-specific endpoint.
+- **Edge evidence boundary**: PR #83 still establishes error 1010 as a
+  client/browser-signature edge block. It does not prove that the default
+  Python User-Agent or the Anthropic path mismatch caused that response.
 
 ```text
-Q1_ANSWER=UNKNOWN
-Q1_EVIDENCE_QUALITY=INFERENCE_FROM_EDGE_BLOCK
-Q1_PROVIDER_CLARIFICATION_REQUIRED=YES
+Q1_ANSWER=NO
+Q1_EVIDENCE_QUALITY=CURRENT_OFFICIAL_HIGHLEVEL_MCP_DOC
+ANTHROPIC_V2_DESIGNATED_CLIENT=CLAUDE
+ANTHROPIC_V2_PROVIDER_DESIGNATED_FOR_CURRENT_CLIENT=NO
 ```
 
 ### Q2. Is `/mcp/` the supported generic HTTP MCP endpoint for our current client?
 
-**Answer: UNKNOWN**
+**Answer: YES**
 
-- **Evidence**: The MCP documentation mentions `/mcp/` as the "original
-  endpoint" that remains available. No PR #83-scope observation used `/mcp/`.
-- **Gap**: No observation or documentation confirms that `/mcp/` accepts the
-  same `streamable-http+sse` transport with PIT auth for a Python/VS Code
-  client. The Cloudflare WAF configuration at `/mcp/` is not observable from
-  merged evidence.
+- **Official designation**: The current HighLevel MCP documentation identifies
+  the original `/mcp/` endpoint as the supported surface for custom HTTP MCP
+  clients.
+- **Attachment boundary**: Each connection attaches to one HighLevel
+  subaccount/location.
+- **Observation boundary**: This planning update did not contact the endpoint.
 
 ```text
-Q2_ANSWER=UNKNOWN
-Q2_EVIDENCE_QUALITY=DOC_MENTION_ONLY
-Q2_ENDPOINT_PROBE_REQUIRED=YES
-Q2_PROVIDER_CLARIFICATION_REQUIRED=YES
+Q2_ANSWER=YES
+Q2_EVIDENCE_QUALITY=CURRENT_OFFICIAL_HIGHLEVEL_MCP_DOC
+SUPPORTED_CLIENT_ENDPOINT_IDENTIFIED=YES
+SUPPORTED_CLIENT_ENDPOINT=https://services.leadconnectorhq.com/mcp/
+SUPPORTED_CLIENT_CLASS=CUSTOM_HTTP_MCP_CLIENT
+GHL_MCP_ATTACHMENT_LEVEL=SINGLE_SUBACCOUNT_PER_CONNECTION
 ```
 
 ### Q3. Does `/mcp/` expose `describe_operation` and the five frozen AT-1 operations?
@@ -154,127 +201,181 @@ Q2_PROVIDER_CLARIFICATION_REQUIRED=YES
   AT-1 operation IDs (`get-contact`, `get-opportunity`, `create-note`,
   `get-note`, `update-opportunity`) were confirmed present via `search_operations`
   in Grant008.
-- **Gap**: No observation confirms `/mcp/` advertises the same tool catalog.
-  Endpoint-specific tool catalogs cannot be assumed identical.
+- **Current documentation boundary**: The current official documentation does
+  not document the unified `describe_operation` tool on the original `/mcp/`
+  endpoint. The client-specific catalog cannot be transferred to that endpoint
+  by assumption.
 
 ```text
 Q3_ANSWER=UNKNOWN
-Q3_EVIDENCE_QUALITY=INFERENCE_FROM_ALTERNATE_ENDPOINT
-Q3_ENDPOINT_PROBE_REQUIRED=YES
+Q3_EVIDENCE_QUALITY=CURRENT_DOC_ABSENCE_PLUS_ALTERNATE_ENDPOINT_OBSERVATION
+GENERIC_ENDPOINT_DESCRIBE_OPERATION_AVAILABLE=UNKNOWN
 ```
 
 ### Q4. Does PIT provide the required catalog/scopes, or is OAuth required?
 
-**Answer: PARTIAL (PIT confirmed sufficient for prior observations; OAuth not required but recommended by HighLevel)**
+**Answer: BOTH SUPPORTED; OAuth is not required and is preferred for widest scope.**
 
 - **Evidence**: PR #77/PR #78 pregrant observation successfully initialized,
   completed `tools/list`, and captured the catalog using PIT + Bearer auth
-  against `/mcp/anthropic/v2`. The MCP documentation states OAuth is
-  "recommended" and PIT is "more limited" but does not enumerate specific
-  catalog/scope differences.
-- **Gap**: If endpoint changes (e.g., to `/mcp/`), PIT scope compatibility is
-  not guaranteed. The PR #83 fail-closed stop was at the edge before PIT could
-  be validated on the repeat attempt.
+  against `/mcp/anthropic/v2`.
+- **Official authentication support**: The generic endpoint supports PIT and
+  OAuth authentication. OAuth is preferred for widest scope but is not
+  required for authentication.
+- **Remaining catalog gap**: The official documentation does not establish
+  whether PIT is sufficient for the required NW008 catalog on the generic
+  endpoint.
 
 ```text
-Q4_ANSWER=PIT_SUFFICIENT_FOR_PRIOR_OBSERVATION
-Q4_EVIDENCE_QUALITY=OBSERVED_PRIOR_SUCCESS_PLUS_DOC
-Q4_OAUTH_REQUIRED_FOR_CURRENT_KNOWN_CATALOG=NO
-Q4_OAUTH_REQUIRED_FOR_ALTERNATE_ENDPOINT=UNKNOWN
+Q4_ANSWER=BOTH_SUPPORTED_OAUTH_PREFERRED_FOR_WIDEST_SCOPE
+Q4_EVIDENCE_QUALITY=CURRENT_OFFICIAL_HIGHLEVEL_MCP_DOC
+PIT_SUPPORTED_ON_GENERIC_ENDPOINT=YES
+OAUTH_SUPPORTED_ON_GENERIC_ENDPOINT=YES
+OAUTH_REQUIRED_FOR_AUTHENTICATION=NO
+OAUTH_PREFERRED_FOR_WIDEST_SCOPE=YES
+PIT_SUFFICIENT_FOR_REQUIRED_NW008_CATALOG=UNKNOWN
 ```
 
 ### Q5. Is a dedicated OpenAI/VS Code client endpoint now live or still roadmap-only?
 
-**Answer: UNKNOWN**
+**Answer: ROADMAP**
 
-- **Evidence**: The MCP documentation mentions `/mcp/{client}/v2` pattern.
-  `/mcp/anthropic/v2` is documented and confirmed live. No `/mcp/openai/v2`,
-  `/mcp/vscode/v2`, `/mcp/generic/v2`, or similar endpoint is mentioned in any
-  merged source.
-- **Gap**: No HighLevel documentation, changelog, or public repo source
-  confirms the existence of a dedicated VS Code or OpenAI endpoint.
+- **Current status**: The official HighLevel MCP documentation identifies
+  dedicated OpenAI and VS Code endpoints as roadmap items, not live endpoints.
+- **Current route**: The supported route for this custom HTTP MCP client is the
+  original `/mcp/` endpoint.
 
 ```text
-Q5_ANSWER=UNKNOWN
-Q5_EVIDENCE_QUALITY=NO_DOC_OR_REPO_EVIDENCE
-Q5_PROVIDER_CLARIFICATION_REQUIRED=YES
+Q5_ANSWER=ROADMAP
+Q5_EVIDENCE_QUALITY=CURRENT_OFFICIAL_HIGHLEVEL_MCP_DOC
+DEDICATED_OPENAI_ENDPOINT_LIVE=NO
+DEDICATED_VSCODE_ENDPOINT_LIVE=NO
+DEDICATED_ENDPOINT_STATUS=ROADMAP
 ```
 
 ### Q6. What exact endpoint, client identity, auth mode, protocol version, and transport behavior would a future authorization need to freeze?
 
-**Answer: CANNOT_FREEZE (multiple unknowns)**
+**Answer: ATTACHMENT ARCHITECTURE READY; RUNTIME ACTIVATION NOT AUTHORIZED**
 
 A future observation authorization would need to freeze:
 
 | Parameter | Prior Value | Future Value | Status |
 | --- | --- | --- | --- |
-| Endpoint | `https://services.leadconnectorhq.com/mcp/anthropic/v2` | TBD | **BLOCKED** by edge ban |
-| Client identity (User-Agent) | Python `urllib` default | TBD | **UNKNOWN** (provider-supported value unknown) |
+| Endpoint | `https://services.leadconnectorhq.com/mcp/anthropic/v2` | `https://services.leadconnectorhq.com/mcp/` | Documented; not runtime-validated |
+| Client class | Python `urllib` client | GHL MCP client adapter as custom HTTP MCP client | Documented; future client profile not frozen |
+| Attachment | Prior bound location | Single subaccount/location per connection | Documented; target location not selected |
 | Auth mode | PIT + Bearer | TBD | Likely unchanged if endpoint allows |
-| Protocol version | `2025-11-25` | `2025-11-25` | Frozen in PR #76 |
-| Transport | `streamable-http+sse` | TBD | Endpoint-dependent |
+| Protocol version | Observed `2025-11-25` | TBD | Generic endpoint support unknown |
+| Auth support | PIT | PIT or OAuth | Both supported; PIT sufficiency for the NW008 catalog remains unknown |
+| Tool availability | Observed on Anthropic endpoint | `describe_operation` on generic endpoint | **UNKNOWN** |
 
 ```text
-Q6_ANSWER=CANNOT_FREEZE_WITHOUT_PROVIDER_CLARIFICATION
-Q6_ENDPOINT_FROZEN=NO
-Q6_CLIENT_IDENTITY_FROZEN=NO
-Q6_AUTH_MODE_FROZEN=LIKELY_UNCHANGED
-Q6_PROTOCOL_VERSION_FROZEN=YES
-Q6_TRANSPORT_FROZEN=NO
+Q6_ANSWER=ATTACHMENT_ARCHITECTURE_READY_RUNTIME_ACTIVATION_NOT_AUTHORIZED
+Q6_AUTH_MODE_FROZEN=NO
+GENERIC_ENDPOINT_DOCUMENTED=YES
+GENERIC_CLIENT_CLASS_DOCUMENTED=YES
+ATTACHMENT_LEVEL_DOCUMENTED=YES
+GENERIC_ENDPOINT_RUNTIME_VALIDATED=NO
+PRIOR_OBSERVED_PROTOCOL_VERSION=2025-11-25
+GENERIC_ENDPOINT_PROTOCOL_VERSION_SUPPORT=UNKNOWN
+FUTURE_AUTH_ENDPOINT_FROZEN=NO
+FUTURE_AUTH_CLIENT_PROFILE_FROZEN=NO
+FUTURE_AUTH_PROTOCOL_VERSION_FROZEN=NO
+FUTURE_AUTH_TRANSPORT_CONTRACT_FROZEN=NO
+GHL_MCP_ATTACHMENT_ARCHITECTURE_READY=YES
+GHL_MCP_RUNTIME_ACTIVATION_AUTHORIZED=NO
+NW008_FUTURE_OBSERVATION_AUTHORIZATION_DESIGNABLE=NO
 ```
 
 ### Q7. Is HighLevel/provider clarification required before any new authorization?
 
 **Answer: YES**
 
-- The edge block explicitly cites "browser's signature" as the ban reason.
-- No merged evidence establishes which client identities (User-Agent patterns)
-  are provider-supported for MCP access.
-- No merged evidence establishes whether `/mcp/` accepts non-Claude clients.
-- No merged evidence establishes whether a dedicated non-Anthropic endpoint
-  exists.
-
-Without provider clarification, any new observation authorization would risk
-consuming authority on another edge-blocked attempt, which would violate the
-single-shot authority model.
+- The supported custom-client endpoint, attachment level, and authentication
+  options are now identified from current official documentation.
+- The remaining provider clarification is limited to whether the original
+  generic endpoint exposes the unified `describe_operation` toolset needed by
+  NW008.
+- Provider clarification must precede any endpoint validation. Any later
+  endpoint validation would require separate new authorization.
 
 ```text
 Q7_ANSWER=YES
-Q7_CLARIFICATION_SCOPE=ENDPOINT_CLIENT_IDENTITY_USER_AGENT_PATTERN
+PROVIDER_CLARIFICATION_SCOPE=GENERIC_ENDPOINT_UNIFIED_TOOLSET_DESCRIBE_OPERATION
+FUTURE_ENDPOINT_VALIDATION_REQUIRES_NEW_AUTHORIZATION=YES
+PROVIDER_CLARIFICATION_PRECEDES_ANY_ENDPOINT_VALIDATION=YES
 ```
 
 ## 5. Source matrix
 
-| Source | Type | PR | SHA | Finding |
-| --- | --- | --- | --- | --- |
-| `proof/nw008/nw-008-at1-describe-operation-contract-observation-001.md` | Merged proof | #83 | `c892b28` | Edge block HTTP 403 error 1010 at `/mcp/anthropic/v2` |
-| `proof/nw008/nw-008-at1-pregrant-mcp-contract-observation-001.md` | Merged proof | #78 | `b16f49c` | Prior successful initialize at `/mcp/anthropic/v2` |
-| `proof/nw008/nw-008-at1-provider-output-authority-acquisition-001.md` | Merged proof | #80 | `023ddbb` | MCP doc endpoint patterns; no output schema authority |
-| `proof/nw008/nw-008-at1-mcp-response-source-capture.md` | Merged proof | #76 | `262fc16` | MCP protocol version frozen `2025-11-25` |
-| LeadConnector MCP doc (living) | Official doc | N/A | N/A | Endpoint patterns; PIT/OAuth; no client identity spec |
-| Cloudflare error 1010 response | Transport evidence | #83 | N/A | `browser_signature_banned`; "Do not retry" |
+| PR | Reviewed head | Merge SHA | Claim supported |
+| --- | --- | --- | --- |
+| #76 | `fb0da6d41484ae44aae06b86a4e78788ca4b211b` | `262fc1670a910e147de4e634117002fd38172e87` | Prior observed protocol version was `2025-11-25`; this does not establish generic endpoint support |
+| #78 | `b16f49ca3813746614e228dd4433d88cf6b0cfc5` | `781f8ce90c7b63fc8e23eec62dda7544bda8d143` | Prior successful client-specific endpoint observation and advertised tool catalog |
+| #80 | `f183ac14140840d5325b17c9cc6bc88378fa47aa` | `8d70390b9b962c0276a99ea0d8b63c384c1a426c` | Living official HighLevel MCP documentation was acquired as source evidence |
+| #83 | `c892b28fa026edc22c9670165648cb5dce3690fb` | `d93f4b418ed84a72c83a4b2ac07f06b4b4a5b922` | Error 1010 client/browser-signature edge block; no causal attribution to User-Agent or path |
+
+The current living HighLevel MCP documentation supports the generic custom
+HTTP client endpoint, single-subaccount attachment level, PIT/OAuth support,
+Claude client designation, and dedicated endpoint roadmap claims. It does not
+establish the generic endpoint runtime, protocol, transport, or unified
+`describe_operation` contract.
 
 ## 6. Decision outputs
 
 ```text
-SUPPORTED_CLIENT_ENDPOINT_IDENTIFIED=NO
+SUPPORTED_CLIENT_ENDPOINT_IDENTIFIED=YES
+SUPPORTED_CLIENT_ENDPOINT=https://services.leadconnectorhq.com/mcp/
+SUPPORTED_CLIENT_CLASS=CUSTOM_HTTP_MCP_CLIENT
+GHL_MCP_ATTACHMENT_LEVEL=SINGLE_SUBACCOUNT_PER_CONNECTION
+HIGHLEVEL_MCP_ROLE=REMOTE_PROVIDER_MCP_SERVER
+MG_INTEGRATION_ROLE=GHL_MCP_CLIENT_ADAPTER
+MG_MCP_IN_RUNTIME_GHL_PATH=NO
+MG_MCP_ROLE=READ_ONLY_GOVERNED_CONTEXT
+ANTHROPIC_V2_DESIGNATED_CLIENT=CLAUDE
+ANTHROPIC_V2_PROVIDER_DESIGNATED_FOR_CURRENT_CLIENT=NO
+GENERIC_ENDPOINT_DOCUMENTED=YES
+GENERIC_CLIENT_CLASS_DOCUMENTED=YES
+ATTACHMENT_LEVEL_DOCUMENTED=YES
+GENERIC_ENDPOINT_RUNTIME_VALIDATED=NO
+PRIOR_OBSERVED_PROTOCOL_VERSION=2025-11-25
+GENERIC_ENDPOINT_PROTOCOL_VERSION_SUPPORT=UNKNOWN
+FUTURE_AUTH_ENDPOINT_FROZEN=NO
+FUTURE_AUTH_CLIENT_PROFILE_FROZEN=NO
+FUTURE_AUTH_PROTOCOL_VERSION_FROZEN=NO
+FUTURE_AUTH_TRANSPORT_CONTRACT_FROZEN=NO
 GENERIC_ENDPOINT_DESCRIBE_OPERATION_AVAILABLE=UNKNOWN
-PIT_SUFFICIENT_FOR_REQUIRED_CATALOG=YES (for prior endpoint; unknown for alternatives)
-OAUTH_REQUIRED_FOR_REQUIRED_CATALOG=NO (for prior endpoint; unknown for alternatives)
-DEDICATED_VSCODE_OR_OPENAI_ENDPOINT_LIVE=UNKNOWN
+PIT_SUPPORTED_ON_GENERIC_ENDPOINT=YES
+OAUTH_SUPPORTED_ON_GENERIC_ENDPOINT=YES
+OAUTH_REQUIRED_FOR_AUTHENTICATION=NO
+OAUTH_PREFERRED_FOR_WIDEST_SCOPE=YES
+PIT_SUFFICIENT_FOR_REQUIRED_NW008_CATALOG=UNKNOWN
+DEDICATED_OPENAI_ENDPOINT_LIVE=NO
+DEDICATED_VSCODE_ENDPOINT_LIVE=NO
+DEDICATED_ENDPOINT_STATUS=ROADMAP
+GHL_MCP_ATTACHMENT_ARCHITECTURE_READY=YES
+GHL_MCP_RUNTIME_ACTIVATION_AUTHORIZED=NO
+TARGET_GHL_LOCATION_SELECTED=NO
+TARGET_GHL_LOCATION_CLASS=ISOLATED_OR_COMPETITION_APPROVED
+TARGET_GHL_LOCATION_ID_IN_PUBLIC_ARTIFACT=NO
+SYNTHETIC_OR_APPROVED_TEST_DATA_REQUIRED=YES
+LOCATION_BINDING_REQUIRES_SEPARATE_AUTHORIZATION=YES
 PROVIDER_CLARIFICATION_REQUIRED=YES
-FUTURE_OBSERVATION_AUTHORIZATION_DESIGNABLE=NO
+PROVIDER_CLARIFICATION_SCOPE=GENERIC_ENDPOINT_UNIFIED_TOOLSET_DESCRIBE_OPERATION
+NW008_FUTURE_OBSERVATION_AUTHORIZATION_DESIGNABLE=NO
+FUTURE_ENDPOINT_VALIDATION_REQUIRES_NEW_AUTHORIZATION=YES
+PROVIDER_CLARIFICATION_PRECEDES_ANY_ENDPOINT_VALIDATION=YES
+HIGHLEVEL_MCP_DOC_STATUS=LIVING_SOURCE
+HIGHLEVEL_MCP_DOC_VERIFIED_AT_UTC=2026-08-18T12:32:23Z
+SOURCE_RECHECK_REQUIRED_BEFORE_FUTURE_AUTHORIZATION=YES
 ```
 
 ## 7. Unknowns requiring provider clarification
 
 | Unknown | Question for HighLevel |
 | --- | --- |
-| U1 | Which MCP endpoint(s) support non-Anthropic/non-Claude clients (e.g., custom Python/VS Code integrations)? |
-| U2 | What User-Agent pattern(s) are allowed for MCP access without triggering Cloudflare WAF error 1010? |
-| U3 | Is `/mcp/` available for custom clients with `streamable-http+sse` transport and PIT auth? |
-| U4 | Is there a dedicated endpoint path (e.g., `/mcp/generic/v2`, `/mcp/vscode/v2`) for non-LLM-provider integrations? |
-| U5 | Does the tool catalog (`describe_operation`, `execute_operation`, etc.) differ by endpoint? |
+| U1 | Does the original generic endpoint expose the unified `describe_operation` toolset required by NW008? |
+| U2 | Is PIT sufficient for the required NW008 catalog on the generic endpoint? |
 
 ## 8. Proposed planning-only PR
 
@@ -283,8 +384,10 @@ PR_TITLE=docs(nw008): AT-1 initialize edge access remediation plan — provider 
 PR_BODY=
 ## Summary
 
-Planning-only artifact identifying endpoint/client/auth unknowns blocking
-future NW008 AT-1 observation authorization.
+Planning-only artifact incorporating current official HighLevel endpoint,
+client, location-attachment, authentication, and roadmap evidence while
+narrowing provider clarification to the generic endpoint's unified
+`describe_operation` toolset.
 
 ## Bindings
 
@@ -293,9 +396,12 @@ future NW008 AT-1 observation authorization.
 
 ## Decision outputs
 
-- SUPPORTED_CLIENT_ENDPOINT_IDENTIFIED=NO
+- SUPPORTED_CLIENT_ENDPOINT_IDENTIFIED=YES
+- GHL_MCP_ATTACHMENT_ARCHITECTURE_READY=YES
+- GHL_MCP_RUNTIME_ACTIVATION_AUTHORIZED=NO
 - PROVIDER_CLARIFICATION_REQUIRED=YES
-- FUTURE_OBSERVATION_AUTHORIZATION_DESIGNABLE=NO
+- PROVIDER_CLARIFICATION_SCOPE=GENERIC_ENDPOINT_UNIFIED_TOOLSET_DESCRIBE_OPERATION
+- NW008_FUTURE_OBSERVATION_AUTHORIZATION_DESIGNABLE=NO
 
 ## Scope
 
