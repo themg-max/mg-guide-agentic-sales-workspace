@@ -28,7 +28,6 @@ PR82_CREATES_NEW_CALL_BUDGET=NO
 
 REFINEMENT=PR81_EVIDENCE_RULES_RESULT_REPRESENTATION_SESSION_JCS_LIFECYCLE
 
-PR82_AUTHORIZATION_EFFECTIVE=NO
 PR82_EFFECTIVE_CONDITION=HUMAN_REVIEW_AND_MERGE_TO_MAIN
 SELF_ACTIVATION=FORBIDDEN
 
@@ -48,16 +47,17 @@ whose REST payload schemas are already frozen. It answers only:
 WHAT_EXACTLY_DOES_DESCRIBE_OPERATION_RETURN=
 ```
 
-This revision refines the PR #81 evidence rules before any observation may run.
-It adds explicit MCP result-representation classification, serialized-text JSON
-parse rules, same-session transport limits, pinned JCS canonicalization
-identity, and initialized-notification lifecycle accounting. Prior merge of
-PR #81 does not authorize execution under the unrefined rules once this
-refinement is opened; the refined artifact becomes effective only after human
-review and merge of this exact head to `main`.
+PR #81 remains the historically merged and effective authorization. No
+observation occurred under that authority and its one-shot budget remains
+unconsumed.
 
-The authorization becomes effective only after human review and merge to
-`main`. Creating, reviewing, or merging this artifact does not perform the
+Execution is held pending human review and merge of PR #82.
+
+On merge, PR #82 prospectively supersedes the evidence-handling rules for the
+existing authorization. It does not create new observation authority or a new
+call budget.
+
+Creating, reviewing, or merging this artifact does not perform the
 observation. Execution must occur in a separate proof-producing unit against
 the merged authorization and must stop immediately after evidence capture.
 
@@ -672,9 +672,9 @@ review again.
 
 ```text
 PLANNING_ID=NW008_AT1_DESCRIBE_OPERATION_CONTRACT_OBSERVATION_001
-STATUS=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
-AUTHORIZATION_EFFECTIVE=NO
-EFFECTIVE_CONDITION=HUMAN_REVIEW_AND_MERGE_TO_MAIN
+PR82_REFINEMENT_STATE=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
+PR82_REFINED_EVIDENCE_RULES_EFFECTIVE=NO
+PR82_EFFECTIVE_CONDITION=HUMAN_REVIEW_AND_MERGE_TO_MAIN
 REFINEMENT=PR81_EVIDENCE_RULES_RESULT_REPRESENTATION_SESSION_JCS_LIFECYCLE
 
 MCP_INITIALIZE_CALLS_MAX=1
