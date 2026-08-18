@@ -357,15 +357,21 @@ Provenance (plan base is not the PR exact head):
 
 ```text
 PLAN_BASE_SHA=b84b6ff50bf80261f89feac168ed0cdcbcf07a35
-PR76_EXACT_HEAD=PENDING_POST_COMMIT
-PR76_PHASE1_DETERMINISTIC_CI=PENDING
+PR76_EXACT_HEAD=8f2cd7cc1fb3201f0fea7bf67a3748ed1bc79f5b
+PR76_PHASE1_DETERMINISTIC_CI=PASS
 ```
 
 `PLAN_BASE_SHA` is the `origin/main` tip from which this planning branch was
-created (PR #75 merge). It is not the PR #76 exact head. `PR76_EXACT_HEAD` is
-the tip commit of this PR after the supported-version freeze amendment.
-`PR76_PHASE1_DETERMINISTIC_CI` is recorded only after GitHub CI reports PASS
-on that exact head.
+created (PR #75 merge). It is not the PR #76 exact head.
+
+`PR76_EXACT_HEAD` is the amendment commit that freezes
+`SUPPORTED_MCP_PROTOCOL_VERSION=2025-11-25`, normalizes selected-version
+advertised-schema keys, and corrects validation provenance. GitHub
+`Phase 1 deterministic validation` reported PASS on that exact head:
+https://github.com/themg-max/mg-guide-agentic-sales-workspace/actions/runs/32082716108/job/95548672033
+
+A later tip commit may only restate this evidence block and must not reopen
+scope; re-verify CI on the tip before human merge.
 
 Local validation on the amended working tree (before push):
 
