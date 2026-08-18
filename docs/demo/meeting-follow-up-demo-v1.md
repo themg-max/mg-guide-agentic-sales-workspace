@@ -4,25 +4,28 @@
 
 ```text
 ARTIFACT=docs/demo/meeting-follow-up-demo-v1.md
-PHASE=synthetic_demo_planning_and_fixture_alignment
+PHASE=synthetic_demo_live_truth_normalization
 OWNER=VS Code / MG Orchestrator
 PRIMARY_PR_CLASS=planning_only
 WORKFLOW=meeting_follow_up_v1
 DEMO_UNIT=meeting_follow_up_synthetic_demo_v1
-BRANCH=planning/meeting-follow-up-synthetic-demo-v1
+BRANCH=planning/meeting-follow-up-demo-live-truth-normalization-001
 BASE_REF=origin/main
-BASE_SHA=b0f83653f065fe8390c7bceb6f88fd25de1a17d4
-CREATED_AT_UTC=2026-08-18T14:45:00Z
+BASE_SHA=e6eb45070c2727c9eac9895a7a3b1504bc9eebe6
+CREATED_AT_UTC=2026-08-18T15:05:00Z
 COMPETITION_SAFE=YES
 IMPLEMENTATION_AUTHORIZED=NO
 BROADER_DEMO_IMPLEMENTATION_AUTHORIZED=NO
+DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD
+NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
 ```
 
-This unit is **planning + fixture alignment only**. It binds the competition
-demo to **existing** repository contracts, fixtures, mapper/card surfaces, and
-judge-surface scenario selectors. It does **not** authorize live CRM execution,
-provider probes, OAuth/PIT changes, production data use, or new observation
-authority.
+This unit is **planning + fixture alignment only**, with a **live-runner truth
+normalization** for AMBIGUOUS_CONTACT presenter/runtime semantics. It binds the
+competition demo to **existing** repository contracts, fixtures, mapper/card
+surfaces, and judge-surface scenario selectors. It does **not** authorize live
+CRM execution, provider probes, OAuth/PIT changes, production data use, runtime
+code changes, or new observation authority.
 
 ```text
 CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO=YES
@@ -31,11 +34,19 @@ SUCCESS_FIXTURE_STRATEGY=REUSE_CANONICAL
 AMBIGUOUS_FIXTURE_STRATEGY=REUSE_CANONICAL
 NEW_FIXTURE_FILES_CREATED=NO
 DUPLICATE_FIXTURE_CONCEPTS_CREATED=NO
+DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD
+NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
+FIXTURE_BYTE_RENORMALIZATION=NO
+POLICY_ENGINE_CHANGES=NO
+RUNNER_CHANGES=NO
+CARD_MAPPER_CHANGES=NO
 ```
 
-**Presenter rule:** every spoken and on-screen value must match canonical
-fixture / packet / card fields. No alternate emails, companies, confidences,
-or dates may be introduced for “story polish.”
+**Presenter rule:** every spoken and on-screen value must match the **live judge
+runner packet/card** for the selected scenario (fixture-driven stub path). No
+alternate emails, companies, confidences, or dates may be introduced for “story
+polish.” NW-006 static packet/card snapshots are **reference only** when they
+differ from the live judge path.
 
 HighLevel support ticket `#6157765` is a **separate provider-authority lane**
 and is out of scope for this demo unit’s runtime claims.
@@ -62,23 +73,32 @@ NEW_OBSERVATION_AUTHORITY=NO
 PROVIDER_TICKET_6157765_LANE=separate_not_demo_runtime
 CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO=YES
 PRESENTER_MAY_USE_NARRATIVE_ALIAS=NO
+DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD
+NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
 ```
 
 ### Hard rules for presenters and UI copy
 
 1. Show **statuses and evidence only** — never private chain-of-thought.
-2. Mutation intents may be shown as **planned / proposed / allowed / blocked**.
+2. Mutation intents may be shown as **planned / proposed / allowed / blocked** /
+   **not_attempted** as emitted by the live packet/card.
 3. Do **not** say note or stage “was written,” “was updated,” “was verified in
    CRM,” or “executed live.” This v1 unit keeps
    `LIVE_CRM_EXECUTION=NOT_PERFORMED`.
 4. Success card framing already sets `no_crm_changes_made=true` and
    intent-only mutation fields (`note_execution_attempted=false`,
    `stage_execution_attempted=false`).
-5. Ambiguity path must end with `FINAL_DISPOSITION=blocked`,
-   `reason_codes=[AMBIGUOUS_CONTACT]`, `CANDIDATE_COUNT=2`, `CRM_WRITES=0`,
-   `EXTERNAL_EFFECTS=0`.
+5. Ambiguity path must end with governance outcome **blocked**:
+   `FINAL_DISPOSITION=blocked`, `AMBIGUOUS_GOVERNANCE_OUTCOME=blocked`,
+   `reason_codes=[AMBIGUOUS_CONTACT]`, raw policy
+   `note_write=not_attempted`, `stage_write=not_attempted`,
+   `CANDIDATE_COUNT=2`, `CRM_WRITES=0`, `EXTERNAL_EFFECTS=0`.
+   Preferred spoken line: **“The workflow is blocked before any CRM write is
+   attempted.”**
 6. **No narrative aliases.** Do not say Northstar, `example.test`, confidence
    `0.96`, review date `2026-08-20`, or any other non-fixture identity.
+7. Do **not** overlay NW-006 static snapshot policy enums onto the live judge
+   path when they differ. Live runner is authoritative for demo runtime fields.
 
 ---
 
@@ -114,10 +134,10 @@ PRESENTER_MAY_USE_NARRATIVE_ALIAS=NO
 | --- | --- |
 | `fixtures/transcript-ambiguous-contact.txt` | Synthetic transcript; `MEETING_ID=demo_meeting_002` |
 | `fixtures/transcript-ambiguous-contact.expected.json` | Sidecar; judge catalog `AMBIGUOUS_CONTACT` |
-| `fixtures/nw006/packets/packet-ambiguous-contact.blocked.json` | Packet snapshot |
-| `fixtures/nw006/expected/card-ambiguous-contact.json` | Card snapshot |
-| `fixtures/nw005/packets/packet-ambiguous-contact.blocked.json` | NW-005 packet twin |
-| `fixtures/nw005/expected_audits/audit-ambiguous-contact.blocked.json` | Audit twin |
+| `fixtures/nw006/packets/packet-ambiguous-contact.blocked.json` | NW-006 packet snapshot (**reference only** if fields differ from live judge runner) |
+| `fixtures/nw006/expected/card-ambiguous-contact.json` | NW-006 card snapshot (**reference only** if fields differ from live judge runner) |
+| `fixtures/nw005/packets/packet-ambiguous-contact.blocked.json` | NW-005 packet twin (reference) |
+| `fixtures/nw005/expected_audits/audit-ambiguous-contact.blocked.json` | Audit twin (reference) |
 
 ### 2.4 UI / runner surfaces
 
@@ -252,31 +272,59 @@ success identities.
 ```text
 SCENARIO=AMBIGUOUS_CONTACT
 CANDIDATE_COUNT=2
+AMBIGUOUS_REASON_CODE=AMBIGUOUS_CONTACT
+AMBIGUOUS_RAW_POLICY_NOTE_WRITE=not_attempted
+AMBIGUOUS_RAW_POLICY_STAGE_WRITE=not_attempted
+AMBIGUOUS_GOVERNANCE_OUTCOME=blocked
+AMBIGUOUS_FINAL_DISPOSITION=blocked
 FINAL_DISPOSITION=blocked
 CRM_WRITES=0
 EXTERNAL_EFFECTS=0
 NOTE_EXECUTION_ATTEMPTED=false
 STAGE_EXECUTION_ATTEMPTED=false
 MUTATION_CONTROLS_ENABLED=false
+DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD
+PRESENTER_LINE=The workflow is blocked before any CRM write is attempted.
 ```
 
-### 4.2 Canonical repository bindings (authoritative)
+### 4.2 Canonical repository bindings
+
+**Runtime authority (demo on-screen / spoken values):** live judge path —
+
+`SCENARIO_CATALOG["AMBIGUOUS_CONTACT"]` ->
+`fixtures/transcript-ambiguous-contact.expected.json` ->
+`WorkflowRunner.run_fixture` -> packet -> `map_packet_to_card`.
 
 ```text
+DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD
+NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
 CANONICAL_FIXTURE_ID=transcript-ambiguous-contact
 CANONICAL_TRANSCRIPT=fixtures/transcript-ambiguous-contact.txt
 CANONICAL_SIDECAR=fixtures/transcript-ambiguous-contact.expected.json
 CANONICAL_MEETING_ID=demo_meeting_002
 CANONICAL_RUN_ID_SIDECAR=run_demo_ambiguous_001
-CANONICAL_NW006_RUN_ID=run_nw006_ambiguous_contact_001
-CANONICAL_NW006_MEETING_ID=meeting_nw006_003
-CANONICAL_PACKET=fixtures/nw006/packets/packet-ambiguous-contact.blocked.json
-CANONICAL_CARD=fixtures/nw006/expected/card-ambiguous-contact.json
 JUDGE_SCENARIO_SELECTOR=AMBIGUOUS_CONTACT
 FAILURE_CODE=AMBIGUOUS_CONTACT
+AMBIGUOUS_REASON_CODE=AMBIGUOUS_CONTACT
 ```
 
-| Field | Canonical visible value |
+**NW-006 static twins (reference only; not demo runtime authority when different):**
+
+```text
+NW006_REFERENCE_RUN_ID=run_nw006_ambiguous_contact_001
+NW006_REFERENCE_MEETING_ID=meeting_nw006_003
+NW006_REFERENCE_PACKET=fixtures/nw006/packets/packet-ambiguous-contact.blocked.json
+NW006_REFERENCE_CARD=fixtures/nw006/expected/card-ambiguous-contact.json
+```
+
+Note: the NW-006 ambiguous card snapshot historically shows
+`policy_display.note_write=blocked` / `stage_write=blocked`. The **live judge
+runner** emits raw `policy.note_write=not_attempted` /
+`policy.stage_write=not_attempted` with `reason_codes=["AMBIGUOUS_CONTACT"]`
+and terminal governance `blocked`. Presenters and six-stage UI **must** use the
+live enums.
+
+| Field | Live judge visible value (authoritative) |
 | --- | --- |
 | Card meeting title | `Jordan Lee - Discovery Meeting` |
 | Prospect | `Jordan Lee` (no email/phone in transcript) |
@@ -286,21 +334,27 @@ FAILURE_CODE=AMBIGUOUS_CONTACT
 | Candidate count | `2` |
 | Contact id / opportunity id | `null` / `null` |
 | Extraction confidence | `0.88` |
-| Policy note_write | `blocked` |
-| Policy stage_write | `blocked` |
+| Policy note_write (raw) | `not_attempted` |
+| Policy stage_write (raw) | `not_attempted` |
 | Reason codes | `["AMBIGUOUS_CONTACT"]` |
 | Mutations lifecycle | `not_attempted` |
+| Governance outcome | `blocked` |
 | Final disposition | `blocked` |
 | Card state | `blocked` |
 | `no_crm_changes_made` | `true` |
 | `external_effects` | `0` |
 | Allowed human action | `escalate_offline` |
+| Presenter line | The workflow is blocked before any CRM write is attempted. |
 
 ### 4.3 Governance point for judges
 
 When identity is not unique, MG Guide **refuses to act** rather than guessing.
 That refusal is the product: governed sales work includes knowing when **not**
-to write.
+to write. On the live path, ambiguity fail-closes **before policy assigns
+allowed/blocked write enums** — raw note/stage write remain `not_attempted`,
+reason code is `AMBIGUOUS_CONTACT`, and the workflow/card disposition is
+`blocked`. Spoken framing: **“The workflow is blocked before any CRM write is
+attempted.”**
 
 ---
 
@@ -339,15 +393,23 @@ No private model reasoning panels. Values must match §3 / §4 canonical tables.
 
 ### 5.2 Ambiguity path field checklist (stage 6)
 
+Live judge runner packet/card authority (not NW-006 snapshot overlays):
+
 - `card_state=blocked`
 - `framing.tone=blocked`
 - `framing.no_crm_changes_made=true`
 - `meeting.title=Jordan Lee - Discovery Meeting`
 - `crm_display.resolution_status=ambiguous`
 - `crm_display.candidate_count=2`
+- `policy_display.note_write=not_attempted` (**raw live value**)
+- `policy_display.stage_write=not_attempted` (**raw live value**)
 - `policy_display.reason_codes=["AMBIGUOUS_CONTACT"]`
+- `audit/final_disposition=blocked` / `workflow_status=blocked`
+- `intents_display.note_execution_attempted=false`
+- `intents_display.stage_execution_attempted=false`
 - `controls.allowed_human_actions` includes `escalate_offline`
 - `integrity.external_effects=0`
+- Spoken: **“The workflow is blocked before any CRM write is attempted.”**
 
 ### 5.3 Exact user-visible flow (operator)
 
@@ -365,7 +427,10 @@ No private model reasoning panels. Values must match §3 / §4 canonical tables.
 6. Meeting Follow-Up result card
    -> completed; intents planned; LIVE_CRM_EXECUTION=NOT_PERFORMED; external_effects=0
 7. Switch to AMBIGUOUS_CONTACT
-   -> Jordan Lee; candidate_count=2; blocked; CRM_WRITES=0
+   -> Jordan Lee; candidate_count=2; reason_codes=[AMBIGUOUS_CONTACT];
+      raw note_write=not_attempted; raw stage_write=not_attempted;
+      governance/disposition blocked; CRM_WRITES=0; EXTERNAL_EFFECTS=0
+   -> “The workflow is blocked before any CRM write is attempted.”
 8. Close with preferred line
 ```
 
@@ -385,7 +450,7 @@ Preferred total: **3 minutes 25 seconds**. Statuses/evidence only.
 | **1:25–1:45** | Stage 4 Follow-Up Planning | Planned **note** intent from summary; planned **stage** intent **`discovery_scheduled → discovery_complete`**. Label both **proposed intents**, not executed writes. |
 | **1:45–2:05** | Stage 5 Policy Evaluation | Policy **note_write=allowed**, **stage_write=allowed**, reason_codes empty. Deterministic gate sits between proposal and any future mutation authority. |
 | **2:05–2:30** | Stage 6 Success card | Card **`completed`**; `no_crm_changes_made=true`; **`LIVE_CRM_EXECUTION=NOT_PERFORMED`**; **`external_effects=0`**. |
-| **2:30–3:10** | Failure contrast | Switch to **`AMBIGUOUS_CONTACT`**: **Jordan Lee**, no unique identifiers, **`candidate_count=2`**, policy blocked, **zero CRM writes**, disposition **`blocked`**. |
+| **2:30–3:10** | Failure contrast | Switch to **`AMBIGUOUS_CONTACT`**: **Jordan Lee**, no unique identifiers, **`candidate_count=2`**, reason **`AMBIGUOUS_CONTACT`**, raw policy **`note_write=not_attempted`** / **`stage_write=not_attempted`**, disposition **`blocked`**, **zero CRM writes**. Say: **“The workflow is blocked before any CRM write is attempted.”** |
 | **3:10–3:25** | Close | **“MG Guide turns meetings into governed sales work—and knows when not to act.”** |
 
 ### 6.1 Optional one-line provider-lane aside (≤5s, not a runtime claim)
@@ -406,12 +471,17 @@ synthetic demo execution.”
   transition `discovery_scheduled → discovery_complete` under demo policy.
 - Visible success identity is Taylor Morgan /
   `taylor.morgan@example-demo.test` with confidence **0.95**.
-- AMBIGUOUS_CONTACT path fail-closes with **no CRM writes** and
-  `candidate_count=2`.
+- AMBIGUOUS_CONTACT path fail-closes with **no CRM writes**,
+  `candidate_count=2`, reason `AMBIGUOUS_CONTACT`, raw policy
+  `note_write=not_attempted` / `stage_write=not_attempted`, and governance
+  disposition `blocked` (**live judge runner authority**).
+- Presenter may say: **“The workflow is blocked before any CRM write is
+  attempted.”**
 - Judge-safe surface can run fixed selectors `SUCCESS` and
   `AMBIGUOUS_CONTACT` without arbitrary customer input.
 - `EXTERNAL_EFFECTS=0` for these fixture paths.
 - `LIVE_CRM_EXECUTION=NOT_PERFORMED` in this demo unit.
+- `DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD`.
 
 ### 7.2 Forbidden claims
 
@@ -422,6 +492,8 @@ synthetic demo execution.”
 - Private model reasoning was shown.
 - Narrative aliases: Northstar Advisory Labs, `example.test`, confidence
   `0.96`, review date `2026-08-20`, or any non-fixture company/email/date.
+- Treating NW-006 static ambiguous `policy_display.note_write=blocked` /
+  `stage_write=blocked` as live judge demo runtime authority.
 - Provider ticket `#6157765` proves MCP tool availability or authorizes
   observation/execution.
 - Grant009, OAuth/PIT changes, endpoint probes, or new observation authority.
@@ -432,13 +504,20 @@ synthetic demo execution.”
 ## 8. Acceptance checklist
 
 ```text
-[ ] Branch is not main; base is origin/main @ b0f83653f065fe8390c7bceb6f88fd25de1a17d4
+[ ] Branch is not main; base is origin/main @ e6eb45070c2727c9eac9895a7a3b1504bc9eebe6
 [ ] docs/demo/meeting-follow-up-demo-v1.md present with required sections
 [ ] DEMO_TRUTH_BOUNDARY present and fail-closed
 [ ] CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO=YES
 [ ] PRESENTER_MAY_USE_NARRATIVE_ALIAS=NO
+[ ] DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD
+[ ] NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
 [ ] SUCCESS uses canonical fixtures only (no duplicate success concept)
-[ ] AMBIGUOUS_CONTACT uses canonical fixtures (candidate_count=2, blocked, CRM_WRITES=0)
+[ ] AMBIGUOUS_CONTACT uses canonical fixtures (candidate_count=2, CRM_WRITES=0)
+[ ] AMBIGUOUS_RAW_POLICY_NOTE_WRITE=not_attempted (live judge; not NW-006 blocked overlay)
+[ ] AMBIGUOUS_RAW_POLICY_STAGE_WRITE=not_attempted (live judge; not NW-006 blocked overlay)
+[ ] AMBIGUOUS_REASON_CODE=AMBIGUOUS_CONTACT
+[ ] AMBIGUOUS_GOVERNANCE_OUTCOME=blocked / FINAL_DISPOSITION=blocked
+[ ] Presenter line: The workflow is blocked before any CRM write is attempted.
 [ ] Presenter script uses confidence 0.95 and canonical dates/emails only
 [ ] No Northstar / 0.96 / 2026-08-20 / example.test overlay claims
 [ ] User-visible stages 1-6 specified
@@ -447,6 +526,7 @@ synthetic demo execution.”
 [ ] LIVE_CRM_EXECUTION=NOT_PERFORMED stated for success path
 [ ] EXTERNAL_EFFECTS=0 confirmed for both paths
 [ ] No live GHL/CRM/Firestore/provider probe activity in this unit
+[ ] No fixture/contract/policy/runner/card-mapper code changes in this unit
 [ ] git diff --check clean
 [ ] PYTHONPATH=src .venv/bin/python scripts/verify_phase1_deterministic.py passes
 [ ] Applicable fixture/card tests pass (expect 34)
@@ -460,6 +540,9 @@ synthetic demo execution.”
 ```text
 BROADER_DEMO_UI_IMPLEMENTATION=NOT_AUTHORIZED_BY_THIS_ARTIFACT
 FIXTURE_BYTE_RENORMALIZATION=NOT_PERFORMED
+POLICY_ENGINE_CHANGES=NOT_PERFORMED
+RUNNER_CHANGES=NOT_PERFORMED
+CARD_MAPPER_CHANGES=NOT_PERFORMED
 LIVE_EXECUTION=NOT_AUTHORIZED
 PROVIDER_RUNTIME_VALIDATION=NOT_AUTHORIZED
 NEXT_ACTOR=mg-pr-governance-reviewer
@@ -469,7 +552,12 @@ NEXT_ACTOR=mg-pr-governance-reviewer
 
 ---
 
-*Planning-only synthetic demo artifact. `EXTERNAL_EFFECTS=0`.
+*Planning-only synthetic demo artifact (live-truth normalization).
+`EXTERNAL_EFFECTS=0`.
 `LIVE_CRM_EXECUTION=NOT_PERFORMED`.
 `CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO=YES`.
-`PRESENTER_MAY_USE_NARRATIVE_ALIAS=NO`.*
+`PRESENTER_MAY_USE_NARRATIVE_ALIAS=NO`.
+`DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD`.
+`AMBIGUOUS_RAW_POLICY_NOTE_WRITE=not_attempted`.
+`AMBIGUOUS_RAW_POLICY_STAGE_WRITE=not_attempted`.
+`AMBIGUOUS_GOVERNANCE_OUTCOME=blocked`.*
