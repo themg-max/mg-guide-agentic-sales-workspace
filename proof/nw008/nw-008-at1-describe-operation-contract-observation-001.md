@@ -74,8 +74,8 @@ SURFACE=anthropic_v2
 ENDPOINT=https://services.leadconnectorhq.com/mcp/anthropic/v2
 TRANSPORT_CLASS=streamable_http_sse
 AUTH_MODE=private_integration_token_bearer_via_gcp_secret_manager
-DIRECT_GHL_SECRET_SOURCE=GCP_SECRET_MANAGER:GHL_MCP_PRIVATE_TOKEN
-GCP_PROJECT=ai-rolodex-to-crm
+DIRECT_GHL_SECRET_SOURCE=GCP_SECRET_MANAGER:***REDACTED_INTERNAL_SECRET_NAME***
+GCP_PROJECT=***REDACTED_INTERNAL_GCP_PROJECT***
 PIT_IN_PROOF=NO
 PRIVATE_RECORD_IDS_IN_PROOF=NO
 CUSTOMER_DATA_IN_PROOF=NO
@@ -116,11 +116,28 @@ MCP_INITIALIZE_CALLS=1
 MCP_INITIALIZED_NOTIFICATIONS=0
 MCP_DESCRIBE_OPERATION_CALLS=0
 FAIL_CLOSED=YES
+CONDITION_NAME=INITIALIZE_EDGE_BLOCK
 FAIL_CLOSED_CONDITION=INITIALIZE_RESPONSE_NOT_JSONRPC_HTTP_403_CLOUDFLARE_ERROR_1010
+FAILURE_LAYER=PROVIDER_HTTP_EDGE
+MCP_INITIALIZATION_COMPLETED=NO
+INITIALIZED_NOTIFICATION=NOT_SENT
+GCP_AUTH_FAILURE=NO
+PIT_REJECTION=NO
 RETRY_ATTEMPTED=NO
 REPLACEMENT_CALL_ATTEMPTED=NO
 SECOND_SESSION_ATTEMPTED=NO
 ```
+
+The condition is named the **initialize edge block**: the single
+`initialize` request was answered at the provider HTTP edge (Cloudflare
+error 1010) before any MCP/JSON-RPC processing, so MCP initialization never
+completed (`MCP_INITIALIZATION_COMPLETED=NO`) and the
+`notifications/initialized` message was `NOT_SENT`
+(`FAILURE_LAYER=PROVIDER_HTTP_EDGE`). The 403 is **not** a GCP
+authentication failure (`GCP_AUTH_FAILURE=NO`) and **not** a private
+integration token rejection (`PIT_REJECTION=NO`): the edge error document
+attributes the block to the client browser signature
+(`browser_signature_banned`), not to credential validation.
 
 ## 5. Initialize exchange (only transmitted call)
 
@@ -441,11 +458,20 @@ containers, large and negative integers, plus 5 float/non-finite rejections
 and duplicate-member rejection (`JCS_CONFORMANCE_VECTOR_PASS=YES`). The
 implementation revision above is the SHA-256 of the exact script file that
 produced the conformance run and that would have produced every JCS digest
-in this proof, so a reviewer can reproduce the digests byte-for-byte. No JCS
-digest over a captured tool result exists in this proof because no tool
-result was captured; the raw transport-body digest in section 5.2 hashes the
-exact received bytes with no newline normalization and no credential or
-session material.
+in this proof, so a reviewer can reproduce the digests byte-for-byte.
+
+Limitation: the integer support is arbitrary Python integer serialization,
+which is **not** full RFC 8785 number serialization. RFC 8785 numbers
+include IEEE-754 doubles with a mandated shortest-round-trip decimal
+rendering; this subset accepts only JSON integers and fails closed on any
+non-integer or non-finite number. No observed payload in this proof
+contained any number at all, so the limitation does not affect any recorded
+digest.
+
+No JCS digest over an observed MCP tool result was relied upon in this
+proof: no tool result was captured, so no such digest exists. The raw
+transport-body digest in section 5.2 hashes the exact received bytes with
+no newline normalization and no credential or session material.
 
 ## 9. Call counts and budget compliance
 
@@ -477,7 +503,7 @@ session material.
 | credential/private identifier in proof | none (`Authorization` value and cookie redacted; token held in memory only) |
 | parser/adapter/session/transport/workflow/runtime implementation | not performed (throwaway capture harness only; no repo code changed) |
 | Grant009 drafting/preparation/activation/execution | none |
-| IAM/secret/deployment/infrastructure changes | none (read-only Secret Manager access of the existing `GHL_MCP_PRIVATE_TOKEN` version for transport auth only) |
+| IAM/secret/deployment/infrastructure changes | none (read-only Secret Manager access of the existing token secret version for transport auth only; internal project and secret identifiers redacted from this public proof) |
 
 ## 10. Required result block
 
@@ -505,7 +531,8 @@ OPERATION_RESPONSE_SCHEMA_AUTHORITY_IDENTIFIED=NOT_OBSERVED
 OPERATION_RESPONSE_SCHEMA_BINDABLE_TO_FROZEN_OPENAPI=NOT_OBSERVED
 BUSINESS_PAYLOAD_SCHEMA_SOURCE=NOT_OBSERVED
 
-EXECUTE_OPERATION_RESULT_BINDING_STILL_UNKNOWN=NOT_OBSERVED
+EXECUTE_OPERATION_RESULT_BINDING_STILL_UNKNOWN=YES
+EXECUTE_OPERATION_RESULT_BINDING_OBSERVATION=NOT_OBSERVED
 PROVIDER_OUTPUT_BINDING_FROZEN=NO
 COMPOSITE_CONTRACT_FREEZE_READY=NO
 NEXT=NW008_AT1_DESCRIBE_OPERATION_CONTRACT_OBSERVATION_HUMAN_REVIEW
@@ -513,6 +540,11 @@ NEXT=NW008_AT1_DESCRIBE_OPERATION_CONTRACT_OBSERVATION_HUMAN_REVIEW
 NEGOTIATED_PROTOCOL_VERSION=NOT_NEGOTIATED
 PROTOCOL_VERSION_MATCH=NOT_NEGOTIATED
 EXACT_OPERATION_IDS_QUERIED=NONE
+CONDITION_NAME=INITIALIZE_EDGE_BLOCK
+FAILURE_LAYER=PROVIDER_HTTP_EDGE
+MCP_INITIALIZATION_COMPLETED=NO
+GCP_AUTH_FAILURE=NO
+PIT_REJECTION=NO
 MCP_INITIALIZE_CALLS=1
 MCP_INITIALIZED_NOTIFICATIONS=0
 INITIALIZED_NOTIFICATION_HTTP_STATUS=NOT_SENT
@@ -540,9 +572,17 @@ forwarding rule never engaged because no successful `initialize` response
 existed to issue an identifier. `MCP_SESSION_IDENTIFIER_ISSUED=NOT_OBSERVED`:
 the only response received was an edge error document carrying no
 `Mcp-Session-Id` header; no MCP initialize response was observable.
-`EXECUTE_OPERATION_RESULT_BINDING_STILL_UNKNOWN=NOT_OBSERVED` because the
-observation never reached any provider metadata; the pre-existing unknown
-state is unchanged rather than re-established by evidence.
+
+This block distinguishes observation-derived `NOT_OBSERVED` fields from
+inherited current contract state. The `DESCRIBE_OPERATION_*`,
+`OPERATION_RESPONSE_SCHEMA_*`, `BUSINESS_PAYLOAD_SCHEMA_SOURCE`, and
+`EXECUTE_OPERATION_RESULT_BINDING_OBSERVATION` fields are
+observation-derived: they are `NOT_OBSERVED` because the fail-closed stop
+occurred before any `describe_operation` call, so this observation produced
+no evidence about them. `EXECUTE_OPERATION_RESULT_BINDING_STILL_UNKNOWN=YES`
+is inherited current contract state, recorded separately: it asserts that
+the pre-existing unknown binding state remains in effect, unchanged — it is
+not a new observation and is not itself marked `NOT_OBSERVED`.
 
 ## 11. Digest register
 
@@ -568,6 +608,10 @@ alone without any secret or live session.
 
 ```text
 STOP_REASON=INITIALIZE_EDGE_BLOCKED_HTTP_403_CLOUDFLARE_ERROR_1010_NO_RETRY_OR_REPLACEMENT_AUTHORIZED
+CONDITION_NAME=INITIALIZE_EDGE_BLOCK
+FAILURE_LAYER=PROVIDER_HTTP_EDGE
+MCP_INITIALIZATION_COMPLETED=NO
+INITIALIZED_NOTIFICATION=NOT_SENT
 FAIL_CLOSED=YES
 OBSERVATION_EXECUTION_OCCURRED=YES
 OBSERVATION_AUTHORITY_CONSUMED=YES
@@ -585,8 +629,9 @@ IMPLEMENTATION_CHANGE_AUTHORIZABLE=NO
 NEXT=NW008_AT1_DESCRIBE_OPERATION_CONTRACT_OBSERVATION_HUMAN_REVIEW
 ```
 
-The one-shot observation authority is consumed. The edge block
+The one-shot observation authority is consumed. The initialize edge block
 (`browser_signature_banned`, `retryable:false`, `owner_action_required:true`)
-is a provider-edge access condition outside this unit's authority to
-remediate. Any further observation attempt requires a new human-reviewed
-authorization; none is drafted here.
+is a provider-edge access condition (`FAILURE_LAYER=PROVIDER_HTTP_EDGE`) — not
+a GCP authentication failure and not a PIT rejection — and is outside this
+unit's authority to remediate. Any further observation attempt requires a new
+human-reviewed authorization; none is drafted here.
