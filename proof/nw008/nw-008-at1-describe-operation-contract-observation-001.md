@@ -464,14 +464,13 @@ Limitation: the integer support is arbitrary Python integer serialization,
 which is **not** full RFC 8785 number serialization. RFC 8785 numbers
 include IEEE-754 doubles with a mandated shortest-round-trip decimal
 rendering; this subset accepts only JSON integers and fails closed on any
-non-integer or non-finite number. No observed payload in this proof
-contained any number at all, so the limitation does not affect any recorded
-digest.
+non-integer or non-finite number.
 
 No JCS digest over an observed MCP tool result was relied upon in this
 proof: no tool result was captured, so no such digest exists. The raw
 transport-body digest in section 5.2 hashes the exact received bytes with
-no newline normalization and no credential or session material.
+no newline normalization and no credential or session material; it is not a
+JCS digest.
 
 ## 9. Call counts and budget compliance
 
