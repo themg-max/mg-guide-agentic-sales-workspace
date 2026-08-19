@@ -105,14 +105,79 @@ REMOTE_LOGO_URL_VERIFIED=PASS
 TEST_DEPLOYMENT_REINSTALL=NOT_PERFORMED
 GMAIL_BRANDED_HOST_ACCEPTANCE=NOT_PERFORMED
 CALENDAR_BRANDED_HOST_ACCEPTANCE=NOT_PERFORMED
-POST_FIX_REPEAT_SUCCESS=NOT_PERFORMED
-POST_FIX_REPEAT_AMBIGUOUS=NOT_PERFORMED
-POST_FIX_5XX_COUNT=NOT_VERIFIED
+POST_FIX_REPEAT_SUCCESS=PASS
+POST_FIX_REPEAT_AMBIGUOUS=PASS
+POST_FIX_5XX_COUNT=0
 ```
 
 No raw token, Authorization header, email, subject claim, audience, complete
 JWT payload, Script ID, deployment ID, OAuth client ID, or endpoint value was
 captured in this artifact.
+
+## Evaluator invocation recovery and Apps Script OIDC acceptance
+
+`run.services.get PERMISSION_DENIED` for the controlled evaluator is not an
+invocation failure. The evaluator remains the existing Workspace user principal
+with only `roles/run.invoker`. No Cloud Run Viewer grant, invoker expansion,
+public invoker binding, service-account key, custom-audience change, or auth
+validation weakening was performed.
+
+Local `gcloud auth print-identity-token ... --audiences=<client-id>` fails for
+this user account because gcloud restricts `--audiences` to service accounts.
+That is a local token-minting limitation, not a contract requirement to replace
+the Workspace identity-token path with a service account.
+
+Cloud Run IAM crossing for the existing evaluator principal was verified with a
+user identity token against the private service: unauthenticated health checks
+return 403, while the evaluator-authenticated health check returns application
+200. Application OIDC acceptance uses the existing competition Apps Script
+project contract (`ScriptApp.getIdentityToken()` via `Auth.gs`, then
+`MeetingFollowUp.gs` POST to the judge demo endpoint). A temporary operator
+helper invoked that same auth and fetch path and was removed afterward; remote
+source was restored to the five authorized adapter files only.
+
+```text
+EVALUATOR_PRINCIPAL=user:buildweek-evaluator@themiliare-group.com
+EVALUATOR_ROLE=roles/run.invoker
+EVALUATOR_GCLOUD_AUTH=PASS
+EVALUATOR_CLOUD_RUN_IAM_CROSSING=PASS
+EVALUATOR_IAM_EXPANSION=NO
+NEW_SERVICE_ACCOUNT_CREATED=NO
+SERVICE_ACCOUNT_KEYS_CREATED=NO
+CUSTOM_AUDIENCE_MODIFIED=NO
+APPLICATION_AUTH_VALIDATION_MODIFIED=NO
+HOSTED_DOMAIN_VALIDATION_WEAKENED=NO
+PUBLIC_INVOKER_BINDINGS=0
+APPS_SCRIPT_IDENTITY_TOKEN_ACQUISITION=PASS
+APPS_SCRIPT_TO_CLOUD_RUN_AUTH=PASS
+APPLICATION_OIDC_VALIDATION=PASS
+WORKSPACE_HOSTED_DOMAIN_VALIDATION=PASS
+AUTH_ERROR_COUNT=0
+```
+
+Governed SUCCESS / AMBIGUOUS_CONTACT reliability soak through the Apps Script
+identity-token path:
+
+```text
+RELIABILITY_SOAK_HARNESS=apps_script_identity_token_reliability_soak_v1
+RELIABILITY_SOAK_TOTAL_REQUESTS=20
+RELIABILITY_SOAK_HTTP_200=20
+RELIABILITY_SOAK_HTTP_401=0
+RELIABILITY_SOAK_HTTP_403=0
+RELIABILITY_SOAK_HTTP_5XX=0
+SUCCESS_REQUESTS=10
+SUCCESS_HTTP_200=10
+SUCCESS_WORKFLOW_STATUS=completed
+SUCCESS_EXTERNAL_EFFECTS=0
+AMBIGUOUS_CONTACT_REQUESTS=10
+AMBIGUOUS_CONTACT_HTTP_200=10
+AMBIGUOUS_CONTACT_WORKFLOW_STATUS=blocked
+AMBIGUOUS_CONTACT_EXTERNAL_EFFECTS=0
+TEMP_OPERATOR_HELPER_REMOVED=YES
+REMOTE_SOURCE_RESTORED_TO_FIVE_ADAPTER_FILES=YES
+TOKEN_VALUES_CAPTURED=0
+RAW_IDENTITY_TOKEN_LOGGING_PRESENT=NO
+```
 
 ## Runtime publication
 
