@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
 from pathlib import Path
 from typing import Optional
 from wsgiref.simple_server import make_server
@@ -22,6 +23,7 @@ from mg_guide.judge_surface.app import JudgeSurfaceApp  # noqa: E402
 
 def main(argv: Optional[list[str]] = None) -> int:
     port = int(os.environ.get("PORT", "8080"))
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     app = JudgeSurfaceApp()
     server = make_server("0.0.0.0", port, app)
     print(f"mg-guide-judge-surface listening on 0.0.0.0:{port}", flush=True)

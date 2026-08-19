@@ -12,15 +12,20 @@ writes, Firestore writes, or live Gemini calls.
 from __future__ import annotations
 
 import json
+import logging
 import os
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from uuid import uuid4
 
 from mg_guide.meeting_follow_up_card.mapper import map_packet_to_card
 from mg_guide.meeting_follow_up_card.render_html import render_card_html
 from mg_guide.meeting_follow_up_card.render_text import render_card_text
 from orchestration.runner import WorkflowRunner
 
+from .demo_stages import project_demo_payload
+from .render_demo_stages import render_demo_stages_html, render_demo_stages_text
 from .scenarios import (
     AUTHORIZED_JUDGE_MODE,
     SCENARIO_CATALOG,
@@ -29,11 +34,20 @@ from .scenarios import (
     scenario_names,
 )
 
+from mg_guide.workspace_addon.auth_contract import (
+    AuthError,
+    AuthMode,
+    auth_mode_from_env,
+    validate_authorization_header,
+)
+
 
 # pylint: disable=invalid-name
 JSONType = Dict[str, Any]
 StartResponse = Callable[[str, List[Tuple[str, str]]], None]
 WSGIEnv = Dict[str, Any]
+LOGGER = logging.getLogger("mg_guide.judge_surface")
+LOGGER.setLevel(logging.INFO)
 
 
 class _JSONError(RuntimeError):
@@ -47,7 +61,10 @@ class JudgeSurfaceApp:
     """WSGI application for the judge-safe demo surface."""
 
     def __init__(self, runner: Optional[WorkflowRunner] = None) -> None:
-        self.runner = runner or WorkflowRunner()
+        # A supplied runner is retained only for explicit test/integration use.
+        # Normal judge requests receive an isolated registry so static synthetic
+        # fixture IDs can be replayed without changing runner duplicate policy.
+        self._runner = runner
         self._service_name = "mg-guide-agentic-sales-workspace-judge"
         self._version = "0.1.0"
         self._commit = os.environ.get("GIT_COMMIT", "unknown")
@@ -55,10 +72,16 @@ class JudgeSurfaceApp:
     def __call__(
         self, environ: WSGIEnv, start_response: StartResponse
     ) -> Iterable[bytes]:
+        started_at = time.monotonic()
+        request_id = uuid4().hex
         try:
             response = self._handle(environ)
         except _JSONError as exc:
+            self._log_judge_request(
+                environ, request_id, started_at, exc.status, exc.body
+            )
             return _send(start_response, exc.status, exc.body)
+        self._log_judge_request(environ, request_id, started_at, "200 OK", response)
         return _send(start_response, "200 OK", response)
 
     def _handle(self, environ: WSGIEnv) -> JSONType:
@@ -67,8 +90,34 @@ class JudgeSurfaceApp:
         if method == "GET" and path in ("/health", "/healthz"):
             return self._health()
         if method == "POST" and path == "/demo/meeting-follow-up":
+            self._enforce_addon_auth(environ)
             return self._demo(environ)
         raise _JSONError("404 Not Found", {"error": "not_found", "path": path})
+
+    @staticmethod
+    def _enforce_addon_auth(environ: WSGIEnv) -> None:
+        try:
+            mode = auth_mode_from_env()
+        except AuthError as exc:
+            raise _JSONError("401 Unauthorized", exc.as_body()) from exc
+        if mode is AuthMode.LOCAL_DEMO and os.environ.get("K_SERVICE"):
+            raise _JSONError(
+                "503 Service Unavailable",
+                {
+                    "error": "addon_auth_mode_rejected",
+                    "code": "LOCAL_DEMO_PUBLIC_INGRESS_FORBIDDEN",
+                },
+            )
+        headers = {
+            "Authorization": str(environ.get("HTTP_AUTHORIZATION") or ""),
+            "X-MG-Guide-Demo-Auth": str(
+                environ.get("HTTP_X_MG_GUIDE_DEMO_AUTH") or ""
+            ),
+        }
+        try:
+            validate_authorization_header(headers)
+        except AuthError as exc:
+            raise _JSONError("401 Unauthorized", exc.as_body()) from exc
 
     def _health(self) -> JSONType:
         mode = self._require_judge_mode()
@@ -97,7 +146,8 @@ class JudgeSurfaceApp:
             )
 
         sidecar_path = SCENARIO_CATALOG[selector]
-        result = self.runner.run_fixture(sidecar_path)
+        runner = self._runner or WorkflowRunner()
+        result = runner.run_fixture(sidecar_path)
 
         if result.rejected_duplicate or not result.validation_ok:
             raise _JSONError(
@@ -116,6 +166,9 @@ class JudgeSurfaceApp:
 
         proposal = self._follow_up_proposal(packet)
         policy_decision = self._policy_decision(packet)
+        demo_payload = project_demo_payload(
+            packet, card, workflow_status=result.final_state
+        )
 
         return {
             "scenario": selector,
@@ -124,11 +177,68 @@ class JudgeSurfaceApp:
             "follow_up_proposal": proposal,
             "policy_decision": policy_decision,
             "card": card,
-            "card_view": self._card_view(card, view_format),
+            "card_view": self._card_view(
+                card,
+                view_format,
+                demo_stages=demo_payload["demo_stages"],
+                demo_truth=demo_payload["demo_truth"],
+                ux_experience=demo_payload["ux_experience"],
+            ),
             "audit_summary": self._audit_summary(packet),
             "external_effects": result.external_effects,
             "cloud_mutation": "NONE",
+            "demo_stages": demo_payload["demo_stages"],
+            "demo_truth": demo_payload["demo_truth"],
+            "ux_experience": demo_payload["ux_experience"],
         }
+
+    @staticmethod
+    def _log_judge_request(
+        environ: WSGIEnv,
+        request_id: str,
+        started_at: float,
+        status: str,
+        body: JSONType,
+    ) -> None:
+        if not (
+            environ.get("REQUEST_METHOD") == "POST"
+            and environ.get("PATH_INFO") == "/demo/meeting-follow-up"
+        ):
+            return
+
+        scenario = body.get("scenario")
+        if scenario not in SCENARIO_CATALOG:
+            scenario = "INVALID_OR_UNAVAILABLE"
+        ux = body.get("ux_experience") or {}
+        external_effects = body.get("external_effects")
+        if not isinstance(external_effects, int):
+            external_effects = 0
+        try:
+            auth_mode = auth_mode_from_env().value
+        except AuthError:
+            auth_mode = "invalid"
+        gemini_mode = os.environ.get("MEETING_CONTEXT_GEMINI_MODE", "unset")
+        if gemini_mode not in {"stub", "live"}:
+            gemini_mode = "invalid"
+
+        record = {
+            "request_id": request_id,
+            "scenario": scenario,
+            "auth_mode": auth_mode,
+            "workflow_status": body.get("workflow_status", "not_run"),
+            "ux_state": ux.get("ux_state", "not_available"),
+            "http_status": int(status.split(" ", 1)[0]),
+            "latency_ms": round((time.monotonic() - started_at) * 1000, 2),
+            "external_effects": external_effects,
+            "revision": os.environ.get("K_REVISION", "unknown"),
+            "gemini_mode": gemini_mode,
+            "error_code": body.get("code") or body.get("error") or "NONE",
+            "audience_configured": bool(
+                os.environ.get("JUDGE_ADDON_OIDC_AUDIENCE", "").strip()
+            ),
+            "token_logged": False,
+        }
+        LOGGER.info(json.dumps(record, sort_keys=True, separators=(",", ":")))
 
     @staticmethod
     def _resolution_outcome(packet: JSONType) -> JSONType:
@@ -200,11 +310,30 @@ class JudgeSurfaceApp:
         }
 
     @staticmethod
-    def _card_view(card: JSONType, view_format: str) -> Optional[str]:
+    def _card_view(
+        card: JSONType,
+        view_format: str,
+        *,
+        demo_stages: Optional[List[JSONType]] = None,
+        demo_truth: Optional[JSONType] = None,
+        ux_experience: Optional[JSONType] = None,
+    ) -> Optional[str]:
         if view_format == "html":
             return render_card_html(card)
         if view_format == "text":
             return render_card_text(card)
+        if view_format == "stages_html":
+            return render_demo_stages_html(
+                demo_stages or [],
+                demo_truth or {},
+                ux_experience=ux_experience,
+            )
+        if view_format == "stages_text":
+            return render_demo_stages_text(
+                demo_stages or [],
+                demo_truth or {},
+                ux_experience=ux_experience,
+            )
         return None
 
 

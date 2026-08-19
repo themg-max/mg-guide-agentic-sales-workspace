@@ -196,7 +196,7 @@ def test_live_gemini_provider_path_mocked_no_network(monkeypatch):
         "participants": sidecar["participants"],
     }
 
-    def _fake_generate(*, model, credential, prompt):
+    def _fake_generate(*, model, credential, prompt, **_kwargs):
         assert model
         assert credential == "test-not-a-real-secret"
         assert "TRANSCRIPT" in prompt

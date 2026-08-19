@@ -1,0 +1,157 @@
+schema: proof_return_v1
+unit: meeting_follow_up_ui_completion_v1
+workflow: meeting_follow_up_v1
+created_at_utc: "2026-08-19T01:13:00Z"
+branch: competition/meeting-follow-up-v1-acceptance-finalization-001
+base_ref: origin/main
+base_sha: 1ccc447e1f6d4b47311fb2333470f8cdf8abee3c
+
+status: PASS
+
+acceptance:
+  MEETING_FOLLOW_UP_UI: PASS
+  SUCCESS_STATE_UI: PASS
+  NEEDS_REVIEW_STATE_UI: PASS
+  POLICY_RESULT_VISIBLE: PASS
+  SALESPERSON_NEXT_STEP_VISIBLE: PASS
+  AUDIT_STATUS_VISIBLE: PASS
+  EXISTING_WORKFLOW_TESTS: PASS
+  SIX_STAGE_DEMO_SURFACE: PASS
+
+scope:
+  description: >
+    Thin judge-surface projection + salesperson COMPLETED/NEEDS_REVIEW UX
+    bound to existing governed WorkflowRunner packet outputs and NW-006 card
+    mapper. No policy/runner/fixture/schema changes. No CRM authority.
+  writable_paths:
+    - src/mg_guide/judge_surface/demo_stages.py
+    - src/mg_guide/judge_surface/render_demo_stages.py
+    - src/mg_guide/judge_surface/app.py
+    - tests/judge_surface/test_demo_stages.py
+    - tests/judge_surface/test_app.py
+    - proof/demo/
+  frozen_consume_only:
+    - src/mg_guide/meeting_follow_up_card/**
+    - src/orchestration/**
+    - fixtures/**
+    - contracts/**
+
+ux_states:
+  COMPLETED:
+    selector: SUCCESS
+    required_fields:
+      - meeting_context
+      - summary
+      - relationship_context
+      - proposed_follow_up
+      - policy_decision
+      - permitted_action_result
+      - audit_status
+      - salesperson_next_step
+    observed:
+      ux_state: COMPLETED
+      prospect: Taylor Morgan
+      email: taylor.morgan@example-demo.test
+      confidence: 0.95
+      match_basis: email
+      candidate_count: 1
+      policy_note_write: allowed
+      policy_stage_write: allowed
+      external_effects: 0
+      LIVE_CRM_EXECUTION: NOT_PERFORMED
+      salesperson_next_step: "Send recommendation review follow-up (owner: Alex Rivera)"
+      audit_display_contains: "policy PASS · audit recorded"
+  NEEDS_REVIEW:
+    selector: AMBIGUOUS_CONTACT
+    required_fields:
+      - human_readable_reason
+      - zero_unauthorized_effects
+      - block_context
+      - explicit_next_action
+    observed:
+      ux_state: NEEDS_REVIEW
+      prospect: Jordan Lee
+      candidate_count: 2
+      reason_codes: ["AMBIGUOUS_CONTACT"]
+      policy_note_write: not_attempted
+      policy_stage_write: not_attempted
+      workflow_status: blocked
+      external_effects: 0
+      zero_unauthorized_effects_message: "No CRM changes were made. Unauthorized effects: 0."
+      salesperson_next_step: "Resolve contact identity offline before any CRM write."
+      audit_display_contains: "policy FAIL_CLOSED · audit recorded"
+
+demo_stages:
+  titles:
+    - Meeting ready
+    - Meeting Context
+    - Relationship Resolution
+    - Follow-Up Planning
+    - Policy Evaluation
+    - Meeting Follow-Up result card
+  views:
+    - json
+    - stages_html
+    - stages_text
+  legacy_compat_views:
+    - html
+    - text
+
+verification:
+  commands:
+    - export MEETING_CONTEXT_GEMINI_MODE=stub PYTHONPATH=src
+    - .venv/bin/python -m pytest -q tests/judge_surface tests/mg_guide/meeting_follow_up_card
+    - .venv/bin/python scripts/verify_phase1_deterministic.py
+  results:
+    judge_surface_and_card_tests: PASS
+    phase1_deterministic_verifier: PASS
+    fixture_bytes_changed: NO
+    policy_engine_changed: NO
+    runner_changed: NO
+    card_mapper_changed: NO
+
+evidence:
+  - proof/demo/excerpts/success-ux-excerpt.json
+  - proof/demo/excerpts/ambiguous-ux-excerpt.json
+  - proof/demo/excerpts/success-stages.html
+  - proof/demo/excerpts/ambiguous-stages.html
+  - proof/demo/meeting-follow-up-six-stage-implementation-packet.md
+
+truth_boundary:
+  LIVE_GHL_CALLS: NO
+  CRM_MUTATIONS_PERFORMED: NO
+  LIVE_CRM_EXECUTION: NOT_PERFORMED
+  MCP_REQUESTS_MADE: NO
+  EXTERNAL_EFFECTS: 0
+  PRIVATE_MODEL_REASONING_DISPLAYED: NO
+  FIRESTORE_WRITES_CLAIMED: NO
+  PRODUCTION_OR_CUSTOMER_DATA: NO
+  CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO: YES
+  PRESENTER_MAY_USE_NARRATIVE_ALIAS: NO
+  DEMO_RUNTIME_FIELD_AUTHORITY: LIVE_JUDGE_RUNNER_PACKET_AND_CARD
+
+cloud_integrated_scenarios:
+  status: LOCAL_STUB_PASS
+  note: >
+    Success and fail-closed scenarios verified through the judge-surface
+    fixture-driven stub path (MEETING_CONTEXT_GEMINI_MODE=stub) using the
+    same WorkflowRunner + card mapper path intended for Cloud Run judge
+    deployment. Live Cloud Run redeploy and live Gemini/Firestore execution
+    remain separately governed and were not mutated by this UI unit.
+  success_scenario: SUCCESS
+  fail_closed_scenario: AMBIGUOUS_CONTACT
+  cloud_run_redeploy: NOT_PERFORMED
+  live_gemini_calls: NOT_PERFORMED
+  firestore_writes: NOT_PERFORMED
+
+non_claims:
+  - No production CRM authority added
+  - No live GHL/MCP calls
+  - No proposed intents labeled as executed CRM writes
+  - No NW-006 ambiguous snapshot policy enum overlay (live not_attempted retained)
+  - No broader MG Guide product redesign
+  - No add-on deploy / clasp push / OAuth / IAM changes
+
+stop_condition:
+  PRODUCT_UI_UNIT: COMPLETE
+  NEXT: demo_production_freeze_after_optional_cloud_proof_if_separately_authorized

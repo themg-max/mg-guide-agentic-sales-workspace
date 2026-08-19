@@ -1,0 +1,41 @@
+{
+  "timeZone": "America/New_York",
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "openid",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/gmail.addons.execute",
+    "https://www.googleapis.com/auth/calendar.addons.execute"
+  ],
+  "addOns": {
+    "common": {
+      "name": "MG Guide",
+      "logoUrl": "https://storage.googleapis.com/mg-devpost-assets/mg-guide/mg-guide-128x128.png",
+      "layoutProperties": {
+        "primaryColor": "#BDA161",
+        "secondaryColor": "#000000"
+      },
+      "homepageTrigger": {
+        "runFunction": "onHomepage",
+        "enabled": true
+      }
+    },
+    "gmail": {
+      "contextualTriggers": [
+        {
+          "unconditional": {},
+          "onTriggerFunction": "onGmailContext"
+        }
+      ]
+    },
+    "calendar": {
+      "eventOpenTrigger": {
+        "runFunction": "onCalendarEventOpen"
+      }
+    }
+  },
+  "urlFetchWhitelist": []
+}

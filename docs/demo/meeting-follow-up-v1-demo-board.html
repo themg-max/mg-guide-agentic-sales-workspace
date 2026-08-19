@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>MG Guide — meeting_follow_up_v1 demo board</title>
+  <style>
+    :root { font-family: ui-sans-serif, system-ui, sans-serif; color: #0f172a; }
+    body { margin: 0; background: #f8fafc; }
+    header { background: #0f172a; color: #f8fafc; padding: 1rem 1.25rem; }
+    header h1 { margin: 0; font-size: 1.15rem; }
+    header p { margin: 0.35rem 0 0; opacity: 0.85; font-size: 0.9rem; }
+    main { display: grid; grid-template-columns: 280px 1fr; gap: 1rem; padding: 1rem; }
+    .panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 0.25rem; }
+    input, select, button { width: 100%; box-sizing: border-box; margin-bottom: 0.75rem; padding: 0.55rem 0.65rem; border-radius: 8px; border: 1px solid #cbd5e1; }
+    button { background: #2563eb; color: white; border: none; font-weight: 600; cursor: pointer; }
+    button.secondary { background: #334155; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; }
+    .ok { background: #dcfce7; color: #166534; }
+    .block { background: #fee2e2; color: #991b1b; }
+    .muted { background: #e2e8f0; color: #334155; }
+    pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 10px; max-height: 70vh; overflow: auto; font-size: 0.8rem; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .kv { font-size: 0.9rem; line-height: 1.45; }
+    .kv strong { display: inline-block; min-width: 11rem; }
+    .warn { font-size: 0.8rem; color: #9a3412; background: #ffedd5; padding: 0.6rem 0.75rem; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MG Guide · meeting_follow_up_v1 · Demo Board</h1>
+    <p>Synthetic judge scenarios only · EXTERNAL_EFFECTS must remain 0 · no story-polish aliases</p>
+  </header>
+  <main>
+    <section class="panel">
+      <label for="base">Judge base URL</label>
+      <input id="base" value="http://127.0.0.1:8080" />
+      <label for="scenario">Scenario</label>
+      <select id="scenario">
+        <option value="SUCCESS">SUCCESS</option>
+        <option value="AMBIGUOUS_CONTACT">AMBIGUOUS_CONTACT (fail-closed)</option>
+        <option value="STAGE_CHANGE_DENIED">STAGE_CHANGE_DENIED</option>
+      </select>
+      <button id="run">Run scenario</button>
+      <button id="runBoth" class="secondary">Run SUCCESS then AMBIGUOUS</button>
+      <div class="warn">
+        Start local judge first:<br />
+        <code>PYTHONPATH=src MEETING_CONTEXT_GEMINI_MODE=stub python -m mg_guide.judge_surface.server</code>
+      </div>
+      <div id="summary" class="kv" style="margin-top:0.75rem"></div>
+    </section>
+    <section class="panel">
+      <div class="grid" style="margin-bottom:0.75rem">
+        <div id="statusBadge"></div>
+        <div id="effectsBadge"></div>
+      </div>
+      <pre id="out">// response JSON</pre>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    async function runOne(scenario) {
+      const base = $('base').value.replace(/\/$/, '');
+      const res = await fetch(base + '/demo/meeting-follow-up', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scenario, view: 'json' })
+      });
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { throw new Error(text); }
+      if (!res.ok) throw new Error(JSON.stringify(data, null, 2));
+      return data;
+    }
+    function render(data) {
+      $('out').textContent = JSON.stringify(data, null, 2);
+      const status = data.workflow_status || 'unknown';
+      const effects = data.external_effects;
+      const blocked = String(status).toLowerCase() === 'blocked';
+      $('statusBadge').innerHTML = `<span class="badge ${blocked ? 'block' : 'ok'}">workflow_status=${status}</span>`;
+      $('effectsBadge').innerHTML = `<span class="badge ${effects === 0 ? 'ok' : 'block'}">external_effects=${effects}</span>`;
+      const pd = data.policy_decision || {};
+      $('summary').innerHTML = `
+        <div><strong>scenario</strong> ${data.scenario}</div>
+        <div><strong>resolution</strong> ${(data.resolution_outcome || {}).status}</div>
+        <div><strong>note_write</strong> ${pd.note_write}</div>
+        <div><strong>stage_write</strong> ${pd.stage_write}</div>
+        <div><strong>reason_codes</strong> ${(pd.reason_codes || []).join(', ') || '∅'}</div>
+        <div><strong>cloud_mutation</strong> ${data.cloud_mutation}</div>
+      `;
+    }
+    $('run').onclick = async () => {
+      $('run').disabled = true;
+      try { render(await runOne($('scenario').value)); }
+      catch (e) { $('out').textContent = String(e); $('statusBadge').innerHTML = '<span class="badge block">error</span>'; }
+      finally { $('run').disabled = false; }
+    };
+    $('runBoth').onclick = async () => {
+      $('runBoth').disabled = true;
+      try {
+        const a = await runOne('SUCCESS');
+        const b = await runOne('AMBIGUOUS_CONTACT');
+        $('out').textContent = JSON.stringify({ SUCCESS: a, AMBIGUOUS_CONTACT: b }, null, 2);
+        $('statusBadge').innerHTML = '<span class="badge ok">SUCCESS=' + a.workflow_status + '</span> ' +
+          '<span class="badge block">AMBIGUOUS=' + b.workflow_status + '</span>';
+        $('effectsBadge').innerHTML = '<span class="badge ok">effects ' + a.external_effects + '/' + b.external_effects + '</span>';
+        $('summary').innerHTML = '<div>Record SUCCESS completed, then AMBIGUOUS blocked, both external_effects=0.</div>';
+      } catch (e) {
+        $('out').textContent = String(e);
+      } finally {
+        $('runBoth').disabled = false;
+      }
+    };
+  </script>
+</body>
+</html>

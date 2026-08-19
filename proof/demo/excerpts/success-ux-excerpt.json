@@ -1,0 +1,122 @@
+{
+  "audit_summary_final_disposition": "completed",
+  "cloud_mutation": "NONE",
+  "demo_stage_titles": [
+    "Meeting ready",
+    "Meeting Context",
+    "Relationship Resolution",
+    "Follow-Up Planning",
+    "Policy Evaluation",
+    "Meeting Follow-Up result card"
+  ],
+  "demo_truth": {
+    "CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO": true,
+    "EXTERNAL_EFFECTS": 0,
+    "LIVE_CRM_EXECUTION": "NOT_PERFORMED",
+    "PRESENTER_MAY_USE_NARRATIVE_ALIAS": false,
+    "PRIVATE_MODEL_REASONING_DISPLAYED": false,
+    "cloud_mutation": "NONE"
+  },
+  "external_effects": 0,
+  "policy_decision": {
+    "note_write": "allowed",
+    "reason_codes": [],
+    "stage_write": "allowed"
+  },
+  "scenario": "SUCCESS",
+  "ux_experience": {
+    "audit_status": {
+      "agents_used": [
+        "transcript_extractor:v1",
+        "crm_resolver:v1",
+        "followup_evaluator:v1",
+        "crm_action:v1"
+      ],
+      "display": "4 agents \u00b7 governed offline path \u00b7 policy PASS \u00b7 audit recorded \u00b7 external_effects=0",
+      "final_disposition": "completed",
+      "recorded": true,
+      "run_id": "run_demo_success_001",
+      "workflow": "meeting_follow_up_v1",
+      "workflow_status": "completed"
+    },
+    "completed": {
+      "body": "Deterministic follow-up intents are prepared for offline review.",
+      "contact_resolved": true,
+      "headline": "Follow-up card ready",
+      "policy_pass": true,
+      "proposed_note": true,
+      "proposed_stage_change": true
+    },
+    "extraction_confidence": 0.95,
+    "meeting_context": {
+      "agent": {
+        "email": "alex.rivera@example-demo.test",
+        "name": "Alex Rivera",
+        "phone": "+1-555-0199",
+        "role": "agent"
+      },
+      "meeting_id": "demo_meeting_001",
+      "occurred_at": "2026-08-10T15:00:00Z",
+      "prospect": {
+        "email": "taylor.morgan@example-demo.test",
+        "name": "Taylor Morgan",
+        "phone": "+1-555-0100",
+        "role": "prospect"
+      },
+      "source": "synthetic_demo",
+      "title": "Taylor Morgan - Discovery Meeting"
+    },
+    "permitted_action_result": {
+      "LIVE_CRM_EXECUTION": "NOT_PERFORMED",
+      "cloud_mutation": "NONE",
+      "crm_changes_made": false,
+      "external_effects": 0,
+      "note_write": "allowed",
+      "result_label": "note_and_stage_intents_permitted",
+      "stage_write": "allowed"
+    },
+    "policy_decision": {
+      "human_review_required": false,
+      "note_write": "allowed",
+      "reason_codes": [],
+      "stage_write": "allowed"
+    },
+    "proposed_follow_up": {
+      "execution_attempted": {
+        "note": false,
+        "stage": false
+      },
+      "headline": "Meeting follow-up evaluated (Phase 1 intent-only)",
+      "label": "proposed_intents_only",
+      "needs": [
+        "retirement income planning",
+        "liquidity flexibility"
+      ],
+      "note_intents": [
+        "Note intent planned: source extraction.summary"
+      ],
+      "objections": [
+        "liquidity lock-up concern"
+      ],
+      "stage_intents": [
+        {
+          "from_stage": "discovery_scheduled",
+          "summary": "Stage intent planned: discovery_scheduled -> discovery_complete",
+          "to_stage": "discovery_complete"
+        }
+      ],
+      "summary": "Discovery call covering retirement income planning with liquidity constraints and a sixty-day timeline."
+    },
+    "relationship_context": {
+      "candidate_count": 1,
+      "contact_resolved": true,
+      "current_stage": "discovery_scheduled",
+      "match_basis": "email",
+      "resolution_status": "matched"
+    },
+    "salesperson_next_step": "Send recommendation review follow-up (owner: Alex Rivera)",
+    "summary": "Discovery call covering retirement income planning with liquidity constraints and a sixty-day timeline.",
+    "ux_state": "COMPLETED"
+  },
+  "workflow_status": "completed"
+}
