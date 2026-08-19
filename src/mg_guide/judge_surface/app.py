@@ -21,6 +21,8 @@ from mg_guide.meeting_follow_up_card.render_html import render_card_html
 from mg_guide.meeting_follow_up_card.render_text import render_card_text
 from orchestration.runner import WorkflowRunner
 
+from .demo_stages import project_demo_payload
+from .render_demo_stages import render_demo_stages_html, render_demo_stages_text
 from .scenarios import (
     AUTHORIZED_JUDGE_MODE,
     SCENARIO_CATALOG,
@@ -116,6 +118,9 @@ class JudgeSurfaceApp:
 
         proposal = self._follow_up_proposal(packet)
         policy_decision = self._policy_decision(packet)
+        demo_payload = project_demo_payload(
+            packet, card, workflow_status=result.final_state
+        )
 
         return {
             "scenario": selector,
@@ -124,10 +129,19 @@ class JudgeSurfaceApp:
             "follow_up_proposal": proposal,
             "policy_decision": policy_decision,
             "card": card,
-            "card_view": self._card_view(card, view_format),
+            "card_view": self._card_view(
+                card,
+                view_format,
+                demo_stages=demo_payload["demo_stages"],
+                demo_truth=demo_payload["demo_truth"],
+                ux_experience=demo_payload["ux_experience"],
+            ),
             "audit_summary": self._audit_summary(packet),
             "external_effects": result.external_effects,
             "cloud_mutation": "NONE",
+            "demo_stages": demo_payload["demo_stages"],
+            "demo_truth": demo_payload["demo_truth"],
+            "ux_experience": demo_payload["ux_experience"],
         }
 
     @staticmethod
@@ -200,11 +214,30 @@ class JudgeSurfaceApp:
         }
 
     @staticmethod
-    def _card_view(card: JSONType, view_format: str) -> Optional[str]:
+    def _card_view(
+        card: JSONType,
+        view_format: str,
+        *,
+        demo_stages: Optional[List[JSONType]] = None,
+        demo_truth: Optional[JSONType] = None,
+        ux_experience: Optional[JSONType] = None,
+    ) -> Optional[str]:
         if view_format == "html":
             return render_card_html(card)
         if view_format == "text":
             return render_card_text(card)
+        if view_format == "stages_html":
+            return render_demo_stages_html(
+                demo_stages or [],
+                demo_truth or {},
+                ux_experience=ux_experience,
+            )
+        if view_format == "stages_text":
+            return render_demo_stages_text(
+                demo_stages or [],
+                demo_truth or {},
+                ux_experience=ux_experience,
+            )
         return None
 
 

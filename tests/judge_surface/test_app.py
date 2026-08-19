@@ -185,3 +185,97 @@ def test_demo_json_view_has_no_rendered_view(client: _TestClient) -> None:
     )
     assert code == 200
     assert data["card_view"] is None
+
+
+def test_demo_success_includes_demo_stages(client: _TestClient) -> None:
+    code, data = client.request("POST", "/demo/meeting-follow-up", {"scenario": "SUCCESS"})
+    assert code == 200
+    stages = data["demo_stages"]
+    assert len(stages) == 6
+    assert [s["title"] for s in stages] == [
+        "Meeting ready",
+        "Meeting Context",
+        "Relationship Resolution",
+        "Follow-Up Planning",
+        "Policy Evaluation",
+        "Meeting Follow-Up result card",
+    ]
+    truth = data["demo_truth"]
+    assert truth["LIVE_CRM_EXECUTION"] == "NOT_PERFORMED"
+    assert truth["EXTERNAL_EFFECTS"] == 0
+    assert truth["cloud_mutation"] == "NONE"
+    ux = data["ux_experience"]
+    assert ux["ux_state"] == "COMPLETED"
+    assert ux["policy_decision"]["note_write"] == "allowed"
+    assert ux["salesperson_next_step"]
+    assert ux["audit_status"]["recorded"] is True
+    assert ux["permitted_action_result"]["external_effects"] == 0
+
+
+def test_demo_ambiguous_includes_demo_stages(client: _TestClient) -> None:
+    code, data = client.request(
+        "POST", "/demo/meeting-follow-up", {"scenario": "AMBIGUOUS_CONTACT"}
+    )
+    assert code == 200
+    assert len(data["demo_stages"]) == 6
+    policy_stage = data["demo_stages"][4]["evidence"]
+    assert policy_stage["reason_codes"] == ["AMBIGUOUS_CONTACT"]
+    assert policy_stage["note_write"] == "not_attempted"
+    assert policy_stage["stage_write"] == "not_attempted"
+    ux = data["ux_experience"]
+    assert ux["ux_state"] == "NEEDS_REVIEW"
+    assert ux["needs_review"]["zero_unauthorized_effects"] is True
+    assert "No CRM changes were made" in ux["needs_review"]["zero_unauthorized_effects_message"]
+    assert ux["needs_review"]["explicit_next_action"]
+    assert data["demo_truth"]["EXTERNAL_EFFECTS"] == 0
+
+
+def test_demo_stages_html_view(client: _TestClient) -> None:
+    code, data = client.request(
+        "POST",
+        "/demo/meeting-follow-up",
+        {"scenario": "SUCCESS", "view": "stages_html"},
+    )
+    assert code == 200
+    html = data["card_view"]
+    assert html is not None
+    assert "mg-guide-demo-stages" in html
+    assert "Meeting ready" in html
+    assert "Meeting Context" in html
+    assert "Relationship Resolution" in html
+    assert "Follow-Up Planning" in html
+    assert "Policy Evaluation" in html
+    assert "Meeting Follow-Up result card" in html
+    assert "LIVE_CRM_EXECUTION" in html
+    assert "NOT_PERFORMED" in html
+    assert "COMPLETED" in html
+    assert "Salesperson next step" in html
+    assert "Policy decision" in html
+    assert "Audit status" in html
+
+
+def test_demo_stages_html_needs_review(client: _TestClient) -> None:
+    code, data = client.request(
+        "POST",
+        "/demo/meeting-follow-up",
+        {"scenario": "AMBIGUOUS_CONTACT", "view": "stages_html"},
+    )
+    assert code == 200
+    html = data["card_view"]
+    assert "NEEDS_REVIEW" in html
+    assert "Jordan Lee" in html
+    assert "AMBIGUOUS_CONTACT" in html
+    assert "No CRM changes were made" in html
+
+
+def test_demo_stages_text_view(client: _TestClient) -> None:
+    code, data = client.request(
+        "POST",
+        "/demo/meeting-follow-up",
+        {"scenario": "SUCCESS", "view": "stages_text"},
+    )
+    assert code == 200
+    text = data["card_view"]
+    assert "MG Guide Meeting Follow-Up" in text
+    assert "UX state: COMPLETED" in text
+    assert "EXTERNAL_EFFECTS=0" in text

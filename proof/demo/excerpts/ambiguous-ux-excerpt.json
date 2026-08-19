@@ -1,0 +1,122 @@
+{
+  "audit_summary_final_disposition": "blocked",
+  "cloud_mutation": "NONE",
+  "demo_stage_titles": [
+    "Meeting ready",
+    "Meeting Context",
+    "Relationship Resolution",
+    "Follow-Up Planning",
+    "Policy Evaluation",
+    "Meeting Follow-Up result card"
+  ],
+  "demo_truth": {
+    "CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO": true,
+    "EXTERNAL_EFFECTS": 0,
+    "LIVE_CRM_EXECUTION": "NOT_PERFORMED",
+    "PRESENTER_MAY_USE_NARRATIVE_ALIAS": false,
+    "PRIVATE_MODEL_REASONING_DISPLAYED": false,
+    "cloud_mutation": "NONE"
+  },
+  "external_effects": 0,
+  "policy_decision": {
+    "note_write": "not_attempted",
+    "reason_codes": [
+      "AMBIGUOUS_CONTACT"
+    ],
+    "stage_write": "not_attempted"
+  },
+  "scenario": "AMBIGUOUS_CONTACT",
+  "ux_experience": {
+    "audit_status": {
+      "agents_used": [
+        "transcript_extractor:v1",
+        "crm_resolver:v1"
+      ],
+      "display": "2 agents \u00b7 governed offline path \u00b7 policy FAIL_CLOSED \u00b7 audit recorded \u00b7 external_effects=0",
+      "final_disposition": "blocked",
+      "recorded": true,
+      "run_id": "run_demo_ambiguous_001",
+      "workflow": "meeting_follow_up_v1",
+      "workflow_status": "blocked"
+    },
+    "extraction_confidence": 0.88,
+    "meeting_context": {
+      "agent": {
+        "email": "alex.rivera@example-demo.test",
+        "name": "Alex Rivera",
+        "phone": "+1-555-0199",
+        "role": "agent"
+      },
+      "meeting_id": "demo_meeting_002",
+      "occurred_at": "2026-08-10T16:00:00Z",
+      "prospect": {
+        "email": null,
+        "name": "Jordan Lee",
+        "phone": null,
+        "role": "prospect"
+      },
+      "source": "synthetic_demo",
+      "title": "Jordan Lee - Discovery Meeting"
+    },
+    "needs_review": {
+      "block_context": {
+        "candidate_count": 2,
+        "final_disposition": "blocked",
+        "note_write": "not_attempted",
+        "reason_codes": [
+          "AMBIGUOUS_CONTACT"
+        ],
+        "resolution_status": "ambiguous",
+        "stage_write": "not_attempted",
+        "workflow_status": "blocked"
+      },
+      "explicit_next_action": "Resolve contact identity offline before any CRM write.",
+      "reason": "Contact resolution returned multiple candidates. Identity must be confirmed before any CRM write.",
+      "zero_unauthorized_effects": true,
+      "zero_unauthorized_effects_message": "No CRM changes were made. Unauthorized effects: 0."
+    },
+    "permitted_action_result": {
+      "LIVE_CRM_EXECUTION": "NOT_PERFORMED",
+      "cloud_mutation": "NONE",
+      "crm_changes_made": false,
+      "external_effects": 0,
+      "note_write": "not_attempted",
+      "result_label": "blocked_before_crm_write",
+      "stage_write": "not_attempted"
+    },
+    "policy_decision": {
+      "human_review_required": true,
+      "note_write": "not_attempted",
+      "reason_codes": [
+        "AMBIGUOUS_CONTACT"
+      ],
+      "stage_write": "not_attempted"
+    },
+    "proposed_follow_up": {
+      "execution_attempted": {
+        "note": false,
+        "stage": false
+      },
+      "headline": "Run blocked",
+      "label": "proposed_intents_only",
+      "needs": [
+        "planning options comparison"
+      ],
+      "note_intents": [],
+      "objections": [],
+      "stage_intents": [],
+      "summary": "High-level conversation without unique contact identifiers."
+    },
+    "relationship_context": {
+      "candidate_count": 2,
+      "contact_resolved": false,
+      "current_stage": null,
+      "match_basis": "name",
+      "resolution_status": "ambiguous"
+    },
+    "salesperson_next_step": "Resolve contact identity offline before any CRM write.",
+    "summary": "High-level conversation without unique contact identifiers.",
+    "ux_state": "NEEDS_REVIEW"
+  },
+  "workflow_status": "blocked"
+}
