@@ -1,0 +1,70 @@
+artifact_id: MG_GUIDE_WORKSPACE_ADDON_CONTINUATION_V1
+artifact_kind: BOUNDED_HUMAN_EXECUTION_GRANT
+status: APPROVED
+purpose: >
+  Authorize the forward-looking competition-bounded continuation of the existing
+  MG Guide Google Workspace add-on judge path for branded asset publication,
+  Cloud Build/runtime deployment, Apps Script hydration, controlled host
+  acceptance, reliability verification, and competition closeout.
+authority_semantics:
+  retroactive_authorization: false
+  existing_resource_continuation_only: true
+  new_cloud_run_service_creation: false
+target:
+  project: mg-devpost
+  region: us-east4
+  service: mg-guide-agentic-sales-workspace-addon-judge
+  service_already_exists: true
+  max_instances: 1
+  min_instances: 0
+  public_unauthenticated_access: false
+  production_promotion: false
+build:
+  service_account: mg-guide-devpost-build@mg-devpost.iam.gserviceaccount.com
+  create_new_build_service_account: false
+  service_account_keys: forbidden
+  artifact_registry_repository: mg-guide-judge
+runtime:
+  service_account: mg-guide-devpost-runtime@mg-devpost.iam.gserviceaccount.com
+  create_new_runtime_service_account: false
+  service_account_keys: forbidden
+b3_source_read:
+  authorized: conditional
+  condition: exact Cloud Build source bucket requires staged-source read
+  principal: mg-guide-devpost-build@mg-devpost.iam.gserviceaccount.com
+  role: roles/storage.objectViewer
+  resource_scope: exact_source_bucket_only
+  project_wide_storage_role: forbidden
+  default_compute_sa_expansion: forbidden
+public_brand_assets:
+  max_buckets_created: 1
+  preferred_bucket: mg-devpost-assets
+  project: mg-devpost
+  location: us-east4
+  purpose: competition_public_static_assets
+  anonymous_object_read: allowed
+  anonymous_write: forbidden
+  customer_data: forbidden
+  secrets: forbidden
+  cloud_build_source: forbidden
+  allowed_prefix: mg-guide/
+apps_script:
+  competition_project_only: true
+  legacy_marketplace_mutation: forbidden
+data_and_effects:
+  synthetic_only: true
+  real_customer_data: false
+  crm_mutation: false
+  live_crm_execution: NOT_PERFORMED
+  firestore_runtime_mutation: false
+existing_browser_judge:
+  iap_reconfiguration: forbidden
+  service_mutation: forbidden
+lifetime:
+  competition_only: true
+human_decision:
+  requested_decision: APPROVE_MG_GUIDE_WORKSPACE_ADDON_CONTINUATION_V1
+  current_decision: APPROVED
+  human_signature: APPROVED
+  signed_by: AARON PRESTON CHANDLER
+  signed_at: "2026-08-19T14:42:20.500-04:00"
