@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from io import BytesIO
 from typing import Any, Dict, List, Tuple
 
@@ -184,6 +185,47 @@ def test_demo_ambiguous_contact(client: _TestClient) -> None:
     assert "AMBIGUOUS_CONTACT" in data["policy_decision"]["reason_codes"]
     assert data["card"]["card_state"] == "blocked"
     assert data["external_effects"] == 0
+
+
+def test_demo_replay_isolated_per_request() -> None:
+    client = _TestClient(JudgeSurfaceApp())
+    for scenario in ("SUCCESS", "SUCCESS", "AMBIGUOUS_CONTACT", "AMBIGUOUS_CONTACT"):
+        code, data = client.request("POST", "/demo/meeting-follow-up", {"scenario": scenario})
+        assert code == 200
+        assert data["scenario"] == scenario
+
+
+def test_judge_request_log_is_structured_and_token_safe(caplog) -> None:
+    client = _TestClient(JudgeSurfaceApp())
+    with caplog.at_level(logging.INFO, logger="mg_guide.judge_surface"):
+        code, _ = client.request(
+            "POST",
+            "/demo/meeting-follow-up",
+            {"scenario": "SUCCESS"},
+            {"HTTP_AUTHORIZATION": "Bearer synthetic-token-must-not-appear"},
+        )
+    assert code == 200
+    record = json.loads(caplog.records[-1].message)
+    assert set(record) == {
+        "request_id",
+        "scenario",
+        "auth_mode",
+        "workflow_status",
+        "ux_state",
+        "http_status",
+        "latency_ms",
+        "external_effects",
+        "revision",
+        "gemini_mode",
+        "error_code",
+        "audience_configured",
+        "token_logged",
+    }
+    assert record["scenario"] == "SUCCESS"
+    assert record["http_status"] == 200
+    assert record["external_effects"] == 0
+    assert record["token_logged"] is False
+    assert "synthetic-token-must-not-appear" not in caplog.text
 
 
 def test_demo_invalid_scenario_returns_400(client: _TestClient) -> None:

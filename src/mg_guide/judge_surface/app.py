@@ -12,9 +12,12 @@ writes, Firestore writes, or live Gemini calls.
 from __future__ import annotations
 
 import json
+import logging
 import os
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from uuid import uuid4
 
 from mg_guide.meeting_follow_up_card.mapper import map_packet_to_card
 from mg_guide.meeting_follow_up_card.render_html import render_card_html
@@ -43,6 +46,8 @@ from mg_guide.workspace_addon.auth_contract import (
 JSONType = Dict[str, Any]
 StartResponse = Callable[[str, List[Tuple[str, str]]], None]
 WSGIEnv = Dict[str, Any]
+LOGGER = logging.getLogger("mg_guide.judge_surface")
+LOGGER.setLevel(logging.INFO)
 
 
 class _JSONError(RuntimeError):
@@ -56,7 +61,10 @@ class JudgeSurfaceApp:
     """WSGI application for the judge-safe demo surface."""
 
     def __init__(self, runner: Optional[WorkflowRunner] = None) -> None:
-        self.runner = runner or WorkflowRunner()
+        # A supplied runner is retained only for explicit test/integration use.
+        # Normal judge requests receive an isolated registry so static synthetic
+        # fixture IDs can be replayed without changing runner duplicate policy.
+        self._runner = runner
         self._service_name = "mg-guide-agentic-sales-workspace-judge"
         self._version = "0.1.0"
         self._commit = os.environ.get("GIT_COMMIT", "unknown")
@@ -64,10 +72,16 @@ class JudgeSurfaceApp:
     def __call__(
         self, environ: WSGIEnv, start_response: StartResponse
     ) -> Iterable[bytes]:
+        started_at = time.monotonic()
+        request_id = uuid4().hex
         try:
             response = self._handle(environ)
         except _JSONError as exc:
+            self._log_judge_request(
+                environ, request_id, started_at, exc.status, exc.body
+            )
             return _send(start_response, exc.status, exc.body)
+        self._log_judge_request(environ, request_id, started_at, "200 OK", response)
         return _send(start_response, "200 OK", response)
 
     def _handle(self, environ: WSGIEnv) -> JSONType:
@@ -132,7 +146,8 @@ class JudgeSurfaceApp:
             )
 
         sidecar_path = SCENARIO_CATALOG[selector]
-        result = self.runner.run_fixture(sidecar_path)
+        runner = self._runner or WorkflowRunner()
+        result = runner.run_fixture(sidecar_path)
 
         if result.rejected_duplicate or not result.validation_ok:
             raise _JSONError(
@@ -176,6 +191,54 @@ class JudgeSurfaceApp:
             "demo_truth": demo_payload["demo_truth"],
             "ux_experience": demo_payload["ux_experience"],
         }
+
+    @staticmethod
+    def _log_judge_request(
+        environ: WSGIEnv,
+        request_id: str,
+        started_at: float,
+        status: str,
+        body: JSONType,
+    ) -> None:
+        if not (
+            environ.get("REQUEST_METHOD") == "POST"
+            and environ.get("PATH_INFO") == "/demo/meeting-follow-up"
+        ):
+            return
+
+        scenario = body.get("scenario")
+        if scenario not in SCENARIO_CATALOG:
+            scenario = "INVALID_OR_UNAVAILABLE"
+        ux = body.get("ux_experience") or {}
+        external_effects = body.get("external_effects")
+        if not isinstance(external_effects, int):
+            external_effects = 0
+        try:
+            auth_mode = auth_mode_from_env().value
+        except AuthError:
+            auth_mode = "invalid"
+        gemini_mode = os.environ.get("MEETING_CONTEXT_GEMINI_MODE", "unset")
+        if gemini_mode not in {"stub", "live"}:
+            gemini_mode = "invalid"
+
+        record = {
+            "request_id": request_id,
+            "scenario": scenario,
+            "auth_mode": auth_mode,
+            "workflow_status": body.get("workflow_status", "not_run"),
+            "ux_state": ux.get("ux_state", "not_available"),
+            "http_status": int(status.split(" ", 1)[0]),
+            "latency_ms": round((time.monotonic() - started_at) * 1000, 2),
+            "external_effects": external_effects,
+            "revision": os.environ.get("K_REVISION", "unknown"),
+            "gemini_mode": gemini_mode,
+            "error_code": body.get("code") or body.get("error") or "NONE",
+            "audience_configured": bool(
+                os.environ.get("JUDGE_ADDON_OIDC_AUDIENCE", "").strip()
+            ),
+            "token_logged": False,
+        }
+        LOGGER.info(json.dumps(record, sort_keys=True, separators=(",", ":")))
 
     @staticmethod
     def _resolution_outcome(packet: JSONType) -> JSONType:

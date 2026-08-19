@@ -25,9 +25,25 @@ Gmail / Calendar host
 | `src/mg_guide/workspace_addon/` | Testable projection + OIDC auth validator + local adapter | Workflow truth |
 | `src/mg_guide/judge_surface/` | Existing competition endpoint | Apps Script UI |
 
-## Six-stage display
+## Branded card hierarchy
 
-Stage titles are taken from the judge `demo_stages` projection:
+The header uses the MG Guide square image and the `Powered by AI Rolodex`
+subtitle. The homepage presents the following copy without duplicating the
+product name:
+
+- **Meeting Follow-Up** - Turn a meeting into a governed follow-up plan.
+- **Demo mode** - Synthetic data · No CRM writes.
+- **Run Successful Follow-Up** and **Test Ambiguous Contact** retain the
+  `SUCCESS` and `AMBIGUOUS_CONTACT` backend selectors.
+
+The optional policy guardrail is a secondary text action. The fixed
+attribution-only footer is intentionally absent.
+
+Results keep technical truth markers in Integrity while their primary hierarchy
+is Outcome, Meeting summary, Relationship, Policy, Six-stage workflow summary,
+Salesperson next step, Audit, and Integrity.
+
+The six visible stage titles are taken from the judge `demo_stages` projection:
 
 1. Meeting ready  
 2. Meeting Context  

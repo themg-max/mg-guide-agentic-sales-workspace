@@ -6,15 +6,10 @@
 function brandHeader_() {
   return CardService.newCardHeader()
     .setTitle(MG_GUIDE_PRODUCT_NAME)
-    .setSubtitle(MG_GUIDE_ATTRIBUTION);
-}
-
-function brandFooter_() {
-  return CardService.newFixedFooter().setPrimaryButton(
-    CardService.newTextButton()
-      .setText(MG_GUIDE_ATTRIBUTION)
-      .setOnClickAction(CardService.newAction().setFunctionName('onHomepage'))
-  );
+    .setSubtitle(MG_GUIDE_ATTRIBUTION)
+    .setImageUrl(MG_GUIDE_LOGO_URL)
+    .setImageStyle(CardService.ImageStyle.SQUARE)
+    .setImageAltText('MG Guide logo');
 }
 
 /**
@@ -23,17 +18,14 @@ function brandFooter_() {
  */
 function buildHomeCard() {
   var intro = CardService.newCardSection()
-    .setHeader(MG_GUIDE_PRODUCT_NAME)
     .addWidget(
       CardService.newTextParagraph().setText(
-        '<b>' + MG_GUIDE_PRODUCT_NAME + '</b><br>' + MG_GUIDE_ATTRIBUTION
+        '<b>Meeting Follow-Up</b><br>Turn a meeting into a governed follow-up plan.'
       )
     )
     .addWidget(
       CardService.newTextParagraph().setText(
-        'Primary experience: <b>' +
-          MG_GUIDE_PRIMARY_CAPABILITY +
-          '</b>. Synthetic competition scenarios only. LIVE_CRM_EXECUTION=NOT_PERFORMED.'
+        '<b>Demo mode</b><br>Synthetic data · No CRM writes'
       )
     );
 
@@ -41,7 +33,7 @@ function buildHomeCard() {
     .setHeader(MG_GUIDE_PRIMARY_CAPABILITY)
     .addWidget(
       CardService.newTextButton()
-        .setText('Run SUCCESS')
+        .setText('Run Successful Follow-Up')
         .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
         .setOnClickAction(
           CardService.newAction()
@@ -51,7 +43,7 @@ function buildHomeCard() {
     )
     .addWidget(
       CardService.newTextButton()
-        .setText('Run AMBIGUOUS_CONTACT')
+        .setText('Test Ambiguous Contact')
         .setTextButtonStyle(CardService.TextButtonStyle.FILLED)
         .setOnClickAction(
           CardService.newAction()
@@ -61,7 +53,7 @@ function buildHomeCard() {
     )
     .addWidget(
       CardService.newTextButton()
-        .setText('Run STAGE_CHANGE_DENIED (optional)')
+        .setText('Optional policy guardrail')
         .setTextButtonStyle(CardService.TextButtonStyle.TEXT)
         .setOnClickAction(
           CardService.newAction()
@@ -70,20 +62,10 @@ function buildHomeCard() {
         )
     );
 
-  var truth = CardService.newCardSection()
-    .setHeader('Truth boundary')
-    .addWidget(
-      CardService.newTextParagraph().setText(
-        'No live CRM writes. external_effects stay 0 on this judge path. CRM mutations are not performed.'
-      )
-    );
-
   return CardService.newCardBuilder()
     .setHeader(brandHeader_())
     .addSection(intro)
     .addSection(scenarios)
-    .addSection(truth)
-    .setFixedFooter(brandFooter_())
     .build();
 }
 
@@ -130,7 +112,6 @@ function buildErrorCard(code, message) {
   return CardService.newCardBuilder()
     .setHeader(brandHeader_())
     .addSection(section)
-    .setFixedFooter(brandFooter_())
     .build();
 }
 
@@ -156,7 +137,7 @@ function buildLoadingCard(scenario) {
 }
 
 /**
- * Render judge JSON into six-stage + result cards.
+ * Render judge JSON into a concise outcome and six-stage summary.
  * @param {Object} payload
  * @return {CardService.Card}
  */
@@ -185,27 +166,23 @@ function buildResultCardFromJudgePayload(payload) {
   }
 
   var builder = CardService.newCardBuilder().setHeader(brandHeader_());
-
-  var summary = CardService.newCardSection()
-    .setHeader(MG_GUIDE_PRODUCT_NAME + ' · ' + MG_GUIDE_PRIMARY_CAPABILITY)
-    .addWidget(
-      CardService.newTextParagraph().setText(
-        '<b>' + MG_GUIDE_PRODUCT_NAME + '</b><br>' + MG_GUIDE_ATTRIBUTION
-      )
-    )
-    .addWidget(kv_('Scenario', String(payload.scenario || '')))
-    .addWidget(kv_('UX_STATE', String(ux.ux_state || '')))
-    .addWidget(kv_('workflow_status', String(payload.workflow_status || '')));
-  builder.addSection(summary);
-
-  for (var i = 0; i < stages.length; i++) {
-    builder.addSection(buildStageSection_(i, stages[i]));
-  }
-
   builder.addSection(
-    buildOutcomeSection_(ux, policy, audit, uxAudit, externalEffects, liveCrm)
+    CardService.newCardSection()
+      .setHeader('Outcome')
+      .addWidget(
+        CardService.newTextParagraph().setText(
+          String(ux.ux_state) === 'NEEDS_REVIEW'
+            ? 'Needs review before any follow-up can proceed.'
+            : 'Follow-up plan prepared.'
+        )
+      )
   );
-
+  builder.addSection(buildMeetingSummarySection_(ux));
+  builder.addSection(buildRelationshipSection_(ux));
+  builder.addSection(buildPolicySection_(policy));
+  builder.addSection(buildStageSummarySection_(stages));
+  builder.addSection(buildSalespersonNextStepSection_(ux));
+  builder.addSection(buildAuditSection_(audit, uxAudit));
   builder.addSection(
     CardService.newCardSection()
       .setHeader('Integrity')
@@ -221,161 +198,85 @@ function buildResultCardFromJudgePayload(payload) {
         )
       )
   );
-
-  builder.setFixedFooter(brandFooter_());
   return builder.build();
 }
 
 /**
- * @param {number} index
- * @param {Object} stage
+ * @param {Object} ux
  * @return {CardService.CardSection}
  */
-function buildStageSection_(index, stage) {
-  stage = stage || {};
-  var evidence = stage.evidence || {};
-  var title = String(stage.title || '');
-  title = title.replace(' result card', '');
-  if (index === 5 && title === 'Meeting Follow-Up') {
-    title = 'Meeting Follow-Up result';
-  }
-  var section = CardService.newCardSection()
-    .setHeader(String(index + 1) + '. ' + title)
-    .addWidget(kv_('Stage status', String(stage.status || '')));
+function buildMeetingSummarySection_(ux) {
+  return CardService.newCardSection()
+    .setHeader('Meeting summary')
+    .addWidget(kv_('Summary', ux.summary));
+}
 
-  if (index === 0) {
-    section.addWidget(kv_('title', evidence.title));
-    section.addWidget(kv_('source', evidence.source));
-    section.addWidget(kv_('participants', compact_(evidence.participants)));
-  } else if (index === 1) {
-    section.addWidget(kv_('summary', evidence.summary));
-    section.addWidget(kv_('needs', compact_(evidence.needs)));
-    section.addWidget(kv_('extraction_confidence', evidence.extraction_confidence));
-  } else if (index === 2) {
-    section.addWidget(kv_('resolution_status', evidence.resolution_status));
-    section.addWidget(kv_('match_basis', evidence.match_basis));
-    section.addWidget(kv_('candidate_count', evidence.candidate_count));
-    section.addWidget(kv_('current_stage', evidence.current_stage));
-  } else if (index === 3) {
-    section.addWidget(kv_('note_intents', compact_(evidence.note_intents)));
-    section.addWidget(kv_('stage_intents', compact_(evidence.stage_intents)));
-    section.addWidget(
-      kv_('note_execution_attempted', evidence.note_execution_attempted)
-    );
-    section.addWidget(
-      kv_('stage_execution_attempted', evidence.stage_execution_attempted)
-    );
-  } else if (index === 4) {
-    section.addWidget(kv_('note_write', evidence.note_write));
-    section.addWidget(kv_('stage_write', evidence.stage_write));
-    section.addWidget(kv_('reason_codes', compact_(evidence.reason_codes)));
-  } else {
-    var framing = evidence.framing || {};
-    var brief = evidence.brief || {};
-    var integrity = evidence.integrity || {};
-    section.addWidget(kv_('card_state', evidence.card_state));
-    section.addWidget(kv_('workflow_status', evidence.workflow_status));
-    section.addWidget(kv_('headline', framing.headline || brief.headline));
-    section.addWidget(kv_('body', framing.body));
-    section.addWidget(kv_('next_action', brief.next_action));
-    section.addWidget(kv_('no_crm_changes_made', framing.no_crm_changes_made));
-    section.addWidget(kv_('external_effects', integrity.external_effects));
-    section.addWidget(kv_('LIVE_CRM_EXECUTION', evidence.LIVE_CRM_EXECUTION));
+/**
+ * @param {Object} ux
+ * @return {CardService.CardSection}
+ */
+function buildRelationshipSection_(ux) {
+  var rel = (ux || {}).relationship_context || {};
+  return CardService.newCardSection()
+    .setHeader('Relationship')
+    .addWidget(kv_('Status', rel.resolution_status))
+    .addWidget(kv_('Match basis', rel.match_basis))
+    .addWidget(kv_('Candidates', rel.candidate_count));
+}
+
+/**
+ * @param {Object} policy
+ * @return {CardService.CardSection}
+ */
+function buildPolicySection_(policy) {
+  policy = policy || {};
+  return CardService.newCardSection()
+    .setHeader('Policy')
+    .addWidget(kv_('Notes', policy.note_write))
+    .addWidget(kv_('Stage change', policy.stage_write))
+    .addWidget(kv_('Reason', compact_(policy.reason_codes)));
+}
+
+/**
+ * @param {Array} stages
+ * @return {CardService.CardSection}
+ */
+function buildStageSummarySection_(stages) {
+  var section = CardService.newCardSection().setHeader('Six-stage workflow summary');
+  for (var i = 0; i < stages.length; i++) {
+    var stage = stages[i] || {};
+    var title = String(stage.title || '').replace(' result card', '');
+    section.addWidget(kv_(String(i + 1) + '. ' + title, stage.status));
   }
   return section;
 }
 
 /**
+ * @param {Object} ux
  * @return {CardService.CardSection}
  */
-function buildOutcomeSection_(ux, policy, audit, uxAudit, externalEffects, liveCrm) {
-  ux = ux || {};
-  policy = policy || {};
+function buildSalespersonNextStepSection_(ux) {
+  return CardService.newCardSection()
+    .setHeader('Salesperson next step')
+    .addWidget(kv_('Next step', (ux || {}).salesperson_next_step));
+}
+
+/**
+ * @param {Object} audit
+ * @param {Object} uxAudit
+ * @return {CardService.CardSection}
+ */
+function buildAuditSection_(audit, uxAudit) {
   audit = audit || {};
   uxAudit = uxAudit || {};
-  var rel = ux.relationship_context || {};
-  var proposed = ux.proposed_follow_up || {};
-  var policyResult =
-    'note_write=' +
-    String(policy.note_write || '') +
-    ' · stage_write=' +
-    String(policy.stage_write || '') +
-    ' · reason_codes=' +
-    compact_(policy.reason_codes);
-
-  var section = CardService.newCardSection()
-    .setHeader('Meeting Follow-Up result')
-    .addWidget(kv_('UX_STATE', ux.ux_state))
-    .addWidget(kv_('Meeting summary', ux.summary))
-    .addWidget(kv_('Relationship status', rel.resolution_status))
-    .addWidget(kv_('match_basis', rel.match_basis))
-    .addWidget(kv_('candidate_count', rel.candidate_count))
+  return CardService.newCardSection()
+    .setHeader('Audit')
     .addWidget(
       kv_(
-        'Proposed follow-up',
-        proposed.headline || proposed.summary || 'See stage evidence'
-      )
-    )
-    .addWidget(kv_('Policy result', policyResult))
-    .addWidget(kv_('policy.note_write', policy.note_write))
-    .addWidget(kv_('policy.stage_write', policy.stage_write))
-    .addWidget(kv_('policy.reason_codes', compact_(policy.reason_codes)))
-    .addWidget(kv_('Salesperson next step', ux.salesperson_next_step))
-    .addWidget(
-      kv_(
-        'Audit status',
+        'Status',
         uxAudit.display || uxAudit.final_disposition || audit.final_disposition
       )
-    )
-    .addWidget(kv_('external_effects', externalEffects))
-    .addWidget(kv_('LIVE_CRM_EXECUTION', liveCrm));
-
-  if (String(ux.ux_state) === 'NEEDS_REVIEW') {
-    var needs = ux.needs_review || {};
-    var block = needs.block_context || {};
-    section.addWidget(
-      CardService.newTextParagraph().setText(
-        '<b>Needs review:</b> ' + String(needs.reason || '')
-      )
     );
-    section.addWidget(
-      CardService.newTextParagraph().setText(
-        String(
-          needs.zero_unauthorized_effects_message ||
-            'No CRM changes were made. Unauthorized effects: 0.'
-        )
-      )
-    );
-    var codes = block.reason_codes || policy.reason_codes || [];
-    if (codes.indexOf('AMBIGUOUS_CONTACT') >= 0) {
-      section.addWidget(
-        CardService.newTextParagraph().setText(
-          'Resolve contact identity before any CRM write.'
-        )
-      );
-    } else if (needs.explicit_next_action) {
-      section.addWidget(
-        CardService.newTextParagraph().setText(String(needs.explicit_next_action))
-      );
-    }
-  } else {
-    var completed = ux.completed || {};
-    section.addWidget(
-      CardService.newTextParagraph().setText(
-        String(
-          completed.body ||
-            'Governed follow-up intents are prepared. No live CRM write was performed.'
-        )
-      )
-    );
-  }
-
-  section.addWidget(
-    CardService.newTextButton()
-      .setText('Back to MG Guide home')
-      .setOnClickAction(CardService.newAction().setFunctionName('onHomepage'))
-  );
-  return section;
 }
 
 /**

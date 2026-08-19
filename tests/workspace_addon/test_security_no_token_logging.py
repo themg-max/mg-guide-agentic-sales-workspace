@@ -65,16 +65,25 @@ def test_cardservice_template_keeps_judge_hierarchy_visible():
         "MG_GUIDE_PRODUCT_NAME",
         "MG_GUIDE_ATTRIBUTION",
         "MG_GUIDE_PRIMARY_CAPABILITY",
-        "'Scenario'",
-        "'UX_STATE'",
-        "'workflow_status'",
-        "stages.length !== 6",
-        "'Policy result'",
+        "MG_GUIDE_LOGO_URL",
+        "setImageStyle(CardService.ImageStyle.SQUARE)",
+        "setImageAltText('MG Guide logo')",
+        "Turn a meeting into a governed follow-up plan.",
+        "Synthetic data · No CRM writes",
+        "'Outcome'",
+        "'Meeting summary'",
+        "'Relationship'",
+        "'Policy'",
+        "'Six-stage workflow summary'",
         "'Salesperson next step'",
-        "'Audit status'",
+        "'Audit'",
+        "stages.length !== 6",
         "'Integrity'",
         "external_effects=",
         "LIVE_CRM_EXECUTION=",
     )
     for marker in required:
         assert marker in cards
+    assert "brandFooter_" not in cards
+    assert "'Run SUCCESS'" not in cards
+    assert "'Run AMBIGUOUS_CONTACT'" not in cards
