@@ -22,12 +22,27 @@ SIDE_EFFECTS_FROM_ADDON=NONE
 The Workspace add-on authenticates to the MG Guide judge / demo view-model API
 using the **Apps Script OpenID Connect identity token** for the signed-in user.
 
+Trust chain for the dedicated competition add-on judge service:
+
+```text
+Apps Script identity token (ScriptApp.getIdentityToken)
+  -> Cloud Run IAM custom-audience validation
+  -> roles/run.invoker (controlled Workspace principal only)
+  -> application claim validation (JUDGE_ADDON_AUTH_MODE=identity_token)
+```
+
+The add-on token is a Google-signed OIDC JWT for the signed-in Workspace user.
+It is **in scope** for Cloud Run IAM when the service is configured with the
+Apps Script token `aud` as a **custom audience** and the caller holds
+`roles/run.invoker`. Application-level validation then enforces issuer,
+audience, expiry, email, and optional hosted-domain claims.
+
 This is **not**:
 
 | Mechanism | Relationship to this contract |
 | --- | --- |
-| IAP browser authentication | Distinct. NW-007 IAP gates the human browser path to Cloud Run. |
-| Cloud Run IAM invoker identity | Distinct. Service-to-service Google ID tokens with audience = service URL. |
+| IAP browser authentication | Distinct. NW-007 IAP gates the human browser path to the separate browser judge service. Not used on the dedicated add-on judge path. |
+| Generic service-to-service invoker tokens with audience = service URL | Related but not identical. Add-on tokens use the Apps Script OIDC audience (custom audience on Cloud Run), not the default service-URL audience. |
 | API key authentication | Forbidden for the add-on path. |
 | MCP authentication | Out of band; never used by CardService. |
 | OAuth access / refresh tokens | Not sent by the add-on on this path. |
@@ -115,7 +130,9 @@ BODY={"scenario":"SUCCESS"|"AMBIGUOUS_CONTACT"|"STAGE_CHANGE_DENIED"}
 ```
 
 Backend base URL is supplied via Apps Script **Script Property**
-`JUDGE_BACKEND_BASE_URL` (never committed as a private production secret).
+`JUDGE_BACKEND_BASE_URL` (private deploy only; never committed to the public repository).
+Deployed `urlFetchWhitelist` is populated with the HTTPS service prefix in the
+private Script project only; the public manifest keeps an empty whitelist.
 
 ## 7. Explicit non-goals
 
@@ -132,11 +149,16 @@ MCP_AUTH_REUSE=NO
 ```text
 AUTH_CONTRACT_DEFINED=YES
 AUTH_VALIDATOR_IMPLEMENTED=YES
-PRODUCTION_CONFIG_CHANGED=NO
-ADDON_PUSH_DEPLOYED=NO
+TEST_DEPLOYMENT_INSTALLED=YES
+LEGACY_MARKETPLACE_TOUCHED=NO
+DEDICATED_ADDON_JUDGE_SERVICE=YES
+CLOUD_RUN_CUSTOM_AUDIENCE_BOUND=YES
+APPLICATION_IDENTITY_TOKEN_MODE=YES
+PRODUCTION_IAP_BROWSER_PATH_TOUCHED=NO
 ```
 
-Live Workspace deployment of this contract onto the private Marketplace add-on
-project remains a separately governed push/deploy step. The competition
-repository holds the sanitized adapter source and the validator used by tests
-and optional `identity_token` mode.
+The competition repository holds the sanitized adapter source and the
+validator used by tests and `identity_token` mode. Private operator records
+hold the bound audience value, backend URL, and activation evidence. Public
+proof never includes raw identity tokens, audience secrets, or private
+endpoints.

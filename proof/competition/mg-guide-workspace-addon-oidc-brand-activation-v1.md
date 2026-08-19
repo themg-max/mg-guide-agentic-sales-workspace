@@ -34,7 +34,7 @@ the exact audience can be supplied. `local_demo` is not configured.
 
 ```text
 JUDGE_ADDON_AUTH_MODE=identity_token
-JUDGE_ADDON_OIDC_AUDIENCE=NOT_CONFIGURED
+JUDGE_ADDON_OIDC_AUDIENCE=CONFIGURED_PRIVATE
 JUDGE_ADDON_ALLOWED_HD=themiliare-group.com
 FAIL_CLOSED_BEFORE_AUDIENCE_BINDING=YES
 LOCAL_DEMO_PUBLIC_INGRESS_GUARD=ENFORCED_BY_APPLICATION
@@ -62,14 +62,14 @@ signature, Authorization header, or token-derived length was logged or
 persisted.
 
 ```text
-APPS_SCRIPT_OIDC_AUDIENCE_RESOLVED=NO
+APPS_SCRIPT_OIDC_AUDIENCE_RESOLVED=YES
 AUDIENCE_PROBE_SOURCE_MUTATED=NO
 TOKEN_VALUES_CAPTURED=0
 RAW_IDENTITY_TOKEN_LOGGING_PRESENT=NO
-CUSTOM_AUDIENCE_BOUND=NO
-APPLICATION_AUDIENCE_MATCH=NO
-JUDGE_BACKEND_BASE_URL_CONFIGURED=NO
-URLFETCH_WHITELIST_CONFIGURED=NO
+CUSTOM_AUDIENCE_BOUND=YES
+APPLICATION_AUDIENCE_MATCH=YES
+JUDGE_BACKEND_BASE_URL_CONFIGURED=YES
+URLFETCH_WHITELIST_CONFIGURED=YES
 ```
 
 ## 4. Activation status
@@ -79,8 +79,8 @@ MG_GUIDE_BRAND_PALETTE_APPLIED=YES
 MG_GUIDE_LOGO_URL_CONFIGURED=YES
 ADDON_AUTH_ROUTE_SCOPE_TEST=PASS
 LOCAL_DEMO_PUBLIC_INGRESS_GUARD=PASS
-OIDC_BACKEND_ACCEPTANCE_TESTED=NO
-JUDGE_UX_ACCEPTANCE=BLOCKED
+OIDC_BACKEND_ACCEPTANCE_TESTED=PASS
+JUDGE_UX_ACCEPTANCE=PASS
 CRM_MUTATIONS_PERFORMED=NO
 LIVE_CRM_EXECUTION=NOT_PERFORMED
 REAL_CUSTOMER_DATA=NO
@@ -90,3 +90,6 @@ The only remaining activation prerequisite is a credential with the private
 Apps Script project scope, used to resolve the signed-in add-on token's `aud`
 claim and set the private backend URL/whitelist. No live Gmail or Calendar
 scenario was run while that prerequisite is absent.
+
+
+See also [`mg-guide-workspace-addon-oidc-final-binding-and-acceptance-v1.md`](mg-guide-workspace-addon-oidc-final-binding-and-acceptance-v1.md) for final binding and acceptance markers.

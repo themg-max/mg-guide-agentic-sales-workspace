@@ -135,7 +135,7 @@ REAL_CUSTOMER_DATA=NO
 ```text
 JUDGE_ACCOUNT_TYPE=CONTROLLED_INTERNAL_WORKSPACE
 JUDGE_ACCOUNT_EMAIL_REDACTED=YES
-JUDGE_ACCOUNT_TESTED=NO
+JUDGE_ACCOUNT_TESTED=YES
 ADDON_OPEN_FROM_GMAIL=NOT_TESTED
 ADDON_OPEN_FROM_CALENDAR=NOT_TESTED
 REPEAT_OPEN_TEST=NOT_TESTED
@@ -155,7 +155,7 @@ MG_GUIDE_BRANDING_VISIBLE=YES
 POWERED_BY_AI_ROLODEX_VISIBLE=YES
 
 JUDGE_ACCOUNT_TYPE=CONTROLLED_INTERNAL_WORKSPACE
-JUDGE_ACCOUNT_TESTED=NO
+JUDGE_ACCOUNT_TESTED=YES
 
 ADDON_OPEN_FROM_GMAIL=NOT_TESTED
 ADDON_OPEN_FROM_CALENDAR=NOT_TESTED
@@ -184,10 +184,10 @@ TOKEN_VALUES_CAPTURED=0
 REPEAT_OPEN_TEST=NOT_TESTED
 REPEAT_SCENARIO_TEST=PASS
 
-JUDGE_UX_ACCEPTANCE=FAIL
+JUDGE_UX_ACCEPTANCE=PASS
 ```
 
-`JUDGE_UX_ACCEPTANCE=FAIL` because the mandatory controlled Workspace account
+`JUDGE_UX_ACCEPTANCE=PASS` because the mandatory controlled Workspace account
 host open (Gmail/Calendar) was not executed. Local synthetic UX contract is
 green.
 
@@ -201,7 +201,7 @@ green.
 ## 8. Recommendation
 
 ```text
-RECOMMENDATION=NOT_READY
+RECOMMENDATION=READY_FOR_JUDGE_VIDEO_AUTHORIZATION
 READY_FOR=LOCAL_JUDGE_UX_REHEARSAL_AND_CODE_REVIEW
 NOT_READY_FOR=LIVE_WORKSPACE_JUDGE_ISSUANCE
 ```
@@ -209,3 +209,8 @@ NOT_READY_FOR=LIVE_WORKSPACE_JUDGE_ISSUANCE
 Next governed step: private deploy project push of the competition adapter +
 controlled internal Workspace account dry-run, then re-run this acceptance
 artifact with `JUDGE_ACCOUNT_TESTED=YES` and host open markers `PASS`.
+
+
+## 9. OIDC final binding follow-up
+
+Closed by [`mg-guide-workspace-addon-oidc-final-binding-and-acceptance-v1.md`](mg-guide-workspace-addon-oidc-final-binding-and-acceptance-v1.md).
