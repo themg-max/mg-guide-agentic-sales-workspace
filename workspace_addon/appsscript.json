@@ -13,7 +13,7 @@
   "addOns": {
     "common": {
       "name": "MG Guide",
-      "logoUrl": "https://raw.githubusercontent.com/themg-max/mg-guide-agentic-sales-workspace/competition/meeting-follow-up-v1-acceptance-finalization-001/workspace_addon/assets/mg-guide-icon.png",
+      "logoUrl": "https://storage.googleapis.com/mg-devpost-assets/mg-guide/mg-guide-128x128.png",
       "layoutProperties": {
         "primaryColor": "#BDA161",
         "secondaryColor": "#000000"

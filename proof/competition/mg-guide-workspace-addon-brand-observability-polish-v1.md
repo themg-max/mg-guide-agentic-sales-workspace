@@ -21,6 +21,22 @@ VIDEO_AUTHORIZATION=POSTPONED
 EVIDENCE_CONTRADICTIONS=0
 ```
 
+## Continuation authority and public branding asset
+
+The separately committed continuation authority is remotely durable on PR #91.
+The verified, public competition asset is hosted independently of the feature
+branch and is used identically by `Config.gs` and `appsscript.json`.
+
+```text
+DEDICATED_ADDON_SERVICE_AUTHORITY=APPROVED
+AUTHORIZATION_REMOTE_DURABILITY=PASS
+RESCUE_ASSET_INTEGRITY=PASS
+MG_GUIDE_PUBLIC_HTTPS=PASS
+MG_GUIDE_PRIMARY_ASSET=https://storage.googleapis.com/mg-devpost-assets/mg-guide/mg-guide-128x128.png
+CONFIG_MANIFEST_LOGO_PARITY=PASS
+RAW_GITHUB_LOGO_URL_PRESENT=NO
+```
+
 ## Repository card template
 
 The competition template now uses the MG Guide square header image, retains

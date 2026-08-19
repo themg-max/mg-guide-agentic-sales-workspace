@@ -11,6 +11,10 @@ from mg_guide.workspace_addon.security import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+STABLE_LOGO_URL = (
+    "https://storage.googleapis.com/"
+    "mg-devpost-assets/mg-guide/mg-guide-128x128.png"
+)
 
 
 def test_competition_apps_script_has_no_token_logging():
@@ -46,8 +50,13 @@ def test_manifest_branding_and_scopes():
         "primaryColor": "#BDA161",
         "secondaryColor": "#000000",
     }
-    assert common["logoUrl"].startswith("https://raw.githubusercontent.com/")
-    assert common["logoUrl"].endswith("/workspace_addon/assets/mg-guide-icon.png")
+    assert common["logoUrl"] == STABLE_LOGO_URL
+    assert common["logoUrl"].startswith("https://")
+    assert "raw.githubusercontent.com" not in common["logoUrl"]
+    assert common["logoUrl"].endswith("mg-guide/mg-guide-128x128.png")
+    config = (REPO_ROOT / "workspace_addon" / "Config.gs").read_text(encoding="utf-8")
+    assert STABLE_LOGO_URL in config
+    assert "raw.githubusercontent.com" not in config
     scopes = set(manifest["oauthScopes"])
     assert "openid" in scopes
     assert "https://www.googleapis.com/auth/script.external_request" in scopes

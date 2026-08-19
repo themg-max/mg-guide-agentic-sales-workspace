@@ -27,9 +27,10 @@ Gmail / Calendar host
 
 ## Branded card hierarchy
 
-The header uses the MG Guide square image and the `Powered by AI Rolodex`
-subtitle. The homepage presents the following copy without duplicating the
-product name:
+The header uses the stable Devpost-hosted MG Guide square image
+(`https://storage.googleapis.com/mg-devpost-assets/mg-guide/mg-guide-128x128.png`)
+and the `Powered by AI Rolodex` subtitle. The homepage presents the following
+copy without duplicating the product name:
 
 - **Meeting Follow-Up** - Turn a meeting into a governed follow-up plan.
 - **Demo mode** - Synthetic data · No CRM writes.

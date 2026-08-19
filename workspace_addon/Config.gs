@@ -8,7 +8,7 @@ var MG_GUIDE_ATTRIBUTION = 'Powered by AI Rolodex';
 var MG_GUIDE_PRIMARY_CAPABILITY = 'Meeting Follow-Up';
 var MG_GUIDE_DEMO_PATH = '/demo/meeting-follow-up';
 var MG_GUIDE_LOGO_URL =
-  'https://raw.githubusercontent.com/themg-max/mg-guide-agentic-sales-workspace/competition/meeting-follow-up-v1-acceptance-finalization-001/workspace_addon/assets/mg-guide-icon.png';
+  'https://storage.googleapis.com/mg-devpost-assets/mg-guide/mg-guide-128x128.png';
 
 /**
  * @return {string} Judge backend base URL without trailing slash.
