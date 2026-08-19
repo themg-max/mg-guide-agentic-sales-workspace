@@ -134,7 +134,7 @@ remains host-agnostic with no private authenticated integration.
 | **Google ADK + Gemini 3.5 Flash** | Specialized reasoning agents (propose; never unilaterally decide) |
 | **OL3 workflow authority** | Deterministic state machine and mutation policy gate |
 | **MG MCP** | Trusted organizational context — **read-only** |
-| **GHL MCP** | Standardized external CRM tool boundary (Unit 2 offline synthetic only) |
+| **CRM transport** | Current next planning direction is a governed HighLevel REST v3 adapter; historical GHL MCP evidence is preserved, but generic GHL MCP implementation is blocked |
 | **Firestore** | Runtime / audit state (`workflow_runs/{run_id}`) — Stage B smoke proven on `mg-devpost` |
 | **MG Guide** | Salesperson Meeting Follow-Up experience (application surface) |
 | **Cloud Run** | Judge/demo service `mg-guide-agentic-sales-workspace-judge` (`us-east4`, IAP) |
@@ -142,34 +142,37 @@ remains host-agnostic with no private authenticated integration.
 Authority rule: agents propose facts and actions; deterministic policy and
 workflow state decide whether a GHL mutation is allowed.
 
-### GHL MCP integration boundary
+### CRM transport boundary
 
 ```text
 Agent
   ↓
 OL3 authorization / policy gate
   ↓
-GHL MCP client
+HighLevel REST v3 adapter (planning next; not implemented or authorized here)
   ↓
-GHL MCP server
-  ↓
-Canonical GoHighLevel location (not a test environment)
+Canonical GoHighLevel location (business-active; exact allowlisted synthetic IDs only)
 ```
 
 Read-side GHL MCP identifiers were discovered and governed in Phase 2A / NW-013.
-Live canonical-location compatibility remains **unexecuted**, mutation
-capability remains separately governed, and raw REST fallback remains
-forbidden. The canonical location is not a test environment, and any live
-canonical synthetic read is separately governed. Unit 2 does not authorize
-live GHL or any writes. This repository must **not** invent tool identifiers
-or fall back to raw GHL REST without a new architecture decision.
+That evidence remains historical and does not require GHL MCP as the future
+implementation transport. Generic GHL MCP implementation is blocked; the next
+planning lane is HighLevel REST v3 adapter architecture only. REST adapter
+implementation, REST execution, live GHL reads, and live GHL writes remain
+unauthorized. The canonical location is not a test environment, and any live
+canonical synthetic access is separately governed. This repository must **not**
+invent operation contracts or request bodies without a new architecture
+decision.
 
 ---
 
 ## Safety posture
 
 - Synthetic and fixture identities only (see [`fixtures/`](fixtures/))
-- No production CRM writes
+- No real-customer or non-allowlisted CRM mutation; any separately
+  human-authorized competition CRM mutation may target only the privately
+  allowlisted preverified synthetic records in the canonical business-active
+  location using the exact operation budget
 - No real customer or contact information
 - No secrets committed (see [`.env.example`](.env.example) and [`docs/SECURITY.md`](docs/SECURITY.md))
 - Fail-closed on ambiguous contact resolution and policy denial

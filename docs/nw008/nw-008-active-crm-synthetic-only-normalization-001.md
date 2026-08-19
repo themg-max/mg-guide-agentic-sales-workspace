@@ -253,6 +253,11 @@ execution authorization bound to the exact transport, credential, location,
 synthetic IDs, allowed stage transition, operation budget, and proof
 requirements.
 
+No real-customer or non-allowlisted CRM mutation. Competition CRM mutations,
+if separately human-authorized, may target only the privately allowlisted
+preverified synthetic records in the canonical business-active location using
+the exact operation budget.
+
 Preserved mutation envelope:
 
 ```text
@@ -307,9 +312,9 @@ Examples of historical evidence intentionally left unchanged:
 
 | File | Changes |
 | --- | --- |
-| `README.md` | `meeting_follow_up_v1` scope now states the normalized environment class and links this artifact |
-| `docs/MEETING_FOLLOW_UP_FOUNDATION.md` | Header normalization note; §4/§5 scope environment statement; §6 architecture diagram CRM node; §10 bounded synthetic-only mutation authorization; §11 discovery-against-authorized-binding phrasing; §12 mutation-policy environment clause rewritten to the canonical contract; §15 fixture intent; §16 phase-2 gate; §18 demo beat; §19 data guard; §20 DoD items 1–2; Appendix A row |
-| `docs/SECURITY.md` | Allowed-environments GHL row replaced with the canonical-location synthetic-only exact-ID posture; environment-semantics paragraph added before blast-radius section |
+| `README.md` | `meeting_follow_up_v1` scope now states the normalized environment class and links this artifact; current-facing CRM transport language points to HighLevel REST v3 planning and blocks generic GHL MCP implementation; security posture uses the exact non-allowlisted/real-customer mutation wording |
+| `docs/MEETING_FOLLOW_UP_FOUNDATION.md` | Header normalization note; §4/§5 scope environment statement; §6 architecture diagram CRM node and transport boundary; §10 bounded synthetic-only mutation authorization; §11 CRM transport contract shifted to HighLevel REST v3 architecture planning with exact-ID operations only; §12 mutation-policy environment clause rewritten to the canonical contract; §15 fixture intent; §16 phase-2 gate; §18 demo beat; §19 data guard; §20 DoD items 1–2; Appendix A row |
+| `docs/SECURITY.md` | Non-negotiable mutation wording normalized; allowed-environments GHL row replaced with the canonical-location synthetic-only exact-ID posture; environment-semantics paragraph added before blast-radius section; historical GHL MCP evidence preserved while current transport planning points to HighLevel REST v3 with no implementation/execution authorization |
 | `contracts/ghl_tool_manifest.yaml` | Header block now records the current environment class, REST-adapter boundary, and a historical note; `environment_binding_status`, `location_id`, and `location_binding_notes` annotated as HISTORICAL/superseded (Phase 2A discovery record preserved, not rewritten) |
 | `proof/nw008/nw-008-readiness-matrix.md` | Front-matter environment-semantics row added; historical "safe-environment"/"isolated" rows below preserved as the historical record |
 | `proof/nw008/nw-008-implementation-packet.md` | Environment-semantics supersession note added; historical dependency-sequence phrasing preserved |
@@ -353,6 +358,8 @@ EXPECTED_INITIAL_STAGE_VERIFIED=NO_PENDING_FRESH_PREEXECUTION_READ
 ```text
 GHL_GENERIC_MCP_IMPLEMENTATION_PATH=BLOCKED
 HIGHLEVEL_REST_ADAPTER=PLANNING_NEXT
+CRM_TRANSPORT_FUTURE=HIGHLEVEL_REST_V3
+REST_ADAPTER_IMPLEMENTATION_AUTHORIZED=NO
 REST_ADAPTER_EXECUTION_AUTHORIZED=NO
 ```
 

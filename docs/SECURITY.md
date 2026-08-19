@@ -10,7 +10,10 @@
 ## Non-negotiables
 
 1. **Synthetic data only** in fixtures, docs, demos, screenshots, and public artifacts.
-2. **No production CRM writes** — ever — for competition work in this repository.
+2. **No real-customer or non-allowlisted CRM mutation.** Competition CRM mutations,
+   if separately human-authorized, may target only the privately allowlisted
+   preverified synthetic records in the canonical business-active location using
+   the exact operation budget.
 3. **No real customer, contact, or opportunity identifiers.**
 4. **No secrets in git** — tokens, OAuth grants, service-account keys, private keys, or `.env` files with values.
 5. **No private MG infrastructure identifiers** — internal project IDs, service accounts, private endpoints, or non-public hostnames must not appear here.
@@ -37,14 +40,17 @@ a later activation-authorized phase. Do not invent them in code or docs.
 - Use [`.env.example`](../.env.example) as a **name catalog only**.
 - Real credentials must live in environment secret managers or local untracked `.env` files ignored by [`.gitignore`](../.gitignore).
 - GHL auth (OAuth or Private Integration Token) is out of scope for the foundation commit.
-- Rotation / least-privilege scoping is required before any live GHL MCP connection.
+- Rotation / least-privilege scoping is required before any live CRM transport connection.
 
 ---
 
 ## Tool & mutation blast radius
 
-GHL MCP access is part of the workflow contract. See
-[`../contracts/ghl_tool_manifest.yaml`](../contracts/ghl_tool_manifest.yaml).
+The historical GHL MCP manifest remains preserved as evidence in
+[`../contracts/ghl_tool_manifest.yaml`](../contracts/ghl_tool_manifest.yaml), but
+the generic GHL MCP implementation path is blocked. The current planning
+direction is a governed HighLevel REST v3 adapter; no REST adapter
+implementation or execution is authorized by this repository state.
 
 **Environment semantics (normalized):** the GoHighLevel target is the
 business-active canonical CRM under synthetic-only bounded execution controls.
@@ -68,8 +74,8 @@ Blocked capability classes include (non-exhaustive): contact create/delete,
 opportunity create/delete, email/SMS, calendar mutation, bulk update,
 pipeline/workflow modification, monetary-value edits, owner changes.
 
-Exact MCP tool/operation identifiers remain **UNKNOWN** until live discovery.
-Do not hard-code guessed names.
+Exact transport operation contracts remain **UNKNOWN** until a separately
+authorized architecture unit. Do not hard-code guessed names or request bodies.
 
 ---
 
