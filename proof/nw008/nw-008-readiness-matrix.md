@@ -18,6 +18,7 @@
 | Production / customer data | **Forbidden** |
 | Raw REST | **Forbidden** |
 | Consequential-action authority | Deterministic policy remains the sole authorization surface |
+| Environment semantics | **Normalized:** CRM_ENVIRONMENT_CLASS=ACTIVE_CANONICAL_BUSINESS_CRM (synthetic-only bounded controls) per [`../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](../../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md). Historical "safe-environment"/"isolated test location" phrasing below is preserved as the historical record; the normalized contract is the controlling current interpretation. `ENVIRONMENT_READY != EXECUTION_AUTHORIZED`; separate human mutation authorization required |
 
 ## Classification legend
 
@@ -53,6 +54,16 @@
 ---
 
 ## Current readiness matrix (post Tranche C merge / PR #44)
+
+> **Historical-record note (NW008_ACTIVE_CRM_SYNTHETIC_ONLY_NORMALIZATION_001):**
+> the AT rows below are preserved as their historical snapshot. Their
+> "safe-environment mutation lane" and "no isolated GHL test location"
+> phrasing reflects what was believed/required at the time and is superseded
+> for current environment semantics by the normalized contract (see
+> front-matter *Environment semantics* row): the target is the business-active
+> canonical CRM under synthetic-only bounded execution controls, and any
+> future mutation lane is a separately human-authorized synthetic-only bounded
+> execution grant — not a "safe environment" lane.
 
 | AT | Historical expected outcome | Current readiness | Current evidence | Remaining gap | Authorization dependency | Recommended next action |
 | --- | --- | --- | --- | --- | --- | --- |

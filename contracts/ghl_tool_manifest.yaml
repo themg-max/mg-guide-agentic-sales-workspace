@@ -10,14 +10,37 @@
 # - Exact identifiers below were observed via live MCP meta discovery.
 # - CRM record probes (search/fetch against real contacts/opportunities) were
 #   NOT executed because the available PIT/location binding is the canonical
-#   MG Guide location and is NOT proven to be an isolated hackathon test
-#   account (PRODUCTION CRM DATA FORBIDDEN).
+#   MG Guide location and is NOT an isolated hackathon test account
+#   (PRODUCTION CRM DATA FORBIDDEN).
 # - Do NOT implement mutation runners from this artifact alone.
+#
+# CURRENT ENVIRONMENT CLASS (NW008_ACTIVE_CRM_SYNTHETIC_ONLY_NORMALIZATION_001,
+# docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md):
+# - ACTIVE_CANONICAL_BUSINESS_CRM under synthetic-only bounded execution
+#   controls. No isolated/dedicated GHL test location exists or is required.
+# - Live access is restricted to the privately allowlisted preverified
+#   synthetic contact/opportunity via exact-ID operations only; broad search,
+#   list/pagination expansion, alternate-target discovery, and any
+#   non-allowlisted or real customer record access are forbidden.
+# - ENVIRONMENT_READY does not equal EXECUTION_AUTHORIZED. Any note create or
+#   opportunity-stage update requires a separate human-reviewed execution
+#   authorization bound to exact transport, credential, location, synthetic
+#   IDs, allowed stage transition, operation budget, and proof requirements.
+# - Generic GHL MCP implementation path is BLOCKED; a governed HighLevel REST
+#   adapter architecture is the planned next unit
+#   (REST_ADAPTER_EXECUTION_AUTHORIZED=NO).
+#
+# HISTORICAL NOTE: the Phase 2A fields below (environment:
+# hackathon_test_required, environment_binding_status, location_id,
+# location_binding_notes, compatibility_findings, phase2a_verdict) are the
+# preserved Phase 2A discovery record. They reflect what was believed/required
+# at discovery time and are superseded for current environment semantics by
+# the normalization artifact cited above.
 
 workflow: meeting_follow_up_v1
 schema_version: 2
 environment: hackathon_test_required
-environment_binding_status: UNVERIFIED
+environment_binding_status: UNVERIFIED  # HISTORICAL Phase 2A state; superseded — see header normalization note
 production_crm_writes: forbidden
 production_crm_data_reads: forbidden
 discovery_authorization_id: MG_GUIDE_PHASE2A_GHL_MCP_READ_DISCOVERY_V1
@@ -51,11 +74,16 @@ ghl_mcp:
     - "Cloudflare may block non-browser User-Agents (observed Python urllib 403 Error 1010); use a normal browser User-Agent for HTTP clients."
     - "Optional locationId header accepted on both endpoints."
     - "OAuth also supported per public LeadConnector docs; not exercised in this pass."
-  location_id: UNKNOWN_TEST_LOCATION
+  location_id: UNKNOWN_TEST_LOCATION  # HISTORICAL Phase 2A placeholder; superseded by private binding NW008_GHL_LIVE_LOCATION_PRIVATE_V2 (value never published)
   location_binding_notes: >
     A canonical MG Guide location id exists in private control configuration, but
     Phase 2A does not authorize production CRM data use. Live record probes are
     withheld until an isolated hackathon/test location + PIT are explicitly bound.
+    [HISTORICAL — Phase 2A record preserved. Superseded: the canonical
+    business-active location is privately bound (NW008_GHL_LIVE_LOCATION_PRIVATE_V2)
+    and verified under the synthetic-only live-location exception
+    (NW008_AT1_LIVE_LOCATION_EXCEPTION_001); see
+    docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md.]
 
   discovery_required_before_implementation: true
   discovery_completed_meta: true
@@ -370,5 +398,9 @@ phase2a_verdict:
   record_behavior_complete: false
   overall: PASS_WITH_BLOCKERS
   blockers:
-    - ISOLATED_HACKATHON_TEST_ACCOUNT_BINDING_REQUIRED
+    # HISTORICAL — superseded by NW008_AT1_LIVE_LOCATION_EXCEPTION_001: no
+    # isolated/dedicated test location exists or is required; the canonical
+    # business-active location is privately bound and verified under the
+    # synthetic-only exception (see header normalization note).
+    - ISOLATED_HACKATHON_TEST_ACCOUNT_BINDING_REQUIRED_SUPERSEDED_HISTORICAL
     - RECORD_LEVEL_READ_BEHAVIOR_PROBES_WITHHELD

@@ -22,7 +22,7 @@
 
 | System | Allowed target | Forbidden |
 | --- | --- | --- |
-| GoHighLevel | Isolated / test location only | Production locations |
+| GoHighLevel | Business-active canonical location, restricted to the privately allowlisted preverified synthetic contact/opportunity with exact-ID operations only (see [`nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](nw008/nw-008-active-crm-synthetic-only-normalization-001.md)) | Real customer records (search, read, or mutation); broad search; non-allowlisted records |
 | Google Cloud | Explicitly authorized sandbox/test project | Unknown or production projects |
 | MG MCP | Read-only context consumption | MG MCP writes |
 | Firestore | Audit records for workflow runs | Storing full unnecessary transcripts or PII |
@@ -45,6 +45,16 @@ a later activation-authorized phase. Do not invent them in code or docs.
 
 GHL MCP access is part of the workflow contract. See
 [`../contracts/ghl_tool_manifest.yaml`](../contracts/ghl_tool_manifest.yaml).
+
+**Environment semantics (normalized):** the GoHighLevel target is the
+business-active canonical CRM under synthetic-only bounded execution controls.
+No isolated/dedicated GHL test location exists or is required; safety derives
+from the deterministic controls and the private exact-ID allowlist, not from
+environmental isolation. Environment readiness does not authorize mutation —
+any note create or opportunity-stage update requires a separate human-reviewed
+execution authorization bound to the exact transport, credential, location,
+synthetic IDs, allowed stage transition, operation budget, and proof
+requirements.
 
 Per run (when authorized later):
 

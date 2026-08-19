@@ -102,7 +102,10 @@ MG Guide next-step brief out.
 - One workflow: `meeting_follow_up_v1`
 - Synthetic meeting transcript fixtures only
 - Unit 2 is offline synthetic only
-- No isolated GHL test location is available
+- CRM environment class: **business-active canonical CRM under synthetic-only
+  bounded execution controls** — no isolated GHL test location is available or
+  required (see
+  [`docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md))
 - At most one contact note create and at most one opportunity-stage change per run
 - Read-back verification of every mutation
 - Firestore audit record per run

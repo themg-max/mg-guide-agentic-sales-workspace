@@ -11,6 +11,17 @@ bootstrap commit that introduced this file
 with synthetic data only. This document does **not** authorize CRM writes,
 cloud provisioning, IAM changes, or secret configuration.
 
+> **Environment-semantics normalization (current authority):** the GoHighLevel
+> target is the **business-active canonical CRM under synthetic-only bounded
+> execution controls**. No isolated/dedicated GHL test location exists or is
+> required; safety derives from deterministic controls and the private exact-ID
+> allowlist, not from environmental isolation. Environment readiness does not
+> authorize mutation. See
+> [`nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](nw008/nw-008-active-crm-synthetic-only-normalization-001.md)
+> (`NW008_ACTIVE_CRM_SYNTHETIC_ONLY_NORMALIZATION_001`) — the controlling
+> superseding interpretation wherever earlier sections of this document retain
+> historical isolated/test-account phrasing.
+
 > **Sanitization:** Private/internal repository paths, lane identifiers, private
 > endpoints, project IDs, service accounts, and non-public hostnames have been
 > removed or replaced with `UNKNOWN` / generic labels for public release.
@@ -87,7 +98,8 @@ Concretely:
 1. `meeting_follow_up_v1` workflow and state machine (§9).
 2. Four ADK agents (§7) with Gemini extraction/evaluation.
 3. GHL MCP integration as the CRM boundary (§11).
-4. GHL test-account write policy and mutation allowlist (§12).
+4. Synthetic-only bounded GHL write policy and mutation allowlist on the
+   business-active canonical CRM (§12).
 5. Firestore run-audit schema and records (§13).
 6. MG Guide Meeting Follow-Up card UI (§14).
 7. Google Cloud deployment of the slice (planned Cloud Run; not provisioned here).
@@ -101,7 +113,11 @@ Concretely:
 
 - One workflow: `meeting_follow_up_v1`.
 - Input: one synthetic meeting transcript (fixture, §15).
-- CRM environment: **isolated/test GHL location/account only**.
+- CRM environment: **business-active canonical CRM under synthetic-only
+  bounded execution controls** — private exact-ID allowlist, preverified
+  synthetic contact/opportunity only; no isolated/dedicated GHL test location
+  exists or is required (see
+  [`nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](nw008/nw-008-active-crm-synthetic-only-normalization-001.md)).
 - Mutations per run: at most **one** contact note create and at most **one**
   opportunity-stage change (single predefined transition, §12).
 - Read-back verification of every mutation.
@@ -194,7 +210,9 @@ Agent → GHL REST API           Agent
                                 ↓
                                GHL MCP Server
                                 ↓
-                               GoHighLevel Test CRM
+                               GoHighLevel Canonical CRM
+                               (business-active; synthetic-only
+                               bounded controls)
 ```
 
 Roles:
@@ -421,7 +439,11 @@ Invariants:
   separate governed authority without exposing private infrastructure.
 - Existing governance treats GHL/CRM mutation as blocked unless separately
   authorized. The competition implementation requires its **own bounded
-  test-account GHL mutation authorization** before write phases (§12, §16).
+  synthetic-only GHL mutation authorization** against the privately bound
+  canonical location before write phases (§12, §16) — a separate human-reviewed
+  execution authorization bound to exact transport, credential, location,
+  synthetic IDs, allowed stage transition, operation budget, and proof
+  requirements.
 
 ---
 
@@ -434,10 +456,10 @@ Invariants:
 - No live GHL MCP server is connected to this repository bootstrap.
 - **No live tool-schema inventory is claimed here.**
 - All authorized tool names, input schemas, output schemas, and error behaviors
-  remain `UNKNOWN` until discovery against an authorized test account.
+  remain `UNKNOWN` until governed discovery against the authorized CRM binding.
 
 **Documentation-derived candidate inventory (public HighLevel MCP docs only —
-candidate evidence, NOT verified against an authorized test account):**
+candidate evidence, NOT verified against the authorized CRM binding):**
 
 Public docs describe a unified v2-style toolset that may include conceptual
 operations such as search/fetch/describe/execute patterns for contacts and
@@ -446,8 +468,9 @@ identifiers in this repository.
 
 ### 11.2 Required capability inventory (implementation preflight)
 
-Each row must be verified via live discovery against the **authorized test
-account** before any implementation. Do not code against placeholder names.
+Each row must be verified via governed live discovery against the **authorized
+CRM binding** (business-active canonical CRM under synthetic-only bounded
+controls) before any implementation. Do not code against placeholder names.
 
 | Required capability | Exact tool/operation | Input schema | Output schema | Auth/scopes | Write semantics | Error behavior | Idempotency |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -473,8 +496,16 @@ implementation.
 
 ## 12. GHL mutation policy
 
-- Environment: isolated/test GHL location/account only. **No production CRM
-  writes.**
+- Environment: the target CRM is the **business-active canonical GoHighLevel
+  environment** under synthetic-only bounded execution controls. Competition
+  live proof is restricted to privately allowlisted synthetic records and
+  exact-ID operations. **No real customer record may be searched, read, or
+  mutated.** Environment readiness does not authorize mutation. Any note
+  creation or opportunity-stage update requires a separate human-reviewed
+  execution authorization bound to the exact transport, credential, location,
+  synthetic IDs, allowed stage transition, operation budget, and proof
+  requirements. No broad search, no list/pagination expansion, no
+  alternate-target discovery, no automatic retry, no compensating mutation.
 - Allowlist per run: max **one** `note_create`, max **one**
   `opportunity_stage_update`.
 - Stage mutation is restricted to **one predefined transition** for the demo
@@ -596,7 +627,8 @@ fixtures/
 Fixture requirements:
 
 - Synthetic participant identities (e.g., "Taylor Morgan") with fixture-only
-  emails/phones intended for an isolated test GHL location.
+  emails/phones corresponding to the preverified synthetic records on the
+  canonical location (private exact-ID allowlist; IDs never published).
 - Each fixture maps to exactly one expected `final_disposition` and expected
   reason codes.
 - Fixture IDs are recorded in the Firestore audit record (§13).
@@ -625,7 +657,7 @@ GHL_WRITE_NOT_VERIFIED
 | --- | --- | --- |
 | 0 | Competition contract: baseline vs. new-work charter | This public foundation |
 | 1 | Packet schema, deterministic state machine, transition rules, error codes, fixtures | Schema tests pass; no AI, no GHL |
-| 2 | **GHL MCP contract discovery** (§11.2) against the test account | All UNKNOWN rows resolved or STOP |
+| 2 | **GHL tool contract discovery** (§11.2) against the authorized CRM binding | All UNKNOWN rows resolved or STOP |
 | 3 | Read-only vertical slice: transcript → extraction → GHL MCP resolution → proposed note/stage → Firestore → MG Guide | End-to-end read-only proof, zero mutations |
 | 4 | Note mutation only (one write + read-back verification) | Bounded mutation authorization granted |
 | 5 | Stage mutation (single predefined transition + read-back verification) | Same authorization; transition matrix enforced |
@@ -657,7 +689,7 @@ GHL_WRITE_NOT_VERIFIED
 | 0:00–0:25 | Friction | Salesperson finishes a meeting and must interpret notes, find the CRM record, write a useful summary, decide the next pipeline state, remember the next action |
 | 0:25–0:45 | Trigger | Drop in a synthetic transcript; show `Meeting Follow-Up — RUNNING` |
 | 0:45–1:30 | Multi-agent work | Transcript Agent ✓ · CRM Resolution ✓ (GHL MCP) · Policy Evaluator ✓ · CRM Action running — Gemini/ADK genuinely doing the work |
-| 1:30–2:15 | Actual action | Test GoHighLevel CRM before (no note, stage = Discovery Scheduled) / after (structured note added, stage = Discovery Complete) |
+| 1:30–2:15 | Actual action | Synthetic records on the canonical GoHighLevel CRM before (no note, stage = Discovery Scheduled) / after (structured note added, stage = Discovery Complete), under a separately authorized synthetic-only bounded execution grant |
 | 2:15–2:45 | Governance proof | Firestore audit + MG Guide next-step brief |
 | 2:45–3:20 | Failure proof | Ambiguous fixture: two candidates → `AMBIGUOUS_CONTACT`, `CRM writes: 0` |
 | 3:20–3:45 | Architecture | MG Guide → OL3 → ADK+Gemini → MG MCP (context) + GHL MCP (CRM actions) → Firestore (proof) |
@@ -669,9 +701,12 @@ GHL_WRITE_NOT_VERIFIED
 
 See [`SECURITY.md`](SECURITY.md).
 
-- **Data guard:** synthetic transcripts and an isolated/test GHL
-  location/account only. No production CRM writes. No real customer/CRM data
-  in competition artifacts, fixtures, or public material.
+- **Data guard:** synthetic transcripts, and CRM access limited to the
+  business-active canonical CRM under synthetic-only bounded execution
+  controls (private exact-ID allowlist; preverified synthetic
+  contact/opportunity only). No real customer record search, read, or
+  mutation. No real customer/CRM data in competition artifacts, fixtures, or
+  public material.
 - **Least privilege:** explicit tool allowlists; blocked tools enumerated.
 - **Prompt-injection posture:** retrieved data and transcript content are
   treated as **data, not instructions**.
@@ -688,10 +723,10 @@ See [`SECURITY.md`](SECURITY.md).
 `meeting_follow_up_v1` is DONE for the competition when all of the following
 hold:
 
-1. §11.2 capability inventory fully resolved against the authorized test
-   account (no `UNKNOWN` rows) — or an explicit governed STOP decision exists.
-2. Bounded test-account GHL mutation authorization recorded before any write
-   phase.
+1. §11.2 capability inventory fully resolved against the authorized CRM
+   binding (no `UNKNOWN` rows) — or an explicit governed STOP decision exists.
+2. Bounded synthetic-only GHL mutation authorization against the canonical
+   location recorded before any write phase.
 3. All acceptance tests AT-1 … AT-10 pass with recorded evidence.
 4. The three fixtures (§15) each produce their expected disposition
    end-to-end in the deployed environment.
@@ -713,7 +748,7 @@ hold:
 | GHL MCP server connected to this public foundation repo | Absent at bootstrap |
 | Live GHL/HighLevel tool schema inventory | Not captured — UNKNOWN |
 | Public HighLevel MCP documentation | Consulted as candidate evidence only |
-| Mutation tools verified against authorized test account | NOT VERIFIED — UNKNOWN |
+| Mutation tools verified against the authorized CRM binding | NOT VERIFIED — UNKNOWN |
 | Private MG infrastructure details | Intentionally omitted from public artifact |
 
 ---

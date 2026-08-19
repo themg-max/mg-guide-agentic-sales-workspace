@@ -144,7 +144,9 @@ Acceptance packet:
 
 - Human-recorded 4-minute demo video from the script
 - Optional IAP-authenticated hosted walkthrough
-- Future separately authorized safe-environment CRM mutation lane (out of scope
+- Future separately human-authorized CRM mutation lane against the
+  business-active canonical CRM under synthetic-only bounded execution
+  controls (private exact-ID allowlist; no real customer records; out of scope
   for this packet)
 
 ## Team / repo

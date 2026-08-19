@@ -105,6 +105,12 @@ RAW_REST=FORBIDDEN
 DETERMINISTIC_POLICY=SOLE_CONSEQUENTIAL_ACTION_AUTHORIZATION_SURFACE
 ```
 
+> **Environment-semantics note (current authority):** the GoHighLevel target
+> is the business-active canonical CRM under synthetic-only bounded execution
+> controls; historical "safe-environment" lane phrasing in this packet is
+> preserved as the historical record and superseded by
+> [`../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](../../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md).
+
 ## Bounded dependency sequence (unchanged)
 
 ```text
