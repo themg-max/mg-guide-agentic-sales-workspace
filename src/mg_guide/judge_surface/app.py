@@ -31,6 +31,11 @@ from .scenarios import (
     scenario_names,
 )
 
+from mg_guide.workspace_addon.auth_contract import (
+    AuthError,
+    validate_authorization_header,
+)
+
 
 # pylint: disable=invalid-name
 JSONType = Dict[str, Any]
@@ -66,11 +71,26 @@ class JudgeSurfaceApp:
     def _handle(self, environ: WSGIEnv) -> JSONType:
         method = environ.get("REQUEST_METHOD", "GET")
         path = environ.get("PATH_INFO", "/")
+        # Optional add-on OIDC gate (default off — preserves IAP/local stub).
+        self._enforce_addon_auth(environ)
         if method == "GET" and path in ("/health", "/healthz"):
             return self._health()
         if method == "POST" and path == "/demo/meeting-follow-up":
             return self._demo(environ)
         raise _JSONError("404 Not Found", {"error": "not_found", "path": path})
+
+    @staticmethod
+    def _enforce_addon_auth(environ: WSGIEnv) -> None:
+        headers = {
+            "Authorization": str(environ.get("HTTP_AUTHORIZATION") or ""),
+            "X-MG-Guide-Demo-Auth": str(
+                environ.get("HTTP_X_MG_GUIDE_DEMO_AUTH") or ""
+            ),
+        }
+        try:
+            validate_authorization_header(headers)
+        except AuthError as exc:
+            raise _JSONError("401 Unauthorized", exc.as_body()) from exc
 
     def _health(self) -> JSONType:
         mode = self._require_judge_mode()
