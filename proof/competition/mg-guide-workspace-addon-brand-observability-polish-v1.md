@@ -88,16 +88,20 @@ STRUCTURED_JUDGE_LOGGING=PASS
 
 ## Controlled remote operation status
 
-This session's controlled credential received HTTP 403 when attempting the
-read-only Drive metadata lookup required to obtain the private competition
-Script project for `projects.getContent`. No Script project, deployment,
-Marketplace add-on, or Workspace account was modified.
+The existing controlled human identity was reauthorized with the required
+Drive and Apps Script project scopes. The controlled competition Script project
+was identified by its MG Guide manifest (without recording its identifier),
+then hydrated with the five authorized adapter files. A post-write content
+comparison confirmed repository parity and the stable Devpost logo URL. The
+legacy Marketplace project was not read or modified.
 
 ```text
-REMOTE_APPS_SCRIPT_ACCESS=DENIED
-REMOTE_MANIFEST_REPO_PARITY=NOT_VERIFIED
-REMOTE_CARDS_REPO_PARITY=NOT_VERIFIED
-REMOTE_SOURCE_HYDRATION=NOT_PERFORMED
+REMOTE_APPS_SCRIPT_ACCESS=PASS
+REMOTE_MANIFEST_REPO_PARITY=PASS
+REMOTE_CARDS_REPO_PARITY=PASS
+REMOTE_CONFIG_REPO_PARITY=PASS
+REMOTE_SOURCE_HYDRATION=PASS
+REMOTE_LOGO_URL_VERIFIED=PASS
 TEST_DEPLOYMENT_REINSTALL=NOT_PERFORMED
 GMAIL_BRANDED_HOST_ACCEPTANCE=NOT_PERFORMED
 CALENDAR_BRANDED_HOST_ACCEPTANCE=NOT_PERFORMED
