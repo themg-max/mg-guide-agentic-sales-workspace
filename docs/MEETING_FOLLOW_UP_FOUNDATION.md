@@ -128,7 +128,14 @@ Concretely:
 
 ### Non-scope (blocked for the competition period)
 
-- Production CRM writes of any kind.
+- Real-customer and non-allowlisted CRM mutation is forbidden. Bounded CRM
+  mutation against the privately allowlisted preverified synthetic records may
+  occur only under a separate human-reviewed execution authorization bound to
+  exact transport, credential, private IDs, allowed transition, operation
+  budget, and proof requirements. This artifact does **not** authorize such
+  execution now (`LIVE_CRM_MUTATION_AUTHORIZED=NO`;
+  `SEPARATE_HUMAN_MUTATION_AUTHORIZATION_REQUIRED=YES`;
+  `REAL_CUSTOMER_RECORD_MUTATION_AUTHORIZED=NO`).
 - Real customer/CRM data in fixtures, demos, or public artifacts.
 - Email/SMS sending; calendar mutation.
 - Contact creation or deletion; opportunity creation or deletion.
@@ -251,7 +258,9 @@ Maximum **four** agents.
 - Input: normalized participant identifiers.
 - Tools: exact-ID CRM read operations only, through a separately governed
   transport contract.
-- Resolution ladder (strict order):
+- **Offline synthetic fixture behavior only** — the email / phone /
+  safe-normalized matching ladder below applies to offline fixture resolution
+  in the synthetic harness. It is **not** a live CRM search contract.
 
 ```text
 email exact match
@@ -263,6 +272,9 @@ safe normalized match
 ambiguous / not-found
 ```
 
+- **Future live canonical CRM access:** preverified private exact IDs only.
+  No search. No list. No pagination. No alternate target. Binding mismatch
+  ⇒ fail closed (zero writes).
 - Critical rule: the LLM must never simply "pick the closest contact."
   Ambiguous match ⇒ `AMBIGUOUS_CONTACT` (fail closed, zero writes).
 
@@ -491,15 +503,27 @@ names, generic search/list/pagination, or arbitrary provider request bodies.
 | GET exact opportunity for readback | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | n/a (readback) | UNKNOWN | UNKNOWN |
 | Mutation read-back / verification | UNKNOWN | UNKNOWN | UNKNOWN | UNKNOWN | n/a (read) | UNKNOWN | UNKNOWN |
 
-**Hard stop:** if note-create or opportunity-stage-update does not exist in
-the authorized MCP server, STOP. Do not silently switch to raw GHL APIs — that
-substitution requires a new architecture decision through governance.
+**Hard stop:** if the next architecture unit cannot authoritatively resolve
+the exact HighLevel REST operations, schemas, required fields/scopes, error
+behavior, and read-back verification contract, STOP. Do not invent operation
+names, broad search/list behavior, alternate-target discovery, or arbitrary
+provider request bodies.
 
-### 11.3 Workflow tool manifest (contract template)
+### 11.3 Workflow tool manifest (historical evidence — not REST authority)
 
-See [`../contracts/ghl_tool_manifest.yaml`](../contracts/ghl_tool_manifest.yaml).
-Placeholder logical names MUST be replaced with discovered names before
-implementation.
+[`../contracts/ghl_tool_manifest.yaml`](../contracts/ghl_tool_manifest.yaml):
+
+```text
+contracts/ghl_tool_manifest.yaml
+  = historical Phase 2A MCP discovery evidence
+  = not the planned REST implementation contract
+  = no REST execution authority
+```
+
+Do not treat that manifest as the HighLevel REST adapter contract, as current
+transport authority, or as mutation authorization. Placeholder logical names
+and historical MCP identifiers remain discovery evidence only until a separate
+architecture unit resolves the exact REST operations and schemas.
 
 ---
 
@@ -764,7 +788,12 @@ hold:
 
 ## Appendix B — Blocked actions (competition period)
 
-- Production CRM writes
+- Real-customer and non-allowlisted CRM mutation (forbidden). Bounded CRM
+  mutation against privately allowlisted preverified synthetic records requires
+  a separate human-reviewed execution authorization
+  (`LIVE_CRM_MUTATION_AUTHORIZED=NO`;
+  `SEPARATE_HUMAN_MUTATION_AUTHORIZATION_REQUIRED=YES`;
+  `REAL_CUSTOMER_RECORD_MUTATION_AUTHORIZED=NO`)
 - Real customer data
 - Email/SMS
 - Calendar mutation

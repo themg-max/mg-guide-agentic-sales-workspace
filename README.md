@@ -113,7 +113,14 @@ MG Guide next-step brief out.
 
 **Out of scope (blocked)**
 
-- Production CRM writes of any kind
+- Real-customer and non-allowlisted CRM mutation (forbidden). Bounded CRM
+  mutation against the privately allowlisted preverified synthetic records may
+  occur only under a separate human-reviewed execution authorization bound to
+  exact transport, credential, private IDs, allowed transition, operation
+  budget, and proof requirements. This repository does **not** authorize such
+  execution now (`LIVE_CRM_MUTATION_AUTHORIZED=NO`;
+  `SEPARATE_HUMAN_MUTATION_AUTHORIZATION_REQUIRED=YES`;
+  `REAL_CUSTOMER_RECORD_MUTATION_AUTHORIZED=NO`)
 - Real customer / CRM data
 - Email / SMS / calendar mutation
 - Contact or opportunity create/delete
@@ -307,10 +314,10 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | MG Guide Meeting Follow-Up card (NW-006) | **MERGED_COMPLETE** — PR #15; final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627`; exact-head CI **31630399411** SUCCESS; merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; merged `2026-08-12T19:12:33Z`; closeout [`proof/nw006/nw-006-merge-closeout.md`](proof/nw006/nw-006-merge-closeout.md); no mutation controls; zero external effects; no private host wiring |
 | Competition acceptance (`meeting_follow_up_v1`) | **Packet complete on branch** — see [`proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md`](proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md); SUCCESS + FAIL-CLOSED proven; Gemini/ADK/Cloud Run/Firestore markers PASS |
 | Acceptance tests AT-1…AT-10 historical matrix (NW-008) | Readiness docs remain under [`proof/nw008/`](proof/nw008/); do not mark every historical AT complete from card tests alone |
-| Live GHL / CRM writes | Forbidden under current grants |
+| Live GHL / CRM writes | Forbidden under current grants (`LIVE_CRM_MUTATION_AUTHORIZED=NO`) |
 | Firestore audit writer (NW-005) | Stage A merged; Stage B smoke **PASS** on `mg-devpost` / `devpost-google-contest` |
 | Cloud Run deployment (NW-007) | Judge service **Ready** on `mg-devpost` `us-east4` (IAP-gated) |
-| Production CRM writes | Forbidden |
+| Real-customer / non-allowlisted CRM mutation | Forbidden; allowlisted synthetic-only mutation requires separate human execution authorization |
 | Unauthorized external effects (demo/harness paths) | **0** |
 
 **Closeout state:** Competition acceptance finalization proves the

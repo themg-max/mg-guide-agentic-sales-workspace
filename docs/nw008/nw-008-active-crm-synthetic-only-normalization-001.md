@@ -312,8 +312,8 @@ Examples of historical evidence intentionally left unchanged:
 
 | File | Changes |
 | --- | --- |
-| `README.md` | `meeting_follow_up_v1` scope now states the normalized environment class and links this artifact; current-facing CRM transport language points to HighLevel REST v3 planning and blocks generic GHL MCP implementation; security posture uses the exact non-allowlisted/real-customer mutation wording |
-| `docs/MEETING_FOLLOW_UP_FOUNDATION.md` | Header normalization note; §4/§5 scope environment statement; §6 architecture diagram CRM node and transport boundary; §10 bounded synthetic-only mutation authorization; §11 CRM transport contract shifted to HighLevel REST v3 architecture planning with exact-ID operations only; §12 mutation-policy environment clause rewritten to the canonical contract; §15 fixture intent; §16 phase-2 gate; §18 demo beat; §19 data guard; §20 DoD items 1–2; Appendix A row |
+| `README.md` | `meeting_follow_up_v1` scope now states the normalized environment class and links this artifact; current-facing CRM transport language points to HighLevel REST v3 planning and blocks generic GHL MCP implementation; security posture uses the exact non-allowlisted/real-customer mutation wording; PR #92 repair removes current-facing blanket "Production CRM writes of any kind" in favor of real-customer/non-allowlisted forbidden + separate human synthetic-only authorization markers |
+| `docs/MEETING_FOLLOW_UP_FOUNDATION.md` | Header normalization note; §4/§5 scope environment statement; §6 architecture diagram CRM node and transport boundary; §7 CRM Resolution Agent offline ladder vs live exact-ID only; §10 bounded synthetic-only mutation authorization; §11 CRM transport hard stop shifted from MCP-server existence to authoritative HighLevel REST contract resolution, with `ghl_tool_manifest.yaml` labeled historical Phase 2A MCP evidence only; §12 mutation-policy environment clause rewritten to the canonical contract; §15 fixture intent; §16 phase-2 gate; §18 demo beat; §19 data guard; §20 DoD items 1–2; Appendix A/B rows |
 | `docs/SECURITY.md` | Non-negotiable mutation wording normalized; allowed-environments GHL row replaced with the canonical-location synthetic-only exact-ID posture; environment-semantics paragraph added before blast-radius section; historical GHL MCP evidence preserved while current transport planning points to HighLevel REST v3 with no implementation/execution authorization |
 | `contracts/ghl_tool_manifest.yaml` | Header block now records the current environment class, REST-adapter boundary, and a historical note; `environment_binding_status`, `location_id`, and `location_binding_notes` annotated as HISTORICAL/superseded (Phase 2A discovery record preserved, not rewritten) |
 | `proof/nw008/nw-008-readiness-matrix.md` | Front-matter environment-semantics row added; historical "safe-environment"/"isolated" rows below preserved as the historical record |
@@ -410,6 +410,54 @@ Remaining matches for legacy phrases after normalization exist only in
 classified-historical or fixture/harness files (§10) or as explicitly labeled
 HISTORICAL Phase 2A fields inside `contracts/ghl_tool_manifest.yaml`.
 
+### PR #92 governance-review repair reconciliation
+
+The initial PR #92 review found **two missed stale-current patterns** that
+conflicted with the normalized synthetic-only exception and the blocked generic
+MCP implementation path:
+
+1. Current-facing blanket **"Production CRM writes of any kind"** (and near
+   equivalents) in `README.md` and `docs/MEETING_FOLLOW_UP_FOUNDATION.md`.
+2. Current-facing **MCP-only implementation hard stop** ("authorized MCP
+   server") in foundation §11, which improperly framed MCP as the required
+   future transport.
+
+This repair expanded the semantic scan. Expanded current-facing probes (must
+not appear as present-truth authority outside historical/labeled evidence):
+
+```text
+"Production CRM writes of any kind"
+"authorized MCP server"
+"future implementation transport is GHL MCP"
+"GHL MCP required future"
+"isolated/test GHL required"
+"broad CRM search allowed"
+"environment readiness equals mutation authority"
+"raw REST already authorized"
+"REST_ADAPTER_EXECUTION_AUTHORIZED=YES"
+"LIVE_CRM_MUTATION_AUTHORIZED=YES"
+```
+
+```text
+PR92_REPAIR_UNIT=PR92_NORMALIZATION_REVIEW_REPAIR_001
+PR92_REPAIR_SCOPE=BOUNDED_DOCUMENTATION_REPAIR
+EXPANDED_SEMANTIC_SCAN=YES
+CURRENT_AUTHORITY_STALE_REMAINING=0
+CURRENT_FACING_STALE_REMAINING=0
+HISTORICAL_VALID_PRESERVED=YES
+SECRET_PRIVATE_ID_FINDINGS=0
+
+GHL_GENERIC_MCP_IMPLEMENTATION_PATH=BLOCKED
+HIGHLEVEL_REST_ADAPTER=PLANNING_NEXT
+REST_ADAPTER_IMPLEMENTATION_AUTHORIZED=NO
+REST_ADAPTER_EXECUTION_AUTHORIZED=NO
+LIVE_CRM_MUTATION_AUTHORIZED=NO
+SEPARATE_HUMAN_MUTATION_AUTHORIZATION_REQUIRED=YES
+REAL_CUSTOMER_RECORD_MUTATION_AUTHORIZED=NO
+```
+
+Historical/labeled evidence may remain and was not rewritten.
+
 ## Explicit non-actions
 
 ```text
@@ -432,6 +480,13 @@ CRM_WRITES=0
 IAM_CHANGES=0
 SECRET_CHANGES=0
 DEPLOYMENT_CHANGES=0
+
+GHL_GENERIC_MCP_IMPLEMENTATION_PATH=BLOCKED
+HIGHLEVEL_REST_ADAPTER=PLANNING_NEXT
+REST_ADAPTER_IMPLEMENTATION_AUTHORIZED=NO
+REST_ADAPTER_EXECUTION_AUTHORIZED=NO
+LIVE_CRM_MUTATION_AUTHORIZED=NO
+SEPARATE_HUMAN_MUTATION_AUTHORIZATION_REQUIRED=YES
 
 STOP_CODE=NW008_ACTIVE_CRM_SYNTHETIC_ONLY_NORMALIZATION_001_READY_FOR_HUMAN_REVIEW
 ```
