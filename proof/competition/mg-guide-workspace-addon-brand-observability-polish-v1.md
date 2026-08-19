@@ -110,15 +110,26 @@ No raw token, Authorization header, email, subject claim, audience, complete
 JWT payload, Script ID, deployment ID, OAuth client ID, or endpoint value was
 captured in this artifact.
 
-## Runtime publication blocker
+## Runtime publication
 
-The fixed source was committed on the feature branch. Cloud Build submission for
-the dedicated judge image failed before image creation because the project
-Compute service account lacks `storage.objects.get` for Cloud Build's staged
-source object. No Cloud Run revision was created or changed.
+The exact PR source was built by the governed dedicated build identity with
+Cloud Logging-only output. Its staged source bucket grants only the conditional
+bucket-scoped `roles/storage.objectViewer` B3 binding to that identity; the
+default Compute service account was not expanded. The resulting immutable image
+was deployed to the existing dedicated add-on judge service, which now uses the
+dedicated runtime identity with a maximum of one instance. Its existing custom
+audience and non-public invoker boundary were preserved.
 
 ```text
-CLOUD_BUILD_IMAGE_PUBLICATION=BLOCKED
-CLOUD_BUILD_BLOCKER=COMPUTE_SERVICE_ACCOUNT_STORAGE_OBJECTS_GET_DENIED
-CLOUD_RUN_FINAL_REVISION=NOT_DEPLOYED
+CLOUD_BUILD_IDENTITY_RECONCILED=PASS
+DEFAULT_COMPUTE_SA_PERMISSION_EXPANSION=NO
+B3_SOURCE_BUCKET_REQUIRED=YES
+B3_BUCKET_SCOPED=YES
+BROAD_STORAGE_ROLE_GRANTED=NO
+CLOUD_BUILD_IMAGE_PUBLICATION=PASS
+CLOUD_RUN_FINAL_REVISION_DEPLOYED=YES
+CLOUD_RUN_FINAL_RUNTIME_IDENTITY=DEDICATED
+CLOUD_RUN_FINAL_MAX_INSTANCES=1
+CUSTOM_AUDIENCE_PRESERVED=YES
+PUBLIC_INVOKER_BINDINGS=0
 ```
