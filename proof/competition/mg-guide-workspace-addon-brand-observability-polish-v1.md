@@ -16,7 +16,7 @@ REAL_CUSTOMER_DATA=NO
 ```text
 OIDC_BACKEND_ACCEPTANCE=PASS
 HOST_SHELL_ACCEPTANCE=PASS
-BRANDED_HOST_UX_ACCEPTANCE=IN_PROGRESS
+BRANDED_HOST_UX_ACCEPTANCE=PASS
 VIDEO_AUTHORIZATION=POSTPONED
 EVIDENCE_CONTRADICTIONS=0
 ```
@@ -103,8 +103,10 @@ REMOTE_CONFIG_REPO_PARITY=PASS
 REMOTE_SOURCE_HYDRATION=PASS
 REMOTE_LOGO_URL_VERIFIED=PASS
 TEST_DEPLOYMENT_REINSTALL=NOT_PERFORMED
-GMAIL_BRANDED_HOST_ACCEPTANCE=NOT_PERFORMED
-CALENDAR_BRANDED_HOST_ACCEPTANCE=NOT_PERFORMED
+GMAIL_BRANDED_HOST_ACCEPTANCE=PASS
+GMAIL_REOPEN_ACCEPTANCE=PASS
+CALENDAR_BRANDED_HOST_ACCEPTANCE=PASS
+CALENDAR_REOPEN_ACCEPTANCE=PASS
 POST_FIX_REPEAT_SUCCESS=PASS
 POST_FIX_REPEAT_AMBIGUOUS=PASS
 POST_FIX_5XX_COUNT=0
@@ -201,4 +203,46 @@ CLOUD_RUN_FINAL_RUNTIME_IDENTITY=DEDICATED
 CLOUD_RUN_FINAL_MAX_INSTANCES=1
 CUSTOM_AUDIENCE_PRESERVED=YES
 PUBLIC_INVOKER_BINDINGS=0
+```
+
+## Branded host UX acceptance (Gmail + Calendar)
+
+After soak completion, the competition Apps Script project was re-checked against
+the five authorized repository adapter files and the stable Devpost logo URL
+(private deploy whitelist preserved). Controlled evaluator host acceptance was
+then performed in Gmail and Calendar against the existing competition add-on
+install only. No legacy Marketplace mutation, real customer data, CRM write, new
+service account, invoker expansion, or Cloud Run redeploy was performed for this
+acceptance.
+
+In both hosts the MG Guide branded card rendered with product title, attribution
+subtitle, and scenario selectors. SUCCESS produced Outcome "Follow-up plan
+prepared", six-stage summary ending completed, Integrity
+`UX_STATE=COMPLETED · external_effects=0 · LIVE_CRM_EXECUTION=NOT_PERFORMED ·
+CRM_MUTATIONS_PERFORMED=NO`. AMBIGUOUS_CONTACT produced Outcome "Needs review
+before any follow-up can proceed", Policy Notes/Stage change `not_attempted`,
+reason `AMBIGUOUS_CONTACT`, workflow blocked, and Integrity
+`UX_STATE=NEEDS_REVIEW · external_effects=0 · LIVE_CRM_EXECUTION=NOT_PERFORMED ·
+CRM_MUTATIONS_PERFORMED=NO`. Closing and reopening the add-on restored the
+branded home card with scenario selectors in both hosts.
+
+```text
+BRANDED_HOST_UX_ACCEPTANCE=PASS
+GMAIL_BRANDED_HOST_ACCEPTANCE=PASS
+GMAIL_REOPEN_ACCEPTANCE=PASS
+CALENDAR_BRANDED_HOST_ACCEPTANCE=PASS
+CALENDAR_REOPEN_ACCEPTANCE=PASS
+SUCCESS_UX_STATE=COMPLETED
+SUCCESS_EXTERNAL_EFFECTS=0
+AMBIGUOUS_UX_STATE=NEEDS_REVIEW
+AMBIGUOUS_NOTE_WRITE=not_attempted
+AMBIGUOUS_STAGE_WRITE=not_attempted
+AMBIGUOUS_EXTERNAL_EFFECTS=0
+LIVE_CRM_EXECUTION=NOT_PERFORMED
+CRM_MUTATIONS_PERFORMED=NO
+REAL_CUSTOMER_DATA=NO
+LEGACY_MARKETPLACE_TOUCHED=NO
+EVIDENCE_CONTRADICTIONS=0
+TOKEN_VALUES_CAPTURED=0
+RAW_IDENTITY_TOKEN_LOGGING_PRESENT=NO
 ```
