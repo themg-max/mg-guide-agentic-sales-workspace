@@ -24,6 +24,8 @@ or CRM mutation logic.
 
 - Title: **MG Guide**
 - Attribution: **Powered by AI Rolodex**
+- Palette: primary `#BDA161`; secondary `#000000`
+- Icon: committed PNG derivative at `workspace_addon/assets/mg-guide-icon.png`
 
 ## Judge scenarios
 

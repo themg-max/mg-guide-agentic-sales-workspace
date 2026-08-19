@@ -41,6 +41,13 @@ def test_manifest_branding_and_scopes():
         (REPO_ROOT / "workspace_addon" / "appsscript.json").read_text(encoding="utf-8")
     )
     assert manifest["addOns"]["common"]["name"] == "MG Guide"
+    common = manifest["addOns"]["common"]
+    assert common["layoutProperties"] == {
+        "primaryColor": "#BDA161",
+        "secondaryColor": "#000000",
+    }
+    assert common["logoUrl"].startswith("https://raw.githubusercontent.com/")
+    assert common["logoUrl"].endswith("/workspace_addon/assets/mg-guide-icon.png")
     scopes = set(manifest["oauthScopes"])
     assert "openid" in scopes
     assert "https://www.googleapis.com/auth/script.external_request" in scopes
@@ -50,3 +57,24 @@ def test_manifest_branding_and_scopes():
     for forbidden in scopes:
         assert "admin.directory" not in forbidden
         assert forbidden != "https://www.googleapis.com/auth/drive"
+
+
+def test_cardservice_template_keeps_judge_hierarchy_visible():
+    cards = (REPO_ROOT / "workspace_addon" / "Cards.gs").read_text(encoding="utf-8")
+    required = (
+        "MG_GUIDE_PRODUCT_NAME",
+        "MG_GUIDE_ATTRIBUTION",
+        "MG_GUIDE_PRIMARY_CAPABILITY",
+        "'Scenario'",
+        "'UX_STATE'",
+        "'workflow_status'",
+        "stages.length !== 6",
+        "'Policy result'",
+        "'Salesperson next step'",
+        "'Audit status'",
+        "'Integrity'",
+        "external_effects=",
+        "LIVE_CRM_EXECUTION=",
+    )
+    for marker in required:
+        assert marker in cards

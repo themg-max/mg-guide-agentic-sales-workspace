@@ -87,10 +87,11 @@ TOKEN_VALUES_IN_PROOF=0
 | --- | --- | --- |
 | `off` | `JUDGE_ADDON_AUTH_MODE=off` (default) | No Bearer check. Preserves existing local/stub and IAP-fronted Cloud Run behavior. |
 | `identity_token` | `JUDGE_ADDON_AUTH_MODE=identity_token` | Full OIDC validation per §3. |
-| `local_demo` | `JUDGE_ADDON_AUTH_MODE=local_demo` | Accepts only `X-MG-Guide-Demo-Auth: local-demo` for in-process / localhost CardService simulation. Never valid on public ingress. |
+| `local_demo` | `JUDGE_ADDON_AUTH_MODE=local_demo` | Accepts only `X-MG-Guide-Demo-Auth: local-demo` for in-process / localhost CardService simulation. The demo endpoint returns `503 LOCAL_DEMO_PUBLIC_INGRESS_FORBIDDEN` when Cloud Run sets `K_SERVICE`. |
 
 ```text
 LOCAL_DEMO_MODE_PUBLIC_INGRESS=FORBIDDEN
+LOCAL_DEMO_PUBLIC_INGRESS_GUARD=ENFORCED
 DEFAULT_MODE_UNCHANGED=off
 ```
 

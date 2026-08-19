@@ -23,6 +23,7 @@ class _TestClient:
         method: str,
         path: str,
         body: Dict[str, Any] | None = None,
+        headers: Dict[str, str] | None = None,
     ) -> Tuple[int, Dict[str, Any]]:
         payload = b""
         if body is not None:
@@ -39,6 +40,8 @@ class _TestClient:
             "SERVER_NAME": "localhost",
             "SERVER_PORT": "8080",
         }
+        if headers:
+            environ.update(headers)
 
         status_info: List[str] = []
         headers_info: List[Tuple[str, str]] = []
@@ -86,6 +89,47 @@ def test_healthz_returns_ok(client: _TestClient) -> None:
     assert data["judge_mode"] == "stub"
     assert "SUCCESS" in data["scenario_names"]
     assert len(data["scenario_catalog_hash"]) == 64
+
+
+def test_addon_auth_only_gates_demo_route(monkeypatch) -> None:
+    monkeypatch.setenv("JUDGE_ADDON_AUTH_MODE", "identity_token")
+    monkeypatch.setenv("JUDGE_ADDON_OIDC_AUDIENCE", "test-audience")
+    client = _TestClient(JudgeSurfaceApp())
+
+    health_code, health_data = client.request("GET", "/health")
+    healthz_code, healthz_data = client.request("GET", "/healthz")
+    demo_code, demo_data = client.request(
+        "POST", "/demo/meeting-follow-up", {"scenario": "SUCCESS"}
+    )
+
+    assert health_code == 200
+    assert health_data["status"] == "ok"
+    assert healthz_code == 200
+    assert healthz_data["status"] == "ok"
+    assert demo_code == 401
+    assert demo_data["code"] == "AUTH_ERROR"
+
+
+def test_local_demo_mode_fails_closed_on_cloud_run(monkeypatch) -> None:
+    monkeypatch.setenv("JUDGE_ADDON_AUTH_MODE", "local_demo")
+    monkeypatch.setenv("K_SERVICE", "mg-guide-agentic-sales-workspace-addon-judge")
+    client = _TestClient(JudgeSurfaceApp())
+
+    health_code, health_data = client.request("GET", "/health")
+    demo_code, demo_data = client.request(
+        "POST",
+        "/demo/meeting-follow-up",
+        {"scenario": "SUCCESS"},
+        {"HTTP_X_MG_GUIDE_DEMO_AUTH": "local-demo"},
+    )
+
+    assert health_code == 200
+    assert health_data["status"] == "ok"
+    assert demo_code == 503
+    assert demo_data == {
+        "error": "addon_auth_mode_rejected",
+        "code": "LOCAL_DEMO_PUBLIC_INGRESS_FORBIDDEN",
+    }
 
 
 def test_healthz_rejects_non_stub_mode(monkeypatch) -> None:

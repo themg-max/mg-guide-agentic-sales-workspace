@@ -295,6 +295,13 @@ function buildOutcomeSection_(ux, policy, audit, uxAudit, externalEffects, liveC
   uxAudit = uxAudit || {};
   var rel = ux.relationship_context || {};
   var proposed = ux.proposed_follow_up || {};
+  var policyResult =
+    'note_write=' +
+    String(policy.note_write || '') +
+    ' · stage_write=' +
+    String(policy.stage_write || '') +
+    ' · reason_codes=' +
+    compact_(policy.reason_codes);
 
   var section = CardService.newCardSection()
     .setHeader('Meeting Follow-Up result')
@@ -309,6 +316,7 @@ function buildOutcomeSection_(ux, policy, audit, uxAudit, externalEffects, liveC
         proposed.headline || proposed.summary || 'See stage evidence'
       )
     )
+    .addWidget(kv_('Policy result', policyResult))
     .addWidget(kv_('policy.note_write', policy.note_write))
     .addWidget(kv_('policy.stage_write', policy.stage_write))
     .addWidget(kv_('policy.reason_codes', compact_(policy.reason_codes)))

@@ -13,10 +13,10 @@
   "addOns": {
     "common": {
       "name": "MG Guide",
-      "logoUrl": "https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png",
+      "logoUrl": "https://raw.githubusercontent.com/themg-max/mg-guide-agentic-sales-workspace/competition/meeting-follow-up-v1-acceptance-finalization-001/workspace_addon/assets/mg-guide-icon.png",
       "layoutProperties": {
-        "primaryColor": "#1a73e8",
-        "secondaryColor": "#174ea6"
+        "primaryColor": "#BDA161",
+        "secondaryColor": "#000000"
       },
       "homepageTrigger": {
         "runFunction": "onHomepage",
