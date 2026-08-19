@@ -24,11 +24,22 @@ EVIDENCE_CONTRADICTIONS=0
 ## Continuation authority and public branding asset
 
 The separately committed continuation authority is remotely durable on PR #91.
+It authorizes forward-looking competition-bounded continuation of the already
+existing dedicated add-on judge path only
+(`existing_resource_continuation_only=true`). Raw Cloud Run audit history shows
+the original CreateService event predates that continuation grant; this unit
+does **not** treat the continuation grant as retroactive authorization of
+original service creation, and no separate original-creation authority artifact
+is claimed here.
+
 The verified, public competition asset is hosted independently of the feature
 branch and is used identically by `Config.gs` and `appsscript.json`.
 
 ```text
-DEDICATED_ADDON_SERVICE_AUTHORITY=APPROVED
+DEDICATED_ADDON_SERVICE_CONTINUATION_AUTHORITY=APPROVED
+RETROACTIVE_AUTHORIZATION=NO
+EXISTING_RESOURCE_CONTINUATION_ONLY=YES
+NEW_CLOUD_RUN_SERVICE_CREATION=NO
 AUTHORIZATION_REMOTE_DURABILITY=PASS
 RESCUE_ASSET_INTEGRITY=PASS
 MG_GUIDE_PUBLIC_HTTPS=PASS
@@ -209,22 +220,28 @@ PUBLIC_INVOKER_BINDINGS=0
 
 After soak completion, the competition Apps Script project was re-checked against
 the five authorized repository adapter files and the stable Devpost logo URL
-(private deploy whitelist preserved). Controlled evaluator host acceptance was
-then performed in Gmail and Calendar against the existing competition add-on
-install only. No legacy Marketplace mutation, real customer data, CRM write, new
-service account, invoker expansion, or Cloud Run redeploy was performed for this
-acceptance.
+(private deploy whitelist preserved; Auth, Cards, Config, MeetingFollowUp,
+appsscript only). Controlled evaluator host acceptance was then performed in
+Gmail and Calendar against the existing competition unpublished/test add-on
+install only. CDP automation remains subject to Workspace overlay/click-target
+limits; final acceptance is grounded in operator-controlled host screenshots,
+not in automated click completeness. No legacy Marketplace mutation, real
+customer data, CRM write, new service account, invoker expansion, or Cloud Run
+redeploy was performed for this acceptance.
 
-In both hosts the MG Guide branded card rendered with product title, attribution
-subtitle, and scenario selectors. SUCCESS produced Outcome "Follow-up plan
-prepared", six-stage summary ending completed, Integrity
+In both hosts the MG Guide branded card rendered with product title, MG Guide
+logo, "Powered by AI Rolodex" attribution, Meeting Follow-Up home copy, and
+Demo mode / Synthetic data / No CRM writes. SUCCESS produced Outcome
+"Follow-up plan prepared", six-stage summary ending completed, Audit
+`external_effects=0`, Integrity
 `UX_STATE=COMPLETED · external_effects=0 · LIVE_CRM_EXECUTION=NOT_PERFORMED ·
 CRM_MUTATIONS_PERFORMED=NO`. AMBIGUOUS_CONTACT produced Outcome "Needs review
-before any follow-up can proceed", Policy Notes/Stage change `not_attempted`,
-reason `AMBIGUOUS_CONTACT`, workflow blocked, and Integrity
+before any follow-up can proceed", workflow stage blocked, Policy Notes/Stage
+change `not_attempted`, Audit `external_effects=0`, and Integrity
 `UX_STATE=NEEDS_REVIEW · external_effects=0 · LIVE_CRM_EXECUTION=NOT_PERFORMED ·
 CRM_MUTATIONS_PERFORMED=NO`. Closing and reopening the add-on restored the
-branded home card with scenario selectors in both hosts.
+branded home card with scenario selectors in both hosts. Private screenshots are
+retained off-repo under the operator competition evidence directory.
 
 ```text
 BRANDED_HOST_UX_ACCEPTANCE=PASS
@@ -245,4 +262,6 @@ LEGACY_MARKETPLACE_TOUCHED=NO
 EVIDENCE_CONTRADICTIONS=0
 TOKEN_VALUES_CAPTURED=0
 RAW_IDENTITY_TOKEN_LOGGING_PRESENT=NO
+DEDICATED_ADDON_SERVICE_CONTINUATION_AUTHORITY=APPROVED
+RETROACTIVE_AUTHORIZATION=NO
 ```
