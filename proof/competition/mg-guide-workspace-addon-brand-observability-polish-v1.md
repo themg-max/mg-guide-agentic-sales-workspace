@@ -93,3 +93,16 @@ POST_FIX_5XX_COUNT=NOT_VERIFIED
 No raw token, Authorization header, email, subject claim, audience, complete
 JWT payload, Script ID, deployment ID, OAuth client ID, or endpoint value was
 captured in this artifact.
+
+## Runtime publication blocker
+
+The fixed source was committed on the feature branch. Cloud Build submission for
+the dedicated judge image failed before image creation because the project
+Compute service account lacks `storage.objects.get` for Cloud Build's staged
+source object. No Cloud Run revision was created or changed.
+
+```text
+CLOUD_BUILD_IMAGE_PUBLICATION=BLOCKED
+CLOUD_BUILD_BLOCKER=COMPUTE_SERVICE_ACCOUNT_STORAGE_OBJECTS_GET_DENIED
+CLOUD_RUN_FINAL_REVISION=NOT_DEPLOYED
+```
