@@ -75,7 +75,7 @@ See [`../docs/COMPETITION_BASELINE.md`](../docs/COMPETITION_BASELINE.md).
 - Unit 3 delivered: Follow-Up Planning Agent (`src/agents/follow_up_planning/**`), `contracts/follow_up_proposal.schema.json`, synthetic fixtures for denied/insufficient paths, Unit 3 tests/harness, `proof/phase3/unit3/**`
 - Explicit Unit 3 non-delivery (historical): live GHL; CRM mutation execution; Firestore audit writer (NW-005); Cloud Run deployment (NW-007). NW-006 card is later **MERGED_COMPLETE** (PR #15).
 - Completion bar (full vertical slice still open beyond NW-004/NW-006): mutation execution + audit + deployment + AT-1…AT-10 demo proof remain separately governed; agent/policy packet path for Units 1–3 is closed with `EXTERNAL_EFFECTS=0`; card path closed with `EXTERNAL_EFFECTS=0`
-- Next: optional NW-013 bounded synthetic live-read execution; then NW-005 → NW-007 → NW-008; CRM mutation only under a future separately authorized safe-environment lane
+- Next: optional NW-013 bounded synthetic live-read execution; then NW-005 → NW-007 → NW-008; CRM mutation only under a future separately human-authorized synthetic-only bounded lane against the business-active canonical CRM (see [`../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md))
 
 ## NW-006 MG Guide Meeting Follow-Up card (MERGED_COMPLETE)
 
@@ -132,7 +132,7 @@ CURRENT_NEXT_LANE=NW008_AT10_ACCEPTANCE_DEMO_AUTHORIZATION
 
 - Historical readiness snapshot after Tranche C closeout (preserved): READY=none; HISTORICAL_COMPLETE=AT-2,AT-4,AT-5; PARTIAL=AT-8,AT-9; BLOCKED=AT-1,AT-3,AT-6,AT-7; DEFERRED=AT-10
 - Current readiness snapshot (post D2 + AT-10 AR-08): READY=none; HISTORICAL_COMPLETE=AT-2,AT-4,AT-5,AT-8,AT-9; PARTIAL=none; BLOCKED=AT-1,AT-3,AT-6,AT-7; DEFERRED=AT-10 (active acceptance-demo authorization lane)
-- Recommended dependency order (current): NW-005 Stage B smoke is already **PASS** (not an active blocker) → NW-008 AT-10 acceptance-demo authorization (implementation-only grant → offline implementation → execution grant) → remaining blocked ATs behind future safe-env mutation lane; optional NW-013 bounded synthetic live-read remains separately governed
+- Recommended dependency order (current): NW-005 Stage B smoke is already **PASS** (not an active blocker) → NW-008 AT-10 acceptance-demo authorization (implementation-only grant → offline implementation → execution grant) → remaining blocked ATs behind a future separately human-authorized synthetic-only mutation lane against the business-active canonical CRM; optional NW-013 bounded synthetic live-read remains separately governed
 - Constraints retained: no isolated GHL test location; canonical GHL location is not a test environment; NW-013 AUTHORIZED_NOT_EXECUTED; no GHL writes authorized; no Firestore writes authorized under AT-10 until a separate execution grant; production/customer data forbidden; raw REST forbidden; deterministic policy sole consequential-action authorization surface; `AT10_EXECUTION_AUTHORIZED=NO`; `AT10_COMPLETION_CLAIM_AUTHORIZED=NO`
 
 ### Tranche A (MERGED_COMPLETE)
@@ -358,3 +358,17 @@ NW005_STAGE_B_SMOKE=PASS
   - `MG_GUIDE_PHASE2B_GHL_READ_ADAPTER_OFFLINE_V1` — offline deterministic read adapter against Phase 2A discovered operation contracts; network NONE; synthetic fixtures only.
   - `MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1` — `GATED_PENDING_SYNTHETIC_RECORD_BINDING`; exact-ID synthetic reads only; blocked on synthetic record binding + private allowlist + authorized secret path.
 - Historical Phase 2A claims unchanged; this section adds no claim of live CRM access.
+
+---
+
+## NW-008 durable-state normalization — active CRM synthetic-only (CURRENT)
+
+- Normalization ID: `NW008_ACTIVE_CRM_SYNTHETIC_ONLY_NORMALIZATION_001`
+- Artifact: [`../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](../docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md)
+- Branch: `planning/nw008-active-crm-synthetic-only-normalization-001`
+- Base: `origin/main` @ `dc48531a5d79d01a57de8fcfa81140a4dd59535c` (post PR #91 merge; PR #91 state=MERGED, final head `a4f81d70b49ba70f7b19901da49bb7080bf61881`, merge SHA `dc48531a5d79d01a57de8fcfa81140a4dd59535c`)
+- Effect: current-authority and current-facing artifacts now classify the GoHighLevel target as `CRM_ENVIRONMENT_CLASS=ACTIVE_CANONICAL_BUSINESS_CRM` under synthetic-only bounded execution controls; historical proof is preserved, not rewritten.
+- Preserved invariants: private exact-ID allowlist only; preverified synthetic contact/opportunity only; no broad search; no list/pagination expansion; no alternate-target discovery; no non-allowlisted record access; no real customer record read or mutation; `NOTE_WRITE_ATTEMPTS_MAX=1`; `STAGE_WRITE_ATTEMPTS_MAX=1`; no automatic retry; no compensating mutation; `LIVE_CRM_MUTATION_AUTHORIZED=NO`; `REST_ADAPTER_EXECUTION_AUTHORIZED=NO`; `SEPARATE_HUMAN_MUTATION_AUTHORIZATION_REQUIRED=YES`.
+- Transport state recorded: `GHL_GENERIC_MCP_IMPLEMENTATION_PATH=BLOCKED`; `HIGHLEVEL_REST_ADAPTER=PLANNING_NEXT`; REST transport authorization reviewed separately — the REST adapter does not inherit MCP transport authority, execution grants, operation authority, or write execution authorization.
+- Next (prepared, not self-authorized): `NW008_AT1_GHL_REST_ADAPTER_ARCHITECTURE_001`.
+- External effects: `EXTERNAL_EFFECTS=0`; `GHL_CALLS=0`; `CRM_WRITES=0`; `IAM_CHANGES=0`; `SECRET_CHANGES=0`; `DEPLOYMENT_CHANGES=0`.
