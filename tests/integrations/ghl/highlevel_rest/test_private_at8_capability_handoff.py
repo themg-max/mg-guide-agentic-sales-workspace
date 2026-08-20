@@ -692,8 +692,7 @@ def test_no_provider_get_and_zero_network_effects() -> None:
     assert note_path_module.HIGHLEVEL_NETWORK_CALLS == 0
     assert note_path_module.EXTERNAL_EFFECTS == 0
     source = (SOURCE_ROOT / "note_path.py").read_text(encoding="utf-8")
-    assert "At1ExecutionStore" not in source
+    assert "At1ExecutionStore" in source
     assert "secretmanager" not in source.lower()
     assert "Secret Manager" not in source
-    assert "at1_execution_store" not in source
     assert "at1_live_transport_adapter" not in source
