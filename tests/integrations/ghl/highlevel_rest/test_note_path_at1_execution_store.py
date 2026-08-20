@@ -92,7 +92,8 @@ def _grant_run_id(
             "operation": note_path_module._NOTE_CREATE_OPERATION,
         },
     )
-    return sha256(canonical.encode("utf-8")).hexdigest()
+    digest = sha256(canonical.encode("utf-8")).hexdigest()
+    return f"npgr1:{digest}"
 
 
 def _create(adapter: NotePathAdapter) -> None:
@@ -195,6 +196,62 @@ def test_second_note_create_same_grant_run_blocked(store: At1ExecutionStore) -> 
     assert [method for method, _, _ in transport.calls].count("POST") == 1
 
 
+def test_grant_run_id_matches_authorized_npgr1_formula(store: At1ExecutionStore) -> None:
+    workflow_run_id = "synthetic-workflow-run-at8g-formula-001"
+    other_workflow_run_id = "synthetic-workflow-run-at8g-formula-002"
+    other_authz = "NW008_AT8G_FORMULA_AUTHORIZATION_002"
+    adapter, _ = _adapter(
+        "note_create_success",
+        store,
+        consumer_workflow_run_id=workflow_run_id,
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+    )
+    same_binding_adapter, _ = _adapter(
+        "note_create_success",
+        store,
+        consumer_workflow_run_id=workflow_run_id,
+        location_id="synthetic-location-002",
+        contact_id="synthetic-contact-002",
+    )
+    other_authz_adapter, _ = _adapter(
+        "note_create_success",
+        store,
+        consumer_authorization_identity=other_authz,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+    other_run_adapter, _ = _adapter(
+        "note_create_success",
+        store,
+        consumer_workflow_run_id=other_workflow_run_id,
+    )
+
+    grant_run_id = adapter._deterministic_grant_run_id()
+    prefix = grant_run_id[:6]
+    digest = grant_run_id[6:]
+    assert prefix == "npgr1:"
+    canonical = note_path_module.NotePathAdapter._canonical_json(
+        {
+            "consumer_authorization_identity": DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            "consumer_workflow_run_id": workflow_run_id,
+            "mapping_version": note_path_module._MAPPING_VERSION,
+            "namespace": note_path_module._GRANT_RUN_ID_NAMESPACE,
+            "operation": note_path_module._NOTE_CREATE_OPERATION,
+        },
+    )
+    expected_digest = sha256(canonical.encode("utf-8")).hexdigest()
+    assert digest == expected_digest
+    assert len(digest) == 64
+    assert digest == digest.lower()
+    assert set(digest) <= set("0123456789abcdef")
+    assert grant_run_id == f"npgr1:{expected_digest}"
+    assert same_binding_adapter._deterministic_grant_run_id() == grant_run_id
+    assert other_authz_adapter._deterministic_grant_run_id() != grant_run_id
+    assert other_run_adapter._deterministic_grant_run_id() != grant_run_id
+    assert other_authz_adapter._deterministic_grant_run_id()[:6] == "npgr1:"
+    assert other_run_adapter._deterministic_grant_run_id()[:6] == "npgr1:"
+
+
 def test_different_workflow_run_distinct_grant_run_id(store: At1ExecutionStore) -> None:
     first_run = "synthetic-workflow-run-at8g-first-001"
     second_run = "synthetic-workflow-run-at8g-second-001"
@@ -240,46 +297,33 @@ def test_different_authorization_distinct_grant_run_id(store: At1ExecutionStore)
 
 def test_contact_and_location_excluded_from_mapping(store: At1ExecutionStore) -> None:
     base_run = "synthetic-workflow-run-at8g-mapping-001"
-    base_grant = _grant_run_id(DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY, base_run)
-
-    adapter, _ = _adapter(
+    first_adapter, first_transport = _adapter(
         "note_create_success",
         store,
         consumer_workflow_run_id=base_run,
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
     )
-    adapter.get_bound_contact()
-    adapter.create_meeting_note(_note())
-
-    assert store.list_private_attempts(base_grant)
-
-    other_grant = _grant_run_id_with_location_contact(
-        DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-        base_run,
-        "synthetic-location-002",
-        "synthetic-contact-002",
+    second_adapter, _ = _adapter(
+        "note_create_success",
+        store,
+        consumer_workflow_run_id=base_run,
+        location_id="synthetic-location-002",
+        contact_id="synthetic-contact-002",
     )
-    assert other_grant != base_grant
-    assert store.list_private_attempts(other_grant) == []
 
+    first_grant = first_adapter._deterministic_grant_run_id()
+    second_grant = second_adapter._deterministic_grant_run_id()
+    assert first_grant[:6] == "npgr1:"
+    assert first_grant == second_grant
+    assert first_grant == _grant_run_id(DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY, base_run)
 
-def _grant_run_id_with_location_contact(
-    consumer_authorization_identity: str,
-    consumer_workflow_run_id: str,
-    location_id: str,
-    contact_id: str,
-) -> str:
-    canonical = note_path_module.NotePathAdapter._canonical_json(
-        {
-            "consumer_authorization_identity": consumer_authorization_identity,
-            "consumer_workflow_run_id": consumer_workflow_run_id,
-            "location_id": location_id,
-            "contact_id": contact_id,
-            "mapping_version": 1,
-            "namespace": "NOTE_PATH",
-            "operation": "NOTE_CREATE",
-        },
+    _create(first_adapter)
+    assert [method for method, _, _ in first_transport.calls].count("POST") == 1
+    assert len(store.list_private_attempts(first_grant)) == 1
+    assert store.list_private_attempts(second_grant) == store.list_private_attempts(
+        first_grant
     )
-    return sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def test_redacted_request_envelope_contains_no_private_data(
@@ -307,6 +351,18 @@ def test_redacted_request_envelope_contains_no_private_data(
     assert "commitments" not in envelope
     assert "note_content_digest" in envelope
     assert "provider_body_digest" in envelope
+    assert set(envelope) <= {
+        "namespace",
+        "operation",
+        "operation_ordinal",
+        "mapping_version",
+        "consumer_authorization_identity",
+        "consumer_workflow_run_id",
+        "workflow_id",
+        "request_id",
+        "note_content_digest",
+        "provider_body_digest",
+    }
 
 
 def test_redacted_response_envelope_contains_no_private_data(
@@ -324,8 +380,22 @@ def test_redacted_response_envelope_contains_no_private_data(
 
     assert "synthetic-note-001" not in raw_envelope
     assert "synthetic-contact" not in raw_envelope
-    assert envelope.get("status") == "ok"
-    assert "provider_note_id_digest" in envelope
+    assert "status" not in envelope
+    assert "provider_note_id_digest" not in envelope
+    assert envelope.get("response_status_class") == "ok"
+    assert set(envelope) <= {
+        "namespace",
+        "operation",
+        "operation_ordinal",
+        "mapping_version",
+        "consumer_authorization_identity",
+        "consumer_workflow_run_id",
+        "workflow_id",
+        "request_id",
+        "note_content_digest",
+        "provider_body_digest",
+        "response_status_class",
+    }
 
 
 def test_duplicate_ordinal_translates_to_transport_error_with_chained_cause(
@@ -451,26 +521,129 @@ def test_direct_store_boundary_different_owner_contention(
     assert isinstance(exc_info.value.__cause__, note_path_module.ExecutionClaimError)
 
 
-def test_restart_preserves_reservation(store: At1ExecutionStore) -> None:
+def test_restart_preserves_reservation(tmp_path: Path) -> None:
+    db_path = tmp_path / "note-path-at1-restart.sqlite3"
+    commitment_key = "synthetic-commitment-key"
     workflow_run_id = "synthetic-workflow-run-at8g-restart-001"
+
+    store_a = At1ExecutionStore(db_path=db_path, commitment_key=commitment_key)
     first_adapter, first_transport = _adapter(
-        "note_create_ambiguous_result", store, consumer_workflow_run_id=workflow_run_id
+        "note_create_success", store_a, consumer_workflow_run_id=workflow_run_id
     )
-    first_adapter.get_bound_contact()
+    _create(first_adapter)
+    assert [method for method, _, _ in first_transport.calls].count("POST") == 1
 
-    with pytest.raises(TransportError, match="not retried"):
-        first_adapter.create_meeting_note(_note())
+    store_a._connection.close()
+    del store_a
 
+    store_b = At1ExecutionStore(db_path=db_path, commitment_key=commitment_key)
     second_adapter, second_transport = _adapter(
-        "note_create_success", store, consumer_workflow_run_id=workflow_run_id
+        "note_create_success", store_b, consumer_workflow_run_id=workflow_run_id
     )
     second_adapter.get_bound_contact()
-
-    with pytest.raises(TransportError, match="store reservation refused"):
+    with pytest.raises(TransportError, match="store reservation refused") as exc_info:
         second_adapter.create_meeting_note(_note())
 
-    assert [method for method, _, _ in first_transport.calls] == ["GET", "POST"]
+    assert isinstance(
+        exc_info.value.__cause__,
+        (
+            note_path_module.DuplicateBusinessOrdinalError,
+            note_path_module.RunContinuationRefusedError,
+        ),
+    )
     assert [method for method, _, _ in second_transport.calls] == ["GET"]
+    grant_run_id = _grant_run_id(DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY, workflow_run_id)
+    assert len(store_b.list_private_attempts(grant_run_id)) == 1
+
+
+def _assert_attempt_state_error_translated(exc: BaseException) -> None:
+    assert type(exc) is TransportError
+    assert not isinstance(exc, note_path_module.AttemptStateError)
+    assert isinstance(exc.__cause__, note_path_module.AttemptStateError)
+
+
+def test_parse_outcome_attempt_state_error_translates_to_transport_error(
+    store: At1ExecutionStore,
+) -> None:
+    adapter, _ = _adapter("note_create_success", store)
+    adapter.get_bound_contact()
+
+    def _boom(**kwargs: Any) -> None:
+        raise note_path_module.AttemptStateError("injected parse outcome fault")
+
+    store.record_parse_outcome = _boom  # type: ignore[method-assign]
+
+    try:
+        adapter.create_meeting_note(_note())
+    except note_path_module.AttemptStateError:
+        pytest.fail("raw AttemptStateError leaked from parse lifecycle")
+    except TransportError as exc:
+        _assert_attempt_state_error_translated(exc)
+    else:
+        pytest.fail("expected TransportError from parse lifecycle")
+
+
+def test_semantic_outcome_attempt_state_error_translates_to_transport_error(
+    store: At1ExecutionStore,
+) -> None:
+    adapter, _ = _adapter("note_create_success", store)
+    adapter.get_bound_contact()
+
+    def _boom(**kwargs: Any) -> None:
+        raise note_path_module.AttemptStateError("injected semantic outcome fault")
+
+    store.record_semantic_outcome = _boom  # type: ignore[method-assign]
+
+    try:
+        adapter.create_meeting_note(_note())
+    except note_path_module.AttemptStateError:
+        pytest.fail("raw AttemptStateError leaked from semantic lifecycle")
+    except TransportError as exc:
+        _assert_attempt_state_error_translated(exc)
+    else:
+        pytest.fail("expected TransportError from semantic lifecycle")
+
+
+def test_capture_response_attempt_state_error_translates_to_transport_error(
+    store: At1ExecutionStore,
+) -> None:
+    adapter, _ = _adapter("note_create_success", store)
+    adapter.get_bound_contact()
+
+    def _boom(**kwargs: Any) -> str:
+        raise note_path_module.AttemptStateError("injected capture response fault")
+
+    store.capture_response = _boom  # type: ignore[method-assign]
+
+    try:
+        adapter.create_meeting_note(_note())
+    except note_path_module.AttemptStateError:
+        pytest.fail("raw AttemptStateError leaked from capture_response")
+    except TransportError as exc:
+        _assert_attempt_state_error_translated(exc)
+    else:
+        pytest.fail("expected TransportError from capture_response")
+
+
+def test_mark_terminal_attempt_state_error_translates_to_transport_error(
+    store: At1ExecutionStore,
+) -> None:
+    adapter, _ = _adapter("note_create_ambiguous_result", store)
+    adapter.get_bound_contact()
+
+    def _boom(**kwargs: Any) -> None:
+        raise note_path_module.AttemptStateError("injected mark_terminal fault")
+
+    store.mark_terminal = _boom  # type: ignore[method-assign]
+
+    try:
+        adapter.create_meeting_note(_note())
+    except note_path_module.AttemptStateError:
+        pytest.fail("raw AttemptStateError leaked from mark_terminal")
+    except TransportError as exc:
+        _assert_attempt_state_error_translated(exc)
+    else:
+        pytest.fail("expected TransportError from mark_terminal")
 
 
 def test_ambiguity_terminalizes_unknown(store: At1ExecutionStore) -> None:

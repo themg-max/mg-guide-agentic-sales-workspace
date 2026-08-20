@@ -38,6 +38,14 @@ _NOTE_CREATE_OPERATION = "NOTE_CREATE"
 NOTE_CREATE_OPERATION_ORDINAL = 1
 _MAPPING_VERSION = 1
 _GRANT_RUN_ID_NAMESPACE = "NOTE_PATH"
+_GRANT_RUN_ID_PREFIX = "npgr1:"
+_STORE_BOUNDARY_ERRORS = (
+    ExecutionClaimError,
+    RunContinuationRefusedError,
+    DuplicateBusinessOrdinalError,
+    AttemptStateError,
+)
+_REDACTED_RESPONSE_STATUS_CLASSES = frozenset({"ok", "ambiguous", "error"})
 _TRUSTED_SOURCE_BOUND_CONTACT = "fake_transport_bound_contact_verification"
 _TRUSTED_SOURCE_AT8_SHAPED_TEST = "at8_shaped_test_capability"
 _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF = "private_at8_verified_binding_handoff"
@@ -761,7 +769,8 @@ class NotePathAdapter:
                 "operation": _NOTE_CREATE_OPERATION,
             }
         )
-        return sha256(canonical.encode("utf-8")).hexdigest()
+        digest = sha256(canonical.encode("utf-8")).hexdigest()
+        return f"{_GRANT_RUN_ID_PREFIX}{digest}"
 
     def _request_id_for_attempt(
         self, grant_run_id: str, operation_ordinal: int
@@ -775,6 +784,7 @@ class NotePathAdapter:
     def _build_redacted_request_envelope(
         self,
         *,
+        request_id: str,
         note_content_digest: str,
         provider_body_digest: str,
     ) -> dict[str, Any]:
@@ -782,26 +792,45 @@ class NotePathAdapter:
         return {
             "namespace": _GRANT_RUN_ID_NAMESPACE,
             "operation": _NOTE_CREATE_OPERATION,
+            "operation_ordinal": NOTE_CREATE_OPERATION_ORDINAL,
             "mapping_version": _MAPPING_VERSION,
             "consumer_authorization_identity": self._consumer_authorization_identity,
             "consumer_workflow_run_id": self._consumer_workflow_run_id,
+            "workflow_id": _WORKFLOW_ID,
+            "request_id": request_id,
             "note_content_digest": note_content_digest,
             "provider_body_digest": provider_body_digest,
         }
 
-    def _build_redacted_response_envelope(self, response: Any) -> dict[str, Any]:
-        """Return a redacted response envelope that never contains raw private ids."""
-        envelope: dict[str, Any] = {"status": response.status}
-        payload = getattr(response, "payload", None)
-        if isinstance(payload, Mapping):
-            note = payload.get("note")
-            if isinstance(note, Mapping):
-                note_id = note.get("id")
-                if isinstance(note_id, str):
-                    envelope["provider_note_id_digest"] = sha256(
-                        note_id.encode("utf-8")
-                    ).hexdigest()
-        return envelope
+    @staticmethod
+    def _response_status_class(response: Any) -> str:
+        status = getattr(response, "status", None)
+        if status in _REDACTED_RESPONSE_STATUS_CLASSES:
+            return str(status)
+        return "error"
+
+    def _build_redacted_response_envelope(
+        self,
+        *,
+        request_id: str,
+        note_content_digest: str,
+        provider_body_digest: str,
+        response: Any,
+    ) -> dict[str, Any]:
+        """Return a redacted response envelope from the authorization allowlist."""
+        return {
+            "namespace": _GRANT_RUN_ID_NAMESPACE,
+            "operation": _NOTE_CREATE_OPERATION,
+            "operation_ordinal": NOTE_CREATE_OPERATION_ORDINAL,
+            "mapping_version": _MAPPING_VERSION,
+            "consumer_authorization_identity": self._consumer_authorization_identity,
+            "consumer_workflow_run_id": self._consumer_workflow_run_id,
+            "workflow_id": _WORKFLOW_ID,
+            "request_id": request_id,
+            "note_content_digest": note_content_digest,
+            "provider_body_digest": provider_body_digest,
+            "response_status_class": self._response_status_class(response),
+        }
 
     def _terminalize_unknown(
         self, grant_run_id: str, operation_ordinal: int, failure_code: str
@@ -820,15 +849,8 @@ class NotePathAdapter:
                 failure_code=failure_code,
                 business_effect_truth="UNKNOWN",
             )
-        except AttemptStateError as exc:
-            raise TransportError("NOTE_PATH store terminalization refused") from exc
-
-    @staticmethod
-    def _translate_store_error(exc: Exception) -> TransportError:
-        """Translate durable-store contract violations into TransportError."""
-        error = TransportError("NOTE_PATH store reservation refused")
-        error.__cause__ = exc
-        return error
+        except _STORE_BOUNDARY_ERRORS as exc:
+            raise TransportError("NOTE_PATH store reservation refused") from exc
 
     def _create_meeting_note_with_store(
         self, canonical_note: Mapping[str, Any]
@@ -844,6 +866,7 @@ class NotePathAdapter:
         provider_body = {"body": note_body}
         provider_body_digest = self._provider_body_digest(provider_body)
         redacted_request_envelope = self._build_redacted_request_envelope(
+            request_id=request_id,
             note_content_digest=note_content_digest,
             provider_body_digest=provider_body_digest,
         )
@@ -864,13 +887,8 @@ class NotePathAdapter:
                 grant_run_id=grant_run_id,
                 operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
             )
-        except (
-            ExecutionClaimError,
-            RunContinuationRefusedError,
-            DuplicateBusinessOrdinalError,
-            AttemptStateError,
-        ) as exc:
-            raise self._translate_store_error(exc)
+        except _STORE_BOUNDARY_ERRORS as exc:
+            raise TransportError("NOTE_PATH store reservation refused") from exc
 
         try:
             response = self._transport.dispatch(
@@ -884,77 +902,82 @@ class NotePathAdapter:
             )
             raise
 
-        redacted_response_envelope = self._build_redacted_response_envelope(response)
+        redacted_response_envelope = self._build_redacted_response_envelope(
+            request_id=request_id,
+            note_content_digest=note_content_digest,
+            provider_body_digest=provider_body_digest,
+            response=response,
+        )
         try:
             self._execution_store.capture_response(
                 grant_run_id=grant_run_id,
                 operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
                 response_envelope=redacted_response_envelope,
             )
-        except AttemptStateError as exc:
-            raise TransportError("NOTE_PATH store response capture refused") from exc
 
-        if response.status == "ambiguous":
-            self._execution_store.record_parse_outcome(
-                grant_run_id=grant_run_id,
-                operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
-                success=False,
-            )
-            self._execution_store.record_semantic_outcome(
-                grant_run_id=grant_run_id,
-                operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
-                success=False,
-            )
-            self._terminalize_unknown(
-                grant_run_id,
-                NOTE_CREATE_OPERATION_ORDINAL,
-                failure_code="AMBIGUOUS_POST",
-            )
-            raise TransportError(
-                "ambiguous note POST result is terminal and is not retried"
-            )
-
-        try:
-            note = self._required_envelope(response, "note")
-            note_id = note.get("id")
-            note_response_body = note.get("body")
-            note_contact_id = note.get("contactId")
-            if not isinstance(note_id, str) or not note_id:
-                raise TransportError("created note id is required")
-            if not isinstance(note_response_body, str) or not note_response_body:
-                raise TransportError("created note body is required")
-            if note_contact_id != self._contact_id:
-                raise TransportError(
-                    "created note contact id does not match private binding"
+            if response.status == "ambiguous":
+                self._execution_store.record_parse_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
                 )
-        except TransportError:
+                self._execution_store.record_semantic_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
+                )
+                self._terminalize_unknown(
+                    grant_run_id,
+                    NOTE_CREATE_OPERATION_ORDINAL,
+                    failure_code="AMBIGUOUS_POST",
+                )
+                raise TransportError(
+                    "ambiguous note POST result is terminal and is not retried"
+                )
+
+            try:
+                note = self._required_envelope(response, "note")
+                note_id = note.get("id")
+                note_response_body = note.get("body")
+                note_contact_id = note.get("contactId")
+                if not isinstance(note_id, str) or not note_id:
+                    raise TransportError("created note id is required")
+                if not isinstance(note_response_body, str) or not note_response_body:
+                    raise TransportError("created note body is required")
+                if note_contact_id != self._contact_id:
+                    raise TransportError(
+                        "created note contact id does not match private binding"
+                    )
+            except TransportError:
+                self._execution_store.record_parse_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
+                )
+                self._execution_store.record_semantic_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
+                )
+                self._terminalize_unknown(
+                    grant_run_id,
+                    NOTE_CREATE_OPERATION_ORDINAL,
+                    failure_code="PARSE_FAILURE",
+                )
+                raise
+
             self._execution_store.record_parse_outcome(
                 grant_run_id=grant_run_id,
                 operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
-                success=False,
+                success=True,
             )
             self._execution_store.record_semantic_outcome(
                 grant_run_id=grant_run_id,
                 operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
-                success=False,
+                success=True,
             )
-            self._terminalize_unknown(
-                grant_run_id,
-                NOTE_CREATE_OPERATION_ORDINAL,
-                failure_code="PARSE_FAILURE",
-            )
-            raise
-
-        self._execution_store.record_parse_outcome(
-            grant_run_id=grant_run_id,
-            operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
-            success=True,
-        )
-        self._execution_store.record_semantic_outcome(
-            grant_run_id=grant_run_id,
-            operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
-            success=True,
-        )
+        except _STORE_BOUNDARY_ERRORS as exc:
+            raise TransportError("NOTE_PATH store reservation refused") from exc
 
         created = CreatedMeetingNote(
             note_id=note_id,
