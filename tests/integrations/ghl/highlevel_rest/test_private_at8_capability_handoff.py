@@ -308,7 +308,7 @@ def test_private_handoff_rejects_synthetic_test_origin() -> None:
         )
 
 
-def test_bound_contact_trust_requires_verified_get() -> None:
+def test_direct_bound_contact_capability_mint_blocks() -> None:
     adapter, transport = _adapter(
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
         consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-001",
@@ -318,7 +318,11 @@ def test_bound_contact_trust_requires_verified_get() -> None:
     with pytest.raises(BindingError, match="preflight"):
         adapter.create_meeting_note(_note())
     assert transport.calls == []
+    with pytest.raises(BindingError, match="successful bound contact preflight is required"):
+        note_path_module._issue_bound_contact_capability(adapter=adapter)
 
+
+def test_get_bound_contact_mismatch_mints_nothing() -> None:
     mismatched_transport = DeterministicFakeTransport(deepcopy(FIXTURE), "contact_id_mismatch")
     mismatched = NotePathAdapter(
         location_id="synthetic-location-001",
@@ -331,32 +335,31 @@ def test_bound_contact_trust_requires_verified_get() -> None:
         mismatched.get_bound_contact()
     assert mismatched._verified_contact_binding_capability is None
     assert [method for method, _, _ in mismatched_transport.calls] == ["GET"]
+    with pytest.raises(BindingError, match="successful bound contact preflight is required"):
+        note_path_module._issue_bound_contact_capability(adapter=mismatched)
 
+
+def test_get_bound_contact_success_mints_bound_capability() -> None:
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-success-001",
+    )
     adapter.get_bound_contact()
     capability = adapter._verified_contact_binding_capability
     assert capability is not None
     assert capability.trusted_binding_source.trusted_origin == (
         "fake_transport_bound_contact_verification"
     )
-    with pytest.raises(BindingError, match="bound-contact trust requires verified GET"):
-        note_path_module._issue_bound_contact_capability(
-            verified_get={"id": "synthetic-contact-001", "locationId": "other-location"},
-            location_id="synthetic-location-001",
-            contact_id="synthetic-contact-001",
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-003",
-        )
+    assert [method for method, _, _ in transport.calls] == ["GET"]
 
 
 def test_caller_matching_contact_mapping_cannot_mint_bound_trust() -> None:
     expected_contact = {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}
-    with pytest.raises(BindingError, match="bound-contact trust requires verified GET"):
-        note_path_module._issue_bound_contact_capability(
-            verified_get=expected_contact,
+    with pytest.raises(AttributeError):
+        getattr(note_path_module, "_issue_verified_bound_contact_get")(
+            verified_contact=expected_contact,
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-forge-001",
         )
 
 
@@ -530,7 +533,7 @@ def test_capability_serialization_does_not_restore_authority() -> None:
 
 def test_process_restart_requires_fresh_trust_issuance() -> None:
     restart_registry = note_path_module._build_internal_trust_issuer()
-    restart_issue_synthetic_test_capability = restart_registry[2]
+    restart_issue_synthetic_test_capability = restart_registry[1]
     restart_require_issued_verified_capability = restart_registry[-1]
     fresh_capability = restart_issue_synthetic_test_capability(
         location_id="synthetic-location-001",
@@ -584,76 +587,40 @@ def test_private_binding_publication_absent() -> None:
 
 
 def test_caller_matching_mapping_cannot_self_issue_verified_get() -> None:
-    """Verify that a caller-created matching mapping cannot mint current-registry GET authority."""
-    # A caller-supplied object (not issued by the registry) cannot mint a verified GET
-    adapter, transport = _adapter(
-        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-        consumer_workflow_run_id="synthetic-workflow-run-caller-mapping-001",
-    )
-    
-    # Try to create a verified GET from a caller-created verified_get object
-    # (not issued by the internal registry)
-    forged_verified_get = note_path_module._VerifiedBoundContactGet(
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-        _trust_marker=object(),  # Wrong trust marker
-    )
-    
-    # This should fail because the forged object is not in issued_verified_gets
-    with pytest.raises(BindingError, match="bound-contact trust requires verified GET"):
-        note_path_module._issue_bound_contact_capability(
-            verified_get=forged_verified_get,
+    """The former matching-mapping -> registered-GET -> capability path is absent."""
+    matching_mapping = {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}
+    with pytest.raises(AttributeError):
+        getattr(note_path_module, "_issue_verified_bound_contact_get")(
+            verified_contact=matching_mapping,
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id="synthetic-workflow-run-caller-mapping-001",
         )
 
 
-def test_issued_synthetic_capability_retarget_blocks() -> None:
-    """Verify that issued synthetic capabilities cannot be retargeted to different contact/location."""
+def test_issued_synthetic_capability_in_place_retarget_blocks() -> None:
     capability = _issue_synthetic_capability(
         consumer_workflow_run_id="synthetic-workflow-run-synthetic-retarget-001",
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
     )
-    
-    # Attempt to validate the capability with different location
-    with pytest.raises(BindingError, match="location binding is invalid"):
+    object.__setattr__(capability, "location_id", "synthetic-location-002")
+    with pytest.raises(BindingError, match="capability is invalid"):
         note_path_module._require_issued_verified_capability(
             capability,
-            location_id="synthetic-location-002",  # Different location
+            location_id="synthetic-location-002",
             contact_id="synthetic-contact-001",
             consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
             consumer_workflow_run_id="synthetic-workflow-run-synthetic-retarget-001",
         )
 
 
-def test_issued_synthetic_source_retarget_blocks() -> None:
-    """Verify that issued synthetic sources cannot be used across registries."""
-    source = note_path_module._issue_private_at8_handoff_source_for_synthetic_tests(
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-    )
-    
-    # Create a fresh registry and try to use source from old registry
-    fresh_registry = note_path_module._build_internal_trust_issuer()
-    fresh_require_capability = fresh_registry[-1]
-    
-    # Create a capability from the source in its own registry
-    capability = note_path_module._handoff_private_at8_capability_from_registered_source(
-        trusted_binding_source=source,
-        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+def test_issued_synthetic_source_in_place_retarget_blocks() -> None:
+    capability = _issue_synthetic_capability(
         consumer_workflow_run_id="synthetic-workflow-run-source-retarget-001",
-        workflow_id="meeting_follow_up_v1",
-        source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
-        source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
     )
-    
-    # Try to verify the capability in a different registry - should fail
-    # because the capability's source was issued by a different registry
-    with pytest.raises(BindingError, match="capability is invalid"):
-        fresh_require_capability(
+    object.__setattr__(
+        capability.trusted_binding_source, "location_id", "synthetic-location-002"
+    )
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._require_issued_verified_capability(
             capability,
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
@@ -662,68 +629,44 @@ def test_issued_synthetic_source_retarget_blocks() -> None:
         )
 
 
-def test_issued_bound_contact_capability_retarget_blocks() -> None:
-    """Verify that issued bound contact capabilities cannot be retargeted."""
-    # Build a fresh registry to issue a verified GET
-    fresh_registry = note_path_module._build_internal_trust_issuer()
-    fresh_issue_verified_get = fresh_registry[0]
-    fresh_issue_bound_capability = fresh_registry[1]
-    fresh_require_capability = fresh_registry[-1]
-    
-    verified_contact = {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}
-    verified_get = fresh_issue_verified_get(
-        verified_contact=verified_contact,
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-    )
-    
-    capability = fresh_issue_bound_capability(
-        verified_get=verified_get,
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
+def test_issued_bound_contact_capability_in_place_retarget_blocks() -> None:
+    adapter, transport = _adapter(
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
         consumer_workflow_run_id="synthetic-workflow-run-bound-retarget-001",
     )
-    
-    # Use the original registry to verify - this should fail since it's from a different registry
+    adapter.get_bound_contact()
+    capability = adapter._require_trusted_verified_capability()
+    object.__setattr__(capability, "location_id", "synthetic-location-002")
     with pytest.raises(BindingError, match="capability is invalid"):
+        note_path_module._require_issued_verified_capability(
+            capability,
+            location_id="synthetic-location-002",
+            contact_id="synthetic-contact-001",
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-bound-retarget-001",
+        )
+    assert [method for method, _, _ in transport.calls] == ["GET"]
+
+
+def test_issued_bound_contact_source_in_place_retarget_blocks() -> None:
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-bound-source-retarget-001",
+    )
+    adapter.get_bound_contact()
+    capability = adapter._require_trusted_verified_capability()
+    object.__setattr__(
+        capability.trusted_binding_source, "contact_id", "synthetic-contact-002"
+    )
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
         note_path_module._require_issued_verified_capability(
             capability,
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
             consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id="synthetic-workflow-run-bound-retarget-001",
+            consumer_workflow_run_id="synthetic-workflow-run-bound-source-retarget-001",
         )
-
-
-def test_issued_bound_contact_source_retarget_blocks() -> None:
-    """Verify that issued bound contact sources cannot be retargeted to different consumer."""
-    # Create a verified GET with one authorization identity
-    verified_contact = {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}
-    verified_get = note_path_module._issue_verified_bound_contact_get(
-        verified_contact=verified_contact,
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-    )
-    
-    # Create a capability for one authorization identity
-    capability = note_path_module._issue_bound_contact_capability(
-        verified_get=verified_get,
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-        consumer_workflow_run_id="synthetic-workflow-run-bound-source-001",
-    )
-    
-    # Attempt to use with different authorization identity should fail
-    with pytest.raises(BindingError, match="authorization binding is invalid"):
-        note_path_module._require_issued_verified_capability(
-            capability,
-            location_id="synthetic-location-001",
-            contact_id="synthetic-contact-001",
-            consumer_authorization_identity="DIFFERENT_AUTHORIZATION_IDENTITY",  # Different
-            consumer_workflow_run_id="synthetic-workflow-run-bound-source-001",
-        )
+    assert [method for method, _, _ in transport.calls] == ["GET"]
 
 
 def test_no_provider_get_and_zero_network_effects() -> None:
