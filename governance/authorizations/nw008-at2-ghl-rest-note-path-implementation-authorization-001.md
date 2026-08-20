@@ -22,25 +22,57 @@ ARCHITECTURE_ARTIFACT=docs/nw008/nw-008-at1-ghl-rest-adapter-architecture-001.md
 CONTRACT_ARTIFACT=contracts/highlevel_rest_adapter_v1.yaml
 
 STATUS=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
-AUTHORIZATION_EFFECTIVE=NO
-EFFECTIVE_CONDITION=HUMAN_REVIEW_AND_MERGE_TO_MAIN
-SELF_ACTIVATION=FORBIDDEN
 MODE=AUTHORIZATION_PLANNING_ONLY
+
+GRANT=NOTE_PATH_OFFLINE_IMPLEMENTATION
+GRANT_STATUS=CONDITIONAL
+GRANT_ACTIVATION=MERGE_TO_MAIN
+AUTHORIZATION_EFFECTIVE=NO
+EFFECTIVE_CONDITION=EXACT_AUTHORIZATION_ARTIFACT_MERGED_TO_MAIN_AND_VERIFIED_BY_CONSUMER
+SELF_ACTIVATION=FORBIDDEN
+ARTIFACT_TEXT_MUTATION_AFTER_MERGE_REQUIRED=NO
+
+AUTHORIZED_CONSUMER_UNIT=NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001
+AUTHORIZED_CONSUMER_PR_CLASS=implementation
+AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
+AUTHORIZATION_REUSABLE=NO
+AUTHORIZATION_TRANSFERABLE=NO
 ```
 
 This artifact is an authorization proposal only. Creating, reviewing, or merging
 it does not implement the adapter, open a network socket, load a credential,
 touch HighLevel, or produce live CRM effects.
 
-When effective after human review and merge to `main`, this authorization
-permits only the next bounded offline `NOTE_PATH` implementation lane described
-below. It is not runtime execution authority, not live-read authority, not
+### Conditional grant semantics
+
+```text
+GRANT=NOTE_PATH_OFFLINE_IMPLEMENTATION
+GRANT_STATUS=CONDITIONAL
+GRANT_ACTIVATION=MERGE_TO_MAIN
+AUTHORIZATION_EFFECTIVE=NO
+```
+
+Before merge, this grant is not effective. `GRANT_STATUS=CONDITIONAL` means the
+artifact defines a bounded offline `NOTE_PATH` implementation permission that
+becomes usable only when both of the following are true:
+
+1. the exact authorization artifact path is present on `main` via human review
+   and merge; and
+2. the authorized consumer unit
+   `NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001` verifies that merge
+   (exact path on `origin/main` / merge ancestry) before writing code.
+
+The artifact text does not need to mutate after merge to become effective.
+Effectiveness is established by merge presence plus consumer verification, not
+by rewriting `AUTHORIZATION_EFFECTIVE` inside this file.
+
+This grant is not runtime execution authority, not live-read authority, not
 live-mutation authority, and not a reusable standing grant.
 
 ```text
 IMPLEMENTATION_SLICE=NOTE_PATH
-IMPLEMENTATION_AUTHORIZED=YES
 IMPLEMENTATION_MODE=OFFLINE_ONLY
+GRANT_PERMITS_WHEN_EFFECTIVE=NOTE_PATH_OFFLINE_IMPLEMENTATION_ONLY
 
 NOTE_PATH_ARCHITECTURE_READY=YES
 STAGE_PATH_ARCHITECTURE_READY=NO
@@ -119,9 +151,15 @@ provider operations, or treat this authorization as live CRM authority.
 
 ```text
 IMPLEMENTATION_SLICE=NOTE_PATH
-IMPLEMENTATION_AUTHORIZED=YES
 IMPLEMENTATION_MODE=OFFLINE_ONLY
 TRANSPORT_REQUIREMENT=DETERMINISTIC_LOCAL_FAKE_ONLY
+GRANT=NOTE_PATH_OFFLINE_IMPLEMENTATION
+GRANT_STATUS=CONDITIONAL
+GRANT_ACTIVATION=MERGE_TO_MAIN
+GRANT_PERMITS_WHEN_EFFECTIVE=NOTE_PATH_OFFLINE_IMPLEMENTATION_ONLY
+AUTHORIZED_CONSUMER_UNIT=NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001
+AUTHORIZED_CONSUMER_PR_CLASS=implementation
+AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
 ```
 
 Authorized domain API surface only:
@@ -148,7 +186,9 @@ exchange, or credential provider call is authorized.
 
 ### 3.2 In-scope offline work
 
-The next implementation lane may, within the writable paths in §5 only:
+When the conditional grant is effective, only
+`NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001` may, within the
+writable paths in §5 only:
 
 1. Implement a bounded HighLevel REST `NOTE_PATH` adapter exposing only the
    three domain methods above.
@@ -286,12 +326,13 @@ governance/authorizations/nw008-at2-ghl-rest-note-path-implementation-authorizat
 No adapter code, tests, fixtures, contracts, workflows, or deploy assets may be
 created or modified in this unit.
 
-### 5.2 Future NOTE_PATH offline implementation lane
+### 5.2 Future NOTE_PATH offline implementation lane (AT3 only)
 
-After this authorization is effective (human review + merge to `main`), the
-next bounded offline implementation lane may write only the following
-repo-local conventional prefixes. Paths were resolved against the existing
-integration layout (`src/integrations/ghl`, `tests/integrations/ghl`,
+After the conditional grant is effective (exact artifact merged to `main` and
+verified by the consumer), only
+`NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001` may write only the
+following repo-local conventional prefixes. Paths were resolved against the
+existing integration layout (`src/integrations/ghl`, `tests/integrations/ghl`,
 `fixtures/ghl`) and isolated under a dedicated HighLevel REST NOTE_PATH
 package so MCP live/offline modules remain untouched.
 
@@ -305,6 +346,17 @@ tests/integrations/ghl/highlevel_rest/
 tests/integrations/ghl/highlevel_rest/**
 
 fixtures/ghl/highlevel_rest/
+fixtures/ghl/highlevel_rest/**
+
+IMPLEMENTATION_FILE_MANIFEST_REQUIRED=YES
+```
+
+AT3 must return an exact implementation file manifest of every created or
+modified path. Every manifest entry must remain under one of:
+
+```text
+src/integrations/ghl/highlevel_rest/**
+tests/integrations/ghl/highlevel_rest/**
 fixtures/ghl/highlevel_rest/**
 ```
 
@@ -363,6 +415,7 @@ WRITABLE_PATH_COUNT_PREFIXES=3
 WRITABLE_PATH_PREFIX_1=src/integrations/ghl/highlevel_rest/
 WRITABLE_PATH_PREFIX_2=tests/integrations/ghl/highlevel_rest/
 WRITABLE_PATH_PREFIX_3=fixtures/ghl/highlevel_rest/
+IMPLEMENTATION_FILE_MANIFEST_REQUIRED=YES
 STAGE_PATH_WRITABLE=NO
 APPS_SCRIPT_WRITABLE=NO
 DEPLOY_INFRA_WRITABLE=NO
@@ -423,6 +476,10 @@ assert zero network calls and zero external effects.
 exact_contact_binding_pass
 contact_binding_mismatch_block
 location_binding_mismatch_block
+missing_contact_binding_block
+missing_location_binding_block
+caller_supplied_contact_id_block
+caller_supplied_location_id_block
 raw_transcript_rejected
 non_synthetic_source_rejected
 note_body_only_payload
@@ -440,6 +497,10 @@ search_api_absent
 list_api_absent
 generic_execute_absent
 stage_routes_absent
+real_http_client_imports_absent
+socket_use_absent
+dns_resolution_absent
+env_credential_lookup_absent
 network_calls_zero
 external_effects_zero
 ```
@@ -456,16 +517,26 @@ NETWORK_CALLS=0
 EXTERNAL_EFFECTS=0
 HIGHLEVEL_NETWORK_CALLS=0
 CREDENTIAL_USE=0
+REAL_HTTP_CLIENT_IMPORTS_ABSENT=YES
+SOCKET_USE_ABSENT=YES
+DNS_RESOLUTION_ABSENT=YES
+ENV_CREDENTIAL_LOOKUP_ABSENT=YES
 STAGE_ROUTES_PRESENT=NO
 GENERIC_EXECUTE_PRESENT=NO
 SEARCH_API_PRESENT=NO
 LIST_API_PRESENT=NO
+IMPLEMENTATION_FILE_MANIFEST_REQUIRED=YES
+IMPLEMENTATION_FILE_MANIFEST_WITHIN_WRITABLE_PREFIXES=YES
 ```
 
 ## 8. Authorization consumption rules
 
 ```text
-CONSUMER=NEXT_BOUNDED_NOTE_PATH_OFFLINE_IMPLEMENTATION_LANE_ONLY
+AUTHORIZED_CONSUMER_UNIT=NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001
+AUTHORIZED_CONSUMER_PR_CLASS=implementation
+AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
+AUTHORIZATION_REUSABLE=NO
+AUTHORIZATION_TRANSFERABLE=NO
 ONE_SHOT_SCOPE=NOTE_PATH_OFFLINE_IMPLEMENTATION
 REUSE_AS_LIVE_EXECUTION_AUTHORITY=NO
 REUSE_AS_RUNTIME_AUTHORITY=NO
@@ -474,19 +545,55 @@ REUSE_AS_CREDENTIAL_AUTHORITY=NO
 STANDING_GRANT=NO
 ```
 
-Consumption rules:
+### 8.1 Named consumer binding
 
-1. This authorization applies only after human review and merge to `main`.
-2. Only one subsequent implementation lane may consume it for offline
-   `NOTE_PATH` code and tests inside §5.2 paths.
-3. Green offline tests do not activate live read, live mutation, or runtime
+Only unit `NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001` with
+`AUTHORIZED_CONSUMER_PR_CLASS=implementation` may consume this grant. No other
+unit, agent session, PR class, or follow-on lane may inherit it.
+
+### 8.2 Activation and verification
+
+1. Before merge: `AUTHORIZATION_EFFECTIVE=NO` and `GRANT_STATUS=CONDITIONAL`.
+2. Activation condition: the exact authorization artifact is merged to `main`
+   by human authority (`GRANT_ACTIVATION=MERGE_TO_MAIN`).
+3. AT3 must verify that merge (exact path present on `origin/main` and
+   ancestry/merge evidence) before any implementation write.
+4. The artifact text is not required to mutate after merge
+   (`ARTIFACT_TEXT_MUTATION_AFTER_MERGE_REQUIRED=NO`).
+
+### 8.3 One-shot, non-reuse, and expiry
+
+`AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT`. The grant is not reusable and not
+transferable:
+
+```text
+AUTHORIZATION_REUSABLE=NO
+AUTHORIZATION_TRANSFERABLE=NO
+```
+
+The authorization expires when any of the following occurs:
+
+- the authorized AT3 implementation PR is merged; or
+- the authorization is explicitly revoked by a later governance artifact; or
+- the source architecture artifact or contract artifact is superseded before
+  consumption.
+
+After expiry, no further writes may cite this artifact as authority.
+
+### 8.4 Remaining consumption rules
+
+1. Only AT3 may consume this grant for offline `NOTE_PATH` code and tests
+   inside §5.2 paths, and only while the grant is effective and unexpired.
+2. Green offline tests do not activate live read, live mutation, or runtime
    execution.
-4. Any later live synthetic read, live synthetic mutation, or production-path
+3. Any later live synthetic read, live synthetic mutation, or production-path
    execution requires a separate human authorization artifact with its own
    budgets and writable/runtime scope.
-5. This artifact must not be cited as authority for STAGE_PATH work.
-6. If implementation discovers a contract or architecture blocker, it must stop
+4. This artifact must not be cited as authority for STAGE_PATH work.
+5. If implementation discovers a contract or architecture blocker, it must stop
    and return; it must not expand routes, bindings, or effects under this grant.
+6. AT3 must return `IMPLEMENTATION_FILE_MANIFEST` listing every created or
+   modified path; every path must remain under the three writable prefixes.
 
 ## 9. Authorization PR validation gate
 
@@ -529,9 +636,24 @@ CONTRACT_ARTIFACT=contracts/highlevel_rest_adapter_v1.yaml
 NOTE_PATH_ARCHITECTURE_READY=YES
 STAGE_PATH_ARCHITECTURE_READY=NO
 
+GRANT=NOTE_PATH_OFFLINE_IMPLEMENTATION
+GRANT_STATUS=CONDITIONAL
+GRANT_ACTIVATION=MERGE_TO_MAIN
+AUTHORIZATION_EFFECTIVE=NO
+EFFECTIVE_CONDITION=EXACT_AUTHORIZATION_ARTIFACT_MERGED_TO_MAIN_AND_VERIFIED_BY_CONSUMER
+ARTIFACT_TEXT_MUTATION_AFTER_MERGE_REQUIRED=NO
+SELF_ACTIVATION=FORBIDDEN
+
+AUTHORIZED_CONSUMER_UNIT=NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001
+AUTHORIZED_CONSUMER_PR_CLASS=implementation
+AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
+AUTHORIZATION_REUSABLE=NO
+AUTHORIZATION_TRANSFERABLE=NO
+
 IMPLEMENTATION_SLICE=NOTE_PATH
-IMPLEMENTATION_AUTHORIZED=YES
 IMPLEMENTATION_MODE=OFFLINE_ONLY
+GRANT_PERMITS_WHEN_EFFECTIVE=NOTE_PATH_OFFLINE_IMPLEMENTATION_ONLY
+IMPLEMENTATION_FILE_MANIFEST_REQUIRED=YES
 
 ALLOWED_DOMAIN_API=get_bound_contact,create_meeting_note,verify_meeting_note
 ALLOWED_PROVIDER_ROUTES=GET /contacts/{contactId};POST /contacts/{contactId}/notes;GET /contacts/{contactId}/notes/{noteId}
@@ -555,9 +677,6 @@ WRITABLE_IMPLEMENTATION_PATHS=src/integrations/ghl/highlevel_rest/**;tests/integ
 AUTHORIZATION_PR_WRITABLE_PATHS=governance/authorizations/nw008-at2-ghl-rest-note-path-implementation-authorization-001.md
 
 STATUS=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
-AUTHORIZATION_EFFECTIVE=NO
-EFFECTIVE_CONDITION=HUMAN_REVIEW_AND_MERGE_TO_MAIN
-SELF_ACTIVATION=FORBIDDEN
 IMPLEMENTATION_EXECUTED_UNDER_THIS_UNIT=NO
 ```
 
@@ -567,7 +686,16 @@ IMPLEMENTATION_EXECUTED_UNDER_THIS_UNIT=NO
 BRANCH=governance/nw008-at2-note-path-implementation-authorization-001
 AUTHORIZATION_ARTIFACT=governance/authorizations/nw008-at2-ghl-rest-note-path-implementation-authorization-001.md
 WRITABLE_PATHS=src/integrations/ghl/highlevel_rest/**;tests/integrations/ghl/highlevel_rest/**;fixtures/ghl/highlevel_rest/**
-IMPLEMENTATION_AUTHORIZED=YES
+GRANT=NOTE_PATH_OFFLINE_IMPLEMENTATION
+GRANT_STATUS=CONDITIONAL
+GRANT_ACTIVATION=MERGE_TO_MAIN
+AUTHORIZATION_EFFECTIVE=NO
+AUTHORIZED_CONSUMER_UNIT=NW008_AT3_GHL_REST_NOTE_PATH_OFFLINE_IMPLEMENTATION_001
+AUTHORIZED_CONSUMER_PR_CLASS=implementation
+AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
+AUTHORIZATION_REUSABLE=NO
+AUTHORIZATION_TRANSFERABLE=NO
+IMPLEMENTATION_FILE_MANIFEST_REQUIRED=YES
 IMPLEMENTATION_MODE=OFFLINE_ONLY
 LIVE_READ_AUTHORIZED=NO
 LIVE_MUTATION_AUTHORIZED=NO
@@ -576,7 +704,7 @@ STAGE_PATH_IMPLEMENTATION_AUTHORIZED=NO
 NETWORK_ACCESS_AUTHORIZED=NO
 EXTERNAL_EFFECTS_ALLOWED=0
 NEXT=HUMAN_REVIEW_AND_MERGE_AUTHORIZATION_PR
-STOP_CODE=NW008_AT2_NOTE_PATH_IMPLEMENTATION_AUTHORIZATION_READY_FOR_REVIEW
+STOP_CODE=NW008_AT2_NOTE_PATH_IMPLEMENTATION_AUTHORIZATION_READY_FOR_PR_REVIEW
 ```
 
 STOP. Return this authorization artifact for ChatGPT / human review. Do not
