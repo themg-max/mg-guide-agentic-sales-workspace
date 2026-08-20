@@ -160,6 +160,14 @@ class _CapabilityIssuanceSnapshot:
     trust_marker: object
 
 
+@dataclass(frozen=True)
+class _BoundContactGetVerificationSnapshot:
+    location_id: str
+    contact_id: str
+    consumer_authorization_identity: str
+    consumer_workflow_run_id: str
+
+
 class _IdentityRegistry:
     """Process-local object identities paired with immutable issuance records."""
 
@@ -212,6 +220,7 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
     }
     issued_sources = _IdentityRegistry()
     issued_capabilities = _IdentityRegistry()
+    verified_bound_contact_gets = _IdentityRegistry()
 
     def _issue_source(
         *,
@@ -287,25 +296,65 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
         *,
         adapter: object,
     ) -> _VerifiedContactBindingCapability:
+        if not isinstance(adapter, NotePathAdapter):
+            raise BindingError("successful bound contact preflight is required")
+        verification_snapshot = verified_bound_contact_gets.get(adapter)
+        if not isinstance(verification_snapshot, _BoundContactGetVerificationSnapshot):
+            raise BindingError("successful bound contact preflight is required")
         if (
-            not isinstance(adapter, NotePathAdapter)
-            or adapter._verified_bound_contact_preflight
-            is not adapter._bound_contact_preflight_marker
+            adapter._location_id != verification_snapshot.location_id
+            or adapter._contact_id != verification_snapshot.contact_id
+            or (
+                adapter._consumer_authorization_identity
+                != verification_snapshot.consumer_authorization_identity
+            )
+            or adapter._consumer_workflow_run_id
+            != verification_snapshot.consumer_workflow_run_id
         ):
             raise BindingError("successful bound contact preflight is required")
         source = _issue_source(
             trusted_origin=_TRUSTED_SOURCE_BOUND_CONTACT,
-            location_id=adapter._location_id,
-            contact_id=adapter._contact_id,
+            location_id=verification_snapshot.location_id,
+            contact_id=verification_snapshot.contact_id,
         )
         return _issue_capability(
             trusted_origin=_TRUSTED_SOURCE_BOUND_CONTACT,
-            location_id=adapter._location_id,
-            contact_id=adapter._contact_id,
-            consumer_authorization_identity=adapter._consumer_authorization_identity,
-            consumer_workflow_run_id=adapter._consumer_workflow_run_id,
+            location_id=verification_snapshot.location_id,
+            contact_id=verification_snapshot.contact_id,
+            consumer_authorization_identity=verification_snapshot.consumer_authorization_identity,
+            consumer_workflow_run_id=verification_snapshot.consumer_workflow_run_id,
             trusted_binding_source=source,
         )
+
+    def build_bound_contact_get() -> Any:
+        def get_bound_contact(adapter: NotePathAdapter) -> Mapping[str, str]:
+            """Fetch and verify the exact private binding before recording issuer evidence."""
+            response = adapter._transport.dispatch(
+                "GET", f"/contacts/{adapter._contact_id}"
+            )
+            contact = adapter._required_envelope(response, "contact")
+            contact_id = contact.get("id")
+            location_id = contact.get("locationId")
+            if contact_id != adapter._contact_id:
+                raise BindingError("contact id does not match the private binding")
+            if location_id != adapter._location_id:
+                raise BindingError("location id does not match the private binding")
+            verified_bound_contact_gets.add(
+                adapter,
+                _BoundContactGetVerificationSnapshot(
+                    location_id=adapter._location_id,
+                    contact_id=adapter._contact_id,
+                    consumer_authorization_identity=adapter._consumer_authorization_identity,
+                    consumer_workflow_run_id=adapter._consumer_workflow_run_id,
+                ),
+            )
+            adapter.CONTACT_PREFLIGHT_VERIFIED = "YES"
+            adapter._verified_contact_binding_capability = issue_bound_contact_capability(
+                adapter=adapter,
+            )
+            return {"id": contact_id, "locationId": location_id}
+
+        return get_bound_contact
 
     def issue_synthetic_test_capability(
         *,
@@ -535,6 +584,7 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
         issue_synthetic_test_capability,
         issue_private_at8_handoff_source_for_synthetic_tests,
         handoff_private_at8_capability_from_registered_source,
+        build_bound_contact_get,
         require_issued_verified_capability,
     )
 
@@ -544,6 +594,7 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
     _issue_synthetic_test_capability,
     _issue_private_at8_handoff_source_for_synthetic_tests,
     _handoff_private_at8_capability_from_registered_source,
+    _build_bound_contact_get,
     _require_issued_verified_capability,
 ) = _build_internal_trust_issuer()
 
@@ -638,29 +689,11 @@ class NotePathAdapter:
         self.POST_ATTEMPTS = 0
         self._created_note: CreatedMeetingNote | None = None
         self._expected_note: Mapping[str, Any] | None = None
-        self._bound_contact_preflight_marker = object()
-        self._verified_bound_contact_preflight: object | None = None
         self._verified_contact_binding_capability: _VerifiedContactBindingCapability | None = (
             None
         )
 
-    def get_bound_contact(self) -> Mapping[str, str]:
-        """Fetch and validate only the exact private contact and location binding."""
-        response = self._transport.dispatch("GET", f"/contacts/{self._contact_id}")
-        contact = self._required_envelope(response, "contact")
-        contact_id = contact.get("id")
-        location_id = contact.get("locationId")
-        if contact_id != self._contact_id:
-            raise BindingError("contact id does not match the private binding")
-        if location_id != self._location_id:
-            raise BindingError("location id does not match the private binding")
-        self.CONTACT_PREFLIGHT_VERIFIED = "YES"
-        self._verified_bound_contact_preflight = self._bound_contact_preflight_marker
-        verified_contact = {"id": contact_id, "locationId": location_id}
-        self._verified_contact_binding_capability = _issue_bound_contact_capability(
-            adapter=self,
-        )
-        return verified_contact
+    get_bound_contact = _build_bound_contact_get()
 
     def create_meeting_note(self, note_contract: Mapping[str, Any]) -> CreatedMeetingNote:
         """Serialize one validated synthetic note and consume the one POST budget."""

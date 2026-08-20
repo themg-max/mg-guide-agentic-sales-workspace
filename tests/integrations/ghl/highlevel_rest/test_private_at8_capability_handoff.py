@@ -315,11 +315,29 @@ def test_direct_bound_contact_capability_mint_blocks() -> None:
     )
     assert adapter._verified_contact_binding_capability is None
     assert not hasattr(NotePathAdapter, "_mint_bound_contact_verified_capability")
+    assert not hasattr(adapter, "_bound_contact_preflight_marker")
+    assert not hasattr(adapter, "_verified_bound_contact_preflight")
     with pytest.raises(BindingError, match="preflight"):
         adapter.create_meeting_note(_note())
     assert transport.calls == []
     with pytest.raises(BindingError, match="successful bound contact preflight is required"):
         note_path_module._issue_bound_contact_capability(adapter=adapter)
+
+
+def test_caller_copied_preflight_marker_cannot_mint() -> None:
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-copied-marker-001",
+    )
+    forged_marker = object()
+    adapter._bound_contact_preflight_marker = forged_marker
+    adapter._verified_bound_contact_preflight = forged_marker
+
+    with pytest.raises(BindingError, match="preflight"):
+        note_path_module._issue_bound_contact_capability(adapter=adapter)
+
+    assert adapter._verified_contact_binding_capability is None
+    assert transport.calls == []
 
 
 def test_get_bound_contact_mismatch_mints_nothing() -> None:
