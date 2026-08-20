@@ -4,6 +4,7 @@ from copy import deepcopy
 import inspect
 import json
 from pathlib import Path
+import pickle
 
 import pytest
 
@@ -12,6 +13,7 @@ from integrations.ghl.highlevel_rest import (
     BindingError,
     DeterministicFakeTransport,
     NotePathAdapter,
+    TransportError,
 )
 
 
@@ -67,18 +69,48 @@ def _synthetic_binding() -> note_path_module._PrivateContactBinding:
     )
 
 
-class _InjectedSyntheticBindingSource:
-    def __init__(self, binding: note_path_module._PrivateContactBinding) -> None:
-        self._binding = binding
+def _issue_synthetic_capability(
+    *,
+    consumer_workflow_run_id: str,
+    consumer_authorization_identity: str = DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+    location_id: str = "synthetic-location-001",
+    contact_id: str = "synthetic-contact-001",
+    workflow_id: str = "meeting_follow_up_v1",
+    source_execution_unit: str = AT8_SOURCE_EXECUTION_UNIT,
+    source_proof_merge_sha: str = AT8_SOURCE_PROOF_MERGE_SHA,
+) -> note_path_module._VerifiedContactBindingCapability:
+    return note_path_module._issue_synthetic_test_capability(
+        location_id=location_id,
+        contact_id=contact_id,
+        consumer_authorization_identity=consumer_authorization_identity,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+        workflow_id=workflow_id,
+        source_execution_unit=source_execution_unit,
+        source_proof_merge_sha=source_proof_merge_sha,
+    )
 
-    def get_binding(self) -> note_path_module._PrivateContactBinding:
-        return self._binding
+
+class _UntrustedStructuralBindingSource:
+    def get_trusted_binding_source(self) -> note_path_module._TrustedPrivateBindingSource:
+        return note_path_module._TrustedPrivateBindingSource(
+            workflow_id="meeting_follow_up_v1",
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            location_id="synthetic-location-001",
+            contact_id="synthetic-contact-001",
+            trusted_origin="private_at8_verified_binding_handoff",
+            _trust_marker=object(),
+        )
 
 
-def test_valid_private_binding_handoff_shape() -> None:
+def test_valid_internal_private_at8_handoff() -> None:
     workflow_run_id = "synthetic-workflow-run-handoff-valid-001"
+    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+    )
     capability = note_path_module._handoff_private_at8_verified_binding_capability(
-        private_binding=_synthetic_binding(),
+        trusted_binding_source=trusted_binding_source,
         source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
         source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
@@ -88,6 +120,7 @@ def test_valid_private_binding_handoff_shape() -> None:
 
     assert note_path_module._PrivateContactBinding.__dataclass_params__.frozen is True
     assert note_path_module._VerifiedContactBindingCapability.__dataclass_params__.frozen is True
+    assert trusted_binding_source.trusted_origin == "private_at8_verified_binding_handoff"
     assert capability.workflow_id == "meeting_follow_up_v1"
     assert capability.source_execution_unit == AT8_SOURCE_EXECUTION_UNIT
     assert capability.source_proof_merge_sha == AT8_SOURCE_PROOF_MERGE_SHA
@@ -95,14 +128,17 @@ def test_valid_private_binding_handoff_shape() -> None:
     assert capability.contact_id == "synthetic-contact-001"
     assert capability.consumer_authorization_identity == DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY
     assert capability.consumer_workflow_run_id == workflow_run_id
-    assert capability.trusted_source == "private_at8_verified_binding_handoff"
-    assert capability._trust_marker is note_path_module._CAPABILITY_TRUST_MARKER
+    assert capability.trusted_binding_source is trusted_binding_source
+    assert capability.trusted_binding_source.trusted_origin == (
+        "private_at8_verified_binding_handoff"
+    )
     assert "trusted_source" not in inspect.signature(
         note_path_module._handoff_private_at8_verified_binding_capability
     ).parameters
-    assert "_trust_marker" not in inspect.signature(
+    assert "trusted_binding_source" in inspect.signature(
         note_path_module._handoff_private_at8_verified_binding_capability
     ).parameters
+    assert not hasattr(note_path_module, "_issue_private_at8_handoff_capability")
 
     adapter, transport = _adapter(
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
@@ -112,51 +148,236 @@ def test_valid_private_binding_handoff_shape() -> None:
     assert adapter._require_trusted_verified_capability() is capability
     assert transport.calls == []
 
+    bound_adapter, bound_transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-valid-bound-001",
+    )
+    bound_adapter.get_bound_contact()
+    bound_capability = bound_adapter._require_trusted_verified_capability()
+    assert bound_capability.trusted_binding_source.trusted_origin == (
+        "fake_transport_bound_contact_verification"
+    )
+    assert [method for method, _, _ in bound_transport.calls] == ["GET"]
 
-def test_handoff_accepts_injected_private_binding_source() -> None:
-    workflow_run_id = "synthetic-workflow-run-handoff-source-001"
-    capability = note_path_module._handoff_private_at8_verified_binding_capability(
-        private_binding_source=_InjectedSyntheticBindingSource(_synthetic_binding()),
+
+def test_raw_private_binding_direct_handoff_blocks() -> None:
+    binding = _synthetic_binding()
+    with pytest.raises(TypeError):
+        note_path_module._handoff_private_at8_verified_binding_capability(
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-raw-001",
+            workflow_id="meeting_follow_up_v1",
+            private_binding=binding,
+        )
+    assert not hasattr(note_path_module, "_issue_private_at8_handoff_capability")
+
+
+def test_origin_specific_private_mint_not_available_to_ordinary_caller() -> None:
+    assert not hasattr(note_path_module, "_mint_private_at8_verified_binding_handoff_source")
+    assert not hasattr(note_path_module, "_mint_bound_contact_trusted_binding_source")
+    assert not hasattr(note_path_module, "_mint_at8_shaped_test_trusted_binding_source")
+    assert not hasattr(note_path_module, "_mint_trusted_capability")
+    assert not hasattr(note_path_module, "_issue_private_at8_handoff_capability")
+    source = (SOURCE_ROOT / "note_path.py").read_text(encoding="utf-8")
+    assert "_mint_private_at8_verified_binding_handoff_source" not in source
+    assert "def _mint_trusted_capability" not in source
+    assert "def _issue_private_at8_handoff_capability" not in source
+
+
+def test_untrusted_structural_binding_source_cannot_handoff() -> None:
+    untrusted = _UntrustedStructuralBindingSource().get_trusted_binding_source()
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._handoff_private_at8_verified_binding_capability(
+            trusted_binding_source=untrusted,
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-untrusted-001",
+            workflow_id="meeting_follow_up_v1",
+        )
+    assert not hasattr(note_path_module, "_issue_private_at8_handoff_capability")
+
+
+def test_known_at8_strings_alone_cannot_mint() -> None:
+    with pytest.raises(TypeError):
+        note_path_module._handoff_private_at8_verified_binding_capability(
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-strings-001",
+            workflow_id="meeting_follow_up_v1",
+        )
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-strings-002",
+    )
+    forged = note_path_module._VerifiedContactBindingCapability(
+        workflow_id="meeting_follow_up_v1",
         source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
         source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-strings-002",
+        trusted_binding_source=note_path_module._TrustedPrivateBindingSource(
+            workflow_id="meeting_follow_up_v1",
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            location_id="synthetic-location-001",
+            contact_id="synthetic-contact-001",
+            trusted_origin="private_at8_verified_binding_handoff",
+            _trust_marker=object(),
+        ),
+        _trust_marker=object(),
+    )
+    adapter._verified_contact_binding_capability = forged
+    with pytest.raises(BindingError, match="invalid"):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+
+def test_real_module_marker_not_caller_accessible() -> None:
+    assert not hasattr(note_path_module, "_TRUSTED_BINDING_SOURCE_MARKER")
+    assert not hasattr(note_path_module, "_VERIFIED_CAPABILITY_TRUST_MARKER")
+    assert not hasattr(note_path_module, "_ALLOWED_TRUSTED_BINDING_SOURCES")
+
+
+def test_caller_with_real_module_marker_cannot_forge() -> None:
+    workflow_run_id = "synthetic-workflow-run-handoff-stolen-marker-001"
+    issued = _issue_synthetic_capability(consumer_workflow_run_id=workflow_run_id)
+    forged = note_path_module._VerifiedContactBindingCapability(
+        workflow_id=issued.workflow_id,
+        source_execution_unit=issued.source_execution_unit,
+        source_proof_merge_sha=issued.source_proof_merge_sha,
+        location_id=issued.location_id,
+        contact_id=issued.contact_id,
+        consumer_authorization_identity=issued.consumer_authorization_identity,
+        consumer_workflow_run_id=workflow_run_id,
+        trusted_binding_source=issued.trusted_binding_source,
+        _trust_marker=issued._trust_marker,
+    )
+    adapter, transport = _adapter(
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
         consumer_workflow_run_id=workflow_run_id,
-        workflow_id="meeting_follow_up_v1",
     )
-    assert capability.contact_id == "synthetic-contact-001"
-    assert capability._trust_marker is note_path_module._CAPABILITY_TRUST_MARKER
+    adapter._verified_contact_binding_capability = forged
+    with pytest.raises(BindingError, match="invalid"):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+
+def test_private_handoff_rejects_bound_contact_origin() -> None:
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-reject-bound-001",
+    )
+    adapter.get_bound_contact()
+    bound_source = adapter._verified_contact_binding_capability.trusted_binding_source
+    assert bound_source.trusted_origin == "fake_transport_bound_contact_verification"
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._handoff_private_at8_verified_binding_capability(
+            trusted_binding_source=bound_source,
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-reject-bound-001",
+            workflow_id="meeting_follow_up_v1",
+        )
+    assert not hasattr(note_path_module, "_issue_private_at8_handoff_capability")
+    assert [method for method, _, _ in transport.calls] == ["GET"]
+
+
+def test_private_handoff_rejects_synthetic_test_origin() -> None:
+    synthetic = NotePathAdapter._build_at8_shaped_test_capability(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-reject-synthetic-001",
+    )
+    assert synthetic.trusted_binding_source.trusted_origin == "at8_shaped_test_capability"
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._handoff_private_at8_verified_binding_capability(
+            trusted_binding_source=synthetic.trusted_binding_source,
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-reject-synthetic-001",
+            workflow_id="meeting_follow_up_v1",
+        )
+
+
+def test_bound_contact_trust_requires_verified_get() -> None:
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-001",
+    )
+    assert adapter._verified_contact_binding_capability is None
+    assert not hasattr(NotePathAdapter, "_mint_bound_contact_verified_capability")
+    with pytest.raises(BindingError, match="preflight"):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+    mismatched_transport = DeterministicFakeTransport(deepcopy(FIXTURE), "contact_id_mismatch")
+    mismatched = NotePathAdapter(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+        transport=mismatched_transport,
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-002",
+    )
+    with pytest.raises((BindingError, TransportError)):
+        mismatched.get_bound_contact()
+    assert mismatched._verified_contact_binding_capability is None
+    assert [method for method, _, _ in mismatched_transport.calls] == ["GET"]
+
+    adapter.get_bound_contact()
+    capability = adapter._verified_contact_binding_capability
+    assert capability is not None
+    assert capability.trusted_binding_source.trusted_origin == (
+        "fake_transport_bound_contact_verification"
+    )
+    with pytest.raises(BindingError, match="bound-contact trust requires verified GET"):
+        note_path_module._issue_bound_contact_capability(
+            verified_get={"id": "synthetic-contact-001", "locationId": "other-location"},
+            location_id="synthetic-location-001",
+            contact_id="synthetic-contact-001",
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-003",
+        )
+
+
+def test_caller_matching_contact_mapping_cannot_mint_bound_trust() -> None:
+    expected_contact = {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}
+    with pytest.raises(BindingError, match="bound-contact trust requires verified GET"):
+        note_path_module._issue_bound_contact_capability(
+            verified_get=expected_contact,
+            location_id="synthetic-location-001",
+            contact_id="synthetic-contact-001",
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-bound-get-forge-001",
+        )
 
 
 def test_at8_provenance_mismatch_blocks() -> None:
     with pytest.raises(BindingError, match="source proof is invalid"):
-        note_path_module._handoff_private_at8_verified_binding_capability(
-            private_binding=_synthetic_binding(),
-            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
-            source_proof_merge_sha="0" * 40,
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        _issue_synthetic_capability(
             consumer_workflow_run_id="synthetic-workflow-run-handoff-proof-001",
-            workflow_id="meeting_follow_up_v1",
+            source_proof_merge_sha="0" * 40,
         )
     with pytest.raises(BindingError, match="source execution unit is invalid"):
-        note_path_module._handoff_private_at8_verified_binding_capability(
-            private_binding=_synthetic_binding(),
-            source_execution_unit="NW008_WRONG_EXECUTION_UNIT",
-            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        _issue_synthetic_capability(
             consumer_workflow_run_id="synthetic-workflow-run-handoff-unit-001",
-            workflow_id="meeting_follow_up_v1",
+            source_execution_unit="NW008_WRONG_EXECUTION_UNIT",
         )
 
 
 def test_wrong_consumer_authorization_blocks() -> None:
     workflow_run_id = "synthetic-workflow-run-handoff-authz-001"
-    capability = note_path_module._handoff_private_at8_verified_binding_capability(
-        private_binding=_synthetic_binding(),
-        source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
-        source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
-        consumer_authorization_identity="WRONG_AUTHZ_IDENTITY",
+    capability = _issue_synthetic_capability(
         consumer_workflow_run_id=workflow_run_id,
-        workflow_id="meeting_follow_up_v1",
+        consumer_authorization_identity="WRONG_AUTHZ_IDENTITY",
     )
     adapter, transport = _adapter(
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
@@ -169,13 +390,8 @@ def test_wrong_consumer_authorization_blocks() -> None:
 
 
 def test_wrong_workflow_run_blocks() -> None:
-    capability = note_path_module._handoff_private_at8_verified_binding_capability(
-        private_binding=_synthetic_binding(),
-        source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
-        source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
-        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+    capability = _issue_synthetic_capability(
         consumer_workflow_run_id="synthetic-workflow-run-handoff-other-001",
-        workflow_id="meeting_follow_up_v1",
     )
     adapter, transport = _adapter(
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
@@ -189,11 +405,7 @@ def test_wrong_workflow_run_blocks() -> None:
 
 def test_wrong_workflow_id_blocks() -> None:
     with pytest.raises(BindingError, match="workflow binding is invalid"):
-        note_path_module._handoff_private_at8_verified_binding_capability(
-            private_binding=_synthetic_binding(),
-            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
-            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        _issue_synthetic_capability(
             consumer_workflow_run_id="synthetic-workflow-run-handoff-workflow-001",
             workflow_id="wrong_workflow_v2",
         )
@@ -212,7 +424,15 @@ def test_caller_forged_capability_blocks() -> None:
         contact_id="synthetic-contact-001",
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
         consumer_workflow_run_id="synthetic-workflow-run-handoff-forged-001",
-        trusted_source="private_at8_verified_binding_handoff",
+        trusted_binding_source=note_path_module._TrustedPrivateBindingSource(
+            workflow_id="meeting_follow_up_v1",
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            location_id="synthetic-location-001",
+            contact_id="synthetic-contact-001",
+            trusted_origin="private_at8_verified_binding_handoff",
+            _trust_marker=object(),
+        ),
         _trust_marker=object(),
     )
     adapter._verified_contact_binding_capability = forged
@@ -224,7 +444,6 @@ def test_caller_forged_capability_blocks() -> None:
 def test_public_trusted_source_injection_blocks() -> None:
     with pytest.raises(TypeError):
         note_path_module._handoff_private_at8_verified_binding_capability(
-            private_binding=_synthetic_binding(),
             source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
             source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
             consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
@@ -232,17 +451,7 @@ def test_public_trusted_source_injection_blocks() -> None:
             workflow_id="meeting_follow_up_v1",
             trusted_source="caller-supplied-trusted-source",
         )
-    with pytest.raises(BindingError, match="trusted source is invalid"):
-        note_path_module._mint_trusted_capability(
-            workflow_id="meeting_follow_up_v1",
-            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
-            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
-            location_id="synthetic-location-001",
-            contact_id="synthetic-contact-001",
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id="synthetic-workflow-run-handoff-source-inject-002",
-            trusted_source="caller-supplied-trusted-source",
-        )
+    assert not hasattr(note_path_module, "_mint_trusted_capability")
 
 
 def test_public_boolean_promotion_blocks() -> None:
@@ -276,10 +485,75 @@ def test_synthetic_test_factory_real_id_use_blocks() -> None:
         )
 
 
+def test_private_handoff_source_factory_real_id_use_blocks() -> None:
+    with pytest.raises(BindingError, match="must be synthetic"):
+        NotePathAdapter._build_private_at8_verified_binding_source(
+            location_id="live-location-001",
+            contact_id="synthetic-contact-001",
+        )
+    with pytest.raises(BindingError, match="must be synthetic"):
+        NotePathAdapter._build_private_at8_verified_binding_source(
+            location_id="synthetic-location-001",
+            contact_id="live-contact-001",
+        )
+
+
+def test_capability_trust_registry_is_process_local() -> None:
+    capability = _issue_synthetic_capability(
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-process-local-001",
+    )
+    restart_registry = note_path_module._build_internal_trust_issuer()
+    restart_require_issued_verified_capability = restart_registry[-1]
+    with pytest.raises(BindingError, match="verified-contact binding capability is invalid"):
+        restart_require_issued_verified_capability(
+            capability,
+            location_id="synthetic-location-001",
+            contact_id="synthetic-contact-001",
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-process-local-001",
+        )
+
+
+def test_capability_serialization_does_not_restore_authority() -> None:
+    workflow_run_id = "synthetic-workflow-run-handoff-serialization-001"
+    capability = _issue_synthetic_capability(consumer_workflow_run_id=workflow_run_id)
+    restored = pickle.loads(pickle.dumps(capability))
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+    adapter._verified_contact_binding_capability = restored
+    with pytest.raises(BindingError, match="verified-contact binding capability is invalid"):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+
+def test_process_restart_requires_fresh_trust_issuance() -> None:
+    restart_registry = note_path_module._build_internal_trust_issuer()
+    restart_issue_synthetic_test_capability = restart_registry[2]
+    restart_require_issued_verified_capability = restart_registry[-1]
+    fresh_capability = restart_issue_synthetic_test_capability(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-handoff-process-restart-001",
+    )
+    assert (
+        restart_require_issued_verified_capability(
+            fresh_capability,
+            location_id="synthetic-location-001",
+            contact_id="synthetic-contact-001",
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-handoff-process-restart-001",
+        )
+        is fresh_capability
+    )
+
+
 def test_private_binding_is_data_not_authority() -> None:
     binding = _synthetic_binding()
     assert not hasattr(binding, "_trust_marker")
-    assert not hasattr(binding, "trusted_source")
+    assert not hasattr(binding, "trusted_binding_source")
     adapter, transport = _adapter(
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
         consumer_workflow_run_id="synthetic-workflow-run-handoff-data-001",
@@ -306,6 +580,7 @@ def test_private_binding_publication_absent() -> None:
     }
     assert "handoff_private_at8_verified_binding_capability" not in public_methods
     assert "_handoff_private_at8_verified_binding_capability" not in dir(NotePathAdapter)
+    assert "_issue_private_at8_handoff_capability" not in dir(NotePathAdapter)
 
 
 def test_no_provider_get_and_zero_network_effects() -> None:

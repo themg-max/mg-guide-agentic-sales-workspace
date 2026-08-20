@@ -104,15 +104,19 @@ def _trusted_test_capability(
     consumer_authorization_identity: str = DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
     consumer_workflow_run_id: str = "synthetic-workflow-run-override",
 ):
-    return NotePathAdapter._build_at8_shaped_test_capability(
-        workflow_id=workflow_id,
-        source_execution_unit=source_execution_unit,
-        source_proof_merge_sha=source_proof_merge_sha,
+    capability = NotePathAdapter._build_at8_shaped_test_capability(
         location_id=location_id,
         contact_id=contact_id,
         consumer_authorization_identity=consumer_authorization_identity,
         consumer_workflow_run_id=consumer_workflow_run_id,
     )
+    if capability.workflow_id != workflow_id:
+        object.__setattr__(capability, "workflow_id", workflow_id)
+    if capability.source_execution_unit != source_execution_unit:
+        object.__setattr__(capability, "source_execution_unit", source_execution_unit)
+    if capability.source_proof_merge_sha != source_proof_merge_sha:
+        object.__setattr__(capability, "source_proof_merge_sha", source_proof_merge_sha)
+    return capability
 
 
 def test_exact_contact_binding_pass() -> None:
@@ -350,6 +354,15 @@ def test_invalid_verified_binding_capability_blocks() -> None:
         adapter.create_meeting_note(_note())
     assert transport.calls == []
 
+    trusted_binding_source = note_path_module._TrustedPrivateBindingSource(
+        workflow_id="meeting_follow_up_v1",
+        source_execution_unit="NW008_AT8_GHL_REST_EXACT_SYNTHETIC_CONTACT_LIVE_READ_EXECUTION_002",
+        source_proof_merge_sha="6256f287bbd88effc2ef1cd13a801faec79a0af2",
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+        trusted_origin="private_at8_verified_binding_handoff",
+        _trust_marker=object(),
+    )
     forged = note_path_module._VerifiedContactBindingCapability(
         workflow_id="meeting_follow_up_v1",
         source_execution_unit="NW008_AT8_GHL_REST_EXACT_SYNTHETIC_CONTACT_LIVE_READ_EXECUTION_002",
@@ -358,7 +371,7 @@ def test_invalid_verified_binding_capability_blocks() -> None:
         contact_id="synthetic-contact-001",
         consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
         consumer_workflow_run_id="synthetic-workflow-run-forged-001",
-        trusted_source="fake_transport_bound_contact_verification",
+        trusted_binding_source=trusted_binding_source,
         _trust_marker=object(),
     )
     adapter._verified_contact_binding_capability = forged
