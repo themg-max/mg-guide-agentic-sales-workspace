@@ -21,7 +21,7 @@ PREDECESSOR_HEAD_SHA=9ad5999ad82a7412d9a09ee86c32d51d02312c88
 PREDECESSOR_MERGE_SHA=b2d1d2cc1d6e01ef1760a5af6b970d08fb02561a
 PREDECESSOR_MERGE_VERIFIED=YES
 
-STATUS=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
+STATUS_AT_AUTHORING=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
 
 GRANT=NOTE_PATH_AT1_EXECUTION_STORE_OFFLINE_INTEGRATION
 GRANT_STATUS=CONDITIONAL
@@ -163,8 +163,8 @@ Authorization for NOTE_PATH → At1ExecutionStore integration is not inferred fr
 AT1_EXECUTION_STORE_REUSE_FIT=YES_UNCHANGED
 STORE_ADAPTATION_REQUIRED=NO
 NOTE_PATH_STORE_INTEGRATION_REQUIRED=YES
-NOTE_PATH_STORE_INTEGRATION_AUTHORIZED=NO
-DURABLE_LEDGER_IMPLEMENTATION_AUTHORIZATION_REQUIRED=NO
+AT8D_NOTE_PATH_STORE_INTEGRATION_AUTHORIZED=NO
+AT8D_DURABLE_LEDGER_IMPLEMENTATION_AUTHORIZATION_REQUIRED=NO
 ```
 
 AT8D established that `At1ExecutionStore` can serve unchanged as the durable NOTE_CREATE reservation primitive for a dedicated NOTE_PATH grant/run. AT8D was a planning/validation artifact only and did not authorize integration. AT8G is that separate integration authorization.
@@ -194,7 +194,7 @@ Authorized methods (call-only; no modification):
 
 ```text
 acquire_claim(grant_run_id: str, owner_id: str) -> None
-assert_claim_owner(grant_run_id: str, owner_id: str) -> None
+assert_claim_owner(grant_run_id: str, owner_id: str) -> None   # PERMITTED, not required
 require_run_continuable(grant_run_id: str) -> None
 record_attempt(*, grant_run_id, operation_ordinal, operation_id, request_id, request_envelope) -> str
 mark_dispatched(*, grant_run_id, operation_ordinal) -> None
@@ -235,6 +235,31 @@ next_operation_ordinal — MUST NOT be used to allocate NOTE_PATH ordinals
 compute_public_projection — AT1-sequence specific (create-note/get-note/update-opportunity/six ordinals); MUST NOT be consumed as NOTE_PATH reservation truth
 ```
 
+### Execution store injection and no-store behavior (frozen)
+
+```text
+EXECUTION_STORE_INJECTION=OPTIONAL_KEYWORD_ONLY
+EXECUTION_STORE_PARAMETER=execution_store
+EXECUTION_STORE_PARAMETER_TYPE=At1ExecutionStore | None
+EXECUTION_STORE_PARAMETER_DEFAULT=None
+
+AT8G_DURABLE_PATH_REQUIRES_EXPLICIT_STORE=YES
+
+NO_STORE_BEHAVIOR=LEGACY_PROCESS_LOCAL_LEDGER_OFFLINE_COMPATIBILITY_ONLY
+LEGACY_PROCESS_LOCAL_LEDGER_REMAINS_LIVE_AUTHORITY=NO
+
+AUTOMATIC_STORE_CONSTRUCTION_AUTHORIZED=NO
+PRODUCTION_STORE_DEFAULT_AUTHORIZED=NO
+PRODUCTION_SQLITE_WIRING_AUTHORIZED=NO
+```
+
+The future call-compatible `NotePathAdapter` constructor may add **only** the optional keyword-only `execution_store` parameter. No other constructor parameter may be added, removed, reordered, or re-typed under this grant.
+
+- When `execution_store` is supplied: the AT8G durable reservation lifecycle of §8 applies.
+- When `execution_store` is absent: legacy process-local ledger behavior is preserved for offline compatibility only. The no-store path MUST NOT claim durable, cross-process, or live reservation truth, and the legacy process-local ledger remains explicitly not live authority.
+
+The adapter MUST NOT construct an `At1ExecutionStore` itself. Automatic store construction, production store defaults, and production SQLite wiring are not authorized.
+
 ## 4. Exact NOTE_PATH producer/consumer boundary
 
 Producer of reservation identity (unchanged inputs from `src/integrations/ghl/highlevel_rest/note_path.py`):
@@ -259,7 +284,7 @@ That process-local ledger is not authoritative for cross-process reservation and
 Public surface of `NotePathAdapter` (must remain call-compatible):
 
 ```text
-NotePathAdapter(location_id, contact_id, transport, *, consumer_authorization_identity, consumer_workflow_run_id)
+NotePathAdapter(location_id, contact_id, transport, *, consumer_authorization_identity, consumer_workflow_run_id, execution_store=None)
 NotePathAdapter.get_bound_contact(adapter)  # closure-bound helper
 NotePathAdapter.create_meeting_note(note_contract) -> CreatedMeetingNote
 NotePathAdapter.verify_meeting_note() -> VerifiedMeetingNote
@@ -323,7 +348,7 @@ RAW_COMMITMENTS_PERSISTED=FORBIDDEN
 RAW_PROVIDER_NOTE_ID_PERSISTED=FORBIDDEN
 ```
 
-Permitted envelope fields (non-private metadata and digests only):
+Permitted redacted **request-envelope** fields (non-private metadata and digests only):
 
 ```text
 namespace
@@ -336,12 +361,25 @@ workflow_id
 request_id
 note_content_digest
 provider_body_digest
-parse_success
-semantic_success
-terminal_failure_code
-business_effect_truth
+```
+
+Permitted redacted **response-envelope** fields (non-private metadata and digests only):
+
+```text
+namespace
+operation
+operation_ordinal
+mapping_version
+consumer_authorization_identity
+consumer_workflow_run_id
+workflow_id
+request_id
+note_content_digest
+provider_body_digest
 response_status_class   # e.g. ok | ambiguous | error — not a provider payload
 ```
+
+`terminal_failure_code`, `business_effect_truth`, `parse_success`, and `semantic_success` are persisted only through the dedicated store columns (`mark_terminal`, `record_parse_outcome`, `record_semantic_outcome`), not embedded in envelopes.
 
 `request_envelope` and `response_envelope` passed to `record_attempt` / `capture_response` MUST be this redacted envelope (or a strict subset). They MUST NOT contain raw `contact_id`, `location_id`, note body, meeting summary, needs, objections, commitments, or provider note ID.
 
@@ -450,7 +488,7 @@ governance/authorizations/nw008-at8g-note-path-at1-execution-store-integration-a
 
 `tests/integrations/ghl/test_at8g_note_path_at1_execution_store_integration.py` is the single explicitly named cross-boundary AT8G test file. It may be created only if a test cannot live under `tests/integrations/ghl/highlevel_rest/**`. No other cross-boundary test path is authorized.
 
-`note_path.py` edits are restricted to the reservation seam described in §4/§8 plus the minimum wiring required to hold and query an `At1ExecutionStore` instance (constructor parameter and store attribute). The verified-capability handoff, contact preflight, note-contract validation, canonical serialization, and readback digest comparison must remain byte-identical except for the ordered pre-reservation / lifecycle calls required by this artifact.
+`note_path.py` edits are restricted to the reservation seam described in §4/§8 plus the minimum wiring required to hold and query an explicitly injected `At1ExecutionStore` instance — i.e., adding only the optional keyword-only `execution_store` constructor parameter (default `None`) and a private store attribute. The verified-capability handoff, contact preflight, note-contract validation, canonical serialization, and readback digest comparison must remain byte-identical except for the ordered pre-reservation / lifecycle calls required by this artifact.
 
 ```text
 FIXTURE_MODIFICATION_DEFAULT=NO
@@ -574,7 +612,8 @@ DESC: Unresolved prior attempt refuses via RunContinuationRefusedError chained a
 REQUIREMENT: PASS
 
 TEST: CLAIM_OWNER_IS_AUTHORIZATION_IDENTITY
-DESC: Claim owner_id is consumer_authorization_identity; adapter instance is not owner. Second distinct authorization identity cannot acquire the same claim; ExecutionClaimError is chained as cause of TransportError.
+DESC: Claim owner_id is consumer_authorization_identity; adapter instance is not owner. Different-owner/same-grant-run contention is DIRECT STORE-BOUNDARY ADVERSARIAL COVERAGE against At1ExecutionStore, not a normal NOTE_PATH mapping path (the §5 mapping already assigns distinct grant_run_id per authorization identity); second distinct authorization identity cannot acquire the same claim and ExecutionClaimError is chained as cause of TransportError.
+CLASSIFICATION=DIRECT_STORE_BOUNDARY_ADVERSARIAL_COVERAGE
 REQUIREMENT: PASS
 
 TEST: SAME_AUTHORIZATION_IDENTITY_RECLAIM_ALLOWED
@@ -805,4 +844,4 @@ After human review and merge to `main`, the authorized consumer unit must indepe
 
 **Authorization state at authoring**: `PROPOSED_NOT_EFFECTIVE`
 
-**Status**: Proposed, pending human review and merge to main
+**Status at authoring**: Proposed, pending human review and merge to main
