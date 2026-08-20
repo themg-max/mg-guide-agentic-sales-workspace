@@ -3,6 +3,7 @@
 from .fake_transport import DeterministicFakeTransport, FakeResponse
 from .note_path import (
     BindingError,
+    CONTACT_PREFLIGHT_VERIFIED,
     CreatedMeetingNote,
     NoteContractError,
     NotePathAdapter,
@@ -13,6 +14,7 @@ from .note_path import (
 
 __all__ = [
     "BindingError",
+    "CONTACT_PREFLIGHT_VERIFIED",
     "CreatedMeetingNote",
     "DeterministicFakeTransport",
     "FakeResponse",

@@ -5,302 +5,87 @@
   "cases": {
     "contact_success": {
       "calls": [
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "contact": {
-                "id": "synthetic-contact-001",
-                "locationId": "synthetic-location-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}}
       ]
     },
     "contact_missing": {
       "calls": [
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001",
-          "response": {
-            "status": "missing",
-            "payload": {}
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "missing", "payload": {}}}
       ]
     },
     "contact_id_mismatch": {
       "calls": [
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "contact": {
-                "id": "synthetic-contact-other",
-                "locationId": "synthetic-location-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-other", "locationId": "synthetic-location-001"}}}}
       ]
     },
     "location_id_mismatch": {
       "calls": [
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "contact": {
-                "id": "synthetic-contact-001",
-                "locationId": "synthetic-location-other"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-other"}}}}
       ]
     },
     "note_create_success": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "created",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "created", "contactId": "synthetic-contact-001"}}}}
       ]
     },
     "note_create_definite_failure": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "rejected",
-            "payload": {}
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "rejected", "payload": {}}}
       ]
     },
     "note_create_ambiguous_result": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ambiguous",
-            "payload": {}
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ambiguous", "payload": {}}}
       ]
     },
     "note_response_malformed": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "contactId": "synthetic-contact-001"}}}}
       ]
     },
     "note_response_contact_mismatch": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "created",
-                "contactId": "synthetic-contact-other"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "created", "contactId": "synthetic-contact-other"}}}}
       ]
     },
     "note_readback_success": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "created",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        },
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "REPLACED_BY_TEST",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "created", "contactId": "synthetic-contact-001"}}}},
+        {"method": "GET", "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "REPLACED_BY_TEST", "contactId": "synthetic-contact-001"}}}}
       ]
     },
     "note_readback_id_mismatch": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "created",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        },
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-other",
-                "body": "REPLACED_BY_TEST",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "created", "contactId": "synthetic-contact-001"}}}},
+        {"method": "GET", "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-other", "body": "REPLACED_BY_TEST", "contactId": "synthetic-contact-001"}}}}
       ]
     },
     "note_readback_contact_mismatch": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "created",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        },
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "REPLACED_BY_TEST",
-                "contactId": "synthetic-contact-other"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "created", "contactId": "synthetic-contact-001"}}}},
+        {"method": "GET", "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "REPLACED_BY_TEST", "contactId": "synthetic-contact-other"}}}}
       ]
     },
     "note_body_parser_failure": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "created",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        },
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "REPLACED_BY_TEST",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "created", "contactId": "synthetic-contact-001"}}}},
+        {"method": "GET", "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "REPLACED_BY_TEST", "contactId": "synthetic-contact-001"}}}}
       ]
     },
     "digest_mismatch": {
       "calls": [
-        {
-          "method": "POST",
-          "path": "/contacts/synthetic-contact-001/notes",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "created",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        },
-        {
-          "method": "GET",
-          "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001",
-          "response": {
-            "status": "ok",
-            "payload": {
-              "note": {
-                "id": "synthetic-note-001",
-                "body": "REPLACED_BY_TEST",
-                "contactId": "synthetic-contact-001"
-              }
-            }
-          }
-        }
+        {"method": "GET", "path": "/contacts/synthetic-contact-001", "response": {"status": "ok", "payload": {"contact": {"id": "synthetic-contact-001", "locationId": "synthetic-location-001"}}}},
+        {"method": "POST", "path": "/contacts/synthetic-contact-001/notes", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "created", "contactId": "synthetic-contact-001"}}}},
+        {"method": "GET", "path": "/contacts/synthetic-contact-001/notes/synthetic-note-001", "response": {"status": "ok", "payload": {"note": {"id": "synthetic-note-001", "body": "REPLACED_BY_TEST", "contactId": "synthetic-contact-001"}}}}
       ]
     }
   }

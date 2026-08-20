@@ -14,6 +14,7 @@ NETWORK_CALLS = 0
 HIGHLEVEL_NETWORK_CALLS = 0
 EXTERNAL_EFFECTS = 0
 NOTE_POST_BUDGET_PER_RUN = 1
+CONTACT_PREFLIGHT_VERIFIED = "NO"
 
 _TITLE = "MG Guide \u2014 Synthetic Meeting Follow-Up"
 _MARKER = "implementation_reviewed_synthetic_marker"
@@ -29,7 +30,7 @@ _REQUIRED_FIELDS = (
     "workflow_id",
     "transcript_hash",
 )
-_OPTIONAL_FIELDS = ("synthetic_excerpt",)
+_OPTIONAL_FIELDS: tuple[str, ...] = ()
 _LABELS = _REQUIRED_FIELDS + _OPTIONAL_FIELDS
 
 
@@ -62,6 +63,7 @@ class CreatedMeetingNote:
 
     note_id: str
     note_content_digest: str
+    provider_body_digest: str
 
 
 @dataclass(frozen=True)
@@ -70,6 +72,7 @@ class VerifiedMeetingNote:
 
     note_id: str
     note_content_digest: str
+    provider_body_digest: str
 
 
 class NotePathAdapter:
@@ -81,7 +84,8 @@ class NotePathAdapter:
         self._location_id = self._require_identifier("location_id", location_id)
         self._contact_id = self._require_identifier("contact_id", contact_id)
         self._transport = transport
-        self._note_write_attempts = 0
+        self.CONTACT_PREFLIGHT_VERIFIED = CONTACT_PREFLIGHT_VERIFIED
+        self.POST_ATTEMPTS = 0
         self._created_note: CreatedMeetingNote | None = None
         self._expected_note: Mapping[str, Any] | None = None
 
@@ -95,16 +99,21 @@ class NotePathAdapter:
             raise BindingError("contact id does not match the private binding")
         if location_id != self._location_id:
             raise BindingError("location id does not match the private binding")
+        self.CONTACT_PREFLIGHT_VERIFIED = "YES"
         return {"id": contact_id, "locationId": location_id}
 
     def create_meeting_note(self, note_contract: Mapping[str, Any]) -> CreatedMeetingNote:
         """Serialize one validated synthetic note and consume the one POST budget."""
+        if self.CONTACT_PREFLIGHT_VERIFIED != "YES":
+            raise BindingError("successful bound contact preflight is required before POST")
         canonical_note = self._validate_note_contract(note_contract)
         note_body = self._serialize_note(canonical_note)
-        digest = self._logical_digest(canonical_note)
+        note_content_digest = self._logical_digest(canonical_note)
+        provider_body = {"body": note_body}
+        provider_body_digest = self._provider_body_digest(provider_body)
         self._consume_note_write_budget()
         response = self._transport.dispatch(
-            "POST", f"/contacts/{self._contact_id}/notes", {"body": note_body}
+            "POST", f"/contacts/{self._contact_id}/notes", provider_body
         )
         if response.status == "ambiguous":
             raise TransportError("ambiguous note POST result is terminal and is not retried")
@@ -118,7 +127,11 @@ class NotePathAdapter:
             raise TransportError("created note body is required")
         if note_contact_id != self._contact_id:
             raise TransportError("created note contact id does not match private binding")
-        created = CreatedMeetingNote(note_id=note_id, note_content_digest=digest)
+        created = CreatedMeetingNote(
+            note_id=note_id,
+            note_content_digest=note_content_digest,
+            provider_body_digest=provider_body_digest,
+        )
         self._created_note = created
         self._expected_note = canonical_note
         return created
@@ -145,6 +158,7 @@ class NotePathAdapter:
         return VerifiedMeetingNote(
             note_id=self._created_note.note_id,
             note_content_digest=actual_digest,
+            provider_body_digest=self._created_note.provider_body_digest,
         )
 
     @staticmethod
@@ -166,9 +180,9 @@ class NotePathAdapter:
         return envelope
 
     def _consume_note_write_budget(self) -> None:
-        if self._note_write_attempts >= NOTE_POST_BUDGET_PER_RUN:
+        if self.POST_ATTEMPTS >= NOTE_POST_BUDGET_PER_RUN:
             raise TransportError("NOTE_PATH permits exactly one note POST per run")
-        self._note_write_attempts += 1
+        self.POST_ATTEMPTS += 1
 
     @staticmethod
     def _canonical_json(value: Any) -> str:
@@ -236,8 +250,6 @@ class NotePathAdapter:
             or any(character not in "0123456789abcdef" for character in transcript_hash)
         ):
             raise NoteContractError("transcript_hash must be a lowercase SHA-256 hex value")
-        if "synthetic_excerpt" in note and not isinstance(note["synthetic_excerpt"], str):
-            raise NoteContractError("synthetic_excerpt must be a string")
         self._canonical_json(note)
         return note
 
@@ -287,3 +299,6 @@ class NotePathAdapter:
 
     def _logical_digest(self, note_contract: Mapping[str, Any]) -> str:
         return sha256(self._canonical_json(note_contract).encode("utf-8")).hexdigest()
+
+    def _provider_body_digest(self, provider_body: Mapping[str, str]) -> str:
+        return sha256(self._canonical_json(provider_body).encode("utf-8")).hexdigest()
