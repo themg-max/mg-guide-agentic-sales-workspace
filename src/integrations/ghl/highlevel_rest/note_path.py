@@ -28,8 +28,13 @@ _AT8_SOURCE_PROOF_MERGE_SHA = "6256f287bbd88effc2ef1cd13a801faec79a0af2"
 _NOTE_CREATE_OPERATION = "NOTE_CREATE"
 _TRUSTED_SOURCE_BOUND_CONTACT = "fake_transport_bound_contact_verification"
 _TRUSTED_SOURCE_AT8_SHAPED_TEST = "at8_shaped_test_capability"
+_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF = "private_at8_verified_binding_handoff"
 _ALLOWED_TRUSTED_SOURCES = frozenset(
-    {_TRUSTED_SOURCE_BOUND_CONTACT, _TRUSTED_SOURCE_AT8_SHAPED_TEST}
+    {
+        _TRUSTED_SOURCE_BOUND_CONTACT,
+        _TRUSTED_SOURCE_AT8_SHAPED_TEST,
+        _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
+    }
 )
 _CAPABILITY_TRUST_MARKER = object()
 _REQUIRED_FIELDS = (
@@ -64,11 +69,24 @@ class TransportError(NotePathError):
     """Raised for a fixture response that cannot verify a note write."""
 
 
+def _require_identifier(name: str, value: object) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise BindingError(f"{name} private binding must be a non-empty string")
+    return value
+
+
 class _FixtureTransport(Protocol):
     def dispatch(
         self, method: str, path: str, body: Mapping[str, Any] | None = None
     ) -> Any:
         """Dispatch an exact fixture route."""
+
+
+class _PrivateBindingSource(Protocol):
+    """Injected trusted private-binding source. No production loader is provided."""
+
+    def get_binding(self) -> "_PrivateContactBinding":
+        """Return one immutable private contact/location binding."""
 
 
 @dataclass(frozen=True)
@@ -90,6 +108,22 @@ class VerifiedMeetingNote:
 
 
 @dataclass(frozen=True)
+class _PrivateContactBinding:
+    """Private target data only. Not authorization and not a trusted capability."""
+
+    location_id: str
+    contact_id: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self, "location_id", _require_identifier("location_id", self.location_id)
+        )
+        object.__setattr__(
+            self, "contact_id", _require_identifier("contact_id", self.contact_id)
+        )
+
+
+@dataclass(frozen=True)
 class _VerifiedContactBindingCapability:
     workflow_id: str
     source_execution_unit: str
@@ -100,6 +134,89 @@ class _VerifiedContactBindingCapability:
     consumer_workflow_run_id: str
     trusted_source: str
     _trust_marker: object
+
+
+def _resolve_private_binding(
+    private_binding: _PrivateContactBinding | None,
+    private_binding_source: _PrivateBindingSource | None,
+) -> _PrivateContactBinding:
+    if private_binding is not None and private_binding_source is not None:
+        raise BindingError("private binding and private binding source are mutually exclusive")
+    if private_binding_source is not None:
+        binding = private_binding_source.get_binding()
+    else:
+        binding = private_binding
+    if not isinstance(binding, _PrivateContactBinding):
+        raise BindingError("private binding value is required")
+    return binding
+
+
+def _mint_trusted_capability(
+    *,
+    workflow_id: str,
+    source_execution_unit: str,
+    source_proof_merge_sha: str,
+    location_id: str,
+    contact_id: str,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
+    trusted_source: str,
+) -> _VerifiedContactBindingCapability:
+    if trusted_source not in _ALLOWED_TRUSTED_SOURCES:
+        raise BindingError("verified-contact capability trusted source is invalid")
+    return _VerifiedContactBindingCapability(
+        workflow_id=_require_identifier("workflow_id", workflow_id),
+        source_execution_unit=_require_identifier(
+            "source_execution_unit", source_execution_unit
+        ),
+        source_proof_merge_sha=_require_identifier(
+            "source_proof_merge_sha", source_proof_merge_sha
+        ),
+        location_id=_require_identifier("location_id", location_id),
+        contact_id=_require_identifier("contact_id", contact_id),
+        consumer_authorization_identity=_require_identifier(
+            "consumer_authorization_identity", consumer_authorization_identity
+        ),
+        consumer_workflow_run_id=_require_identifier(
+            "consumer_workflow_run_id", consumer_workflow_run_id
+        ),
+        trusted_source=trusted_source,
+        _trust_marker=_CAPABILITY_TRUST_MARKER,
+    )
+
+
+def _handoff_private_at8_verified_binding_capability(
+    *,
+    source_execution_unit: str,
+    source_proof_merge_sha: str,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
+    workflow_id: str,
+    private_binding: _PrivateContactBinding | None = None,
+    private_binding_source: _PrivateBindingSource | None = None,
+) -> _VerifiedContactBindingCapability:
+    """Mint an immutable capability from injected private-binding data plus AT8 provenance.
+
+    Ordinary callers cannot supply a trusted source or trust marker. Correct AT8
+    strings alone are not a public mint surface.
+    """
+    binding = _resolve_private_binding(private_binding, private_binding_source)
+    if workflow_id != _WORKFLOW_ID:
+        raise BindingError("verified-contact capability workflow binding is invalid")
+    if source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
+        raise BindingError("verified-contact capability source execution unit is invalid")
+    if source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
+        raise BindingError("verified-contact capability source proof is invalid")
+    return _mint_trusted_capability(
+        workflow_id=_WORKFLOW_ID,
+        source_execution_unit=_AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
+        location_id=binding.location_id,
+        contact_id=binding.contact_id,
+        consumer_authorization_identity=consumer_authorization_identity,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+        trusted_source=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
+    )
 
 
 @dataclass(frozen=True)
@@ -250,13 +367,11 @@ class NotePathAdapter:
 
     @staticmethod
     def _require_identifier(name: str, value: object) -> str:
-        if not isinstance(value, str) or not value.strip():
-            raise BindingError(f"{name} private binding must be a non-empty string")
-        return value
+        return _require_identifier(name, value)
 
     @staticmethod
     def _require_synthetic_identifier(name: str, value: object) -> str:
-        text = NotePathAdapter._require_identifier(name, value)
+        text = _require_identifier(name, value)
         if not text.startswith("synthetic-"):
             raise BindingError(f"{name} test capability value must be synthetic")
         return text
@@ -274,7 +389,7 @@ class NotePathAdapter:
         return envelope
 
     def _mint_bound_contact_verified_capability(self) -> _VerifiedContactBindingCapability:
-        return _VerifiedContactBindingCapability(
+        return _mint_trusted_capability(
             workflow_id=_WORKFLOW_ID,
             source_execution_unit=_AT8_SOURCE_EXECUTION_UNIT,
             source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
@@ -283,7 +398,6 @@ class NotePathAdapter:
             consumer_authorization_identity=self._consumer_authorization_identity,
             consumer_workflow_run_id=self._consumer_workflow_run_id,
             trusted_source=_TRUSTED_SOURCE_BOUND_CONTACT,
-            _trust_marker=_CAPABILITY_TRUST_MARKER,
         )
 
     @classmethod
@@ -298,7 +412,7 @@ class NotePathAdapter:
         source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
         source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
     ) -> _VerifiedContactBindingCapability:
-        return _VerifiedContactBindingCapability(
+        return _mint_trusted_capability(
             workflow_id=cls._require_identifier("workflow_id", workflow_id),
             source_execution_unit=cls._require_identifier(
                 "source_execution_unit", source_execution_unit
@@ -315,7 +429,6 @@ class NotePathAdapter:
                 "consumer_workflow_run_id", consumer_workflow_run_id
             ),
             trusted_source=_TRUSTED_SOURCE_AT8_SHAPED_TEST,
-            _trust_marker=_CAPABILITY_TRUST_MARKER,
         )
 
     def _require_trusted_verified_capability(self) -> _VerifiedContactBindingCapability:
