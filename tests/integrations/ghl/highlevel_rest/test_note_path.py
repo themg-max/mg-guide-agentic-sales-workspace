@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 import ast
 from hashlib import sha256
+from itertools import count
 import json
 from pathlib import Path
+import threading
 
 import pytest
 
+import integrations.ghl.highlevel_rest.note_path as note_path_module
 from integrations.ghl.highlevel_rest import (
     BindingError,
     DeterministicFakeTransport,
@@ -17,10 +21,20 @@ from integrations.ghl.highlevel_rest import (
 )
 
 
+DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY = (
+    "NW008_AT8B_GHL_REST_NOTE_PATH_MUTATION_GUARD_HARDENING_IMPLEMENTATION_001"
+)
+_RUN_COUNTER = count(1)
+
 REPO_ROOT = Path(__file__).resolve().parents[4]
 FIXTURE_PATH = REPO_ROOT / "fixtures" / "ghl" / "highlevel_rest" / "note-path-fixtures.json"
 FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 SOURCE_ROOT = REPO_ROOT / "src" / "integrations" / "ghl" / "highlevel_rest"
+
+
+@pytest.fixture(autouse=True)
+def _reset_shared_ledger() -> None:
+    note_path_module._reset_shared_test_ledger()
 
 
 def _note() -> dict[str, object]:
@@ -38,13 +52,24 @@ def _note() -> dict[str, object]:
     }
 
 
-def _adapter(case_id: str) -> tuple[NotePathAdapter, DeterministicFakeTransport]:
+def _next_workflow_run_id() -> str:
+    return f"synthetic-workflow-run-{next(_RUN_COUNTER):04d}"
+
+
+def _adapter(
+    case_id: str,
+    *,
+    consumer_workflow_run_id: str | None = None,
+    consumer_authorization_identity: str = DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+) -> tuple[NotePathAdapter, DeterministicFakeTransport]:
     transport = DeterministicFakeTransport(deepcopy(FIXTURE), case_id)
     return (
         NotePathAdapter(
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
             transport=transport,
+            consumer_authorization_identity=consumer_authorization_identity,
+            consumer_workflow_run_id=consumer_workflow_run_id or _next_workflow_run_id(),
         ),
         transport,
     )
@@ -65,6 +90,29 @@ def _replace_readback_body(
 ) -> DeterministicFakeTransport:
     transport._calls[-1]["response"]["payload"]["note"]["body"] = body
     return transport
+
+
+def _trusted_test_capability(
+    *,
+    workflow_id: str = "meeting_follow_up_v1",
+    source_execution_unit: str = (
+        "NW008_AT8_GHL_REST_EXACT_SYNTHETIC_CONTACT_LIVE_READ_EXECUTION_002"
+    ),
+    source_proof_merge_sha: str = "6256f287bbd88effc2ef1cd13a801faec79a0af2",
+    location_id: str = "synthetic-location-001",
+    contact_id: str = "synthetic-contact-001",
+    consumer_authorization_identity: str = DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+    consumer_workflow_run_id: str = "synthetic-workflow-run-override",
+):
+    return NotePathAdapter._build_at8_shaped_test_capability(
+        workflow_id=workflow_id,
+        source_execution_unit=source_execution_unit,
+        source_proof_merge_sha=source_proof_merge_sha,
+        location_id=location_id,
+        contact_id=contact_id,
+        consumer_authorization_identity=consumer_authorization_identity,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+    )
 
 
 def test_exact_contact_binding_pass() -> None:
@@ -98,6 +146,8 @@ def _adapter_with_missing_binding(field_name: str) -> None:
         "location_id": "synthetic-location-001",
         "contact_id": "synthetic-contact-001",
         "transport": DeterministicFakeTransport(deepcopy(FIXTURE), "contact_success"),
+        "consumer_authorization_identity": DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        "consumer_workflow_run_id": _next_workflow_run_id(),
     }
     kwargs[field_name] = ""
     NotePathAdapter(**kwargs)
@@ -218,6 +268,25 @@ def test_same_run_note_id_required() -> None:
         _create(adapter)
 
 
+def test_public_preflight_flag_cannot_bypass() -> None:
+    adapter, transport = _adapter("note_create_success")
+    adapter.CONTACT_PREFLIGHT_VERIFIED = "YES"
+
+    with pytest.raises(BindingError, match="preflight"):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+
+def test_public_post_counter_cannot_reset_budget() -> None:
+    adapter, transport = _adapter("note_create_success")
+    _create(adapter)
+    adapter.POST_ATTEMPTS = 0
+
+    with pytest.raises(TransportError, match="exactly one"):
+        _create(adapter)
+    assert [method for method, _, _ in transport.calls] == ["GET", "POST"]
+
+
 def test_one_note_write_budget() -> None:
     adapter, transport = _adapter("note_create_success")
     _create(adapter)
@@ -225,6 +294,24 @@ def test_one_note_write_budget() -> None:
     with pytest.raises(TransportError, match="exactly one"):
         _create(adapter)
     assert [method for method, _, _ in transport.calls] == ["GET", "POST"]
+
+
+def test_second_adapter_cannot_restore_budget() -> None:
+    workflow_run_id = "synthetic-workflow-run-shared-budget-001"
+    first_adapter, first_transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+    second_adapter, second_transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+    first_adapter.get_bound_contact()
+    second_adapter.get_bound_contact()
+
+    first_adapter.create_meeting_note(_note())
+    with pytest.raises(TransportError, match="exactly one"):
+        second_adapter.create_meeting_note(_note())
+    assert [method for method, _, _ in first_transport.calls] == ["GET", "POST"]
+    assert [method for method, _, _ in second_transport.calls] == ["GET"]
 
 
 def test_ambiguous_post_no_retry() -> None:
@@ -235,6 +322,198 @@ def test_ambiguous_post_no_retry() -> None:
     with pytest.raises(TransportError, match="exactly one"):
         _create(adapter)
     assert [method for method, _, _ in transport.calls] == ["GET", "POST"]
+
+
+def test_ambiguous_post_budget_remains_consumed() -> None:
+    workflow_run_id = "synthetic-workflow-run-ambiguous-terminal-001"
+    first_adapter, first_transport = _adapter(
+        "note_create_ambiguous_result", consumer_workflow_run_id=workflow_run_id
+    )
+    second_adapter, second_transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+
+    with pytest.raises(TransportError, match="not retried"):
+        _create(first_adapter)
+    second_adapter.get_bound_contact()
+    with pytest.raises(TransportError, match="exactly one"):
+        second_adapter.create_meeting_note(_note())
+
+    assert [method for method, _, _ in first_transport.calls] == ["GET", "POST"]
+    assert [method for method, _, _ in second_transport.calls] == ["GET"]
+
+
+def test_invalid_verified_binding_capability_blocks() -> None:
+    adapter, transport = _adapter("note_create_success")
+    adapter.CONTACT_PREFLIGHT_VERIFIED = "YES"
+    with pytest.raises(BindingError, match="preflight"):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+    forged = note_path_module._VerifiedContactBindingCapability(
+        workflow_id="meeting_follow_up_v1",
+        source_execution_unit="NW008_AT8_GHL_REST_EXACT_SYNTHETIC_CONTACT_LIVE_READ_EXECUTION_002",
+        source_proof_merge_sha="6256f287bbd88effc2ef1cd13a801faec79a0af2",
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-forged-001",
+        trusted_source="fake_transport_bound_contact_verification",
+        _trust_marker=object(),
+    )
+    adapter._verified_contact_binding_capability = forged
+    with pytest.raises(BindingError, match="invalid"):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+
+@pytest.mark.parametrize(
+    ("capability_kwargs", "message"),
+    [
+        (
+            {"workflow_id": "wrong_workflow_v2"},
+            "workflow binding is invalid",
+        ),
+        (
+            {"consumer_workflow_run_id": "synthetic-workflow-run-other-9999"},
+            "workflow run binding is invalid",
+        ),
+        (
+            {"consumer_authorization_identity": "WRONG_AUTHZ_IDENTITY"},
+            "authorization binding is invalid",
+        ),
+        (
+            {"source_proof_merge_sha": "deadbeef"},
+            "source proof is invalid",
+        ),
+        (
+            {"source_execution_unit": "WRONG_EXECUTION_UNIT"},
+            "source execution unit is invalid",
+        ),
+    ],
+)
+def test_wrong_workflow_or_authorization_binding_blocks(
+    capability_kwargs: dict[str, str], message: str
+) -> None:
+    workflow_run_id = "synthetic-workflow-run-capability-binding-001"
+    adapter, transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+    capability_defaults = {
+        "workflow_id": "meeting_follow_up_v1",
+        "source_execution_unit": (
+            "NW008_AT8_GHL_REST_EXACT_SYNTHETIC_CONTACT_LIVE_READ_EXECUTION_002"
+        ),
+        "source_proof_merge_sha": "6256f287bbd88effc2ef1cd13a801faec79a0af2",
+        "location_id": "synthetic-location-001",
+        "contact_id": "synthetic-contact-001",
+        "consumer_authorization_identity": DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        "consumer_workflow_run_id": workflow_run_id,
+    }
+    capability_defaults.update(capability_kwargs)
+    adapter._verified_contact_binding_capability = _trusted_test_capability(
+        **capability_defaults
+    )
+    adapter.CONTACT_PREFLIGHT_VERIFIED = "YES"
+
+    with pytest.raises(BindingError, match=message):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+
+def test_pre_reservation_validation_failure_does_not_consume_budget() -> None:
+    workflow_run_id = "synthetic-workflow-run-pre-validation-001"
+    adapter, transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+    adapter._verified_contact_binding_capability = _trusted_test_capability(
+        consumer_workflow_run_id=workflow_run_id,
+        workflow_id="wrong_workflow",
+    )
+    adapter.CONTACT_PREFLIGHT_VERIFIED = "YES"
+
+    with pytest.raises(BindingError):
+        adapter.create_meeting_note(_note())
+    assert transport.calls == []
+
+    adapter.get_bound_contact()
+    adapter.create_meeting_note(_note())
+    assert [method for method, _, _ in transport.calls] == ["GET", "POST"]
+
+
+def test_concurrent_reservation_exactly_one_winner() -> None:
+    workflow_run_id = "synthetic-workflow-run-concurrent-001"
+    first_adapter, first_transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+    second_adapter, second_transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+    first_adapter.get_bound_contact()
+    second_adapter.get_bound_contact()
+
+    barrier = threading.Barrier(3)
+    successes: list[str] = []
+    errors: list[TransportError] = []
+
+    def _worker(adapter: NotePathAdapter) -> str:
+        barrier.wait()
+        adapter.create_meeting_note(_note())
+        return "ok"
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first_future = executor.submit(_worker, first_adapter)
+        second_future = executor.submit(_worker, second_adapter)
+        barrier.wait()
+        for future in (first_future, second_future):
+            try:
+                successes.append(future.result())
+            except TransportError as error:
+                errors.append(error)
+
+    assert len(successes) == 1
+    assert len(errors) == 1
+    assert isinstance(errors[0], TransportError)
+    assert "exactly one" in str(errors[0])
+    calls = [*first_transport.calls, *second_transport.calls]
+    assert sum(1 for method, _, _ in calls if method == "POST") == 1
+
+
+class _PostReservationFailureTransport(DeterministicFakeTransport):
+    def dispatch(
+        self, method: str, path: str, body: dict[str, object] | None = None
+    ) -> note_path_module.FakeResponse:
+        response = super().dispatch(method, path, body)
+        if method == "POST":
+            raise RuntimeError("forced post-reservation exception")
+        return response
+
+
+def test_post_reservation_exception_remains_consumed() -> None:
+    workflow_run_id = "synthetic-workflow-run-post-exception-001"
+    exploding_transport = _PostReservationFailureTransport(
+        deepcopy(FIXTURE), "note_create_success"
+    )
+    first_adapter = NotePathAdapter(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+        transport=exploding_transport,
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+    second_adapter, second_transport = _adapter(
+        "note_create_success", consumer_workflow_run_id=workflow_run_id
+    )
+
+    first_adapter.get_bound_contact()
+    with pytest.raises(RuntimeError, match="post-reservation exception"):
+        first_adapter.create_meeting_note(_note())
+
+    second_adapter.get_bound_contact()
+    with pytest.raises(TransportError, match="exactly one"):
+        second_adapter.create_meeting_note(_note())
+    assert [method for method, _, _ in exploding_transport.calls] == ["GET", "POST"]
+    assert [method for method, _, _ in second_transport.calls] == ["GET"]
 
 
 def test_strict_parser_pass_and_note_content_digest_pass() -> None:
