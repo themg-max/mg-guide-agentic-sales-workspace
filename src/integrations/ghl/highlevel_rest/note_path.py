@@ -9,6 +9,7 @@ import json
 import threading
 from typing import Any, Mapping, Protocol
 from unicodedata import normalize
+import weakref
 
 
 NETWORK_CALLS = 0
@@ -29,14 +30,6 @@ _NOTE_CREATE_OPERATION = "NOTE_CREATE"
 _TRUSTED_SOURCE_BOUND_CONTACT = "fake_transport_bound_contact_verification"
 _TRUSTED_SOURCE_AT8_SHAPED_TEST = "at8_shaped_test_capability"
 _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF = "private_at8_verified_binding_handoff"
-_ALLOWED_TRUSTED_SOURCES = frozenset(
-    {
-        _TRUSTED_SOURCE_BOUND_CONTACT,
-        _TRUSTED_SOURCE_AT8_SHAPED_TEST,
-        _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
-    }
-)
-_CAPABILITY_TRUST_MARKER = object()
 _REQUIRED_FIELDS = (
     "SYNTHETIC_MARKER",
     "meeting_id",
@@ -82,13 +75,6 @@ class _FixtureTransport(Protocol):
         """Dispatch an exact fixture route."""
 
 
-class _PrivateBindingSource(Protocol):
-    """Injected trusted private-binding source. No production loader is provided."""
-
-    def get_binding(self) -> "_PrivateContactBinding":
-        """Return one immutable private contact/location binding."""
-
-
 @dataclass(frozen=True)
 class CreatedMeetingNote:
     """Validated identity from a same-run note creation response."""
@@ -124,6 +110,19 @@ class _PrivateContactBinding:
 
 
 @dataclass(frozen=True)
+class _TrustedPrivateBindingSource:
+    """Internal provenance marker for a validated private binding."""
+
+    workflow_id: str
+    source_execution_unit: str
+    source_proof_merge_sha: str
+    location_id: str
+    contact_id: str
+    trusted_origin: str
+    _trust_marker: object
+
+
+@dataclass(frozen=True)
 class _VerifiedContactBindingCapability:
     workflow_id: str
     source_execution_unit: str
@@ -132,57 +131,472 @@ class _VerifiedContactBindingCapability:
     contact_id: str
     consumer_authorization_identity: str
     consumer_workflow_run_id: str
-    trusted_source: str
+    trusted_binding_source: _TrustedPrivateBindingSource
     _trust_marker: object
 
 
-def _resolve_private_binding(
-    private_binding: _PrivateContactBinding | None,
-    private_binding_source: _PrivateBindingSource | None,
-) -> _PrivateContactBinding:
-    if private_binding is not None and private_binding_source is not None:
-        raise BindingError("private binding and private binding source are mutually exclusive")
-    if private_binding_source is not None:
-        binding = private_binding_source.get_binding()
-    else:
-        binding = private_binding
-    if not isinstance(binding, _PrivateContactBinding):
-        raise BindingError("private binding value is required")
-    return binding
+@dataclass(frozen=True)
+class _SourceIssuanceSnapshot:
+    workflow_id: str
+    source_execution_unit: str
+    source_proof_merge_sha: str
+    location_id: str
+    contact_id: str
+    trusted_origin: str
+    trust_marker: object
 
 
-def _mint_trusted_capability(
+@dataclass(frozen=True)
+class _CapabilityIssuanceSnapshot:
+    workflow_id: str
+    source_execution_unit: str
+    source_proof_merge_sha: str
+    location_id: str
+    contact_id: str
+    consumer_authorization_identity: str
+    consumer_workflow_run_id: str
+    trusted_origin: str
+    trusted_source_object_identity: int
+    trust_marker: object
+
+
+@dataclass(frozen=True)
+class _BoundContactGetVerificationSnapshot:
+    location_id: str
+    contact_id: str
+    consumer_authorization_identity: str
+    consumer_workflow_run_id: str
+
+
+class _IdentityRegistry:
+    """Process-local object identities paired with immutable issuance records."""
+
+    def __init__(self) -> None:
+        self._records: dict[int, tuple[weakref.ref[object], object]] = {}
+
+    def add(self, obj: object, snapshot: object) -> None:
+        obj_id = id(obj)
+
+        def _cleanup(ref: weakref.ref[object], *, key: int = obj_id) -> None:
+            record = self._records.get(key)
+            if record is not None and record[0] is ref:
+                self._records.pop(key, None)
+
+        self._records[obj_id] = (weakref.ref(obj, _cleanup), snapshot)
+
+    def get(self, obj: object) -> object | None:
+        record = self._records.get(id(obj))
+        if record is None or record[0]() is not obj:
+            return None
+        return record[1]
+
+
+def _require_at8_provenance(
     *,
     workflow_id: str,
     source_execution_unit: str,
     source_proof_merge_sha: str,
-    location_id: str,
-    contact_id: str,
-    consumer_authorization_identity: str,
-    consumer_workflow_run_id: str,
-    trusted_source: str,
-) -> _VerifiedContactBindingCapability:
-    if trusted_source not in _ALLOWED_TRUSTED_SOURCES:
-        raise BindingError("verified-contact capability trusted source is invalid")
-    return _VerifiedContactBindingCapability(
-        workflow_id=_require_identifier("workflow_id", workflow_id),
-        source_execution_unit=_require_identifier(
-            "source_execution_unit", source_execution_unit
-        ),
-        source_proof_merge_sha=_require_identifier(
-            "source_proof_merge_sha", source_proof_merge_sha
-        ),
-        location_id=_require_identifier("location_id", location_id),
-        contact_id=_require_identifier("contact_id", contact_id),
-        consumer_authorization_identity=_require_identifier(
-            "consumer_authorization_identity", consumer_authorization_identity
-        ),
-        consumer_workflow_run_id=_require_identifier(
-            "consumer_workflow_run_id", consumer_workflow_run_id
-        ),
-        trusted_source=trusted_source,
-        _trust_marker=_CAPABILITY_TRUST_MARKER,
+) -> None:
+    if workflow_id != _WORKFLOW_ID:
+        raise BindingError("verified-contact capability workflow binding is invalid")
+    if source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
+        raise BindingError("verified-contact capability source execution unit is invalid")
+    if source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
+        raise BindingError("verified-contact capability source proof is invalid")
+
+
+def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
+    """Create origin-isolated issuers that own non-exported trust markers."""
+
+    source_markers = {
+        _TRUSTED_SOURCE_BOUND_CONTACT: object(),
+        _TRUSTED_SOURCE_AT8_SHAPED_TEST: object(),
+        _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF: object(),
+    }
+    capability_markers = {
+        _TRUSTED_SOURCE_BOUND_CONTACT: object(),
+        _TRUSTED_SOURCE_AT8_SHAPED_TEST: object(),
+        _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF: object(),
+    }
+    issued_sources = _IdentityRegistry()
+    issued_capabilities = _IdentityRegistry()
+    verified_bound_contact_gets = _IdentityRegistry()
+
+    def _issue_source(
+        *,
+        trusted_origin: str,
+        location_id: str,
+        contact_id: str,
+    ) -> _TrustedPrivateBindingSource:
+        source = _TrustedPrivateBindingSource(
+            workflow_id=_WORKFLOW_ID,
+            source_execution_unit=_AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
+            location_id=_require_identifier("location_id", location_id),
+            contact_id=_require_identifier("contact_id", contact_id),
+            trusted_origin=trusted_origin,
+            _trust_marker=source_markers[trusted_origin],
+        )
+        issued_sources.add(
+            source,
+            _SourceIssuanceSnapshot(
+                workflow_id=source.workflow_id,
+                source_execution_unit=source.source_execution_unit,
+                source_proof_merge_sha=source.source_proof_merge_sha,
+                location_id=source.location_id,
+                contact_id=source.contact_id,
+                trusted_origin=source.trusted_origin,
+                trust_marker=source._trust_marker,
+            ),
+        )
+        return source
+
+    def _issue_capability(
+        *,
+        trusted_origin: str,
+        location_id: str,
+        contact_id: str,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+        trusted_binding_source: _TrustedPrivateBindingSource,
+    ) -> _VerifiedContactBindingCapability:
+        capability = _VerifiedContactBindingCapability(
+            workflow_id=_WORKFLOW_ID,
+            source_execution_unit=_AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
+            location_id=location_id,
+            contact_id=contact_id,
+            consumer_authorization_identity=_require_identifier(
+                "consumer_authorization_identity", consumer_authorization_identity
+            ),
+            consumer_workflow_run_id=_require_identifier(
+                "consumer_workflow_run_id", consumer_workflow_run_id
+            ),
+            trusted_binding_source=trusted_binding_source,
+            _trust_marker=capability_markers[trusted_origin],
+        )
+        issued_capabilities.add(
+            capability,
+            _CapabilityIssuanceSnapshot(
+                workflow_id=capability.workflow_id,
+                source_execution_unit=capability.source_execution_unit,
+                source_proof_merge_sha=capability.source_proof_merge_sha,
+                location_id=capability.location_id,
+                contact_id=capability.contact_id,
+                consumer_authorization_identity=capability.consumer_authorization_identity,
+                consumer_workflow_run_id=capability.consumer_workflow_run_id,
+                trusted_origin=trusted_origin,
+                trusted_source_object_identity=id(trusted_binding_source),
+                trust_marker=capability._trust_marker,
+            ),
+        )
+        return capability
+
+    def issue_bound_contact_capability(
+        *,
+        adapter: object,
+    ) -> _VerifiedContactBindingCapability:
+        if not isinstance(adapter, NotePathAdapter):
+            raise BindingError("successful bound contact preflight is required")
+        verification_snapshot = verified_bound_contact_gets.get(adapter)
+        if not isinstance(verification_snapshot, _BoundContactGetVerificationSnapshot):
+            raise BindingError("successful bound contact preflight is required")
+        if (
+            adapter._location_id != verification_snapshot.location_id
+            or adapter._contact_id != verification_snapshot.contact_id
+            or (
+                adapter._consumer_authorization_identity
+                != verification_snapshot.consumer_authorization_identity
+            )
+            or adapter._consumer_workflow_run_id
+            != verification_snapshot.consumer_workflow_run_id
+        ):
+            raise BindingError("successful bound contact preflight is required")
+        source = _issue_source(
+            trusted_origin=_TRUSTED_SOURCE_BOUND_CONTACT,
+            location_id=verification_snapshot.location_id,
+            contact_id=verification_snapshot.contact_id,
+        )
+        return _issue_capability(
+            trusted_origin=_TRUSTED_SOURCE_BOUND_CONTACT,
+            location_id=verification_snapshot.location_id,
+            contact_id=verification_snapshot.contact_id,
+            consumer_authorization_identity=verification_snapshot.consumer_authorization_identity,
+            consumer_workflow_run_id=verification_snapshot.consumer_workflow_run_id,
+            trusted_binding_source=source,
+        )
+
+    def build_bound_contact_get() -> Any:
+        def get_bound_contact(adapter: NotePathAdapter) -> Mapping[str, str]:
+            """Fetch and verify the exact private binding before recording issuer evidence."""
+            response = adapter._transport.dispatch(
+                "GET", f"/contacts/{adapter._contact_id}"
+            )
+            contact = adapter._required_envelope(response, "contact")
+            contact_id = contact.get("id")
+            location_id = contact.get("locationId")
+            if contact_id != adapter._contact_id:
+                raise BindingError("contact id does not match the private binding")
+            if location_id != adapter._location_id:
+                raise BindingError("location id does not match the private binding")
+            verified_bound_contact_gets.add(
+                adapter,
+                _BoundContactGetVerificationSnapshot(
+                    location_id=adapter._location_id,
+                    contact_id=adapter._contact_id,
+                    consumer_authorization_identity=adapter._consumer_authorization_identity,
+                    consumer_workflow_run_id=adapter._consumer_workflow_run_id,
+                ),
+            )
+            adapter.CONTACT_PREFLIGHT_VERIFIED = "YES"
+            adapter._verified_contact_binding_capability = issue_bound_contact_capability(
+                adapter=adapter,
+            )
+            return {"id": contact_id, "locationId": location_id}
+
+        return get_bound_contact
+
+    def issue_synthetic_test_capability(
+        *,
+        location_id: str,
+        contact_id: str,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _VerifiedContactBindingCapability:
+        _require_at8_provenance(
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        if not location_id.startswith("synthetic-"):
+            raise BindingError("location_id test capability value must be synthetic")
+        if not contact_id.startswith("synthetic-"):
+            raise BindingError("contact_id test capability value must be synthetic")
+        location_id = _require_identifier("location_id", location_id)
+        contact_id = _require_identifier("contact_id", contact_id)
+        source = _issue_source(
+            trusted_origin=_TRUSTED_SOURCE_AT8_SHAPED_TEST,
+            location_id=location_id,
+            contact_id=contact_id,
+        )
+        return _issue_capability(
+            trusted_origin=_TRUSTED_SOURCE_AT8_SHAPED_TEST,
+            location_id=location_id,
+            contact_id=contact_id,
+            consumer_authorization_identity=consumer_authorization_identity,
+            consumer_workflow_run_id=consumer_workflow_run_id,
+            trusted_binding_source=source,
+        )
+
+    def issue_private_at8_handoff_source_for_synthetic_tests(
+        *,
+        location_id: str,
+        contact_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _TrustedPrivateBindingSource:
+        _require_at8_provenance(
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        location_id = _require_identifier("location_id", location_id)
+        contact_id = _require_identifier("contact_id", contact_id)
+        if not location_id.startswith("synthetic-"):
+            raise BindingError("location_id private AT8 handoff source value must be synthetic")
+        if not contact_id.startswith("synthetic-"):
+            raise BindingError("contact_id private AT8 handoff source value must be synthetic")
+        return _issue_source(
+            trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
+            location_id=location_id,
+            contact_id=contact_id,
+        )
+
+    def handoff_private_at8_capability_from_registered_source(
+        *,
+        trusted_binding_source: object,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _VerifiedContactBindingCapability:
+        _require_at8_provenance(
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        if (
+            not isinstance(trusted_binding_source, _TrustedPrivateBindingSource)
+            or not isinstance(issued_sources.get(trusted_binding_source), _SourceIssuanceSnapshot)
+        ):
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        source_snapshot = issued_sources.get(trusted_binding_source)
+        assert isinstance(source_snapshot, _SourceIssuanceSnapshot)
+        if (
+            source_snapshot.trusted_origin != _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF
+            or trusted_binding_source != _TrustedPrivateBindingSource(
+                workflow_id=source_snapshot.workflow_id,
+                source_execution_unit=source_snapshot.source_execution_unit,
+                source_proof_merge_sha=source_snapshot.source_proof_merge_sha,
+                location_id=source_snapshot.location_id,
+                contact_id=source_snapshot.contact_id,
+                trusted_origin=source_snapshot.trusted_origin,
+                _trust_marker=source_snapshot.trust_marker,
+            )
+        ):
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        if trusted_binding_source._trust_marker is not source_markers[_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF]:
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        if trusted_binding_source.workflow_id != _WORKFLOW_ID:
+            raise BindingError(
+                "verified-contact capability trusted binding source workflow is invalid"
+            )
+        if trusted_binding_source.source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
+            raise BindingError(
+                "verified-contact capability trusted binding source execution unit is invalid"
+            )
+        if trusted_binding_source.source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
+            raise BindingError("verified-contact capability trusted binding source proof is invalid")
+        if (
+            not trusted_binding_source.location_id.startswith("synthetic-")
+            or not trusted_binding_source.contact_id.startswith("synthetic-")
+        ):
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        return _issue_capability(
+            trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
+            location_id=trusted_binding_source.location_id,
+            contact_id=trusted_binding_source.contact_id,
+            consumer_authorization_identity=_require_identifier(
+                "consumer_authorization_identity", consumer_authorization_identity
+            ),
+            consumer_workflow_run_id=_require_identifier(
+                "consumer_workflow_run_id", consumer_workflow_run_id
+            ),
+            trusted_binding_source=trusted_binding_source,
+        )
+
+    def require_issued_verified_capability(
+        capability: _VerifiedContactBindingCapability | None,
+        *,
+        location_id: str,
+        contact_id: str,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+    ) -> _VerifiedContactBindingCapability:
+        if capability is None:
+            raise BindingError("successful bound contact preflight is required before POST")
+        if (
+            not isinstance(capability, _VerifiedContactBindingCapability)
+            or not isinstance(issued_capabilities.get(capability), _CapabilityIssuanceSnapshot)
+        ):
+            raise BindingError("verified-contact binding capability is invalid")
+        capability_snapshot = issued_capabilities.get(capability)
+        assert isinstance(capability_snapshot, _CapabilityIssuanceSnapshot)
+        trusted_binding_source = capability.trusted_binding_source
+        if (
+            not isinstance(trusted_binding_source, _TrustedPrivateBindingSource)
+            or not isinstance(issued_sources.get(trusted_binding_source), _SourceIssuanceSnapshot)
+        ):
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        source_snapshot = issued_sources.get(trusted_binding_source)
+        assert isinstance(source_snapshot, _SourceIssuanceSnapshot)
+        if trusted_binding_source != _TrustedPrivateBindingSource(
+            workflow_id=source_snapshot.workflow_id,
+            source_execution_unit=source_snapshot.source_execution_unit,
+            source_proof_merge_sha=source_snapshot.source_proof_merge_sha,
+            location_id=source_snapshot.location_id,
+            contact_id=source_snapshot.contact_id,
+            trusted_origin=source_snapshot.trusted_origin,
+            _trust_marker=source_snapshot.trust_marker,
+        ):
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        if (
+            capability != _VerifiedContactBindingCapability(
+                workflow_id=capability_snapshot.workflow_id,
+                source_execution_unit=capability_snapshot.source_execution_unit,
+                source_proof_merge_sha=capability_snapshot.source_proof_merge_sha,
+                location_id=capability_snapshot.location_id,
+                contact_id=capability_snapshot.contact_id,
+                consumer_authorization_identity=capability_snapshot.consumer_authorization_identity,
+                consumer_workflow_run_id=capability_snapshot.consumer_workflow_run_id,
+                trusted_binding_source=trusted_binding_source,
+                _trust_marker=capability_snapshot.trust_marker,
+            )
+            or source_snapshot.trusted_origin != capability_snapshot.trusted_origin
+            or id(trusted_binding_source) != capability_snapshot.trusted_source_object_identity
+        ):
+            if capability.workflow_id != _WORKFLOW_ID:
+                raise BindingError("verified-contact capability workflow binding is invalid")
+            if capability.source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
+                raise BindingError("verified-contact capability source execution unit is invalid")
+            if capability.source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
+                raise BindingError("verified-contact capability source proof is invalid")
+            if capability.consumer_authorization_identity != consumer_authorization_identity:
+                raise BindingError("verified-contact capability authorization binding is invalid")
+            if capability.consumer_workflow_run_id != consumer_workflow_run_id:
+                raise BindingError("verified-contact capability workflow run binding is invalid")
+            raise BindingError("verified-contact binding capability is invalid")
+        trusted_origin = source_snapshot.trusted_origin
+        if trusted_origin not in source_markers:
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        if trusted_binding_source._trust_marker is not source_markers[trusted_origin]:
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        if capability._trust_marker is not capability_markers[trusted_origin]:
+            raise BindingError("verified-contact binding capability is invalid")
+        if trusted_binding_source.workflow_id != _WORKFLOW_ID:
+            raise BindingError(
+                "verified-contact capability trusted binding source workflow is invalid"
+            )
+        if trusted_binding_source.source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
+            raise BindingError(
+                "verified-contact capability trusted binding source execution unit is invalid"
+            )
+        if trusted_binding_source.source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
+            raise BindingError("verified-contact capability trusted binding source proof is invalid")
+        if capability.workflow_id != _WORKFLOW_ID:
+            raise BindingError("verified-contact capability workflow binding is invalid")
+        if capability.source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
+            raise BindingError("verified-contact capability source execution unit is invalid")
+        if capability.source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
+            raise BindingError("verified-contact capability source proof is invalid")
+        if capability.location_id != location_id:
+            raise BindingError("verified-contact capability location binding is invalid")
+        if capability.contact_id != contact_id:
+            raise BindingError("verified-contact capability contact binding is invalid")
+        if capability.consumer_authorization_identity != consumer_authorization_identity:
+            raise BindingError("verified-contact capability authorization binding is invalid")
+        if capability.consumer_workflow_run_id != consumer_workflow_run_id:
+            raise BindingError("verified-contact capability workflow run binding is invalid")
+        if (
+            trusted_binding_source.location_id != capability.location_id
+            or trusted_binding_source.contact_id != capability.contact_id
+        ):
+            raise BindingError("verified-contact capability trusted binding source is invalid")
+        return capability
+
+    return (
+        issue_bound_contact_capability,
+        issue_synthetic_test_capability,
+        issue_private_at8_handoff_source_for_synthetic_tests,
+        handoff_private_at8_capability_from_registered_source,
+        build_bound_contact_get,
+        require_issued_verified_capability,
     )
+
+
+(
+    _issue_bound_contact_capability,
+    _issue_synthetic_test_capability,
+    _issue_private_at8_handoff_source_for_synthetic_tests,
+    _handoff_private_at8_capability_from_registered_source,
+    _build_bound_contact_get,
+    _require_issued_verified_capability,
+) = _build_internal_trust_issuer()
 
 
 def _handoff_private_at8_verified_binding_capability(
@@ -192,30 +606,20 @@ def _handoff_private_at8_verified_binding_capability(
     consumer_authorization_identity: str,
     consumer_workflow_run_id: str,
     workflow_id: str,
-    private_binding: _PrivateContactBinding | None = None,
-    private_binding_source: _PrivateBindingSource | None = None,
+    trusted_binding_source: object,
 ) -> _VerifiedContactBindingCapability:
-    """Mint an immutable capability from injected private-binding data plus AT8 provenance.
+    """Private AT8 handoff is not a generic capability issuer.
 
-    Ordinary callers cannot supply a trusted source or trust marker. Correct AT8
-    strings alone are not a public mint surface.
+    Bound-contact and synthetic origins have their own issuers. Caller-supplied
+    trusted sources, raw private bindings, and AT8 strings alone cannot mint.
     """
-    binding = _resolve_private_binding(private_binding, private_binding_source)
-    if workflow_id != _WORKFLOW_ID:
-        raise BindingError("verified-contact capability workflow binding is invalid")
-    if source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
-        raise BindingError("verified-contact capability source execution unit is invalid")
-    if source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
-        raise BindingError("verified-contact capability source proof is invalid")
-    return _mint_trusted_capability(
-        workflow_id=_WORKFLOW_ID,
-        source_execution_unit=_AT8_SOURCE_EXECUTION_UNIT,
-        source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
-        location_id=binding.location_id,
-        contact_id=binding.contact_id,
+    return _handoff_private_at8_capability_from_registered_source(
+        trusted_binding_source=trusted_binding_source,
+        source_execution_unit=source_execution_unit,
+        source_proof_merge_sha=source_proof_merge_sha,
         consumer_authorization_identity=consumer_authorization_identity,
         consumer_workflow_run_id=consumer_workflow_run_id,
-        trusted_source=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
+        workflow_id=workflow_id,
     )
 
 
@@ -289,21 +693,7 @@ class NotePathAdapter:
             None
         )
 
-    def get_bound_contact(self) -> Mapping[str, str]:
-        """Fetch and validate only the exact private contact and location binding."""
-        response = self._transport.dispatch("GET", f"/contacts/{self._contact_id}")
-        contact = self._required_envelope(response, "contact")
-        contact_id = contact.get("id")
-        location_id = contact.get("locationId")
-        if contact_id != self._contact_id:
-            raise BindingError("contact id does not match the private binding")
-        if location_id != self._location_id:
-            raise BindingError("location id does not match the private binding")
-        self.CONTACT_PREFLIGHT_VERIFIED = "YES"
-        self._verified_contact_binding_capability = (
-            self._mint_bound_contact_verified_capability()
-        )
-        return {"id": contact_id, "locationId": location_id}
+    get_bound_contact = _build_bound_contact_get()
 
     def create_meeting_note(self, note_contract: Mapping[str, Any]) -> CreatedMeetingNote:
         """Serialize one validated synthetic note and consume the one POST budget."""
@@ -388,18 +778,6 @@ class NotePathAdapter:
             raise TransportError(f"{envelope_name} fixture envelope is malformed")
         return envelope
 
-    def _mint_bound_contact_verified_capability(self) -> _VerifiedContactBindingCapability:
-        return _mint_trusted_capability(
-            workflow_id=_WORKFLOW_ID,
-            source_execution_unit=_AT8_SOURCE_EXECUTION_UNIT,
-            source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
-            location_id=self._location_id,
-            contact_id=self._contact_id,
-            consumer_authorization_identity=self._consumer_authorization_identity,
-            consumer_workflow_run_id=self._consumer_workflow_run_id,
-            trusted_source=_TRUSTED_SOURCE_BOUND_CONTACT,
-        )
-
     @classmethod
     def _build_at8_shaped_test_capability(
         cls,
@@ -412,7 +790,7 @@ class NotePathAdapter:
         source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
         source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
     ) -> _VerifiedContactBindingCapability:
-        return _mint_trusted_capability(
+        return _issue_synthetic_test_capability(
             workflow_id=cls._require_identifier("workflow_id", workflow_id),
             source_execution_unit=cls._require_identifier(
                 "source_execution_unit", source_execution_unit
@@ -428,38 +806,38 @@ class NotePathAdapter:
             consumer_workflow_run_id=cls._require_identifier(
                 "consumer_workflow_run_id", consumer_workflow_run_id
             ),
-            trusted_source=_TRUSTED_SOURCE_AT8_SHAPED_TEST,
+        )
+
+    @classmethod
+    def _build_private_at8_verified_binding_source(
+        cls,
+        *,
+        location_id: str,
+        contact_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _TrustedPrivateBindingSource:
+        return _issue_private_at8_handoff_source_for_synthetic_tests(
+            workflow_id=cls._require_identifier("workflow_id", workflow_id),
+            source_execution_unit=cls._require_identifier(
+                "source_execution_unit", source_execution_unit
+            ),
+            source_proof_merge_sha=cls._require_identifier(
+                "source_proof_merge_sha", source_proof_merge_sha
+            ),
+            location_id=cls._require_synthetic_identifier("location_id", location_id),
+            contact_id=cls._require_synthetic_identifier("contact_id", contact_id),
         )
 
     def _require_trusted_verified_capability(self) -> _VerifiedContactBindingCapability:
-        capability = self._verified_contact_binding_capability
-        if capability is None:
-            raise BindingError("successful bound contact preflight is required before POST")
-        if (
-            not isinstance(capability, _VerifiedContactBindingCapability)
-            or capability._trust_marker is not _CAPABILITY_TRUST_MARKER
-        ):
-            raise BindingError("verified-contact binding capability is invalid")
-        if capability.trusted_source not in _ALLOWED_TRUSTED_SOURCES:
-            raise BindingError("verified-contact capability trusted source is invalid")
-        if capability.workflow_id != _WORKFLOW_ID:
-            raise BindingError("verified-contact capability workflow binding is invalid")
-        if capability.source_execution_unit != _AT8_SOURCE_EXECUTION_UNIT:
-            raise BindingError("verified-contact capability source execution unit is invalid")
-        if capability.source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
-            raise BindingError("verified-contact capability source proof is invalid")
-        if capability.location_id != self._location_id:
-            raise BindingError("verified-contact capability location binding is invalid")
-        if capability.contact_id != self._contact_id:
-            raise BindingError("verified-contact capability contact binding is invalid")
-        if (
-            capability.consumer_authorization_identity
-            != self._consumer_authorization_identity
-        ):
-            raise BindingError("verified-contact capability authorization binding is invalid")
-        if capability.consumer_workflow_run_id != self._consumer_workflow_run_id:
-            raise BindingError("verified-contact capability workflow run binding is invalid")
-        return capability
+        return _require_issued_verified_capability(
+            self._verified_contact_binding_capability,
+            location_id=self._location_id,
+            contact_id=self._contact_id,
+            consumer_authorization_identity=self._consumer_authorization_identity,
+            consumer_workflow_run_id=self._consumer_workflow_run_id,
+        )
 
     def _reserve_note_create_budget(self) -> None:
         budget_key = _MutationBudgetKey(
