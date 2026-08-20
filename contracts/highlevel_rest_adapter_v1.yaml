@@ -1,0 +1,720 @@
+contract:
+  id: highlevel_rest_adapter_v1
+  unit: NW008_AT1_GHL_REST_ADAPTER_ARCHITECTURE_001
+  workflow: meeting_follow_up_v1
+  mode: ARCHITECTURE_ONLY
+  status: defined_for_governance_pr_review
+  implementation_authorized: false
+  live_read_authorized: false
+  live_mutation_authorized: false
+  live_execution_authorized: false
+  external_effects: 0
+  path_readiness:
+    NOTE_PATH_ARCHITECTURE_READY: true
+    STAGE_PATH_ARCHITECTURE_READY: false
+    STAGE_PATH_BLOCKER: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+
+environment:
+  class: ACTIVE_CANONICAL_BUSINESS_CRM
+  synthetic_only: true
+  private_allowlist_required: true
+  exact_id_targeting_required: true
+  private_binding_publication: false
+  forbidden:
+    broad_search: true
+    list_pagination_expansion: true
+    alternate_target_search: true
+    non_allowlisted_record_access: true
+    real_customer_record_read: true
+    real_customer_record_mutation: true
+
+private_binding:
+  supplied_by: adapter_infrastructure_only
+  caller_may_override: false
+  values_published_in_contract: false
+  required_by_slice:
+    NOTE_PATH:
+      - location_id
+      - contact_id
+    STAGE_PATH:
+      - opportunity_id
+      - pipeline_id
+      - initial_stage_id
+      - final_stage_id
+  stage_parent_binding:
+    may_reference_note_path_location_contact_when_required: true
+    required_to_initialize_NOTE_PATH: false
+
+transport:
+  provider: HighLevel
+  api_version: v3
+  scheme: https
+  origin:
+    source: reviewed_configuration
+    caller_override: false
+  redirects: reject
+  query_parameters: reject
+  authorization_header:
+    source: credential_provider_only
+    caller_override: false
+  content_type: application/json
+  generic_request_api_exposed: false
+  generic_execute_api_exposed: false
+  search_api_exposed: false
+  list_api_exposed: false
+
+provider_operations:
+  get_contact:
+    method: GET
+    path: /contacts/{contactId}
+    path_bindings:
+      contactId: private_binding.contact_id
+    scope: contacts.readonly
+    version: v3
+    query_allowed: false
+    mutation: false
+    purpose: verify_bound_contact
+    implementation_slice: NOTE_PATH
+    runtime_enabled: true
+    response_contract:
+      envelope: contact
+      id_selector: contact.id
+      location_selector: contact.locationId
+      fields_consumed:
+        - id
+        - locationId
+      full_response_log_or_persist: forbidden
+    data_minimization:
+      consume_only:
+        - id
+        - locationId
+      log_full_response: false
+      persist_full_response: false
+
+  create_note:
+    method: POST
+    path: /contacts/{contactId}/notes
+    path_bindings:
+      contactId: private_binding.contact_id
+    scope: contacts.write
+    version: v3
+    query_allowed: false
+    mutation: true
+    required_capability: AUTH_CAPABILITY_NOTE_CREATE
+    implementation_slice: NOTE_PATH
+    runtime_enabled: true
+    request_body:
+      constructed_internally: true
+      caller_provider_body_allowed: false
+      official_v3_documented_fields:
+        - userId
+        - body
+        - title
+        - color
+        - pinned
+      allowed_fields:
+        - body
+      denied_fields:
+        - userId
+        - title
+        - color
+        - pinned
+      unresolved_minimum_provider_body: false
+      logical_title_placement: first_line_of_body
+    response_contract:
+      envelope: note
+      id_selector: note.id
+      body_selector: note.body
+      contact_selector: note.contactId
+      contact_must_equal: private_binding.contact_id
+    purpose: create_one_synthetic_meeting_note
+
+  get_note:
+    method: GET
+    path: /contacts/{contactId}/notes/{noteId}
+    path_bindings:
+      contactId: private_binding.contact_id
+      noteId: same_run_create_note_response.note_id
+    scope: contacts.readonly
+    version: v3
+    query_allowed: false
+    mutation: false
+    purpose: verify_note_by_exact_id
+    implementation_slice: NOTE_PATH
+    runtime_enabled: true
+    response_contract:
+      envelope: note
+      id_selector: note.id
+      body_selector: note.body
+      contact_selector: note.contactId
+      id_must_equal: same_run_create_note_response.note_id
+      contact_must_equal: private_binding.contact_id
+    data_minimization:
+      consume_only_identity_and_body_fields: true
+      log_full_response: false
+      persist_full_response: false
+
+  get_opportunity:
+    method: GET
+    path: /opportunities/{opportunityId}
+    path_bindings:
+      opportunityId: private_binding.opportunity_id
+    scope: opportunities.readonly
+    version: v3
+    query_allowed: false
+    mutation: false
+    purpose: preflight_and_verify_bound_opportunity
+    implementation_slice: STAGE_PATH
+    architecture_ready: false
+    runtime_enabled: false
+    data_minimization:
+      consume_only_required_binding_and_state_fields: true
+      log_full_response: false
+      persist_full_response: false
+
+  update_opportunity_stage:
+    method: PUT
+    path: /opportunities/{opportunityId}
+    path_bindings:
+      opportunityId: private_binding.opportunity_id
+    scope: opportunities.write
+    version: v3
+    query_allowed: false
+    mutation: true
+    required_capability: AUTH_CAPABILITY_STAGE_UPDATE
+    implementation_slice: STAGE_PATH
+    architecture_ready: false
+    runtime_enabled: false
+    blocked_by: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+    request_body:
+      constructed_internally_from_fresh_verified_state: true
+      caller_provider_body_allowed: false
+      intended_changed_fields:
+        - pipelineStageId
+      unresolved_minimum_provider_body: true
+      forbidden_fields:
+        - monetaryValue
+        - assignedTo
+        - forecastExpectedCloseDate
+        - forecastProbability
+        - customFields
+        - status
+        - name
+    purpose: advance_one_separately_authorized_stage
+
+forbidden_provider_operations:
+  - contact_search
+  - contact_list
+  - opportunity_search
+  - opportunity_list
+  - note_list
+  - pagination
+  - batch
+  - arbitrary_url
+  - arbitrary_method
+  - generic_execute
+
+domain_api:
+  get_bound_contact:
+    arguments: []
+    caller_supplies_ids: false
+    implementation_slice: NOTE_PATH
+    runtime_enabled: true
+    consumes_response_fields:
+      - id
+      - locationId
+    full_response_log_or_persist: forbidden
+  get_bound_opportunity:
+    arguments: []
+    caller_supplies_ids: false
+    implementation_slice: STAGE_PATH
+    architecture_ready: false
+    runtime_enabled: false
+    consumes_only_required_binding_and_state_fields: true
+    full_response_log_or_persist: forbidden
+  create_meeting_note:
+    arguments:
+      - note_contract
+    accepts_provider_body: false
+    implementation_slice: NOTE_PATH
+    runtime_enabled: true
+    required_capability: AUTH_CAPABILITY_NOTE_CREATE
+  verify_meeting_note:
+    arguments:
+      - note_id
+      - expected_note_content_digest
+    note_id_source: same_run_create_note_response
+    note_content_digest_source: adapter_internal
+    implementation_slice: NOTE_PATH
+    runtime_enabled: true
+    logical_verification: note_content_digest_equality
+  advance_authorized_stage:
+    arguments:
+      - expected_from
+      - authorized_to
+    arguments_are_authorized_symbols: true
+    accepts_provider_body: false
+    implementation_slice: STAGE_PATH
+    architecture_ready: false
+    runtime_enabled: false
+    required_capability: AUTH_CAPABILITY_STAGE_UPDATE
+    blocked_by: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+  verify_authorized_stage:
+    arguments:
+      - authorized_to
+    arguments_are_authorized_symbols: true
+    implementation_slice: STAGE_PATH
+    architecture_ready: false
+    runtime_enabled: false
+    blocked_by: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+
+note_contract:
+  additional_properties: false
+  raw_transcript_allowed: false
+  title: "MG Guide — Synthetic Meeting Follow-Up"
+  required:
+    - SYNTHETIC_MARKER
+    - meeting_id
+    - meeting_summary
+    - needs
+    - objections
+    - commitments
+    - next_step
+    - opportunity_signal
+    - workflow_id
+    - transcript_hash
+  optional:
+    - synthetic_excerpt
+  fields:
+    SYNTHETIC_MARKER:
+      type: string
+      value: implementation_reviewed_synthetic_marker
+    meeting_id:
+      type: string
+      min_length: 1
+    meeting_summary:
+      type: string
+    needs:
+      type: array
+      items: string
+    objections:
+      type: array
+      items: string
+    commitments:
+      type: array
+      items:
+        type: object
+        additional_properties: false
+        required:
+          - owner
+          - action
+        optional:
+          - due_date
+    next_step:
+      type:
+        - object
+        - "null"
+    opportunity_signal:
+      type:
+        - object
+        - "null"
+    workflow_id:
+      type: string
+      const: meeting_follow_up_v1
+    transcript_hash:
+      type: string
+      pattern: "^[a-f0-9]{64}$"
+    synthetic_excerpt:
+      type: string
+      synthetic_only: true
+      purpose: demo_traceability
+      length_limit: unresolved_before_implementation
+  source_requirements:
+    meeting_source: synthetic_demo
+    synthetic_content_guard: required
+
+note_serialization:
+  encoding: UTF-8
+  unicode_normalization: NFC
+  newline: LF
+  terminal_newline_count: 1
+  title_is_first_body_line: true
+  provider_title_field_used: false
+  labels_in_order:
+    - SYNTHETIC_MARKER
+    - meeting_id
+    - meeting_summary
+    - needs
+    - objections
+    - commitments
+    - next_step
+    - opportunity_signal
+    - workflow_id
+    - transcript_hash
+    - synthetic_excerpt
+  optional_labels_are_omitted_as_whole: true
+  value_encoding:
+    format: canonical_json
+    object_keys: lexicographically_sorted
+    insignificant_whitespace: forbidden
+    ascii_only_escaping: false
+    duplicate_keys: reject
+    non_finite_numbers: reject
+    invalid_unicode: reject
+    array_order: preserve
+  nondeterministic_values: forbidden
+
+note_verification_digests:
+  NOTE_CONTENT_DIGEST:
+    algorithm: SHA-256
+    input: canonical_closed_logical_note_contract_serialized_content
+    output: lowercase_hex
+    role: required_logical_verification
+    required: true
+    generated_by: adapter_internal
+    comparison: constant_time
+  PROVIDER_BODY_DIGEST:
+    algorithm: SHA-256
+    input: exact_serialized_outbound_provider_body_utf8_bytes
+    output: lowercase_hex
+    role: transport_evidence
+    required_for_logical_verification: false
+    generated_by: adapter_internal
+  raw_provider_byte_for_byte_round_trip:
+    sole_logical_verification_mechanism: false
+    until: provider_storage_preservation_authoritatively_established
+  permissive_normalization: false
+  whitespace_normalization: forbidden
+  html_normalization: forbidden
+
+note_readback_parser:
+  mode: strict
+  fixed_labels_only: true
+  unknown_labels: reject
+  duplicate_labels: reject
+  required_exact_values:
+    workflow_id: meeting_follow_up_v1
+    meeting_id: expected_from_note_contract
+    transcript_hash: expected_from_note_contract
+  canonical_domain_reconstruction: required
+  logical_content_digest_equality: required
+  permissive_whitespace_normalization: false
+  permissive_html_normalization: false
+
+note_protocol:
+  prerequisites:
+    - implementation_authorized
+    - implemented
+    - live_read_authorized
+    - separate_run_bound_live_mutation_authorization
+    - AUTH_CAPABILITY_NOTE_CREATE
+    - required_credential_and_scopes_present
+    - NOTE_PATH_private_bindings_complete
+  private_bindings_required:
+    - location_id
+    - contact_id
+  stage_path_bindings_required_to_initialize: false
+  steps:
+    - exact_contact_get
+    - verify_contact_binding_id_and_locationId_only
+    - validate_and_serialize_note
+    - compute_NOTE_CONTENT_DIGEST
+    - compute_PROVIDER_BODY_DIGEST
+    - atomically_reserve_note_post_budget
+    - exact_contact_note_post_once_body_only
+    - require_note_id_body_and_contactId_from_resolved_response
+    - require_note_contactId_equals_private_note_path_contact_binding
+    - capture_note_id_from_resolved_response
+    - exact_contact_note_get
+    - require_note_id_equals_same_run_created_note_id
+    - require_note_contactId_equals_private_note_path_contact_binding
+    - strict_readback_parse
+    - canonical_domain_reconstruction
+    - compare_NOTE_CONTENT_DIGEST
+    - set_note_write_verified
+  create_http_success_is_verified: false
+  note_write_verified_requires:
+    - exact_note_readback
+    - note_id_equals_same_run_created_note_id
+    - note_contactId_equals_private_note_path_contact_binding
+    - strict_parser_pass
+    - note_content_digest_match
+
+stage_protocol:
+  optional: true
+  architecture_ready: false
+  blocked_by: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+  authorization_separate_from_note: true
+  may_start_only_after_note_readback_verified: true
+  prerequisites:
+    - STAGE_PATH_ARCHITECTURE_READY
+    - separate_stage_mutation_authorization
+    - AUTH_CAPABILITY_STAGE_UPDATE
+    - authorization_matches_run_and_private_bindings
+    - authorization_matches_expected_from_and_authorized_to
+  steps:
+    - fresh_exact_opportunity_get
+    - verify_opportunity_id
+    - verify_pipeline_id
+    - verify_initial_stage_id
+    - verify_parent_bindings_where_resolved
+    - construct_provider_body_internally
+    - atomically_reserve_stage_put_budget
+    - exact_opportunity_put_once
+    - fresh_exact_opportunity_get
+    - verify_opportunity_pipeline_and_final_stage
+    - set_stage_readback_verified
+  compensating_mutation: false
+
+mutation_budget:
+  ledger: durable_per_workflow_run
+  note_post:
+    max_attempts: 1
+    automatic_retry: false
+    consumed_before_dispatch: true
+    remains_consumed_on_ambiguous_outcome: true
+    required_capability: AUTH_CAPABILITY_NOTE_CREATE
+  stage_put:
+    max_attempts: 1
+    automatic_retry: false
+    consumed_before_dispatch: true
+    remains_consumed_on_ambiguous_outcome: true
+    required_capability: AUTH_CAPABILITY_STAGE_UPDATE
+    architecture_ready: false
+    blocked_by: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+  duplicate_terminal_run:
+    may_reset_budget: false
+    may_mutate: false
+
+capability_authorization:
+  AUTH_CAPABILITY_NOTE_CREATE:
+    unlocks:
+      - create_meeting_note
+      - note_post_budget
+    required_for_note_write: true
+  AUTH_CAPABILITY_STAGE_UPDATE:
+    unlocks:
+      - advance_authorized_stage
+      - stage_put_budget
+    required_for_stage_write: true
+  rules:
+    generic_live_mutation_authorized_alone_unlocks_note_write: false
+    generic_live_mutation_authorized_alone_unlocks_stage_write: false
+    note_capability_implies_stage_capability: false
+    stage_capability_implies_note_capability: false
+    missing_capability: STOP_BEFORE_NETWORK_IO
+
+data_minimization:
+  contact_read:
+    fields_consumed:
+      - id
+      - locationId
+    full_response_log: forbidden
+    full_response_persist: forbidden
+  opportunity_read:
+    when_enabled: required_binding_and_state_fields_only
+    full_response_log: forbidden
+    full_response_persist: forbidden
+  note_readback:
+    consume_only_identity_and_body_fields: true
+    full_response_log: forbidden
+    full_response_persist: false
+    override_requires_separate_review: true
+
+readback_contract:
+  note:
+    operation: get_note
+    exact_contact_required: true
+    exact_same_run_note_id_required: true
+    expected_note_content_digest_generated_internally: true
+    parser: strict_labeled_line
+    success: note_content_digest_match_after_canonical_reconstruction
+    provider_body_digest_role: transport_evidence_only
+    response_contract:
+      envelope: note
+      id_selector: note.id
+      body_selector: note.body
+      contact_selector: note.contactId
+    verification_requirements:
+      note_id_equals_same_run_created_note_id: true
+      note_contactId_equals_private_note_path_contact_binding: true
+      strict_body_parser: PASS
+      NOTE_CONTENT_DIGEST: match
+  stage:
+    operation: get_opportunity
+    architecture_ready: false
+    blocked_by: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+    exact_opportunity_required: true
+    exact_pipeline_required: true
+    exact_authorized_final_stage_required: true
+    success: all_bindings_match
+
+failure_semantics:
+  default: stop_and_forbid_additional_mutation
+  no_success_shaped_fallbacks: true
+  no_alternate_target_resolution: true
+  conditions:
+    wrong_contact_binding: STOP
+    wrong_opportunity_binding: STOP
+    wrong_pipeline: STOP
+    wrong_initial_stage: STOP
+    missing_authorization: STOP
+    missing_capability_authorization: STOP
+    missing_credential: STOP
+    http_401: STOP
+    http_403: STOP
+    http_400: STOP
+    http_422: STOP
+    timeout: STOP_NO_RETRY
+    ambiguous_write_result: STOP_NO_RETRY
+    readback_mismatch: STOP
+    strict_parser_failure: STOP
+    unexpected_response_schema: STOP
+    redirect: STOP
+    arbitrary_provider_field: REJECT_BEFORE_DISPATCH
+    denied_create_note_field: REJECT_BEFORE_DISPATCH
+    non_allowlisted_route: REJECT_BEFORE_DISPATCH
+    full_response_log_or_persist: REJECT_PERSISTENCE_PATH
+  audit_outcomes:
+    - not_attempted
+    - attempted_ambiguous
+    - http_succeeded_unverified
+    - readback_verified
+
+authority_states:
+  inference_between_states: forbidden
+  current:
+    ARCHITECTURE_DEFINED: true
+    NOTE_PATH_ARCHITECTURE_READY: true
+    STAGE_PATH_ARCHITECTURE_READY: false
+    STAGE_PATH_BLOCKER: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+    IMPLEMENTATION_AUTHORIZED: false
+    IMPLEMENTED: false
+    LIVE_READ_AUTHORIZED: false
+    LIVE_READ_VERIFIED: false
+    LIVE_MUTATION_AUTHORIZED: false
+    LIVE_MUTATION_EXECUTED: false
+    READBACK_VERIFIED: false
+    E2E_COMPLETE: false
+    LIVE_EXECUTION_AUTHORIZED: false
+    STAGE_UPDATE: NOT_ATTEMPTED
+  rules:
+    architecture_does_not_authorize_implementation: true
+    note_path_ready_does_not_authorize_implementation: true
+    note_path_ready_does_not_authorize_stage_path: true
+    stage_path_uncertainty_does_not_block_note_only_implementation_review: true
+    implementation_does_not_authorize_live_read: true
+    live_read_does_not_authorize_mutation: true
+    credential_readiness_does_not_authorize_execution: true
+    note_authority_does_not_authorize_stage: true
+    generic_mutation_auth_alone_unlocks_writes: false
+    http_success_does_not_imply_readback: true
+    adapter_self_authorization: forbidden
+    note_only_e2e_completion:
+      authorized_capabilities_only_count_toward_completion: true
+      when:
+        AUTH_CAPABILITY_NOTE_CREATE: authorized
+        NOTE_WRITE_VERIFIED: true
+        AUTH_CAPABILITY_STAGE_UPDATE: not_authorized
+        STAGE_UPDATE: NOT_ATTEMPTED
+      then:
+        E2E_COMPLETE: true
+
+implementation_slices:
+  IMPLEMENTATION_SLICE_1:
+    name: NOTE_PATH
+    architecture_ready: true
+    implementation_authorized: false
+    runtime_enabled_operations:
+      - GET /contacts/{contactId}
+      - POST /contacts/{contactId}/notes
+      - GET /contacts/{contactId}/notes/{noteId}
+    operations:
+      - get_bound_contact
+      - create_meeting_note
+      - verify_meeting_note
+  IMPLEMENTATION_SLICE_2:
+    name: STAGE_PATH
+    architecture_ready: false
+    implementation_authorized: false
+    blocked_by: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+    runtime_enabled: false
+    runtime_enabled_while_stage_path_not_ready: false
+    stage_routes_activatable_by_slice_1: false
+    operations:
+      - get_bound_opportunity
+      - advance_authorized_stage
+      - verify_authorized_stage
+
+unresolved_provider_fields:
+  runtime_probe_authorized_by_this_contract: false
+  stage_path_blocking:
+    - minimum_valid_stage_only_put_body
+  implementation_review_non_blocking_for_note_path_architecture:
+    - provider_id_lexical_constraints
+    - note_storage_text_transformation_behavior
+    - opportunity_response_envelope_and_binding_state_selectors
+    - exact_error_envelope_fields
+    - credential_scope_inspection_mechanics
+  resolved:
+    - get_contact_response_envelope_contact
+    - get_contact_id_selector_contact_id
+    - get_contact_location_selector_contact_locationId
+    - create_note_official_fields_userId_body_title_color_pinned
+    - create_note_adapter_v1_allowed_body_only
+    - create_note_adapter_v1_denied_userId_title_color_pinned
+    - create_note_response_envelope_note
+    - create_note_id_selector_note_id
+    - create_note_body_selector_note_body
+    - create_note_contact_selector_note_contactId
+    - get_note_response_envelope_note
+    - get_note_id_selector_note_id
+    - get_note_body_selector_note_body
+    - get_note_contact_selector_note_contactId
+
+future_offline_tests:
+  transport: local_fake_only
+  external_effects: 0
+  required:
+    - exact_contact_pass_id_locationId_only
+    - full_contact_response_not_logged_or_persisted
+    - contact_binding_mismatch_block
+    - search_api_absent
+    - generic_execute_api_absent
+    - one_note_budget_enforced
+    - create_note_body_allowlist_body_only
+    - create_note_denied_fields_rejected
+    - create_note_response_selectors_pass
+    - get_note_response_selectors_pass
+    - note_content_digest_pass
+    - note_content_digest_mismatch_block
+    - strict_readback_parser_unknown_label_block
+    - strict_readback_parser_duplicate_label_block
+    - strict_readback_parser_wrong_workflow_meeting_transcript_block
+    - ambiguous_post_outcome_no_retry
+    - missing_auth_capability_note_create_block
+    - generic_mutation_auth_alone_does_not_unlock_note_write
+    - note_only_e2e_complete_when_stage_capability_not_authorized
+    - arbitrary_provider_fields_rejected
+    - offline_external_effects_zero
+  slice_2_when_unblocked:
+    - exact_opportunity_pass
+    - opportunity_binding_mismatch_block
+    - valid_initial_stage_pass
+    - initial_stage_mismatch_block
+    - one_stage_write_budget_enforced
+    - stage_readback_pass
+    - stage_readback_mismatch_block
+    - missing_auth_capability_stage_update_block
+
+stop:
+  code: NW008_AT1_GHL_REST_ADAPTER_ARCHITECTURE_READY_FOR_PR_REVIEW
+  markers:
+    NOTE_PATH_ARCHITECTURE_READY: YES
+    STAGE_PATH_ARCHITECTURE_READY: NO
+    STAGE_PATH_BLOCKER: MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+    IMPLEMENTATION_AUTHORIZED: NO
+    LIVE_READ_AUTHORIZED: NO
+    LIVE_MUTATION_AUTHORIZED: NO
+    LIVE_EXECUTION_AUTHORIZED: NO
+    EXTERNAL_EFFECTS: 0
