@@ -9,7 +9,7 @@ CLASSIFICATION=authorization
 PR_CLASS=authorization
 OWNER=VS Code orchestrator
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
-MODE=AUTHORIZATION_PLANNING_ONLY
+MODE=AUTHORIZATION_ARTIFACT_ONLY
 
 AUTHORIZATION_BRANCH=governance/nw008-at8a-ghl-rest-note-path-mutation-guard-hardening-authorization-001
 AUTHORIZATION_ARTIFACT=governance/authorizations/nw008-at8a-ghl-rest-note-path-mutation-guard-hardening-authorization-001.md
@@ -24,6 +24,9 @@ SOURCE_LIVE_READ_PROOF_MERGE_SHA=6256f287bbd88effc2ef1cd13a801faec79a0af2
 
 BASE_REF=origin/main
 BASE_SHA=6256f287bbd88effc2ef1cd13a801faec79a0af2
+
+WORKFLOW_ID=meeting_follow_up_v1
+WORKFLOW_RUN_ID_REQUIRED=YES
 
 ARCHITECTURE_ARTIFACT=docs/nw008/nw-008-at1-ghl-rest-adapter-architecture-001.md
 CONTRACT_ARTIFACT=contracts/highlevel_rest_adapter_v1.yaml
@@ -54,10 +57,10 @@ it does not implement adapter code, open a network socket, load a credential,
 touch HighLevel, issue a note POST, issue a contact GET, or produce live CRM
 effects.
 
-The planning unit
-`NW008_AT8A_GHL_REST_NOTE_PATH_MUTATION_GUARD_HARDENING_PLANNING_001` may only
-propose this artifact. It may not implement hardening, run live CRM actions, or
-issue a later live-mutation grant.
+`PLANNING_UNIT=NW008_AT8A_GHL_REST_NOTE_PATH_MUTATION_GUARD_HARDENING_PLANNING_001`
+is retained as provenance only. This authorization-artifact unit may only
+propose or tighten this artifact. It may not implement hardening, run live CRM
+actions, or issue a later live-mutation grant.
 
 ### Conditional grant semantics
 
@@ -133,7 +136,7 @@ git branch --show-current
 governance/nw008-at8a-ghl-rest-note-path-mutation-guard-hardening-authorization-001
 
 git rev-parse HEAD
-6256f287bbd88effc2ef1cd13a801faec79a0af2
+28af2a2402b41f73c4f8c80e06900eda3254d5c0
 
 Working branch is not main
 YES
@@ -375,15 +378,22 @@ within the writable paths in §5 only:
    with internal, non-public authoritative preflight state.
 2. Introduce a verified-contact binding capability bound to a trusted source
    (offline fake-transport verification and/or an internally constructed
-   AT8-shaped capability test double). The capability must be bound to workflow
-   identity and authorization identity. Invalid, missing, wrong-workflow, or
-   wrong-authorization capabilities must fail closed before POST.
+   AT8-shaped capability test double). The capability must bind
+   `workflow_id`, `source_execution_unit`, `source_proof_merge_sha`,
+   `contact_id`, `location_id`, `consumer_authorization_identity`,
+   `consumer_workflow_run_id`, and `trusted_source`. Capability provenance is
+   evidence only and remains distinct from any future live write authority.
+   Invalid, missing, wrong-workflow-run, wrong-authorization, or caller-forged
+   capabilities must fail closed before POST.
 3. Replace instance-local caller-writable `POST_ATTEMPTS` with a
-   workflow-run-bound durable one-POST reservation.
-4. Enforce reserve-before-dispatch semantics: the run's single POST budget is
-   reserved before fake-transport dispatch and remains consumed on timeout,
-   disconnect, cancellation, malformed response, unknown delivery status, or
-   other ambiguous outcome.
+   workflow-run-bound durable-semantics one-POST reservation implemented only
+   through a shared process-local test ledger that is explicitly not live
+   mutation ready.
+4. Enforce atomic reserve-before-dispatch semantics: the run's single POST
+   budget is reserved before fake-transport dispatch, exactly one concurrent
+   reservation attempt may win, and the reservation remains consumed on
+   timeout, disconnect, cancellation, malformed response, unknown delivery
+   status, post-reservation exception, or other ambiguous outcome.
 5. Ensure a fresh adapter cannot reset mutation allowance for the same
    workflow run.
 6. Preserve same-run note ID readback only; note IDs must not be recovered by
@@ -394,7 +404,8 @@ within the writable paths in §5 only:
 9. Keep raw transcript forbidden and `synthetic_excerpt` fail-closed until its
    length/synthetic limit is separately resolved.
 10. Keep search, list, pagination, generic execute, and STAGE_PATH absent.
-11. Add the required negative tests in §7 and keep existing offline NOTE_PATH
+11. Add the required negative tests in §7, including concurrent reservation and
+    post-reservation exception coverage, and keep existing offline NOTE_PATH
     fail-closed coverage unless a named test must change to stop depending on
     the public mutable flag.
 12. Return an exact implementation file manifest of every created or modified
@@ -547,7 +558,7 @@ The future implementation lane is forbidden from writing:
 
 ### 5.1 This authorization PR (current unit)
 
-This authorization-planning unit may write exactly one path:
+This authorization-artifact-only unit may write exactly one path:
 
 ```text
 governance/authorizations/nw008-at8a-ghl-rest-note-path-mutation-guard-hardening-authorization-001.md
@@ -699,13 +710,25 @@ public attribute write.
 
 ```text
 VERIFIED_CONTACT_BINDING_CAPABILITY=REQUIRED
+CAPABILITY_PROVENANCE_AND_WRITE_AUTHORITY_SEPARATED=YES
+WORKFLOW_ID=meeting_follow_up_v1
+WORKFLOW_RUN_ID_REQUIRED=YES
 CAPABILITY_PUBLIC_MUTABLE_FLAG=FORBIDDEN
 CAPABILITY_MUST_BIND=
 workflow_id
-authorization_identity
+source_execution_unit
+source_proof_merge_sha
 location_id
 contact_id
+consumer_authorization_identity
+consumer_workflow_run_id
 trusted_source
+SOURCE_EXECUTION_UNIT=NW008_AT8_GHL_REST_EXACT_SYNTHETIC_CONTACT_LIVE_READ_EXECUTION_002
+SOURCE_PROOF_MERGE_SHA=6256f287bbd88effc2ef1cd13a801faec79a0af2
+CAPABILITY_TRUSTED_FACTORY_REQUIRED=YES
+CAPABILITY_PUBLIC_CONSTRUCTION_AUTHORIZED=NO
+CAPABILITY_CALLER_SUPPLIED_TRUSTED_SOURCE=FORBIDDEN
+CAPABILITY_PUBLIC_BOOLEAN_PROMOTION=FORBIDDEN
 ```
 
 Trusted sources authorized for offline construction:
@@ -715,16 +738,23 @@ TRUSTED_SOURCE_FAKE_TRANSPORT_BOUND_CONTACT_GET=YES
 TRUSTED_SOURCE_AT8_SHAPED_CAPABILITY_TEST_DOUBLE=YES
 TRUSTED_SOURCE_PUBLIC_FLAG_ASSIGNMENT=NO
 TRUSTED_SOURCE_CALLER_SUPPLIED_YES=NO
+AT8_SHAPED_TEST_DOUBLE_USES_SYNTHETIC_IDS_ONLY=YES
+REAL_PRIVATE_BINDING_VALUES_IN_TEST_FIXTURES=FORBIDDEN
 ```
 
 The AT8-shaped capability test double exists so offline tests can prove that a
 later live-mutation unit could consume a verified AT8 binding without a third
 provider GET and without setting `CONTACT_PREFLIGHT_VERIFIED="YES"`. The test
-double is not live-read authority, not live-mutation authority, and must not
-embed private IDs.
+double is not live-read authority, not live-mutation authority, and must use
+synthetic IDs only. AT8 proof provenance is evidence only; it is not consumer
+live-write authorization.
 
-Invalid, missing, expired, wrong-workflow, or wrong-authorization capabilities
-must fail closed before fake-transport POST.
+A future live capability may bind private IDs only in private runtime memory.
+Those values must never enter public proof, fixtures, or logging.
+
+Invalid, missing, expired, wrong-workflow-run, wrong-authorization, or
+wrong-source-provenance capabilities must fail closed before fake-transport
+POST.
 
 ```text
 INVALID_VERIFIED_BINDING_CAPABILITY_BLOCKS=REQUIRED
@@ -738,14 +768,31 @@ must not be represented solely by a public `"YES"` flag.
 ### 6.3 Workflow-run-bound durable mutation reservation
 
 ```text
+WORKFLOW_ID=meeting_follow_up_v1
+WORKFLOW_RUN_ID_REQUIRED=YES
+BUDGET_KEYS_USE_WORKFLOW_RUN_ID=YES
 NOTE_POST_BUDGET_PER_WORKFLOW_RUN=1
+OFFLINE_LEDGER_IMPLEMENTATION_CLASS=SHARED_PROCESS_LOCAL_TEST_LEDGER
+OFFLINE_LEDGER_PROCESS_RESTART_DURABILITY=NO
+MUTATION_RESERVATION_INTERFACE_DURABLE_SEMANTICS=REQUIRED
 DURABLE_PER_WORKFLOW_RUN_ONE_POST_BUDGET=REQUIRED
+LIVE_DURABLE_MUTATION_LEDGER_IMPLEMENTED=NO
+LIVE_DURABLE_MUTATION_LEDGER_VERIFIED=NO
+LIVE_MUTATION_LEDGER_BACKEND_DECISION=DEFERRED_TO_SEPARATE_GOVERNED_LANE
+PROCESS_LOCAL_LEDGER_IS_NOT_LIVE_MUTATION_READY=YES
+ATOMIC_RESERVATION_REQUIRED=YES
 RESERVE_BEFORE_DISPATCH=YES
 AMBIGUOUS_POST_RETRY=NO
 AMBIGUOUS_POST_BUDGET_REMAINS_CONSUMED=YES
 FRESH_ADAPTER_CANNOT_RESET_MUTATION_ALLOWANCE=YES
 PUBLIC_POST_COUNTER_CANNOT_RESET_BUDGET=YES
 SECOND_ADAPTER_CANNOT_RESTORE_BUDGET=YES
+RESERVATION_RELEASE_AFTER_SUCCESS=NO
+RESERVATION_RELEASE_AFTER_FAILURE=NO
+RESERVATION_RELEASE_AFTER_AMBIGUITY=NO
+RESERVATION_RELEASE_AFTER_POST_RESERVATION_EXCEPTION=NO
+PRE_RESERVATION_VALIDATION_FAILURE_CONSUMES_BUDGET=NO
+POST_RESERVATION_BUDGET_REUSABLE=NO
 STAGE_PUT_BUDGET_UNDER_THIS_AUTH=0
 ```
 
@@ -758,10 +805,24 @@ workflow run must observe the consumed reservation.
 If `POST_ATTEMPTS` remains as a public attribute for diagnostics, it must be
 non-authoritative. Assigning it must not restore budget.
 
-The durable ledger for this offline grant may be process-local provided it is
-keyed by workflow-run identity rather than adapter instance identity. It must
-not require network, credentials, IAM, or deploy. It must not become a live
-CRM ledger.
+The offline ledger for this grant may be shared process-local state only if it
+is keyed by `consumer_workflow_run_id` rather than adapter instance identity or
+`workflow_id` alone. It may satisfy the reservation interface's durable
+semantics within a single process, but it is explicitly not classified as live
+durable mutation infrastructure, does not survive process restart, and must not
+be described as production/live durable ledger readiness.
+
+Reservation state is atomic and monotonic:
+
+```text
+RESERVATION_STATE_MACHINE=AVAILABLE->RESERVED->TERMINAL
+SUCCESSFUL_RESERVE_IS_IRREVOCABLE=YES
+```
+
+Successful reservation is never released, including after reported success,
+reported failure, ambiguity, or any exception raised after reservation. By
+contrast, validation failures that occur before a successful reserve do not
+consume the budget.
 
 ### 6.4 Preserved note-contract and digest rules
 
@@ -795,6 +856,8 @@ AMBIGUOUS_POST_BUDGET_REMAINS_CONSUMED=PASS
 INVALID_VERIFIED_BINDING_CAPABILITY_BLOCKS=PASS
 WRONG_WORKFLOW_OR_AUTHORIZATION_BINDING_BLOCKS=PASS
 SAME_RUN_NOTE_ID_REQUIRED=PASS
+CONCURRENT_RESERVATION_EXACTLY_ONE_WINNER=PASS
+POST_RESERVATION_EXCEPTION_REMAINS_CONSUMED=PASS
 ```
 
 Required meaning of those cases:
@@ -808,6 +871,8 @@ Required meaning of those cases:
 | `INVALID_VERIFIED_BINDING_CAPABILITY_BLOCKS` | Missing, forged, or otherwise invalid verified-contact capability blocks POST before dispatch. |
 | `WRONG_WORKFLOW_OR_AUTHORIZATION_BINDING_BLOCKS` | A capability bound to the wrong workflow identity or wrong authorization identity blocks POST before dispatch. |
 | `SAME_RUN_NOTE_ID_REQUIRED` | Readback requires the same-run created note ID; missing or non-same-run IDs fail closed; search/list recovery remains absent. |
+| `CONCURRENT_RESERVATION_EXACTLY_ONE_WINNER` | Two concurrent reservation attempts for the same `consumer_workflow_run_id` cannot both dispatch; exactly one reserve succeeds and the other fails closed before POST. |
+| `POST_RESERVATION_EXCEPTION_REMAINS_CONSUMED` | Any exception raised after a successful reserve leaves the budget consumed and blocks reuse for the same workflow run. |
 
 Preserved PR #95 / AT2 cases that must continue to pass, adapted only as needed
 so they no longer treat the public preflight flag or public POST counter as
@@ -881,8 +946,14 @@ AMBIGUOUS_POST_BUDGET_REMAINS_CONSUMED=PASS
 INVALID_VERIFIED_BINDING_CAPABILITY_BLOCKS=PASS
 WRONG_WORKFLOW_OR_AUTHORIZATION_BINDING_BLOCKS=PASS
 SAME_RUN_NOTE_ID_REQUIRED=PASS
+CONCURRENT_RESERVATION_EXACTLY_ONE_WINNER=PASS
+POST_RESERVATION_EXCEPTION_REMAINS_CONSUMED=PASS
 IMPLEMENTATION_FILE_MANIFEST_REQUIRED=YES
 IMPLEMENTATION_FILE_MANIFEST_WITHIN_WRITABLE_PREFIXES=YES
+OFFLINE_LEDGER_IMPLEMENTATION_CLASS=SHARED_PROCESS_LOCAL_TEST_LEDGER
+LIVE_DURABLE_MUTATION_LEDGER_IMPLEMENTED=NO
+PROCESS_LOCAL_LEDGER_IS_NOT_LIVE_MUTATION_READY=YES
+ATOMIC_RESERVATION_REQUIRED=YES
 LIVE_MUTATION_AUTHORIZED=NO
 ```
 
@@ -978,20 +1049,26 @@ This PR is class `authorization`. Before merge:
 
 3. no conflict markers;
 4. no secrets, tokens, private record IDs, or credential material;
-5. authorization state assertions in §10 hold;
-6. source SHA assertions in §2 hold;
-7. writable-path assertions in §5 hold;
-8. live-denial assertions in §4.1 hold
+5. source SHA assertions in §2 hold;
+6. named consumer assertion names AT8B only;
+7. one-shot / non-reuse assertions hold;
+8. offline-only and live-denial assertions in §4.1 hold
    (`HIGHLEVEL_ACCESS=NO`, `CRM_NETWORK_CALLS=0`, `CRM_MUTATIONS=0`,
    `CREDENTIAL_ACCESS=NO`, `IAM_CHANGE=NO`, `SECRET_CHANGE=NO`,
    `DEPLOYMENT_CHANGE=NO`);
-9. `REINSPECTION_RESULT=NOT_READY_FOR_LIVE_MUTATION_AUTHORIZATION` holds;
-10. named consumer assertion names AT8B only;
-11. one-shot / non-reuse assertions hold;
-12. repository-required deterministic validation / exact-head checks as required
+9. process-local ledger assertions hold, including
+   `PROCESS_LOCAL_LEDGER_IS_NOT_LIVE_MUTATION_READY=YES` and
+   `LIVE_DURABLE_MUTATION_LEDGER_IMPLEMENTED=NO`;
+10. atomic reservation assertions hold, including
+    `ATOMIC_RESERVATION_REQUIRED=YES` and
+    `SUCCESSFUL_RESERVE_IS_IRREVOCABLE=YES`;
+11. authorization state assertions in §10 hold;
+12. writable-path assertions in §5 hold;
+13. `REINSPECTION_RESULT=NOT_READY_FOR_LIVE_MUTATION_AUTHORIZATION` holds;
+14. repository-required deterministic validation / exact-head checks as required
     by project governance;
-13. clean mergeability into `main`;
-14. human review and human merge authority.
+15. clean mergeability into `main`;
+16. human review and human merge authority.
 
 Adapter hardening must not proceed from an open or unmerged authorization PR.
 Any push changes the exact head and requires re-validation and human review.
@@ -1004,7 +1081,7 @@ merge, consumed only by AT8B — is merged.
 PR_CLASS=authorization
 UNIT=NW008_AT8A_GHL_REST_NOTE_PATH_MUTATION_GUARD_HARDENING_AUTHORIZATION_001
 PLANNING_UNIT=NW008_AT8A_GHL_REST_NOTE_PATH_MUTATION_GUARD_HARDENING_PLANNING_001
-MODE=AUTHORIZATION_PLANNING_ONLY
+MODE=AUTHORIZATION_ARTIFACT_ONLY
 AUTHORIZATION_ARTIFACT=governance/authorizations/nw008-at8a-ghl-rest-note-path-mutation-guard-hardening-authorization-001.md
 
 SOURCE_IMPLEMENTATION_PR=95
@@ -1015,6 +1092,8 @@ SOURCE_LIVE_READ_PROOF_HEAD=64270d333404e826d436319eb7ce97f76fcebfb2
 SOURCE_LIVE_READ_PROOF_MERGE_SHA=6256f287bbd88effc2ef1cd13a801faec79a0af2
 ARCHITECTURE_ARTIFACT=docs/nw008/nw-008-at1-ghl-rest-adapter-architecture-001.md
 CONTRACT_ARTIFACT=contracts/highlevel_rest_adapter_v1.yaml
+WORKFLOW_ID=meeting_follow_up_v1
+WORKFLOW_RUN_ID_REQUIRED=YES
 
 REINSPECTION_RESULT=NOT_READY_FOR_LIVE_MUTATION_AUTHORIZATION
 
@@ -1071,11 +1150,36 @@ EXTERNAL_EFFECTS_ALLOWED=0
 NO_LIVE_ACTIONS=YES
 
 PUBLIC_PREFLIGHT_FLAG_AUTHORITATIVE=NO
+BUDGET_KEYS_USE_WORKFLOW_RUN_ID=YES
+OFFLINE_LEDGER_IMPLEMENTATION_CLASS=SHARED_PROCESS_LOCAL_TEST_LEDGER
+OFFLINE_LEDGER_PROCESS_RESTART_DURABILITY=NO
+MUTATION_RESERVATION_INTERFACE_DURABLE_SEMANTICS=REQUIRED
 DURABLE_PER_WORKFLOW_RUN_ONE_POST_BUDGET=REQUIRED
+LIVE_DURABLE_MUTATION_LEDGER_IMPLEMENTED=NO
+LIVE_DURABLE_MUTATION_LEDGER_VERIFIED=NO
+LIVE_MUTATION_LEDGER_BACKEND_DECISION=DEFERRED_TO_SEPARATE_GOVERNED_LANE
+PROCESS_LOCAL_LEDGER_IS_NOT_LIVE_MUTATION_READY=YES
+ATOMIC_RESERVATION_REQUIRED=YES
 RESERVE_BEFORE_DISPATCH=YES
 AMBIGUOUS_POST_BUDGET_REMAINS_CONSUMED=YES
 FRESH_ADAPTER_CANNOT_RESET_MUTATION_ALLOWANCE=YES
+RESERVATION_RELEASE_AFTER_SUCCESS=NO
+RESERVATION_RELEASE_AFTER_FAILURE=NO
+RESERVATION_RELEASE_AFTER_AMBIGUITY=NO
+RESERVATION_RELEASE_AFTER_POST_RESERVATION_EXCEPTION=NO
+PRE_RESERVATION_VALIDATION_FAILURE_CONSUMES_BUDGET=NO
+POST_RESERVATION_BUDGET_REUSABLE=NO
+SUCCESSFUL_RESERVE_IS_IRREVOCABLE=YES
 VERIFIED_CONTACT_PREREQUISITE_BOUND_TO_TRUSTED_SOURCE=YES
+CAPABILITY_PROVENANCE_AND_WRITE_AUTHORITY_SEPARATED=YES
+SOURCE_EXECUTION_UNIT=NW008_AT8_GHL_REST_EXACT_SYNTHETIC_CONTACT_LIVE_READ_EXECUTION_002
+SOURCE_PROOF_MERGE_SHA=6256f287bbd88effc2ef1cd13a801faec79a0af2
+CAPABILITY_TRUSTED_FACTORY_REQUIRED=YES
+CAPABILITY_PUBLIC_CONSTRUCTION_AUTHORIZED=NO
+CAPABILITY_CALLER_SUPPLIED_TRUSTED_SOURCE=FORBIDDEN
+CAPABILITY_PUBLIC_BOOLEAN_PROMOTION=FORBIDDEN
+AT8_SHAPED_TEST_DOUBLE_USES_SYNTHETIC_IDS_ONLY=YES
+REAL_PRIVATE_BINDING_VALUES_IN_TEST_FIXTURES=FORBIDDEN
 SAME_RUN_NOTE_ID_READBACK_ONLY=YES
 NOTE_CONTENT_DIGEST_PRESERVED=YES
 PROVIDER_BODY_DIGEST_PRESERVED=YES
@@ -1086,6 +1190,8 @@ SEARCH_LIST_PAGINATION_REMAIN_ABSENT=YES
 
 WRITABLE_IMPLEMENTATION_PATHS=src/integrations/ghl/highlevel_rest/**;tests/integrations/ghl/highlevel_rest/**;fixtures/ghl/highlevel_rest/**
 AUTHORIZATION_PR_WRITABLE_PATHS=governance/authorizations/nw008-at8a-ghl-rest-note-path-mutation-guard-hardening-authorization-001.md
+CONCURRENT_RESERVATION_EXACTLY_ONE_WINNER=PASS
+POST_RESERVATION_EXCEPTION_REMAINS_CONSUMED=PASS
 
 STATUS=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
 IMPLEMENTATION_EXECUTED_UNDER_THIS_UNIT=NO
@@ -1109,7 +1215,12 @@ AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
 AUTHORIZATION_REUSABLE=NO
 AUTHORIZATION_TRANSFERABLE=NO
 IMPLEMENTATION_FILE_MANIFEST_REQUIRED=YES
+MODE=AUTHORIZATION_ARTIFACT_ONLY
 IMPLEMENTATION_MODE=OFFLINE_ONLY
+OFFLINE_LEDGER_IMPLEMENTATION_CLASS=SHARED_PROCESS_LOCAL_TEST_LEDGER
+LIVE_DURABLE_MUTATION_LEDGER_IMPLEMENTED=NO
+CAPABILITY_PROVENANCE_AND_WRITE_AUTHORITY_SEPARATED=YES
+ATOMIC_RESERVATION_REQUIRED=YES
 REINSPECTION_RESULT=NOT_READY_FOR_LIVE_MUTATION_AUTHORIZATION
 LIVE_READ_AUTHORIZED=NO
 LIVE_MUTATION_AUTHORIZED=NO
