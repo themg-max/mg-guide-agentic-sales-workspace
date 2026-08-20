@@ -4,8 +4,8 @@
 
 ```text
 UNIT=NW008_AT8G_NOTE_PATH_AT1_EXECUTION_STORE_INTEGRATION_COMPLETION_001
-CLASSIFICATION=completion_note
-PR_CLASS=completion_proof
+CLASSIFICATION=completion_decision
+PR_CLASS=completion_decision
 OWNER=VS Code / Orchestrator
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 
@@ -108,15 +108,16 @@ AT8H_AUTHORIZATION_CONSUMED=NO
 - `git merge-base --is-ancestor f62761079261bcb6fe5be8c5e62e5ccc6bd9ba2b origin/main` succeeded.
 - `gh pr view 109 --json number,title,headRefOid,mergeCommit,state,reviews` reports PR109 merged with exact reviewed head `300e91ec6971bdca5d068676317cca6c5e4e7fd2`, merge commit `27344d62c921c50534d8a6efdaca2ee41f568b0f`, and reviewer disposition `formal_verdict: READY_FOR_MERGE`.
 - `gh pr view 108 --json number,title,headRefOid,mergeCommit,state,reviews` reports PR108 merged with exact reviewed head `6886f2cd9838055fef96a27612738efa2bd16f9b`, merge commit `f62761079261bcb6fe5be8c5e62e5ccc6bd9ba2b`, and reviewer disposition `formal_verdict: READY_FOR_MERGE`.
-- The merged [nw008-at8g-note-path-at1-execution-store-integration-consumption-001.md](/Users/achandler/Google_DevPost/mg-guide-agentic-sales-workspace/proof/nw008/at-8g/nw008-at8g-note-path-at1-execution-store-integration-consumption-001.md) records `AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT`, `AUTHORIZATION_ARTIFACT_MERGE_VERIFIED=YES`, and the sole consumer unit.
-- The merged [nw008-at8g-note-path-at1-execution-store-integration-proof-001.md](/Users/achandler/Google_DevPost/mg-guide-agentic-sales-workspace/proof/nw008/at-8g/nw008-at8g-note-path-at1-execution-store-integration-proof-001.md) records `IMPLEMENTATION_MODE=OFFLINE_ONLY`, `NOTE_CREATE_OPERATION_ORDINAL=1`, `TEST_SUITE_ALL_PASS=YES`, and `LIVE_MUTATION_AUTHORIZATION_READY=NO`.
-- The merged [nw008-at8g-note-path-at1-execution-store-integration-authorization-001.md](/Users/achandler/Google_DevPost/mg-guide-agentic-sales-workspace/governance/authorizations/nw008-at8g-note-path-at1-execution-store-integration-authorization-001.md) records `AUTHORIZATION_REUSABLE=NO`, `AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT`, and `LIVE_MUTATION_AUTHORIZATION_READY=NO`.
+- The merged `proof/nw008/at-8g/nw008-at8g-note-path-at1-execution-store-integration-consumption-001.md` records `AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT`, `AUTHORIZATION_ARTIFACT_MERGE_VERIFIED=YES`, and the sole consumer unit.
+- The merged `proof/nw008/at-8g/nw008-at8g-note-path-at1-execution-store-integration-proof-001.md` records `IMPLEMENTATION_MODE=OFFLINE_ONLY`, `NOTE_CREATE_OPERATION_ORDINAL=1`, `TEST_SUITE_ALL_PASS=YES`, and `LIVE_MUTATION_AUTHORIZATION_READY=NO`.
+- The merged `governance/authorizations/nw008-at8g-note-path-at1-execution-store-integration-authorization-001.md` records `AUTHORIZATION_REUSABLE=NO`, `AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT`, and `LIVE_MUTATION_AUTHORIZATION_READY=NO`.
 
 ## Scope check for this closeout lane
 
 ```text
-CHANGED_PATH_COUNT=1
+CHANGED_PATH_COUNT=2
 CHANGED_PATH_1=proof/nw008/at-8g/nw008-at8g-note-path-at1-execution-store-integration-completion-001.md
+CHANGED_PATH_2=proof/nw008/at-8g/nw008-at8g-completion-decision-reviewer-disposition-001.md
 IMPLEMENTATION_PATHS_CHANGED=NO
 TEST_PATHS_CHANGED=NO
 AUTHORIZATION_PATHS_CHANGED=NO
@@ -125,14 +126,22 @@ PROOF_ONLY_CHANGESET=YES
 
 ## Completion-review disposition status
 
-The source implementation lane already obtained reviewer disposition at the
-exact reviewed head before merge. This closeout lane records that durable fact
-and narrows scope to completion/proof only.
+PR109 reviewer disposition remains historical evidence for the merged
+implementation lane only. It is not the reviewer disposition for this PR110
+completion-decision unit.
+
+This completion-decision lane binds to its own PR110 reviewer-disposition
+artifact:
+
+`proof/nw008/at-8g/nw008-at8g-completion-decision-reviewer-disposition-001.md`
 
 ```text
 COMPLETION_DECISION_REVIEWER_DISPOSITION_OBTAINED=YES
-COMPLETION_DECISION_REVIEWER_DISPOSITION_SOURCE=PR109_EXACT_HEAD_REVIEW
-COMPLETION_DECISION_REVIEWER_DISPOSITION_VALUE=READY_FOR_MERGE
+COMPLETION_DECISION_REVIEWER_DISPOSITION_PR=110
+COMPLETION_DECISION_REVIEWER_DISPOSITION_PATH=proof/nw008/at-8g/nw008-at8g-completion-decision-reviewer-disposition-001.md
+COMPLETION_DECISION_REVIEWER_DISPOSITION_SOURCE=PR110_COMPLETION_DECISION_REVIEWER_DISPOSITION
+PRIOR_PR110_REVIEWED_HEAD=e915a5be42a7f910b630a1bc744e677169207712
+PRIOR_PR110_REVIEW_VERDICT=CHANGE_REQUEST
 ```
 
 ## STOP
