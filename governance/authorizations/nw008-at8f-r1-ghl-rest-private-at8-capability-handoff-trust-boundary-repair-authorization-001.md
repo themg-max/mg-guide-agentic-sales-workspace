@@ -427,7 +427,9 @@ NETWORK_CLIENT_IMPLEMENTATION_AUTHORIZED=NO
 
 ## 12. Store-integration boundary
 
-AT8E established that `At1ExecutionStore` can be reused unchanged as the durable NOTE_CREATE reservation primitive. That finding is not this grant.
+AT8D validated that At1ExecutionStore can be reused unchanged
+as the durable NOTE_CREATE reservation primitive.
+That fit finding is not this grant.
 
 ```text
 AT1_EXECUTION_STORE_REUSE_FIT=YES_UNCHANGED
