@@ -11,6 +11,14 @@ from typing import Any, Mapping, Protocol
 from unicodedata import normalize
 import weakref
 
+from integrations.ghl.at1_execution_store import (
+    At1ExecutionStore,
+    AttemptStateError,
+    DuplicateBusinessOrdinalError,
+    ExecutionClaimError,
+    RunContinuationRefusedError,
+)
+
 
 NETWORK_CALLS = 0
 HIGHLEVEL_NETWORK_CALLS = 0
@@ -27,6 +35,17 @@ _AT8_SOURCE_EXECUTION_UNIT = (
 )
 _AT8_SOURCE_PROOF_MERGE_SHA = "6256f287bbd88effc2ef1cd13a801faec79a0af2"
 _NOTE_CREATE_OPERATION = "NOTE_CREATE"
+NOTE_CREATE_OPERATION_ORDINAL = 1
+_MAPPING_VERSION = 1
+_GRANT_RUN_ID_NAMESPACE = "NOTE_PATH"
+_GRANT_RUN_ID_PREFIX = "npgr1:"
+_STORE_BOUNDARY_ERRORS = (
+    ExecutionClaimError,
+    RunContinuationRefusedError,
+    DuplicateBusinessOrdinalError,
+    AttemptStateError,
+)
+_REDACTED_RESPONSE_STATUS_CLASSES = frozenset({"ok", "ambiguous", "error"})
 _TRUSTED_SOURCE_BOUND_CONTACT = "fake_transport_bound_contact_verification"
 _TRUSTED_SOURCE_AT8_SHAPED_TEST = "at8_shaped_test_capability"
 _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF = "private_at8_verified_binding_handoff"
@@ -675,6 +694,7 @@ class NotePathAdapter:
         *,
         consumer_authorization_identity: str,
         consumer_workflow_run_id: str,
+        execution_store: At1ExecutionStore | None = None,
     ) -> None:
         self._location_id = self._require_identifier("location_id", location_id)
         self._contact_id = self._require_identifier("contact_id", contact_id)
@@ -685,6 +705,7 @@ class NotePathAdapter:
             "consumer_workflow_run_id", consumer_workflow_run_id
         )
         self._transport = transport
+        self._execution_store = execution_store
         self.CONTACT_PREFLIGHT_VERIFIED = CONTACT_PREFLIGHT_VERIFIED
         self.POST_ATTEMPTS = 0
         self._created_note: CreatedMeetingNote | None = None
@@ -701,6 +722,8 @@ class NotePathAdapter:
         canonical_note = self._validate_note_contract(note_contract)
         if canonical_note["workflow_id"] != capability.workflow_id:
             raise BindingError("verified-contact capability workflow binding is invalid")
+        if self._execution_store is not None:
+            return self._create_meeting_note_with_store(canonical_note)
         self._reserve_note_create_budget()
         note_body = self._serialize_note(canonical_note)
         note_content_digest = self._logical_digest(canonical_note)
@@ -728,6 +751,242 @@ class NotePathAdapter:
         )
         self._created_note = created
         self._expected_note = canonical_note
+        return created
+
+    def _deterministic_grant_run_id(self) -> str:
+        """Return a deterministic, privacy-preserving grant/run identifier.
+
+        The mapping intentionally excludes all private CRM identifiers. Only the
+        consumer authorization identity, the consumer workflow run id, and the
+        fixed mapping coordinates are canonicalized.
+        """
+        canonical = self._canonical_json(
+            {
+                "consumer_authorization_identity": self._consumer_authorization_identity,
+                "consumer_workflow_run_id": self._consumer_workflow_run_id,
+                "mapping_version": _MAPPING_VERSION,
+                "namespace": _GRANT_RUN_ID_NAMESPACE,
+                "operation": _NOTE_CREATE_OPERATION,
+            }
+        )
+        digest = sha256(canonical.encode("utf-8")).hexdigest()
+        return f"{_GRANT_RUN_ID_PREFIX}{digest}"
+
+    def _request_id_for_attempt(
+        self, grant_run_id: str, operation_ordinal: int
+    ) -> str:
+        """Return a deterministic request id for a grant-run/ordinal pair."""
+        payload = self._canonical_json(
+            {"grant_run_id": grant_run_id, "operation_ordinal": operation_ordinal}
+        )
+        return sha256(payload.encode("utf-8")).hexdigest()
+
+    def _build_redacted_request_envelope(
+        self,
+        *,
+        request_id: str,
+        note_content_digest: str,
+        provider_body_digest: str,
+    ) -> dict[str, Any]:
+        """Return a redacted request envelope that contains no private CRM data."""
+        return {
+            "namespace": _GRANT_RUN_ID_NAMESPACE,
+            "operation": _NOTE_CREATE_OPERATION,
+            "operation_ordinal": NOTE_CREATE_OPERATION_ORDINAL,
+            "mapping_version": _MAPPING_VERSION,
+            "consumer_authorization_identity": self._consumer_authorization_identity,
+            "consumer_workflow_run_id": self._consumer_workflow_run_id,
+            "workflow_id": _WORKFLOW_ID,
+            "request_id": request_id,
+            "note_content_digest": note_content_digest,
+            "provider_body_digest": provider_body_digest,
+        }
+
+    @staticmethod
+    def _response_status_class(response: Any) -> str:
+        status = getattr(response, "status", None)
+        if status in _REDACTED_RESPONSE_STATUS_CLASSES:
+            return str(status)
+        return "error"
+
+    def _build_redacted_response_envelope(
+        self,
+        *,
+        request_id: str,
+        note_content_digest: str,
+        provider_body_digest: str,
+        response: Any,
+    ) -> dict[str, Any]:
+        """Return a redacted response envelope from the authorization allowlist."""
+        return {
+            "namespace": _GRANT_RUN_ID_NAMESPACE,
+            "operation": _NOTE_CREATE_OPERATION,
+            "operation_ordinal": NOTE_CREATE_OPERATION_ORDINAL,
+            "mapping_version": _MAPPING_VERSION,
+            "consumer_authorization_identity": self._consumer_authorization_identity,
+            "consumer_workflow_run_id": self._consumer_workflow_run_id,
+            "workflow_id": _WORKFLOW_ID,
+            "request_id": request_id,
+            "note_content_digest": note_content_digest,
+            "provider_body_digest": provider_body_digest,
+            "response_status_class": self._response_status_class(response),
+        }
+
+    def _terminalize_unknown(
+        self, grant_run_id: str, operation_ordinal: int, failure_code: str
+    ) -> None:
+        """Terminalize an attempt with UNKNOWN business-effect truth.
+
+        Offline-only NOTE_PATH can never prove a live business effect, so the
+        durable truth is always UNKNOWN rather than YES or NO.
+        """
+        if self._execution_store is None:
+            return
+        try:
+            self._execution_store.mark_terminal(
+                grant_run_id=grant_run_id,
+                operation_ordinal=operation_ordinal,
+                failure_code=failure_code,
+                business_effect_truth="UNKNOWN",
+            )
+        except _STORE_BOUNDARY_ERRORS as exc:
+            raise TransportError("NOTE_PATH store reservation refused") from exc
+
+    def _create_meeting_note_with_store(
+        self, canonical_note: Mapping[str, Any]
+    ) -> CreatedMeetingNote:
+        """Execute NOTE_CREATE through the durable offline execution store."""
+        assert self._execution_store is not None
+        grant_run_id = self._deterministic_grant_run_id()
+        request_id = self._request_id_for_attempt(
+            grant_run_id, NOTE_CREATE_OPERATION_ORDINAL
+        )
+        note_body = self._serialize_note(canonical_note)
+        note_content_digest = self._logical_digest(canonical_note)
+        provider_body = {"body": note_body}
+        provider_body_digest = self._provider_body_digest(provider_body)
+        redacted_request_envelope = self._build_redacted_request_envelope(
+            request_id=request_id,
+            note_content_digest=note_content_digest,
+            provider_body_digest=provider_body_digest,
+        )
+
+        try:
+            self._execution_store.acquire_claim(
+                grant_run_id, self._consumer_authorization_identity
+            )
+            self._execution_store.require_run_continuable(grant_run_id)
+            self._execution_store.record_attempt(
+                grant_run_id=grant_run_id,
+                operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                operation_id=_NOTE_CREATE_OPERATION,
+                request_id=request_id,
+                request_envelope=redacted_request_envelope,
+            )
+            self._execution_store.mark_dispatched(
+                grant_run_id=grant_run_id,
+                operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+            )
+        except _STORE_BOUNDARY_ERRORS as exc:
+            raise TransportError("NOTE_PATH store reservation refused") from exc
+
+        try:
+            response = self._transport.dispatch(
+                "POST", f"/contacts/{self._contact_id}/notes", provider_body
+            )
+        except Exception:
+            self._terminalize_unknown(
+                grant_run_id,
+                NOTE_CREATE_OPERATION_ORDINAL,
+                failure_code="DISPATCH_EXCEPTION",
+            )
+            raise
+
+        redacted_response_envelope = self._build_redacted_response_envelope(
+            request_id=request_id,
+            note_content_digest=note_content_digest,
+            provider_body_digest=provider_body_digest,
+            response=response,
+        )
+        try:
+            self._execution_store.capture_response(
+                grant_run_id=grant_run_id,
+                operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                response_envelope=redacted_response_envelope,
+            )
+
+            if response.status == "ambiguous":
+                self._execution_store.record_parse_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
+                )
+                self._execution_store.record_semantic_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
+                )
+                self._terminalize_unknown(
+                    grant_run_id,
+                    NOTE_CREATE_OPERATION_ORDINAL,
+                    failure_code="AMBIGUOUS_POST",
+                )
+                raise TransportError(
+                    "ambiguous note POST result is terminal and is not retried"
+                )
+
+            try:
+                note = self._required_envelope(response, "note")
+                note_id = note.get("id")
+                note_response_body = note.get("body")
+                note_contact_id = note.get("contactId")
+                if not isinstance(note_id, str) or not note_id:
+                    raise TransportError("created note id is required")
+                if not isinstance(note_response_body, str) or not note_response_body:
+                    raise TransportError("created note body is required")
+                if note_contact_id != self._contact_id:
+                    raise TransportError(
+                        "created note contact id does not match private binding"
+                    )
+            except TransportError:
+                self._execution_store.record_parse_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
+                )
+                self._execution_store.record_semantic_outcome(
+                    grant_run_id=grant_run_id,
+                    operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                    success=False,
+                )
+                self._terminalize_unknown(
+                    grant_run_id,
+                    NOTE_CREATE_OPERATION_ORDINAL,
+                    failure_code="PARSE_FAILURE",
+                )
+                raise
+
+            self._execution_store.record_parse_outcome(
+                grant_run_id=grant_run_id,
+                operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                success=True,
+            )
+            self._execution_store.record_semantic_outcome(
+                grant_run_id=grant_run_id,
+                operation_ordinal=NOTE_CREATE_OPERATION_ORDINAL,
+                success=True,
+            )
+        except _STORE_BOUNDARY_ERRORS as exc:
+            raise TransportError("NOTE_PATH store reservation refused") from exc
+
+        created = CreatedMeetingNote(
+            note_id=note_id,
+            note_content_digest=note_content_digest,
+            provider_body_digest=provider_body_digest,
+        )
+        self._created_note = created
+        self._expected_note = canonical_note
+        self.POST_ATTEMPTS += 1
         return created
 
     def verify_meeting_note(self) -> VerifiedMeetingNote:
