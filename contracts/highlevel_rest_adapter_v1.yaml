@@ -409,7 +409,11 @@ note_protocol:
     - separate_run_bound_live_mutation_authorization
     - AUTH_CAPABILITY_NOTE_CREATE
     - required_credential_and_scopes_present
-    - private_binding_complete
+    - NOTE_PATH_private_bindings_complete
+  private_bindings_required:
+    - location_id
+    - contact_id
+  stage_path_bindings_required_to_initialize: false
   steps:
     - exact_contact_get
     - verify_contact_binding_id_and_locationId_only
@@ -418,8 +422,12 @@ note_protocol:
     - compute_PROVIDER_BODY_DIGEST
     - atomically_reserve_note_post_budget
     - exact_contact_note_post_once_body_only
+    - require_note_id_body_and_contactId_from_resolved_response
+    - require_note_contactId_equals_private_note_path_contact_binding
     - capture_note_id_from_resolved_response
     - exact_contact_note_get
+    - require_note_id_equals_same_run_created_note_id
+    - require_note_contactId_equals_private_note_path_contact_binding
     - strict_readback_parse
     - canonical_domain_reconstruction
     - compare_NOTE_CONTENT_DIGEST
@@ -427,6 +435,8 @@ note_protocol:
   create_http_success_is_verified: false
   note_write_verified_requires:
     - exact_note_readback
+    - note_id_equals_same_run_created_note_id
+    - note_contactId_equals_private_note_path_contact_binding
     - strict_parser_pass
     - note_content_digest_match
 

@@ -379,7 +379,10 @@ The ordered protocol is:
    `AUTH_CAPABILITY_NOTE_CREATE`; never infer them.
 2. Validate credential presence and required scopes without exposing the
    credential.
-3. Validate the private binding is complete.
+3. Validate the NOTE_PATH private bindings are complete: `location_id` and
+   `contact_id` only. Stage-path bindings (`opportunity_id`, `pipeline_id`,
+   `initial_stage_id`, `final_stage_id`) are not required to initialize or
+   run the note path.
 4. Call `get_bound_contact()` and verify the exact private binding using only
    consumed fields `id` and `locationId`.
 5. Validate the closed note contract, serialize it, and compute
@@ -659,9 +662,15 @@ must not be logged or persisted.
 ### Note readback
 
 Note readback may consume only the fields required for exact identity checks
-and body extraction under the resolved note response contract. Full provider
-envelopes are not retained beyond the verification step except as required by a
-separately reviewed audit policy that still forbids private-ID publication.
+and body extraction under the resolved note response contract.
+
+```text
+full_response_persist=false
+override_requires_separate_review=true
+```
+
+A separately reviewed audit-policy override is required before any broader
+persist behavior, and still forbids private-ID publication.
 
 ## 13. Resolved operations, response contracts, and unresolved provider fields
 
