@@ -52,6 +52,8 @@ AMBIGUITY_TRUTH = "UNKNOWN"
 _ALLOWED_METHODS = frozenset({"POST", "GET"})
 _NOTE_RESPONSE_FIELDS = ("id", "body", "contactId")
 _REDACTED = "<redacted>"
+_REDACTED_POST_PATH = "/contacts/<redacted>/notes"
+_REDACTED_GET_PATH = "/contacts/<redacted>/notes/<redacted>"
 
 
 class LiveNoteTransportError(ValueError):
@@ -144,7 +146,7 @@ class BoundedLiveNoteTransport:
         self._total_network_calls = 0
         self._total_mutation_calls = 0
         self._same_run_note_id: str | None = None
-        self.calls: list[tuple[str, str, Mapping[str, Any] | None]] = []
+        self._call_history: list[tuple[str, str]] = []
 
     @property
     def post_attempts(self) -> int:
@@ -198,7 +200,7 @@ class BoundedLiveNoteTransport:
         self._post_attempts += 1
         self._total_mutation_calls += 1
         self._total_network_calls += 1
-        self.calls.append(("POST", path, dict(body) if body is not None else None))
+        self._call_history.append(("POST", _REDACTED_POST_PATH))
         result = self._attempt_http(
             method="POST",
             path=path,
@@ -228,7 +230,7 @@ class BoundedLiveNoteTransport:
         self._require_get_budget()
         self._get_attempts += 1
         self._total_network_calls += 1
-        self.calls.append(("GET", path, None))
+        self._call_history.append(("GET", _REDACTED_GET_PATH))
         result = self._attempt_http(
             method="GET",
             path=path,
@@ -280,22 +282,25 @@ class BoundedLiveNoteTransport:
             ) from None
 
     def _normalize_post_http_result(self, result: LiveNoteHttpResult) -> LiveNoteResponse:
-        if result.status_code >= 300:
-            if self._post_status_is_ambiguous(result.status_code):
+        if not 200 <= result.status_code < 300:
+            if result.status_code < 200 or self._post_status_is_ambiguous(
+                result.status_code
+            ):
                 return LiveNoteResponse("ambiguous", {})
             return LiveNoteResponse("error", {})
         note = self._extract_note_envelope(result.body)
         if note is None:
             return LiveNoteResponse("ambiguous", {})
+        note_id = note.get("id")
+        if not isinstance(note_id, str) or not note_id.strip():
+            return LiveNoteResponse("ambiguous", {})
         normalized = self._published_note(note)
-        note_id = normalized.get("id")
-        if isinstance(note_id, str) and note_id:
-            self._same_run_note_id = note_id
-            self._post_successes += 1
+        self._same_run_note_id = note_id
+        self._post_successes += 1
         return LiveNoteResponse("ok", {"note": normalized})
 
     def _normalize_get_http_result(self, result: LiveNoteHttpResult) -> LiveNoteResponse:
-        if result.status_code >= 300:
+        if not 200 <= result.status_code < 300:
             return LiveNoteResponse("error", {})
         note = self._extract_note_envelope(result.body)
         if note is None:

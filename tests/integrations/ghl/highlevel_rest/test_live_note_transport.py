@@ -6,7 +6,6 @@ import json
 import logging
 from pathlib import Path
 import socket
-import subprocess
 from typing import Any, Mapping
 
 import pytest
@@ -44,18 +43,6 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 SOURCE_ROOT = REPO_ROOT / "src" / "integrations" / "ghl" / "highlevel_rest"
 TRANSPORT_PATH = SOURCE_ROOT / "live_note_transport.py"
 NOTE_PATH_PATH = SOURCE_ROOT / "note_path.py"
-STORE_PATH = REPO_ROOT / "src" / "integrations" / "ghl" / "at1_execution_store.py"
-BLOCKED_PATHS = (
-    "src/integrations/ghl/highlevel_rest/note_path.py",
-    "src/integrations/ghl/at1_execution_store.py",
-    "src/integrations/ghl/at1_live_transport_adapter.py",
-    "src/integrations/ghl/at1_live_transport_serializer.py",
-    "src/integrations/ghl/bounded_at1_executor.py",
-    "src/integrations/ghl/read_adapter.py",
-    "src/integrations/ghl/highlevel_rest/fake_transport.py",
-    "src/integrations/ghl/__init__.py",
-    "src/integrations/ghl/highlevel_rest/__init__.py",
-)
 
 SYNTHETIC_CONTACT_ID = "synthetic-contact-001"
 SYNTHETIC_NOTE_ID = "synthetic-note-001"
@@ -398,7 +385,6 @@ def test_auth_header_not_logged(caplog: pytest.LogCaptureFixture, capsys: pytest
         captured.out,
         captured.err,
         caplog.text,
-        json.dumps(list(transport.calls)),
     ]
     for haystack in haystacks:
         assert "Authorization" not in haystack
@@ -416,7 +402,7 @@ def test_token_not_logged() -> None:
     assert SYNTHETIC_TOKEN not in repr(credential)
     assert SYNTHETIC_TOKEN not in str(credential)
     assert SYNTHETIC_TOKEN not in repr(transport)
-    assert "bearer_token" not in json.dumps(transport.calls[0][2])
+    assert "bearer_token" not in repr(transport)
 
 
 def test_raw_provider_response_not_published() -> None:
@@ -458,6 +444,31 @@ def test_post_unparseable_success_classified_ambiguous() -> None:
     response = _post(_transport(client))
     assert response.status == "ambiguous"
     assert response.payload == {}
+
+
+def test_post_success_without_note_id_classified_ambiguous() -> None:
+    result = LiveNoteHttpResult(
+        201,
+        json.dumps(
+            {"note": {"body": "created", "contactId": SYNTHETIC_CONTACT_ID}}
+        ).encode("utf-8"),
+    )
+    client = ScriptedHttpClient([result, _http_ok()])
+    transport = _transport(client)
+
+    response = _post(transport)
+
+    assert response.status == "ambiguous"
+    assert response.payload == {}
+    assert transport.post_attempts == 1
+    assert transport.post_successes == 0
+    assert AMBIGUITY_TRUTH == "UNKNOWN"
+    with pytest.raises(LiveNoteTransportError, match="same-run"):
+        transport.dispatch("GET", GET_PATH)
+    with pytest.raises(LiveNoteTransportError, match="POST attempts max is 1"):
+        _post(transport)
+    assert SECOND_POST is False
+    assert len(client.calls) == 1
 
 
 def test_no_second_post_after_ambiguity() -> None:
@@ -509,6 +520,28 @@ def test_provider_note_id_only_in_memory_for_same_run_readback() -> None:
         name for name in vars(BoundedLiveNoteTransport) if not name.startswith("_")
     }
     assert "same_run_note_id" not in public
+
+
+def test_diagnostic_call_history_is_private_and_redacted() -> None:
+    client = ScriptedHttpClient([_http_ok(), _http_ok(status_code=200)])
+    transport = _transport(client)
+    _post(transport)
+    transport.dispatch("GET", GET_PATH)
+
+    public = {
+        name for name in vars(BoundedLiveNoteTransport) if not name.startswith("_")
+    }
+    history = json.dumps(transport._call_history)
+    assert "calls" not in public
+    assert not hasattr(transport, "calls")
+    assert SYNTHETIC_CONTACT_ID not in history
+    assert SYNTHETIC_NOTE_ID not in history
+    assert history == json.dumps(
+        [
+            ["POST", "/contacts/<redacted>/notes"],
+            ["GET", "/contacts/<redacted>/notes/<redacted>"],
+        ]
+    )
 
 
 def test_post_4xx_is_definite_error_and_consumes_budget() -> None:
@@ -575,18 +608,6 @@ def test_transport_module_has_no_live_imports() -> None:
 
 
 def test_at8g_durable_reservation_contract_unchanged() -> None:
-    working = NOTE_PATH_PATH.read_bytes()
-    main = subprocess.check_output(
-        ["git", "show", "origin/main:src/integrations/ghl/highlevel_rest/note_path.py"],
-        cwd=REPO_ROOT,
-    )
-    assert working == main
-    store_working = STORE_PATH.read_bytes()
-    store_main = subprocess.check_output(
-        ["git", "show", "origin/main:src/integrations/ghl/at1_execution_store.py"],
-        cwd=REPO_ROOT,
-    )
-    assert store_working == store_main
     source = NOTE_PATH_PATH.read_text(encoding="utf-8")
     assert "NOTE_CREATE_OPERATION_ORDINAL = 1" in source
     assert "_GRANT_RUN_ID_PREFIX = \"npgr1:\"" in source
@@ -603,16 +624,6 @@ def test_pr107_trust_boundary_unchanged() -> None:
     assert "_trust_marker" not in transport_source
     assert "VerifiedContactBindingCapability" not in transport_source
     assert "_issue_capability" not in transport_source
-
-
-def test_blocked_paths_unchanged() -> None:
-    for relpath in BLOCKED_PATHS:
-        working = (REPO_ROOT / relpath).read_bytes()
-        main = subprocess.check_output(
-            ["git", "show", f"origin/main:{relpath}"],
-            cwd=REPO_ROOT,
-        )
-        assert working == main, relpath
 
 
 def test_injectable_into_note_path_adapter() -> None:

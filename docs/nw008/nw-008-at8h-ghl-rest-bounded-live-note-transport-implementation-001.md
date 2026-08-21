@@ -63,9 +63,13 @@ zero real HighLevel calls.
 
 Credentials are injected synthetic placeholders only. Authorization headers
 and tokens are not logged and are not published on the NOTE_PATH response.
+Transport call history is private and records only redacted route shapes, so
+bound contact IDs and same-run note IDs are not exposed through diagnostics.
 
 Provider responses are normalized to `{note: {id, body, contactId}}`. Extra
-provider fields are stripped.
+provider fields are stripped. A 2xx POST without a provider note envelope and
+a nonempty string `note.id` is classified ambiguous, consumes the single POST
+attempt, and does not unlock same-run GET.
 
 ## Non-authority
 
