@@ -196,6 +196,38 @@ AT8L_IMPLEMENTATION=NO
 Fields below are re-derived from merged source after PR118. They are not copied
 from AT8J / AT8K / AT8K1 intent.
 
+A later source-state repair closed the Authorization-header field against
+`BoundedLiveNoteTransport._attempt_http` at `INSPECTED_MAIN_SHA`. That
+closure is existing merged source. It is not AT8K2 IAM work.
+
+## Source-state derivation repair
+
+Planning-only repair after exact-head review of this artifact. No runtime
+change. AT8L is not created.
+
+```text
+REPAIR_CLASS=POST_IAM_SOURCE_STATE_DERIVATION
+RUNTIME_CHANGE=NO
+TEST_CHANGE=NO
+AT8L_CREATED=NO
+AT8L_STARTED=NO
+AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=YES
+AUTHORIZATION_HEADER_OWNER=BoundedLiveNoteTransport._attempt_http
+CALLER_SUPPLIED_AUTHORIZATION=NO
+TOKEN_LOGGING_FORBIDDEN=YES
+AUTHORIZATION_HEADER_CLOSURE_CLASS=EXISTING_SOURCE
+AUTHORIZATION_HEADER_CLOSURE_IS_AT8K2_IAM_WORK=NO
+AT8L_TRANSPORT_TOUCH_REQUIRED=NO
+```
+
+Observed at `ce7309bc789e4e65a66db93670cc4d7203f56605` in
+`src/integrations/ghl/highlevel_rest/live_note_transport.py`:
+
+```text
+BoundedLiveNoteTransport._attempt_http:
+"Authorization": f"Bearer {self._bearer_token}"
+```
+
 ## Reinspection field matrix
 
 ```text
@@ -209,12 +241,19 @@ HTTP_CLIENT_CONSTRUCTION_PATH_IMPLEMENTED=NO
 CREDENTIAL_PROVIDER_CONSTRUCTION_PATH_IMPLEMENTED=NO
 RUNTIME_COMPOSITION_ROOT_IMPLEMENTED=NO
 
-AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=NO
+AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=YES
+AUTHORIZATION_HEADER_OWNER=BoundedLiveNoteTransport._attempt_http
+CALLER_SUPPLIED_AUTHORIZATION=NO
+TOKEN_LOGGING_FORBIDDEN=YES
 
-CALLER_SUPPLIED_EXECUTION_STORE=NO
-PRODUCTION_EXECUTION_STORE_ROOT_OWNED=YES
+CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
+TEST_ONLY_EXECUTION_STORE_INJECTION=YES
 
-VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
+NOTE_PATH_VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
+COMPOSITION_ROOT_CAPABILITY_PROVENANCE_ENFORCED=NO
+COMPOSITION_ROOT_RAW_CONTACT_LOCATION_INPUT_FORBIDDEN=YES
 
 PACKAGE_EXPORT_REQUIRED=NO
 
@@ -225,6 +264,7 @@ LIVE_HIGHLEVEL_EXECUTION_AUTHORIZED=NO
 LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
 
 AT8L_AUTHORIZATION_DESIGNABLE=YES
+AT8L_TRANSPORT_TOUCH_REQUIRED=NO
 ```
 
 ## Field derivations
@@ -340,33 +380,49 @@ COMPOSITION_ROOT_PROPOSED_SYMBOL=assemble_bound_live_note_runtime
 
 File is absent on merged main. Symbol is absent from Python source.
 
-### AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=NO
+### AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=YES
 
-Frozen `BoundedLiveNoteTransport._attempt_http` still constructs:
+File: `src/integrations/ghl/highlevel_rest/live_note_transport.py`
+Inspected at `INSPECTED_MAIN_SHA=ce7309bc789e4e65a66db93670cc4d7203f56605`.
+
+Frozen `BoundedLiveNoteTransport._attempt_http` already constructs:
 
 ```text
 headers = {
-    "Authorization": f"******",
+    "Authorization": f"Bearer {self._bearer_token}",
     "Version": VERSION_HEADER,
     "Accept": "application/json",
 }
 ```
 
-`self._bearer_token` is stored from `InjectedLiveNoteCredential` and is not
-written onto the request. `ConcreteLiveNoteHttpClient.request` forwards the
-headers it receives and does not mint Authorization. Call history stores
-header names only.
+`self._bearer_token` is stored from `InjectedLiveNoteCredential` and is
+written onto the request Authorization header inside `_attempt_http`.
+Callers do not supply Authorization. `ConcreteLiveNoteHttpClient.request`
+forwards the headers it receives and does not mint Authorization. Call
+history stores header names only. `InjectedLiveNoteCredential.__repr__` /
+`__str__` redact the token. HTTP-client module flags forbid logging
+Authorization headers or token values.
 
-AT8K designed later transport-touch so Authorization becomes
-`Bearer <token>` inside `_attempt_http` only. That touch is not implemented.
+This is existing merged source. It is not AT8K2 IAM work. It does not
+authorize live execution, payload reads, or transport-touch under AT8L.
 
-### CALLER_SUPPLIED_EXECUTION_STORE=NO
+```text
+AUTHORIZATION_HEADER_OWNER=BoundedLiveNoteTransport._attempt_http
+CALLER_SUPPLIED_AUTHORIZATION=NO
+TOKEN_LOGGING_FORBIDDEN=YES
+AT8L_TRANSPORT_TOUCH_REQUIRED=NO
+AUTHORIZATION_HEADER_CLOSURE_CLASS=EXISTING_SOURCE
+AUTHORIZATION_HEADER_CLOSURE_IS_AT8K2_IAM_WORK=NO
+```
+
+### CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
 
 AT8K1 production rule remains in force and is not reversed by source:
 
 ```text
-CALLER_SUPPLIED_EXECUTION_STORE=NO
-PRODUCTION_EXECUTION_STORE_ROOT_OWNED=YES
+CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
 TEST_ONLY_EXECUTION_STORE_INJECTION=YES
 ```
 
@@ -377,14 +433,21 @@ not a production composition-root public input. Because
 currently accepts a caller-supplied store. AT8L, if later authorized, must
 not promote `execution_store` to a public assembler argument.
 
-### PRODUCTION_EXECUTION_STORE_ROOT_OWNED=YES
+### PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
 
 Required production rule from AT8K1 remains: the composition root owns
-production execution-store selection. The root is not implemented, so
-ownership is designed and not yet wired. This flag is the production rule,
-not an implementation claim.
+production execution-store selection.
 
-### VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
+### PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
+
+The composition root is not implemented, so ownership is a rule, not wired
+behavior. This flag is not an implementation claim.
+
+### TEST_ONLY_EXECUTION_STORE_INJECTION=YES
+
+Test constructors may inject an execution store. Production must not.
+
+### NOTE_PATH_VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
 
 File: `src/integrations/ghl/highlevel_rest/note_path.py`
 
@@ -402,10 +465,15 @@ source_proof_merge_sha=6256f287bbd88effc2ef1cd13a801faec79a0af2
 Dispatch-time caller override of the bound contact remains impossible in
 `BoundedLiveNoteTransport` and `NotePathAdapter.create_meeting_note`.
 
+### COMPOSITION_ROOT_CAPABILITY_PROVENANCE_ENFORCED=NO
+
 Composition-root construction-time enforcement is not implemented because
-the root does not exist. AT8L, if later authorized, must accept only a
-process-issued capability and must not accept raw `contact_id` /
-`location_id`.
+the root does not exist.
+
+### COMPOSITION_ROOT_RAW_CONTACT_LOCATION_INPUT_FORBIDDEN=YES
+
+AT8L, if later authorized, must accept only a process-issued capability
+and must not accept raw `contact_id` / `location_id`.
 
 ### PACKAGE_EXPORT_REQUIRED=NO
 
@@ -423,9 +491,11 @@ Reinspection agrees. Missing exports do not block AT8L authorization design.
 ### PRODUCTION_RUNTIME_PLATFORM_REQUIRED_FOR_AT8L=NO
 
 AT8K1 left `PRODUCTION_RUNTIME_PLATFORM=UNDECIDED`. AT8L is designed as
-offline assembler + `_attempt_http` transport-touch. Platform bind
-(Cloud Run / batch / orchestrator workload identity) is later deployment
-design and is not required to authorize AT8L.
+an offline composition-root assembler. `_attempt_http` transport-touch is
+not required: Authorization-header real-credential application is already
+implemented in existing source. Platform bind (Cloud Run / batch /
+orchestrator workload identity) is later deployment design and is not
+required to authorize AT8L.
 
 ### REAL_SECRET_PAYLOAD_READ_AUTHORIZED=NO
 
@@ -445,9 +515,10 @@ HIGHLEVEL_NETWORK_CALLS_AUTHORIZED=False
 
 ### LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
 
-Construction root, Authorization-header application, concrete accessor, and
-production resource binding remain unimplemented. Designing a live-mutation
-grant now would invent missing wiring.
+Construction root, concrete accessor, and production resource binding
+remain unimplemented. Authorization-header application is already
+implemented in existing source and is not a live-mutation blocker.
+Designing a live-mutation grant now would invent missing wiring.
 
 ## Constructor / import / call-site inventory
 
@@ -493,7 +564,8 @@ grant now would invent missing wiring.
 ## AT8J gaps versus AT8K2
 
 AT8K2 closed IAM/principal prerequisites. It did not close AT8J source-wiring
-gaps.
+gaps. Authorization-header real-credential application was already present
+in merged source and is not classified as AT8K2 IAM work.
 
 ### AT8J_GAPS_CLOSED_BY_AT8K2
 
@@ -508,19 +580,25 @@ gaps.
 AT8K2 did not implement the concrete accessor. It removed the principal/IAM
 blocker that AT8K classified on that accessor.
 
+### AT8J_GAPS_CLOSED_BY_EXISTING_SOURCE
+
+1. Authorization-header real-credential application —
+   `AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=YES`.
+   Owner: `BoundedLiveNoteTransport._attempt_http`.
+   Callers do not supply Authorization. Token logging remains forbidden.
+   This closure is existing merged source, not AT8K2 IAM work.
+
 ### AT8J_GAPS_REMAINING
 
 1. HTTP client live construction path still missing.
 2. Concrete runtime Secret Manager accessor still missing.
-3. Authorization header still the literal placeholder `******`;
-   `self._bearer_token` is not applied.
-4. Production `resource_name` still not sealed into runtime construction
+3. Production `resource_name` still not sealed into runtime construction
    code (`MG_GUIDE_PIT_GHL` is designed and IAM-bound only).
-5. Runtime composition root
+4. Runtime composition root
    `assemble_bound_live_note_runtime` still missing.
-6. Package export of live-note types still missing (non-blocking / optional).
-7. Live mutation authorization still not designable.
-8. Live transport execution flags remain false.
+5. Package export of live-note types still missing (non-blocking / optional).
+6. Live mutation authorization still not designable.
+7. Live transport execution flags remain false.
 
 ## AT8L authorization designability
 
@@ -528,12 +606,15 @@ blocker that AT8K classified on that accessor.
 AT8L_AUTHORIZATION_DESIGNABLE=YES
 AT8L_CREATED=NO
 AT8L_STARTED=NO
+AT8L_TRANSPORT_TOUCH_REQUIRED=NO
 NEXT_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=YES
 ```
 
-AT8K already marked offline assembler + transport-touch authorization as
-designable. AT8K1 marked `AT8L_READY_AFTER_IAM=YES`. IAM is now consumed and
-durable. AT8L remains a later, separately authorized, one-shot offline
+AT8K already marked offline assembler authorization as designable. AT8K1
+marked `AT8L_READY_AFTER_IAM=YES`. IAM is now consumed and durable.
+Transport-touch of `_attempt_http` is not required: Authorization-header
+real-credential application is already implemented in existing source.
+AT8L remains a later, separately authorized, one-shot offline
 implementation grant. This unit does not write that grant.
 
 Designed AT8L scope if later separately authorized (not created here):
@@ -541,25 +622,27 @@ Designed AT8L scope if later separately authorized (not created here):
 1. new composition root
    `src/integrations/ghl/highlevel_rest/live_note_runtime.py`
    symbol `assemble_bound_live_note_runtime`;
-2. transport-touch of `BoundedLiveNoteTransport._attempt_http` so
-   Authorization becomes `Bearer <token>` with token logging still forbidden;
-3. carry AT8K1 execution-store and package-export normalizations;
-4. do not authorize concrete GSM accessor unless explicitly named;
-5. do not authorize IAM, payload read, live HighLevel, or CRM mutation.
+2. carry AT8K1 execution-store and package-export normalizations;
+3. do not authorize concrete GSM accessor unless explicitly named;
+4. do not authorize IAM, payload read, live HighLevel, or CRM mutation;
+5. do not touch `live_note_transport.py` or transport tests.
 
 ### PROPOSED_AT8L_WRITABLE_PATHS
 
 - `src/integrations/ghl/highlevel_rest/live_note_runtime.py` (new composition root)
-- `src/integrations/ghl/highlevel_rest/live_note_transport.py`
-  (`_attempt_http` Authorization-header application only)
 - `tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py` (new)
-- `tests/integrations/ghl/highlevel_rest/test_live_note_transport.py`
-  (header-application coverage only)
+
+### PROPOSED_AT8L_OPTIONAL_PATHS
+
 - `src/integrations/ghl/highlevel_rest/__init__.py`
   (optional export of the composition-root symbol only)
 
 ### PROPOSED_AT8L_BLOCKED_PATHS
 
+- `src/integrations/ghl/highlevel_rest/live_note_transport.py`
+  (unchanged; Authorization-header application already implemented)
+- `tests/integrations/ghl/highlevel_rest/test_live_note_transport.py`
+  (unchanged)
 - `src/integrations/ghl/highlevel_rest/live_note_credential_provider.py`
   (concrete GSM accessor unless a later grant names it)
 - `src/integrations/ghl/highlevel_rest/live_note_http_client.py`
@@ -589,6 +672,7 @@ This unit does not create that authorization.
 ```text
 POST_IAM_REINSPECTION_AUTHORIZES_IMPLEMENTATION=NO
 POST_IAM_REINSPECTION_AUTHORIZES_TRANSPORT_TOUCH=NO
+AT8L_TRANSPORT_TOUCH_REQUIRED=NO
 POST_IAM_REINSPECTION_AUTHORIZES_CONCRETE_GSM_ACCESSOR=NO
 POST_IAM_REINSPECTION_AUTHORIZES_LIVE_TRANSPORT_EXECUTION=NO
 POST_IAM_REINSPECTION_AUTHORIZES_LIVE_NOTE_WRITE=NO
@@ -610,6 +694,7 @@ LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
 SOURCE_RUNTIME_TEST_CHANGES=NO
 EXTERNAL_EFFECTS=0
 ARTIFACT_ONLY_DIFF=YES
+PLANNING_ONLY_DIFF=YES
 
 GCP_MUTATIONS=0
 REAL_SECRET_PAYLOAD_READS=0
@@ -641,11 +726,19 @@ LIVE_NOTE_SECRET_RESOURCE_BINDING_IMPLEMENTED=NO
 HTTP_CLIENT_CONSTRUCTION_PATH_IMPLEMENTED=NO
 CREDENTIAL_PROVIDER_CONSTRUCTION_PATH_IMPLEMENTED=NO
 RUNTIME_COMPOSITION_ROOT_IMPLEMENTED=NO
-AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=NO
+AUTHORIZATION_HEADER_REAL_CREDENTIAL_APPLICATION_IMPLEMENTED=YES
+AUTHORIZATION_HEADER_OWNER=BoundedLiveNoteTransport._attempt_http
+CALLER_SUPPLIED_AUTHORIZATION=NO
+TOKEN_LOGGING_FORBIDDEN=YES
 
-CALLER_SUPPLIED_EXECUTION_STORE=NO
-PRODUCTION_EXECUTION_STORE_ROOT_OWNED=YES
-VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
+CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
+TEST_ONLY_EXECUTION_STORE_INJECTION=YES
+
+NOTE_PATH_VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
+COMPOSITION_ROOT_CAPABILITY_PROVENANCE_ENFORCED=NO
+COMPOSITION_ROOT_RAW_CONTACT_LOCATION_INPUT_FORBIDDEN=YES
 PACKAGE_EXPORT_REQUIRED=NO
 PRODUCTION_RUNTIME_PLATFORM_REQUIRED_FOR_AT8L=NO
 
@@ -658,10 +751,12 @@ AT8J_GAPS_CLOSED_BY_AT8K2=
   single-secret-secretAccessor-binding-on-MG_GUIDE_PIT_GHL
   secret-iam-prerequisites-complete
 
+AT8J_GAPS_CLOSED_BY_EXISTING_SOURCE=
+  authorization-header-real-credential-application
+
 AT8J_GAPS_REMAINING=
   http-client-live-construction-path
   concrete-runtime-secret-accessor
-  authorization-header-real-credential-application
   production-resource-name-runtime-binding
   runtime-composition-root
   optional-package-export
@@ -671,15 +766,18 @@ AT8J_GAPS_REMAINING=
 AT8L_AUTHORIZATION_DESIGNABLE=YES
 AT8L_CREATED=NO
 AT8L_STARTED=NO
+AT8L_TRANSPORT_TOUCH_REQUIRED=NO
 
 PROPOSED_AT8L_WRITABLE_PATHS=
   src/integrations/ghl/highlevel_rest/live_note_runtime.py
-  src/integrations/ghl/highlevel_rest/live_note_transport.py
   tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py
-  tests/integrations/ghl/highlevel_rest/test_live_note_transport.py
+
+PROPOSED_AT8L_OPTIONAL_PATHS=
   src/integrations/ghl/highlevel_rest/__init__.py
 
 PROPOSED_AT8L_BLOCKED_PATHS=
+  src/integrations/ghl/highlevel_rest/live_note_transport.py
+  tests/integrations/ghl/highlevel_rest/test_live_note_transport.py
   src/integrations/ghl/highlevel_rest/live_note_credential_provider.py
   src/integrations/ghl/highlevel_rest/live_note_http_client.py
   src/integrations/ghl/highlevel_rest/note_path.py
