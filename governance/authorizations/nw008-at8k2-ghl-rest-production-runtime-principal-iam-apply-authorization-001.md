@@ -196,6 +196,83 @@ DESIGNED_IAM_BIND_SHAPE=
     --role='roles/secretmanager.secretAccessor'
 ```
 
+### 3.2.1 MUTATION_2 IAM-preflight states (normative; exactly three)
+
+Before any MUTATION_2 attempt, the authorized consumer must classify the
+read-only IAM policy observation of the exact designed resource into exactly one
+of the following three states. No fourth state is authorized. Absence of the
+exact designed binding is an authorized prestate for a single bind attempt; it
+is not a stop-closed condition.
+
+```text
+MUTATION_2_EXACT_BINDING_ABSENT_IS_AUTHORIZED_PRESTATE=YES
+MUTATION_2_PREEXISTING_EXACT_BINDING=ALREADY_SATISFIED
+MUTATION_2_CONFLICTING_STATE=STOP_CLOSED
+
+MUTATION_2_PREFLIGHT_STATE_COUNT=3
+```
+
+**STATE_1 — exact designed binding already present**
+
+```text
+STATE_1=EXACT_MEMBER_ROLE_RESOURCE_BINDING_PRESENT
+MATCH=
+  resource=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
+  member=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+  role=roles/secretmanager.secretAccessor
+ACTION=ALREADY_SATISFIED
+IAM_BIND_ATTEMPTS=0
+MUTATION_2_ALREADY_SATISFIED=YES
+MUTATION_2_ATTEMPTED=NO
+```
+
+**STATE_2 — exact designed binding absent (authorized prestate)**
+
+```text
+STATE_2=EXACT_MEMBER_ROLE_RESOURCE_BINDING_ABSENT
+MATCH=
+  the exact member+role binding is not present on the exact designed secret
+  AND no conflicting/ambiguous IAM observation is classified under STATE_3
+ACTION=AUTHORIZED_TO_ATTEMPT_MUTATION_2_ONCE
+PRECONDITION=MUTATION_1_READBACK_PASS
+IAM_BIND_ATTEMPTS_MAX=1
+MUTATION_2_ALREADY_SATISFIED=NO
+MUTATION_2_EXACT_BINDING_ABSENT_IS_AUTHORIZED_PRESTATE=YES
+```
+
+STATE_2 is the expected initial prestate when AT8K1 recorded
+`CURRENT_SECRET_HAS_ACCESSOR_BINDING=NO` / `CURRENT_SECRET_IAM_BINDINGS_COUNT=0`
+and no later bind has occurred. That absence authorizes one MUTATION_2 attempt
+after MUTATION_1 readback pass. It must not be misclassified as STATE_3.
+
+**STATE_3 — conflicting or ambiguous IAM state**
+
+```text
+STATE_3=CONFLICTING_OR_AMBIGUOUS_IAM_STATE
+EXAMPLES_NON_EXHAUSTIVE=
+  - exact member bound with a different role on the designed secret
+  - designed role bound to a different member on the designed secret in a way
+    that makes exact-member+role intent ambiguous for one-shot apply
+  - project-wide secretAccessor already present or requested
+  - alternate secret appears in the planned bind target
+  - policy readback unreadable / non-deterministic / cannot classify STATE_1
+    or STATE_2 without guesswork
+ACTION=STOP_CLOSED
+IAM_BIND_ATTEMPTS=0
+HUMAN_REVIEW_REQUIRED=YES
+MUTATION_2_ATTEMPTED=NO
+AUTOMATIC_REPAIR=NO
+```
+
+Classification rules:
+
+1. Prefer STATE_1 when the exact member+role+resource triple is present.
+2. Prefer STATE_2 when that exact triple is absent and the observation is
+   otherwise classifiable without conflict.
+3. Use STATE_3 for every remaining case. Do not invent repair.
+4. STATE_2 never authorizes more than one bind attempt.
+5. STATE_1 and STATE_3 never authorize a bind attempt.
+
 ### 3.3 Sequencing and attempt guards (normative)
 
 ```text
@@ -217,16 +294,23 @@ Normative consumer rules:
    designed service-account email exists before any IAM bind attempt.
 3. If MUTATION_1 readback fails, stop. Do not attempt MUTATION_2. Do not retry
    create automatically. Do not run compensating delete/create.
-4. Attempt MUTATION_2 at most once, and only after MUTATION_1 readback pass.
-5. After MUTATION_2, perform a read-only IAM policy readback proving the exact
-   member+role binding exists on the exact single secret resource.
-6. If MUTATION_2 fails, stop. Do not retry automatically. Do not compensate.
-7. Never create a service-account key at any step.
-8. Never bind project-wide `roles/secretmanager.secretAccessor`.
-9. Never bind an alternate principal, alternate secret, or additional role.
-10. Never read secret payload versions as part of this apply lane.
-11. Never invoke HighLevel or mutate CRM as part of this apply lane.
-12. Never start AT8L implementation from this grant.
+4. Classify MUTATION_2 preflight into exactly STATE_1, STATE_2, or STATE_3
+   (§3.2.1) before any bind command.
+5. If STATE_1: record already-satisfied; IAM_BIND_ATTEMPTS=0; do not bind.
+6. If STATE_3: stop closed; IAM_BIND_ATTEMPTS=0; human review required; do not
+   bind; do not repair automatically.
+7. If STATE_2: attempt MUTATION_2 at most once, and only after MUTATION_1
+   readback pass (`PRECONDITION=MUTATION_1_READBACK_PASS`).
+8. After a STATE_2 MUTATION_2 attempt, perform a read-only IAM policy readback
+   proving the exact member+role binding exists on the exact single secret
+   resource.
+9. If MUTATION_2 fails, stop. Do not retry automatically. Do not compensate.
+10. Never create a service-account key at any step.
+11. Never bind project-wide `roles/secretmanager.secretAccessor`.
+12. Never bind an alternate principal, alternate secret, or additional role.
+13. Never read secret payload versions as part of this apply lane.
+14. Never invoke HighLevel or mutate CRM as part of this apply lane.
+15. Never start AT8L implementation from this grant.
 
 ### 3.4 What the designed IAM grants and does not grant
 
@@ -441,13 +525,28 @@ CONSUMER_MUST_VERIFY=
 
 If the designed SA already exists with the exact email before MUTATION_1, the
 consumer records `MUTATION_1_ALREADY_SATISFIED=YES`, does not re-create, and may
-proceed to MUTATION_2 only after readback confirms the exact email. If a
-different SA occupies the id, stop closed; do not rename, delete, or substitute.
+proceed to MUTATION_2 preflight only after readback confirms the exact email. If
+a different SA occupies the id, stop closed; do not rename, delete, or
+substitute.
 
-If the exact member+role binding already exists on the exact secret before
-MUTATION_2, the consumer records `MUTATION_2_ALREADY_SATISFIED=YES` and does not
-re-bind. Any other binding state requires stop-closed human review; no automatic
-repair.
+MUTATION_2 IAM preflight is exactly the three-state model in §3.2.1. Do not
+collapse absence and conflict:
+
+```text
+MUTATION_2_EXACT_BINDING_ABSENT_IS_AUTHORIZED_PRESTATE=YES
+MUTATION_2_PREEXISTING_EXACT_BINDING=ALREADY_SATISFIED
+MUTATION_2_CONFLICTING_STATE=STOP_CLOSED
+```
+
+| Preflight class | Action | IAM bind attempts |
+| --- | --- | --- |
+| STATE_1 `EXACT_MEMBER_ROLE_RESOURCE_BINDING_PRESENT` | `ALREADY_SATISFIED` | `0` |
+| STATE_2 `EXACT_MEMBER_ROLE_RESOURCE_BINDING_ABSENT` | `AUTHORIZED_TO_ATTEMPT_MUTATION_2_ONCE` after `MUTATION_1_READBACK_PASS` | max `1` |
+| STATE_3 `CONFLICTING_OR_AMBIGUOUS_IAM_STATE` | `STOP_CLOSED` + human review | `0` |
+
+STATE_2 (exact designed binding absent) is an authorized prestate for one bind
+attempt. It is not stop-closed. Only STATE_3 is stop-closed for conflicting or
+ambiguous IAM observations. No automatic repair in any state.
 
 ## 8. Required consumer proof obligations
 
@@ -455,6 +554,11 @@ repair.
 PROOF_AUTHORIZATION_MERGE_VERIFIED=REQUIRED
 PROOF_MUTATION_1_ATTEMPT_COUNT_LE_1=REQUIRED
 PROOF_MUTATION_1_READBACK_OR_ALREADY_SATISFIED=REQUIRED
+PROOF_MUTATION_2_PREFLIGHT_STATE_CLASSIFIED=REQUIRED
+PROOF_MUTATION_2_PREFLIGHT_STATE_IN_1_2_OR_3_ONLY=REQUIRED
+PROOF_MUTATION_2_STATE_1_ALREADY_SATISFIED_ZERO_ATTEMPTS=REQUIRED
+PROOF_MUTATION_2_STATE_2_ABSENT_AUTHORIZED_ONCE=REQUIRED
+PROOF_MUTATION_2_STATE_3_STOP_CLOSED_ZERO_ATTEMPTS=REQUIRED
 PROOF_MUTATION_2_ATTEMPT_COUNT_LE_1=REQUIRED
 PROOF_MUTATION_2_REQUIRES_MUTATION_1_READBACK_PASS=REQUIRED
 PROOF_MUTATION_2_READBACK_OR_ALREADY_SATISFIED=REQUIRED
@@ -593,6 +697,27 @@ MUTATION_2=SINGLE_SECRET_IAM_BIND
 MUTATION_2_RESOURCE=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
 MUTATION_2_MEMBER=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
 MUTATION_2_ROLE=roles/secretmanager.secretAccessor
+
+MUTATION_2_PREFLIGHT_STATE_1=EXACT_MEMBER_ROLE_RESOURCE_BINDING_PRESENT
+MUTATION_2_PREFLIGHT_STATE_1_ACTION=ALREADY_SATISFIED
+MUTATION_2_PREFLIGHT_STATE_1_IAM_BIND_ATTEMPTS=0
+
+MUTATION_2_PREFLIGHT_STATE_2=EXACT_MEMBER_ROLE_RESOURCE_BINDING_ABSENT
+MUTATION_2_PREFLIGHT_STATE_2_ACTION=AUTHORIZED_TO_ATTEMPT_MUTATION_2_ONCE
+MUTATION_2_PREFLIGHT_STATE_2_PRECONDITION=MUTATION_1_READBACK_PASS
+MUTATION_2_PREFLIGHT_STATE_2_IAM_BIND_ATTEMPTS_MAX=1
+
+MUTATION_2_PREFLIGHT_STATE_3=CONFLICTING_OR_AMBIGUOUS_IAM_STATE
+MUTATION_2_PREFLIGHT_STATE_3_ACTION=STOP_CLOSED
+MUTATION_2_PREFLIGHT_STATE_3_IAM_BIND_ATTEMPTS=0
+MUTATION_2_PREFLIGHT_STATE_3_HUMAN_REVIEW_REQUIRED=YES
+
+MUTATION_2_EXACT_BINDING_ABSENT_IS_AUTHORIZED_PRESTATE=YES
+MUTATION_2_PREEXISTING_EXACT_BINDING=ALREADY_SATISFIED
+MUTATION_2_CONFLICTING_STATE=STOP_CLOSED
+MUTATION_2_PRESENT_STATE_HANDLED=YES
+MUTATION_2_ABSENT_STATE_HANDLED=YES
+MUTATION_2_CONFLICT_STATE_HANDLED=YES
 
 SERVICE_ACCOUNT_CREATE_ATTEMPTS_MAX=1
 SECRET_IAM_BIND_ATTEMPTS_MAX=1
