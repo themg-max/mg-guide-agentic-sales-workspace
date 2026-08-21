@@ -489,13 +489,15 @@ LIVE_NOTE_REST_CREDENTIAL_RESOURCE_IDENTITY
        LIVE_NOTE_REST_SECRET_PAYLOAD_IDENTITY_VERIFIED=UNKNOWN.
 
 SECRET_MANAGER_METADATA_ACCESS_FOR_REST_RESOURCE
-  CLASS=READ_ONLY_VERIFICATION_IN_THIS_PHASE
-  NOTE=Metadata-only verification for MG_GUIDE_PIT_GHL; payload forbidden.
+  CLASS=RESOLVED
+  NOTE=Metadata-only API verify PASS under themg@ for MG_GUIDE_PIT_GHL;
+       payload forbidden and not read.
 
 CONCRETE_GOOGLE_SECRET_MANAGER_LIVE_NOTE_ACCESSOR
   CLASS=OFFLINE_IMPLEMENTATION_REQUIRED
-  NOTE=Blocked on metadata verification + later implementation grant;
-       not blocked on resource identity.
+  NOTE=Blocked on production runtime principal decision + later
+       implementation grant + single-secret accessor IAM; not blocked on
+       resource identity or metadata verify.
 
 LIVE_TRANSPORT_EXECUTION
   CLASS=LIVE_AUTHORIZATION_PREREQUISITE
@@ -628,6 +630,10 @@ CRM mutations.
 PHASE=READ_ONLY_CREDENTIAL_RUNTIME_READINESS
 OWNER=VS_CODE_ORCHESTRATOR
 READINESS_RECORDED_AT_LOCAL=2026-08-21T08:42:00-04:00
+METADATA_REVERIFY_RECORDED_AT_LOCAL=2026-08-21T08:51:00-04:00
+GCLOUD_INTERACTIVE_ACCOUNT=themg@themiliare-group.com
+GCLOUD_REAUTH_COMPLETED=YES
+GCLOUD_ACCOUNT_VERIFIED=YES
 ```
 
 ### A) Normalized REST secret resource (no payload identity claim)
@@ -643,134 +649,142 @@ LIVE_NOTE_REST_SECRET_VERSION_PRESENT=YES
 LIVE_NOTE_REST_SECRET_VERSION_ENABLED=YES
 DEVPOST_SECRET_COPY_REQUIRED=NO
 LIVE_NOTE_REST_SECRET_PAYLOAD_IDENTITY_VERIFIED=UNKNOWN
+SECRET_RESOURCE_READY=YES
 ```
 
 `LIVE_NOTE_REST_SECRET_PAYLOAD_IDENTITY_VERIFIED=UNKNOWN` is intentional: this
 lane does not access, print, echo, diff, log, or otherwise expose the secret
 payload, and does not claim payload identity from screenshot/console UI alone.
+`SECRET_RESOURCE_READY=YES` means resource metadata + enabled version are API
+verified; it does **not** mean payload identity, runtime principal, or IAM
+accessor binding are complete.
 
-### B) Read-only metadata verification attempt (no payload)
+### B) Read-only metadata verification (reverified; no payload)
 
-Attempted with Application Default Credentials only after interactive
-`gcloud` user auth for `themg@themiliare-group.com` failed reauthentication in
-non-interactive mode. Commands used metadata endpoints only
-(`secrets.get` / `versions.list` / `getIamPolicy` / project describe). No
-`versions.access`, no `gcloud secrets versions access`, no payload decode.
+Prior probe under ADC `buildweek-evaluator@themiliare-group.com` returned 403 on
+metadata endpoints and is retained as historical failure only. This re-verify
+used interactive gcloud user `themg@themiliare-group.com` after reauth.
+Commands used metadata endpoints only (`secrets describe` / `versions list` /
+`get-iam-policy` / `projects describe`). No `versions.access`, no
+`gcloud secrets versions access`, no `accessSecretVersion`, no payload decode.
 
 ```text
-METADATA_PROBE_PRINCIPAL=buildweek-evaluator@themiliare-group.com
-METADATA_PROBE_AUTH_MODE=APPLICATION_DEFAULT_CREDENTIALS
+METADATA_PROBE_PRINCIPAL=themg@themiliare-group.com
+METADATA_PROBE_AUTH_MODE=GCLOUD_USER_REAUTH
 ACTIVE_GCLOUD_USER_ACCOUNT=themg@themiliare-group.com
-ACTIVE_GCLOUD_USER_REAUTH_REQUIRED=YES
+ACTIVE_GCLOUD_USER_REAUTH_REQUIRED=NO
+GCLOUD_ACCOUNT_VERIFIED=YES
 
-SECRET_METADATA_ACCESS_VERIFIED=NO
-SECRET_RESOURCE_MATCH_VERIFIED=NO
-SECRET_VERSION_1_ENABLED=UNKNOWN
+SECRET_METADATA_ACCESS_VERIFIED=YES
+SECRET_RESOURCE_MATCH_VERIFIED=YES
+SECRET_VERSION_1_ENABLED=YES
+CURRENT_SECRET_IAM_POLICY_OBSERVED=YES
 
-SECRET_GET_HTTP=403
-SECRET_VERSIONS_LIST_HTTP=403
-SECRET_GET_IAM_POLICY_HTTP=403
-PROJECT_DESCRIBE_HTTP=403
+SECRET_DESCRIBE_EXIT=0
+SECRET_VERSIONS_LIST_EXIT=0
+SECRET_GET_IAM_POLICY_EXIT=0
+PROJECT_DESCRIBE_EXIT=0
 
-SECRET_METADATA_DENIAL_CLASS=IAM_PERMISSION_DENIED
-SECRET_METADATA_DENIED_PERMISSIONS=secretmanager.secrets.get,secretmanager.versions.list,secretmanager.secrets.getIamPolicy
-ENABLED_VERSION_COUNT_OBSERVED=NOT_OBSERVABLE_THIS_LANE
-CURRENT_IAM_POLICY_OBSERVED=NOT_OBSERVABLE_THIS_LANE
+OBSERVED_SECRET_NAME=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
+OBSERVED_SECRET_CREATE_TIME=2026-08-21T12:36:11.892087Z
+OBSERVED_SECRET_REPLICATION=automatic
+OBSERVED_SECRET_ETAG="16598de1b006c3"
+OBSERVED_VERSION_NAMES=1
+OBSERVED_VERSION_1_STATE=enabled
+OBSERVED_VERSION_1_CREATE_TIME=2026-08-21T12:36:12
+OBSERVED_ENABLED_VERSION_COUNT=1
 
-OPERATOR_ATTESTED_SECRET_RESOURCE_PATH=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
-OPERATOR_ATTESTED_SECRET_VERSION_1_EXISTS=YES
-OPERATOR_ATTESTED_SECRET_VERSION_1_ENABLED=YES
-OPERATOR_ATTESTATION_ACCEPTED_AS_API_VERIFICATION=NO
+OBSERVED_PROJECT_ID=ai-rolodex-to-crm
+OBSERVED_PROJECT_NUMBER=831270426395
+OBSERVED_PROJECT_LIFECYCLE=ACTIVE
+
+OBSERVED_SECRET_IAM_POLICY_ETAG=ACAB
+OBSERVED_SECRET_IAM_BINDINGS_COUNT=0
+OBSERVED_SECRET_IAM_HAS_SECRET_ACCESSOR_MEMBER=NO
+
+HISTORICAL_ADC_PROBE_PRINCIPAL=buildweek-evaluator@themiliare-group.com
+HISTORICAL_ADC_PROBE_RESULT=PERMISSION_DENIED_403
+HISTORICAL_ADC_PROBE_SUPERSEDED_BY_REAUTH_VERIFY=YES
 
 REAL_SECRET_PAYLOAD_READS=0
 TOKEN_VALUE_EXPOSURE=NO
 ```
 
-Interpretation: the dedicated REST resource identity is **normalized from
-operator authority** into this artifact, but **independent API metadata
-verification did not succeed** under the available non-interactive principal.
-A later operator-auth metadata lane (after `gcloud auth login` for a principal
-with `secretmanager.secrets.get`, `secretmanager.versions.list`, and
-`secretmanager.secrets.getIamPolicy` on this single secret) is required before
-claiming `SECRET_METADATA_ACCESS_VERIFIED=YES`.
+Interpretation: independent API metadata verification **succeeded** for
+project identity, secret resource path match, enabled version 1, and current
+IAM policy observation. The secret currently has **zero** IAM bindings
+(empty policy body besides etag). No `roles/secretmanager.secretAccessor`
+member is present. Payload was not read.
 
-### C) Runtime principal discovery for `assemble_bound_live_note_runtime`
+### C) Runtime principal language (execution lane vs production)
 
 `assemble_bound_live_note_runtime` is the designed composition root (not yet
-implemented). NW-008 live-note work is owned by `VS_CODE_ORCHESTRATOR` and is
-not the NW-007 Cloud Run judge surface.
+implemented). NW-008 live-note planning/readiness is owned by
+`VS_CODE_ORCHESTRATOR` and is not the NW-007 Cloud Run judge surface.
 
 ```text
-RUNTIME_PLATFORM=VS_CODE_ORCHESTRATOR_LOCAL
-RUNTIME_PROJECT=ai-rolodex-to-crm
-RUNTIME_SERVICE_ACCOUNT=UNKNOWN
+CURRENT_EXECUTION_LANE=VS_CODE_ORCHESTRATOR_LOCAL
+
+PRODUCTION_RUNTIME_PLATFORM=UNDECIDED
+PRODUCTION_RUNTIME_PROJECT=UNDECIDED
+PRODUCTION_RUNTIME_PRINCIPAL=UNKNOWN
+RUNTIME_PRINCIPAL_DECISION_REQUIRED=YES
 
 RUNTIME_COMPOSITION_ROOT_SYMBOL=assemble_bound_live_note_runtime
 RUNTIME_COMPOSITION_ROOT_IMPLEMENTED=NO
 RUNTIME_DEDICATED_SERVICE_ACCOUNT_BOUND=NO
 ```
 
-Candidate principals observed this lane (not granted; not selected as final):
+`themg@themiliare-group.com` is the **metadata verification / operator gcloud
+account only**. It is **not** selected as the permanent production runtime
+principal solely because it can authenticate.
+
+Observed non-selected candidates (informational; not granted; not final):
 
 ```text
-CANDIDATE_PRINCIPAL_1=user:themg@themiliare-group.com
-CANDIDATE_PRINCIPAL_1_CLASS=OPERATOR_USER_GCLOUD
-CANDIDATE_PRINCIPAL_1_STATUS=REAUTH_REQUIRED_NON_INTERACTIVE
-CANDIDATE_PRINCIPAL_1_SECRET_METADATA_OBSERVED=NOT_TESTABLE_THIS_LANE
+OBSERVED_OPERATOR_USER=user:themg@themiliare-group.com
+OBSERVED_OPERATOR_USER_ROLE=METADATA_VERIFY_AND_PLANNING_OPERATOR_ONLY
+OBSERVED_OPERATOR_USER_SELECTED_AS_PRODUCTION_RUNTIME=NO
 
-CANDIDATE_PRINCIPAL_2=user:buildweek-evaluator@themiliare-group.com
-CANDIDATE_PRINCIPAL_2_CLASS=LOCAL_ADC_USER
-CANDIDATE_PRINCIPAL_2_STATUS=AUTH_OK_SECRET_METADATA_PERMISSION_DENIED
-CANDIDATE_PRINCIPAL_2_SECRET_METADATA_OBSERVED=403
+OBSERVED_ADC_USER=user:buildweek-evaluator@themiliare-group.com
+OBSERVED_ADC_USER_SECRET_METADATA=PERMISSION_DENIED_HISTORICAL
+OBSERVED_ADC_USER_SELECTED_AS_PRODUCTION_RUNTIME=NO
 
-CANDIDATE_PRINCIPAL_3=serviceAccount:mg-guide-devpost-runtime@mg-devpost.iam.gserviceaccount.com
-CANDIDATE_PRINCIPAL_3_CLASS=NW007_CLOUD_RUN_JUDGE_RUNTIME
-CANDIDATE_PRINCIPAL_3_STATUS=NOT_SELECTED_FOR_LIVE_NOTE_REST
-CANDIDATE_PRINCIPAL_3_REASON=Different project (mg-devpost); judge/demo surface only; DEVPOST_SECRET_COPY_REQUIRED=NO
+OBSERVED_NW007_JUDGE_SA=serviceAccount:mg-guide-devpost-runtime@mg-devpost.iam.gserviceaccount.com
+OBSERVED_NW007_JUDGE_SA_STATUS=NOT_SELECTED_FOR_LIVE_NOTE_REST
+OBSERVED_NW007_JUDGE_SA_REASON=Different project (mg-devpost); judge/demo surface only; DEVPOST_SECRET_COPY_REQUIRED=NO
 ```
-
-Final exact identity that will eventually execute
-`assemble_bound_live_note_runtime` remains `RUNTIME_SERVICE_ACCOUNT=UNKNOWN`
-until a later authorization names either a dedicated runtime service account in
-`ai-rolodex-to-crm` or an explicit operator-user execution principal.
 
 ### D) IAM design only (not applied)
 
-Designed binding for the eventual runtime principal once known:
+Designed binding for the eventual production runtime principal once decided:
 
 ```text
 SECRET_ACCESS_RESOURCE=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
 SECRET_ACCESS_ROLE=roles/secretmanager.secretAccessor
-SECRET_ACCESS_MEMBER=<RUNTIME_PRINCIPAL_TBD>
+SECRET_ACCESS_MEMBER=<TBD>
+SECRET_ACCESS_SCOPE=SINGLE_SECRET_ONLY
 IAM_SCOPE=SINGLE_SECRET_ONLY
 PROJECT_WIDE_SECRET_ACCESSOR=NO
 DEVPOST_SECRET_DUPLICATION=NO
 IAM_CHANGE_APPLIED=NO
 IAM_CHANGES=0
+CURRENT_SECRET_HAS_ACCESSOR_BINDING=NO
 ```
 
 Designed (not executed) command shape for a later authorized IAM lane:
 
 ```text
 gcloud secrets add-iam-policy-binding MG_GUIDE_PIT_GHL \
-  --project=831270426395 \
-  --member=<RUNTIME_PRINCIPAL_TBD> \
-  --role=roles/secretmanager.secretAccessor \
-  --condition=None
+  --project=ai-rolodex-to-crm \
+  --member=<TBD_PRODUCTION_RUNTIME_PRINCIPAL> \
+  --role=roles/secretmanager.secretAccessor
 ```
 
 Do not grant `roles/secretmanager.secretAccessor` project-wide. Do not copy the
 secret into `mg-devpost`. Do not grant payload access to the NW-007 judge SA
-unless a later explicit grant says otherwise (current design: no).
-
-Optional later metadata-read roles for an operator verification principal
-(design only; not applied):
-
-```text
-METADATA_VERIFY_RESOURCE=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
-METADATA_VERIFY_ROLES_OR_PERMS=secretmanager.secrets.get,secretmanager.versions.list,secretmanager.secrets.getIamPolicy
-METADATA_VERIFY_IAM_APPLIED=NO
-```
+unless a later explicit grant says otherwise (current design: no). Do not treat
+operator metadata-verify success as authorization to apply IAM.
 
 ### E) Durability check
 
@@ -781,27 +795,29 @@ AT8J_WORKTREE_PRESENT=YES
 AT8K_WORKTREE_PRESENT=YES
 AT8J_ON_ORIGIN_MAIN=NO
 AT8K_ON_ORIGIN_MAIN=NO
-AT8J_GIT_TRACKED_AT_READINESS_START=NO
-AT8K_GIT_TRACKED_AT_READINESS_START=NO
-```
-
-Durability disposition is recorded after the readiness commit of these two
-planning artifacts on branch
-`nw008-at8k-ghl-rest-live-note-runtime-construction-path-design-001`:
-
-```text
+AT8J_TRACKED=YES
+AT8K_TRACKED=YES
 AT8J_DURABLY_PRESERVED=YES
 AT8K_DURABLY_PRESERVED=YES
 DURABILITY_MECHANISM=TOPIC_BRANCH_COMMIT_ARTIFACT_ONLY
 DURABILITY_BRANCH=nw008-at8k-ghl-rest-live-note-runtime-construction-path-design-001
-DURABILITY_COMMIT_SHA=6ebeb9267670cc63971eed607cc6487c48840b73
+DURABILITY_BASELINE_COMMIT_SHA=6ebeb9267670cc63971eed607cc6487c48840b73
 ```
+
+Both planning artifacts are git-tracked on the topic branch. This metadata
+re-verify update is committed as an AT8K-only artifact amendment for governed
+planning review.
 
 ### F) Authorization designability gate
 
 ```text
+SECRET_RESOURCE_READY=YES
+PRODUCTION_RUNTIME_PRINCIPAL=UNKNOWN
+RUNTIME_PRINCIPAL_DECISION_REQUIRED=YES
+
 NEXT_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=YES
 LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
+PLANNING_PR_READY=YES
 ```
 
 `NEXT_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=YES` remains limited to a later
@@ -812,14 +828,19 @@ offline one-shot implementation authorization for the designed assembler and
 - IAM mutation;
 - concrete GSM accessor implementation unless that later grant explicitly names it;
 - live HighLevel execution;
-- live CRM mutation.
+- live CRM mutation;
+- selection of `themg@themiliare-group.com` as permanent runtime principal.
 
-Because `SECRET_METADATA_ACCESS_VERIFIED=NO` and
-`RUNTIME_SERVICE_ACCOUNT=UNKNOWN`, any later grant that would implement
-production secret access or apply IAM must first close those readiness gaps in a
-separate authorized lane.
+Because `PRODUCTION_RUNTIME_PRINCIPAL=UNKNOWN` and
+`CURRENT_SECRET_HAS_ACCESSOR_BINDING=NO`, any later grant that would implement
+production secret access or apply IAM must first decide the runtime principal
+in a separate authorized lane.
 
-### G) Zero-effect assertions (this readiness phase)
+`PLANNING_PR_READY=YES` means AT8J + AT8K are suitable for governed planning
+review as artifact-only docs. It does not create AT8L and does not authorize
+implementation.
+
+### G) Zero-effect assertions (this readiness / re-verify phase)
 
 ```text
 HIGHLEVEL_CALLS=0
@@ -834,14 +855,14 @@ GCP_SECRET_METADATA_PROBES=YES
 GCP_SECRET_PAYLOAD_PROBES=NO
 ```
 
-`REAL_NETWORK_CALLS` for HighLevel/CRM = 0. GCP metadata control-plane probes
-were attempted and returned permission denials only; no secret payload bytes
-were retrieved.
+HighLevel/CRM network effects = 0. GCP metadata control-plane probes succeeded
+for describe/list/getIamPolicy/project; no secret payload bytes were retrieved.
 
 STOP before:
 
 - secret payload access
 - IAM mutation
 - source implementation
+- AT8L creation
 - live HighLevel execution
 - live CRM mutation
