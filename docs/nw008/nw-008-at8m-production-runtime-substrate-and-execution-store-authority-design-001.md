@@ -24,6 +24,23 @@ PRODUCTION_RUNTIME_READY=NO
 CONCRETE_RUNTIME_SECRET_ACCESSOR_IMPLEMENTED=NO
 PRODUCTION_EXECUTION_STORE_CONSTRUCTION_IMPLEMENTED=NO
 
+LIVE_CREDENTIAL_USE_READY=NO
+LIVE_HIGHLEVEL_EXECUTION_READY=NO
+LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
+
+AT8K2_SOURCE_STATE_AUTHORITY=
+proof/nw008/at-8k2/nw008-at8k2-ghl-rest-production-runtime-principal-iam-apply-consumption-001.md
+PRODUCTION_RUNTIME_PRINCIPAL_IDENTIFIED=YES
+PRODUCTION_RUNTIME_PRINCIPAL_CREATED=YES
+PRODUCTION_RUNTIME_PRINCIPAL=
+serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+USER_MANAGED_SERVICE_ACCOUNT_KEYS=0
+MG_GUIDE_PIT_GHL_SINGLE_SECRET_ACCESSOR_CONFIGURED=YES
+PROJECT_WIDE_SECRET_ACCESSOR=NO
+AT8K2_IAM_AUTHORIZATION_CONSUMED=YES
+AT8K2_IAM_AUTHORIZATION_REUSABLE=NO
+PRODUCTION_WORKLOAD_PRINCIPAL_ATTACHED=NO
+
 PR120_AUTHORIZATION_CONSUMED=YES
 PR120_AUTHORIZATION_REUSABLE=NO
 PR120_AUTHORIZATION_REUSED_BY_THIS_UNIT=NO
@@ -108,6 +125,7 @@ HTTP_REQUESTS=0
 HIGHLEVEL_INVOCATIONS=0
 
 REAL_SECRET_PAYLOAD_READS=0
+REAL_COMMITMENT_KEY_READS=0
 HIGHLEVEL_CALLS=0
 CRM_MUTATIONS=0
 GCP_MUTATIONS=0
@@ -128,6 +146,8 @@ Read-only sources consulted:
 - `docs/nw008/nw-008-at8k1-ghl-rest-production-runtime-principal-design-001.md`
 - `docs/nw008/nw-008-at8l-ghl-rest-live-note-runtime-construction-path-implementation-001.md`
 - `proof/nw008/at-8l/nw008-at8l-ghl-rest-live-note-runtime-construction-path-implementation-consumption-001.md`
+- `proof/nw008/at-8k2/nw008-at8k2-ghl-rest-production-runtime-principal-iam-apply-consumption-001.md`
+  (authoritative source for runtime-principal creation and single-secret IAM state)
 
 This unit resolves architecture questions only. It does not implement
 production store construction, does not create any authorization artifact, and
@@ -146,20 +166,29 @@ evidence confirmed: no public production execution-store argument, no caller
 resource/token/credential/http-client overrides, capability remint forbidden.
 
 From AT8K/AT8K1: `PRODUCTION_RUNTIME_PLATFORM=UNDECIDED` was the open substrate
-question this unit resolves. The production runtime principal is designed (not
-created) as
+question this unit resolves. From AT8K2 (authoritative consumption record
+`proof/nw008/at-8k2/nw008-at8k2-ghl-rest-production-runtime-principal-iam-apply-consumption-001.md`):
+the production runtime principal
 `serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com`
-with single-secret `roles/secretmanager.secretAccessor` scope on
-`projects/831270426395/secrets/MG_GUIDE_PIT_GHL`; no SA was created and no IAM
-was applied.
+has been created (unique id `109958193780365695003`), it holds the single-secret
+`roles/secretmanager.secretAccessor` binding on
+`projects/831270426395/secrets/MG_GUIDE_PIT_GHL` only, user-managed SA keys are
+zero, no project-wide accessor exists, and the AT8K2 IAM authorization (PR117)
+is consumed and not reusable. The principal is not yet attached to any workload.
 
 ## Architecture question 1 — PRODUCTION_RUNTIME_PLATFORM_CLASS
 
 ### Decision
 
 ```text
-PRODUCTION_RUNTIME_PLATFORM_CLASS=GOVERNED_SINGLE_INSTANCE_LONG_LIVED_LOCAL_PROCESS
-PRODUCTION_RUNTIME_PLATFORM_DECIDED=YES
+PRODUCTION_RUNTIME_HOST_CLASS=GOVERNED_SINGLE_INSTANCE_LONG_LIVED_LOCAL_PROCESS
+PRODUCTION_RUNTIME_HOST_CLASS_DECIDED=YES
+
+PRODUCTION_RUNTIME_IDENTITY_MECHANISM=UNRESOLVED
+PRODUCTION_RUNTIME_IDENTITY_MECHANISM_DECIDED=NO
+PRODUCTION_WORKLOAD_PRINCIPAL_ATTACHED=NO
+
+PRODUCTION_RUNTIME_PLATFORM_DECIDED=PARTIAL
 ```
 
 The initial production substrate for the bounded live-note runtime is the
@@ -178,18 +207,39 @@ for the initial production substrate.
    `acquire_claim` / `assert_claim_owner`) are designed for a single owning
    writer; a single-instance process makes single-writer discipline
    enforceable without new infrastructure.
-3. The AT8K1 principal decision is platform-independent by design, so selecting
-   the local lane now does not invalidate the designed service account or its
-   single-secret IAM shape.
+3. The AT8K1 principal design (realized by AT8K2) is platform-independent, so
+   selecting the local lane now does not invalidate the created service account
+   or its single-secret IAM shape.
 4. Selecting serverless now would force an immediate persistence re-decision
    (ephemeral filesystems) and deployment construction that this planning unit
    is not authorized to build.
+
+### Host class versus identity mechanism
+
+The host-class decision does NOT decide how the runtime authenticates to Google
+Cloud. A governed local host does not automatically execute as the dedicated
+GCP service account: local ADC normally resolves to the operator user identity,
+not to
+`serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com`.
+The mechanism by which the local production process obtains that principal's
+identity is therefore UNRESOLVED in this unit. AT8M explicitly does not choose:
+
+- user ADC as production authority;
+- service-account keys (user-managed keys remain 0 and are forbidden);
+- service-account impersonation;
+- cloud workload attachment.
+
+Each candidate requires later governed design and authorization.
+`PRODUCTION_RUNTIME_PLATFORM_DECIDED=PARTIAL` records that the host class is
+decided while the identity mechanism is not; until the mechanism is resolved
+and authorized, no production secret read (credential or commitment key) can
+occur under the runtime principal.
 
 ### Migration constraint
 
 Any later move to a container/serverless/multi-instance target re-opens this
 decision and requires a new planning unit plus re-derived persistence model
-before any deployment change. The platform class is recorded as a decision with
+before any deployment change. The host class is recorded as a decision with
 an explicit re-evaluation gate, not as a permanent commitment.
 
 ## Architecture question 2 — EXECUTION_STORE_DURABILITY_REQUIREMENT
@@ -258,6 +308,9 @@ re-decides persistence (managed store selection would be a new planning unit).
 PRODUCTION_DB_PATH_AUTHORITY_IDENTIFIED=YES
 PRODUCTION_DB_PATH_OWNER=RUNTIME_COMPOSITION_ROOT
 PRODUCTION_DB_PATH_CONFIGURATION_SOURCE_CLASS=ORCHESTRATOR_GOVERNED_ENVIRONMENT_CONFIGURATION
+PRODUCTION_DB_PATH_CONFIGURATION_REQUIRED=YES
+PRODUCTION_DB_PATH_DEFAULT=NONE
+MISSING_PRODUCTION_DB_PATH=FAIL_CLOSED
 PRODUCTION_DB_PATH_HARDCODED_IN_SOURCE=FORBIDDEN
 CALLER_DB_PATH_OVERRIDE=FORBIDDEN
 ```
@@ -266,13 +319,13 @@ The composition root (`assemble_bound_live_note_runtime`) is the sole owner of
 production store construction and therefore the sole resolver of the production
 database path. The path is non-secret configuration: the root reads it from
 orchestrator-governed environment configuration (a single dedicated
-configuration value provisioned by the operator for the governed host), with a
-root-owned default location under a governed data directory when the value is
-absent. The public assembler signature remains `verified_capability` only
-(AT8L freeze); no caller may pass a path, and no absolute path is hardcoded in
-source. The exact configuration variable name and default directory are
-implementation details frozen by the later implementation authorization, not by
-this design.
+configuration value provisioned by the operator for the governed host). There
+is no implicit default location: if the configuration value is absent or
+empty, production assembly fails closed. The public assembler signature remains
+`verified_capability` only (AT8L freeze); no caller may pass a path, and no
+absolute path is hardcoded in source. The exact configuration variable name is
+an implementation detail frozen by the later implementation authorization, not
+by this design.
 
 ## Architecture question 5 — PRODUCTION_COMMITMENT_KEY_AUTHORITY
 
@@ -281,11 +334,14 @@ this design.
 ```text
 PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=YES
 PRODUCTION_COMMITMENT_KEY_CLASS=SECRET_MATERIAL
+COMMITMENT_KEY_SECRET_DISTINCT_FROM_MG_GUIDE_PIT_GHL=YES
+COMMITMENT_KEY_SECRET_RESOURCE_CREATED=NO
+COMMITMENT_KEY_SECRET_IAM_CONFIGURED=NO
+AT8K2_IAM_AUTHORITY_REUSABLE_FOR_COMMITMENT_KEY=NO
 HARDCODED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
 CALLER_SUPPLIED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
 PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS=GOOGLE_SECRET_MANAGER_VIA_ROOT_OWNED_ACCESSOR
-PRODUCTION_COMMITMENT_KEY_READ_IN_THIS_UNIT=0
-PRODUCTION_COMMITMENT_KEY_CREATED_IN_THIS_UNIT=0
+REAL_COMMITMENT_KEY_READS=0
 ```
 
 The commitment key keys HMAC-SHA256 evidence commitments
@@ -296,16 +352,32 @@ a dedicated Google Secret Manager secret — a distinct resource from
 reused) — read at assembly time only by the composition root through a
 root-owned secret accessor implementing the existing `LiveNoteSecretAccessor`
 protocol (`read_secret_payload`), authenticating via ADC / workload identity as
-the AT8K1-designed single-purpose runtime principal, under single-secret
-`roles/secretmanager.secretAccessor` IAM.
+the AT8K2-created single-purpose runtime principal, under single-secret
+`roles/secretmanager.secretAccessor` IAM on that future secret only.
 
-This unit does not read, create, name-allocate, or bind the key resource.
-Exact resource identity, version pinning, and rotation handling are deferred:
-resource creation and IAM are later explicitly authorized units; the concrete
-accessor contract is AT8N (below). Rotation constraint recorded for later
-units: stored commitments verify only under the key that produced them, so key
-rotation requires either per-record key-version pinning or an authorized
-re-commitment migration; silent rotation is forbidden.
+This unit does not read, create, name-allocate, or bind the key resource. The
+AT8K2 IAM grant covered `MG_GUIDE_PIT_GHL` only and is consumed; it is not
+reusable for the commitment-key secret. Resource creation and IAM binding for
+the commitment-key secret are later explicitly authorized units; the concrete
+accessor contract is AT8N (below). This unit does not name the new secret.
+
+### Commitment key versioning (recorded decision candidate; not implemented)
+
+```text
+COMMITMENT_KEY_VERSIONING_MODEL=UNRESOLVED
+SILENT_COMMITMENT_KEY_ROTATION=FORBIDDEN
+KEY_VERSION_REQUIRED_FOR_HISTORICAL_VERIFICATION=YES
+PREFERRED_MODEL=RECORD_KEY_VERSION_WITH_EACH_COMMITMENT
+```
+
+Stored commitments verify only under the key that produced them, so historical
+evidence verification requires knowing which key version produced each
+commitment. The recorded candidate is to persist the key version alongside each
+stored commitment so verification remains possible across rotations; the
+alternative (authorized re-commitment migration on rotation) remains available
+to the deciding unit. The model is UNRESOLVED and must be frozen by a later
+governed design unit before production store-construction authorization;
+silent rotation is forbidden under any model.
 
 ## Architecture question 6 — PRODUCTION_STORE_LIFECYCLE
 
@@ -315,13 +387,15 @@ re-commitment migration; silent rotation is forbidden.
 INITIALIZATION=composition root constructs At1ExecutionStore at assembly;
   root ensures the governed parent directory exists with restrictive
   permissions; existing idempotent CREATE TABLE IF NOT EXISTS bootstrap applies
-MIGRATION_VERSIONING=current store carries no schema version; a root-owned
-  schema_version marker with forward-only, root-applied migrations is a
-  required precondition of the production store-construction implementation
-  authorization; no ad-hoc DDL outside the root
+MIGRATION_VERSIONING=current store carries no schema version; store schema
+  versioning is REQUIRED and NOT IMPLEMENTED; versioning may require
+  At1ExecutionStore modification and its authorization scope is UNRESOLVED —
+  it is not implied to be composition-root-only work; no ad-hoc DDL outside
+  governed change
 RETENTION=retain-all for the bounded evidence lane; records are evidence;
-  no automatic deletion in the production path; any retention limit is a
-  separate governance decision
+  AUTOMATIC_PRODUCTION_EVIDENCE_DELETION=NO; any retention change requires a
+  separate authority; DISK_CAPACITY_MONITORING_REQUIRED=YES and
+  LOW_DISK_RUNTIME_POLICY=UNRESOLVED (design deferred; not implemented here)
 CLEANUP=cleanup seams remain test-only (synthetic stores); production cleanup
   occurs only under an explicit authorized maintenance action
 RESTART_RECOVERY=re-open the existing store file; claims and attempt state
@@ -332,6 +406,40 @@ FAILURE_MODE=fail closed: store open/init/migration failure aborts assembly
   closed; the runtime must never proceed without durable state
 ```
 
+### Store schema versioning
+
+```text
+STORE_SCHEMA_VERSIONING_REQUIRED=YES
+STORE_SCHEMA_VERSIONING_IMPLEMENTED=NO
+STORE_SCHEMA_VERSIONING_MAY_REQUIRE_AT1_EXECUTION_STORE_MODIFICATION=YES
+STORE_SCHEMA_VERSIONING_AUTHORIZATION_SCOPE_RESOLVED=NO
+```
+
+`At1ExecutionStore` currently embeds an unversioned idempotent bootstrap
+(`CREATE TABLE IF NOT EXISTS` only). Production-grade versioning (a schema
+marker plus forward-only migrations) may require modifying
+`src/integrations/ghl/at1_execution_store.py`, and the authorization scope for
+that work — which files may change and under which grant — is NOT resolved
+here. This unit does not modify the store source and does not imply the
+versioning work is confined to the composition root.
+
+### Retention, cleanup, and disk pressure
+
+```text
+AUTOMATIC_PRODUCTION_EVIDENCE_DELETION=NO
+RETENTION_CHANGE_REQUIRES_SEPARATE_AUTHORITY=YES
+DISK_CAPACITY_MONITORING_REQUIRED=YES
+LOW_DISK_RUNTIME_POLICY=UNRESOLVED
+```
+
+All production records are evidence and are retained; no automatic deletion
+exists in the production path, and introducing retention limits, compaction, or
+cleanup requires a separate explicit authority. Because the store grows
+indefinitely on governed local disk, disk-capacity monitoring is a required
+production control, but the runtime policy under low-disk pressure (alert,
+fail-closed, throttle, or operator handoff) is UNRESOLVED and deferred to a
+later governed design unit. This unit implements no monitoring.
+
 ## Architecture question 7 — RUNTIME_IDENTITY_DEPENDENCY
 
 ### Decision
@@ -339,47 +447,66 @@ FAILURE_MODE=fail closed: store open/init/migration failure aborts assembly
 ```text
 STORE_DB_PATH_DEPENDS_ON_RUNTIME_PLATFORM_IDENTITY=NO
 STORE_COMMITMENT_KEY_ACCESS_DEPENDS_ON_RUNTIME_PLATFORM_IDENTITY=YES
-RUNTIME_PRINCIPAL_FOR_KEY_ACCESS=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com (designed, not created)
+RUNTIME_PRINCIPAL_FOR_KEY_ACCESS=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com (created by AT8K2)
+PRODUCTION_WORKLOAD_PRINCIPAL_ATTACHED=NO
 SERVICE_ACCOUNT_ATTACHED_BY_THIS_UNIT=NO
 ```
 
 The database path is platform configuration and does not vary with runtime
 identity. Commitment-key access, however, is bound to the runtime platform
-identity: the AT8K1-designed single-purpose service account is the identity
-class that will hold single-secret accessor rights on the commitment-key
-secret, and the accessor must authenticate via ADC / workload identity only (SA
-keys forbidden, per AT8K1 forbidden practices). This unit attaches no service
-account to any resource and applies no IAM; binding remains a later authorized
-lane exactly as AT8K1 designed.
+identity: the AT8K2-created single-purpose service account is the identity that
+will hold single-secret accessor rights on the future commitment-key secret,
+and the accessor must authenticate via ADC / workload identity only (SA keys
+forbidden; user-managed keys remain 0 per AT8K2 readback). Because the runtime
+identity mechanism on the local host is UNRESOLVED (Q1), no commitment-key
+read can occur in production until that mechanism is designed and authorized.
+This unit attaches no service account to any resource and applies no IAM;
+binding remains a later authorized lane.
 
 ## Derived fields
 
 ```text
-PRODUCTION_RUNTIME_PLATFORM_DECIDED=YES
+PRODUCTION_RUNTIME_PLATFORM_DECIDED=PARTIAL
+PRODUCTION_RUNTIME_HOST_CLASS_DECIDED=YES
+PRODUCTION_RUNTIME_IDENTITY_MECHANISM_DECIDED=NO
 PRODUCTION_PERSISTENCE_MODEL_DECIDED=YES
 SQLITE_PRODUCTION_SUITABLE=CONDITIONAL
 
 PRODUCTION_DB_PATH_AUTHORITY_IDENTIFIED=YES
+PRODUCTION_DB_PATH_CONFIGURATION_REQUIRED=YES
 PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=YES
 
 HARDCODED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
 CALLER_SUPPLIED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
+COMMITMENT_KEY_VERSIONING_MODEL=UNRESOLVED
+STORE_SCHEMA_VERSIONING_SCOPE_RESOLVED=NO
 
-PRODUCTION_STORE_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=YES
+PRODUCTION_STORE_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=NO
+BLOCKERS_FOR_STORE_IMPLEMENTATION_AUTHORIZATION=
+  runtime-identity-mechanism
+  commitment-key-versioning-model
+  store-schema-versioning-scope
 ```
 
 Persistence model: embedded SQLite via `At1ExecutionStore` on governed durable
-local disk under single-writer discipline, as decided in Q1–Q3.
+local disk under single-writer discipline, as decided in Q1–Q3, with the DB
+path supplied by required orchestrator-governed configuration (no default,
+fail-closed).
 
-`PRODUCTION_STORE_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=YES` means a later,
-separate, one-shot offline implementation authorization for root-owned
-production execution-store construction can now be drafted. It must be
-conditioned on: (a) this design merged on `main`; (b) the AT8N accessor
-contract freeze (parallel planning unit below) or an equivalent root-owned
-accessor seam for commitment-key delivery; (c) no real secret payload reads
-during implementation; (d) no live transport execution. It does not authorize
-secret resource creation, IAM, deployment, or live CRM mutation, and it does
-not reuse PR120 authority (consumed; not reusable).
+`PRODUCTION_STORE_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=NO`: a production
+store-construction implementation authorization cannot be drafted until three
+blockers are each resolved by later governed units: (1) the runtime identity
+mechanism on the local host (Q1), without which no production secret access
+exists; (2) the commitment-key versioning model (Q5), without which evidence
+verification semantics are undefined; (3) the store schema-versioning
+authorization scope (Q6), including whether `At1ExecutionStore` modification is
+in scope. When all three resolve, the authorization must additionally be
+conditioned on: this design merged on `main`; the AT8N accessor contract freeze
+(or an equivalent root-owned accessor seam for commitment-key delivery); no
+real secret payload reads during implementation; no live transport execution.
+It must not authorize secret resource creation, IAM, deployment, or live CRM
+mutation, and it must not reuse PR120 or AT8K2 (PR117) authority — both are
+consumed and not reusable.
 
 ## Next parallel planning unit
 
@@ -394,7 +521,9 @@ AT8N must be PLANNING_ONLY initially. Its design must later freeze:
 
 - `GoogleSecretManagerLiveNoteSecretAccessor` exact contract (implementing the
   existing `LiveNoteSecretAccessor` protocol `read_secret_payload`);
-- ADC / workload identity only;
+- ADC / workload identity only, under the AT8K2-created runtime principal, with
+  the local-host identity mechanism itself resolved by a separate governed
+  unit before any production use;
 - exact `MG_GUIDE_PIT_GHL` resource identity
   (`projects/831270426395/secrets/MG_GUIDE_PIT_GHL`);
 - caller resource override forbidden;
@@ -419,6 +548,7 @@ AT8M_AUTHORIZES_IMPLEMENTATION=NO
 AT8M_AUTHORIZES_PRODUCTION_STORE_CONSTRUCTION=NO
 AT8M_AUTHORIZES_SECRET_RESOURCE_CREATION=NO
 AT8M_AUTHORIZES_SECRET_PAYLOAD_READ=NO
+AT8M_AUTHORIZES_COMMITMENT_KEY_READ=NO
 AT8M_AUTHORIZES_IAM_CHANGE=NO
 AT8M_AUTHORIZES_SERVICE_ACCOUNT_ATTACHMENT=NO
 AT8M_AUTHORIZES_DEPLOYMENT_CHANGE=NO
@@ -427,6 +557,7 @@ AT8M_AUTHORIZES_LIVE_NOTE_WRITE=NO
 AT8M_AUTHORIZES_LIVE_CRM_MUTATION=NO
 AT8M_CREATES_AT8N_AUTHORIZATION=NO
 AT8M_REUSES_PR120_AUTHORIZATION=NO
+AT8M_REUSES_AT8K2_IAM_AUTHORIZATION=NO
 ```
 
 ## Validation
@@ -451,18 +582,32 @@ artifact above; `git diff --check origin/main...HEAD` is clean.
 ```text
 AT8M_PLANNING_COMPLETE=YES
 
-PRODUCTION_RUNTIME_PLATFORM_DECIDED=YES
+AT8K2_SOURCE_STATE_CORRECTED=YES
+
+PRODUCTION_RUNTIME_PLATFORM_DECIDED=PARTIAL
+PRODUCTION_RUNTIME_HOST_CLASS_DECIDED=YES
+PRODUCTION_RUNTIME_IDENTITY_MECHANISM_DECIDED=NO
 PRODUCTION_PERSISTENCE_MODEL_DECIDED=YES
 SQLITE_PRODUCTION_SUITABLE=CONDITIONAL
 
 PRODUCTION_DB_PATH_AUTHORITY_IDENTIFIED=YES
+PRODUCTION_DB_PATH_CONFIGURATION_REQUIRED=YES
 PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=YES
+COMMITMENT_KEY_SECRET_RESOURCE_CREATED=NO
+COMMITMENT_KEY_SECRET_IAM_CONFIGURED=NO
+COMMITMENT_KEY_VERSIONING_MODEL=UNRESOLVED
+STORE_SCHEMA_VERSIONING_SCOPE_RESOLVED=NO
 
-PRODUCTION_STORE_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=YES
+PRODUCTION_STORE_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=NO
+
+PRODUCTION_RUNTIME_READY=NO
+LIVE_CREDENTIAL_USE_READY=NO
+LIVE_HIGHLEVEL_EXECUTION_READY=NO
+LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
 
 AT8N_PLANNING_RECOMMENDED=YES
 
 EXTERNAL_EFFECTS=0
 ```
 
-STOP for architecture review.
+STOP for architecture re-review.
