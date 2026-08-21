@@ -26,6 +26,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import importlib
+import math
 from typing import Any, Mapping, Protocol
 
 from .live_note_transport import (
@@ -74,6 +75,40 @@ def _load_stdlib_http() -> tuple[Any, Any]:
     return urllib_error, urllib_request
 
 
+def _build_no_redirect_opener(urllib_error: Any, urllib_request: Any) -> Any:
+    """Build an opener whose redirect handler returns the original 3xx response."""
+
+    class _NoRedirectHandler(urllib_request.HTTPRedirectHandler):
+        def _reject_redirect(
+            self,
+            request: Any,
+            response: Any,
+            status_code: int,
+            message: str,
+            headers: Any,
+        ) -> None:
+            raise urllib_error.HTTPError(
+                request.full_url,
+                status_code,
+                "redirects are forbidden",
+                headers,
+                response,
+            )
+
+        http_error_301 = _reject_redirect
+        http_error_302 = _reject_redirect
+        http_error_303 = _reject_redirect
+        http_error_307 = _reject_redirect
+        http_error_308 = _reject_redirect
+
+    return urllib_request.build_opener(
+        urllib_request.ProxyHandler({}),
+        urllib_request.HTTPHandler(),
+        urllib_request.HTTPSHandler(),
+        _NoRedirectHandler(),
+    )
+
+
 class StdlibLiveNoteHttpSession:
     """Dormant concrete stdlib HTTP session.
 
@@ -104,12 +139,7 @@ class StdlibLiveNoteHttpSession:
             headers=dict(headers),
             method=method.upper(),
         )
-        # Omit HTTPRedirectHandler so redirects are never followed.
-        opener = urllib_request.build_opener(
-            urllib_request.ProxyHandler({}),
-            urllib_request.HTTPHandler(),
-            urllib_request.HTTPSHandler(),
-        )
+        opener = _build_no_redirect_opener(urllib_error, urllib_request)
         try:
             with opener.open(request, timeout=timeout_seconds) as response:
                 status_code = int(getattr(response, "status", response.getcode()))
@@ -159,7 +189,7 @@ class ConcreteLiveNoteHttpClient:
                 "default_timeout_seconds must be a finite positive number"
             )
         timeout = float(default_timeout_seconds)
-        if timeout <= 0 or timeout != timeout:  # NaN check via != self
+        if timeout <= 0 or not math.isfinite(timeout):
             raise LiveNoteHttpClientError(
                 "default_timeout_seconds must be a finite positive number"
             )
@@ -201,7 +231,7 @@ class ConcreteLiveNoteHttpClient:
         if not isinstance(timeout_seconds, (int, float)):
             raise LiveNoteHttpClientError("timeout_seconds must be explicit and numeric")
         timeout = float(timeout_seconds)
-        if timeout <= 0 or timeout != timeout:
+        if timeout <= 0 or not math.isfinite(timeout):
             raise LiveNoteHttpClientError(
                 "timeout_seconds must be an explicit finite positive number"
             )

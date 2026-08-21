@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import io
 import logging
 import socket
 from dataclasses import dataclass
@@ -335,6 +336,55 @@ def test_stdlib_session_rejects_redirects() -> None:
             timeout_seconds=REQUEST_TIMEOUT_SECONDS,
             allow_redirects=True,
         )
+
+
+def test_stdlib_redirect_not_followed(monkeypatch: pytest.MonkeyPatch) -> None:
+    session = StdlibLiveNoteHttpSession()
+    urllib_request = __import__("urllib.request", fromlist=["build_opener"])
+    source_url = SYNTHETIC_URL
+    alternate_url = (
+        "https://services.leadconnectorhq.com/contacts/synthetic-contact-other/notes"
+    )
+    attempted_urls: list[str] = []
+
+    class _RecordingOpener:
+        def __init__(self, no_redirect_handler: object) -> None:
+            self._no_redirect_handler = no_redirect_handler
+
+        def open(self, request: object, timeout: float = 0) -> object:
+            assert timeout == REQUEST_TIMEOUT_SECONDS
+            attempted_urls.append(request.full_url)
+            return self._no_redirect_handler.http_error_302(
+                request,
+                io.BytesIO(b"redirect body"),
+                302,
+                "Found",
+                {"location": alternate_url},
+            )
+
+    def _build_opener(*handlers: object) -> _RecordingOpener:
+        no_redirect_handler = next(
+            handler
+            for handler in handlers
+            if handler.__class__.__name__ == "_NoRedirectHandler"
+        )
+        return _RecordingOpener(no_redirect_handler)
+
+    monkeypatch.setattr(urllib_request, "build_opener", _build_opener)
+
+    result = session.request(
+        method="POST",
+        url=source_url,
+        headers=SYNTHETIC_HEADERS,
+        body=b"{}",
+        timeout_seconds=REQUEST_TIMEOUT_SECONDS,
+        allow_redirects=False,
+    )
+
+    assert result == LiveNoteHttpResult(status_code=302, body=b"redirect body")
+    assert attempted_urls == [source_url]
+    assert len(attempted_urls) - 1 == 0
+    assert alternate_url not in attempted_urls
 
 
 def test_client_usable_by_bounded_transport() -> None:

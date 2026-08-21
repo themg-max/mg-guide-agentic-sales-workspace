@@ -18,8 +18,8 @@ IMPLEMENTATION_MODE=OFFLINE_AND_DETERMINISTIC_TEST_ONLY
 SOLE_CONSUMER_UNIT=
 NW008_AT8I_GHL_REST_LIVE_NOTE_RUNTIME_ASSEMBLY_IMPLEMENTATION_001
 
-IMPLEMENTATION_COMMIT_SHA=9f2973dec905d2ee2d8d00ab7a7e583f6a6742fb
-IMPLEMENTATION_HEAD_SHA=c7f924c44e37512c9dec8bef87f303457e36ad35
+IMPLEMENTATION_CODE_COMMIT_SHA=9f2973dec905d2ee2d8d00ab7a7e583f6a6742fb
+PROOF_BASED_ON_IMPLEMENTATION_COMMIT_SHA=9f2973dec905d2ee2d8d00ab7a7e583f6a6742fb
 ```
 
 ```text
@@ -67,6 +67,8 @@ src/integrations/ghl/highlevel_rest/live_note_http_client.py
 - Injectable session for tests; dormant stdlib `urllib` session path only.
 - One request attempt; no retry loop.
 - `allow_redirects=False` required and preserved.
+- Stdlib redirect handling raises the original 3xx response before an
+  alternate request can be issued.
 - No third-party HTTP dependency.
 - No target authority.
 - Tokens and Authorization header values are not logged; call history stores
@@ -138,6 +140,9 @@ TEST_HTTP_CLIENT_EXPLICIT_TIMEOUT=PASS
 TEST_HTTP_CLIENT_NO_AUTOMATIC_RETRY=PASS
 TEST_HTTP_CLIENT_INJECTABLE_SESSION=PASS
 TEST_HTTP_CLIENT_ZERO_REAL_NETWORK=PASS
+TEST_STDLIB_REDIRECT_NOT_FOLLOWED=PASS
+SECOND_HTTP_ATTEMPT_AFTER_REDIRECT=0
+ALTERNATE_REDIRECT_TARGET_CONTACTED=NO
 
 TEST_CREDENTIAL_PROVIDER_INJECTABLE=PASS
 TEST_CREDENTIAL_PROVIDER_SYNTHETIC_ONLY=PASS
@@ -175,7 +180,7 @@ PYTHONPATH=src:. .venv/bin/pytest tests/integrations/ghl/highlevel_rest/ -q
 -> PASS
 
 PYTHONPATH=src:. .venv/bin/pytest -o addopts='' -q -p no:warnings --tb=no
--> 631 passed
+-> 632 passed
 
 PYTHONPATH=src:. .venv/bin/python scripts/verify_phase1_deterministic.py
 -> YAML parse: PASS
