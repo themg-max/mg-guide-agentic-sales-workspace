@@ -11,8 +11,10 @@ from .note_path import (
     TransportError,
     VerifiedMeetingNote,
 )
+from .live_note_runtime import assemble_bound_live_note_runtime
 
 __all__ = [
+    "assemble_bound_live_note_runtime",
     "BindingError",
     "CONTACT_PREFLIGHT_VERIFIED",
     "CreatedMeetingNote",
