@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from integrations.ghl import At1ExecutionStore
+from integrations.ghl.at1_commitment_key_provider import SyntheticCommitmentKeyProvider
 import integrations.ghl.highlevel_rest.live_note_runtime as runtime
 import integrations.ghl.highlevel_rest.note_path as note_path_module
 from integrations.ghl.highlevel_rest import NotePathAdapter, assemble_bound_live_note_runtime
@@ -20,6 +21,7 @@ SOURCE_ROOT = REPO_ROOT / "src" / "integrations" / "ghl" / "highlevel_rest"
 CONSUMER_IDENTITY = (
     "NW008_AT8L_GHL_REST_LIVE_NOTE_RUNTIME_CONSTRUCTION_PATH_IMPLEMENTATION_001"
 )
+_VERSION_RESOURCE = "projects/synthetic-project/secrets/at1-commitment-key/versions/1"
 
 
 @pytest.fixture(autouse=True)
@@ -31,7 +33,10 @@ def _reset_shared_ledger() -> None:
 def execution_store(tmp_path: Path) -> At1ExecutionStore:
     return At1ExecutionStore(
         db_path=tmp_path / "live-note-runtime.sqlite3",
-        commitment_key="synthetic-live-note-runtime-commitment-key",
+        commitment_material=SyntheticCommitmentKeyProvider(
+            payload="synthetic-live-note-runtime-commitment-key",
+            version_resource=_VERSION_RESOURCE,
+        ).resolve(),
     )
 
 

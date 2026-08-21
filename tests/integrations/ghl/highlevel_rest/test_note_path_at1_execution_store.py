@@ -10,6 +10,7 @@ import pytest
 
 import integrations.ghl.highlevel_rest.note_path as note_path_module
 from integrations.ghl import At1ExecutionStore
+from integrations.ghl.at1_commitment_key_provider import SyntheticCommitmentKeyProvider
 from integrations.ghl.highlevel_rest import (
     BindingError,
     DeterministicFakeTransport,
@@ -27,6 +28,7 @@ FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY = (
     "NW008_AT8G_GHL_REST_NOTE_PATH_AT1_EXECUTION_STORE_INTEGRATION_IMPLEMENTATION_001"
 )
+_VERSION_RESOURCE = "projects/synthetic-project/secrets/at1-commitment-key/versions/1"
 
 
 @pytest.fixture(autouse=True)
@@ -38,8 +40,15 @@ def _reset_shared_ledger() -> None:
 def store(tmp_path: Path) -> At1ExecutionStore:
     return At1ExecutionStore(
         db_path=tmp_path / "note-path-at1.sqlite3",
-        commitment_key="synthetic-commitment-key",
+        commitment_material=_material("synthetic-commitment-key"),
     )
+
+
+def _material(payload: str):
+    return SyntheticCommitmentKeyProvider(
+        payload=payload,
+        version_resource=_VERSION_RESOURCE,
+    ).resolve()
 
 
 def _note() -> dict[str, object]:
@@ -526,7 +535,10 @@ def test_restart_preserves_reservation(tmp_path: Path) -> None:
     commitment_key = "synthetic-commitment-key"
     workflow_run_id = "synthetic-workflow-run-at8g-restart-001"
 
-    store_a = At1ExecutionStore(db_path=db_path, commitment_key=commitment_key)
+    store_a = At1ExecutionStore(
+        db_path=db_path,
+        commitment_material=_material(commitment_key),
+    )
     first_adapter, first_transport = _adapter(
         "note_create_success", store_a, consumer_workflow_run_id=workflow_run_id
     )
@@ -536,7 +548,10 @@ def test_restart_preserves_reservation(tmp_path: Path) -> None:
     store_a._connection.close()
     del store_a
 
-    store_b = At1ExecutionStore(db_path=db_path, commitment_key=commitment_key)
+    store_b = At1ExecutionStore(
+        db_path=db_path,
+        commitment_material=_material(commitment_key),
+    )
     second_adapter, second_transport = _adapter(
         "note_create_success", store_b, consumer_workflow_run_id=workflow_run_id
     )
