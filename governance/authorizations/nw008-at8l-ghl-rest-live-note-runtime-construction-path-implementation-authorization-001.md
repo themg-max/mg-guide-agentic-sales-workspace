@@ -160,13 +160,23 @@ COMPOSITION_ROOT_CAPABILITY_PROVENANCE_ENFORCED=NO
 
 PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
 PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_AUTHORIZED_IN_AT8L=NO
+PRODUCTION_EXECUTION_STORE_CONFIGURATION_SOURCE=UNRESOLVED
+PRODUCTION_ASSEMBLY_WITHOUT_ROOT_OWNED_EXECUTION_STORE=FAIL_CLOSED
 TEST_ONLY_EXECUTION_STORE_INJECTION=YES
+TEST_ONLY_EXECUTION_STORE_INJECTION_IS_PRIVATE_SEAM=YES
 CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
 
 AT8L_AUTHORIZATION_DESIGNABLE=YES
 RUNTIME_COMPOSITION_ROOT_IMPLEMENTED=NO
 COMPOSITION_ROOT_PROPOSED_PATH=src/integrations/ghl/highlevel_rest/live_note_runtime.py
 COMPOSITION_ROOT_PROPOSED_SYMBOL=assemble_bound_live_note_runtime
+PRIVATE_TEST_ASSEMBLY_SEAM_SYMBOL=_assemble_bound_live_note_runtime_for_tests
+
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR=note_path._require_issued_verified_capability
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR_IMPORT_AUTHORIZED=YES
+NOTE_PATH_SOURCE_MODIFICATION_AUTHORIZED=NO
 
 PACKAGE_EXPORT_REQUIRED=NO
 PACKAGE_EXPORT_CHANGE_OPTIONAL=YES
@@ -363,60 +373,139 @@ CALLER_SUPPLIED_HTTP_CLIENT=NO
 CALLER_SUPPLIED_AUTHORIZATION=NO
 CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
 
+PUBLIC_PRODUCTION_ASSEMBLER_ARGS=verified_capability_only
+
 PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
 PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_AUTHORIZED_IN_AT8L=NO
+PRODUCTION_EXECUTION_STORE_CONFIGURATION_SOURCE=UNRESOLVED
+PRODUCTION_ASSEMBLY_WITHOUT_ROOT_OWNED_EXECUTION_STORE=FAIL_CLOSED
 TEST_ONLY_EXECUTION_STORE_INJECTION=YES
+TEST_ONLY_EXECUTION_STORE_INJECTION_IS_PRIVATE_SEAM=YES
 
 NOTE_PATH_VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
 COMPOSITION_ROOT_MUST_REQUIRE_PROCESS_ISSUED_CAPABILITY=YES
 COMPOSITION_ROOT_CAPABILITY_PROVENANCE_ENFORCED=TO_BE_IMPLEMENTED_BY_CONSUMER
 COMPOSITION_ROOT_RAW_CONTACT_LOCATION_INPUT_FORBIDDEN=YES
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR=note_path._require_issued_verified_capability
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR_IMPORT_AUTHORIZED=YES
+NOTE_PATH_SOURCE_MODIFICATION_AUTHORIZED=NO
+CAPABILITY_VALIDATION_MUST_PRECEDE_ADAPTER_BINDING=YES
+RAW_OR_STRUCTURALLY_FORGED_CAPABILITY=REJECT
+ADAPTER_VERIFIED_CAPABILITY_BINDING_REQUIRED=YES
+ADAPTER_VERIFIED_CAPABILITY_BINDING_SOURCE=EXACT_VALIDATED_CAPABILITY_OBJECT
+ADAPTER_CAPABILITY_REMINT=FORBIDDEN
+BOUND_CONTACT_GET_FOR_ASSEMBLY=FORBIDDEN
 ```
 
 ### 6.1 Designed public production signature (AT8K1-normalized)
 
 Historical AT8K draft allowed `execution_store` as a public assembler argument.
 AT8K1 superseded that for production. Post-AT8K2 reaffirmed AT8K1. AT8L freezes
-the AT8K1 production rule:
+the AT8K1 production rule and freezes public args to capability only:
 
 ```text
+PUBLIC_PRODUCTION_ASSEMBLER_ARGS=verified_capability_only
+
 assemble_bound_live_note_runtime(
   *,
-  verified_capability: trusted process-issued _VerifiedContactBindingCapability,
+  verified_capability: process-issued _VerifiedContactBindingCapability,
 ) -> NotePathAdapter
 ```
 
 Normative production rules:
 
-1. Accept only a process-issued `_VerifiedContactBindingCapability`.
-2. Reject raw `contact_id` / `location_id` strings, private-binding dataclasses
-   alone, and AT8 provenance strings alone as assembly authority.
-3. Copy `contact_id` and `location_id` only from the capability. Caller override
-   of either identifier is forbidden.
-4. Do not accept production public arguments for:
+1. Accept only the public argument `verified_capability`.
+2. Validate that object with the frozen existing NOTE_PATH issuance validator
+   `note_path._require_issued_verified_capability` before any adapter binding.
+3. Reject raw `contact_id` / `location_id` strings, private-binding dataclasses
+   alone, AT8 provenance strings alone, and raw or structurally forged
+   capability objects (`RAW_OR_STRUCTURALLY_FORGED_CAPABILITY=REJECT`).
+4. Copy `contact_id`, `location_id`, and consumer identity fields only from the
+   **validated** capability result. Caller override of any identifier is
+   forbidden.
+5. Do not accept production public arguments for:
    `contact_id`, `location_id`, `resource_name`, `bearer_token`, `credential`,
    `http_client`, `base_url`, `url`, `host`, `route`, `headers`,
    `authorization`, `secret_payload`, or `execution_store`.
-5. Production execution-store selection/construction is root-owned
-   (`PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES`).
-6. Offline tests may inject a test-only execution store only through a
-   test-only seam owned by the composition root
-   (`TEST_ONLY_EXECUTION_STORE_INJECTION=YES`). That seam is not a production
-   caller supply and is not target/credential/HTTP authority.
+6. Production execution-store ownership remains a root rule
+   (`PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES`), but AT8L does **not**
+   authorize inventing or implementing production store construction (see 6.5).
+7. Offline tests may inject only through the private test assembly seam in 6.4.
+   That seam is not a production caller supply and is not
+   target/credential/HTTP authority.
 
 ```text
 FORBIDDEN_ASSEMBLER_ARGS=contact_id,location_id,http_client,base_url,url,host,route,headers,authorization,bearer_token,credential,resource_name,secret_payload,execution_store_as_production_public_arg
 ```
 
-### 6.2 Designed internal construction order (offline consumer)
+### 6.2 Process-issued capability validation and adapter binding (normative)
 
-Normative order inside `assemble_bound_live_note_runtime` for the future
-consumer (design carried from AT8K / AT8K1 / post-AT8K2; not implemented here):
+Freeze the existing NOTE_PATH issuance validator. Import/use only. Do not
+modify `note_path.py`.
 
-1. Require process-issued `_VerifiedContactBindingCapability` (fail closed
-   otherwise). Enforce composition-root capability provenance at construction
-   time (`COMPOSITION_ROOT_MUST_REQUIRE_PROCESS_ISSUED_CAPABILITY=YES`).
-2. Copy `contact_id` and `location_id` from the capability only.
+```text
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR=note_path._require_issued_verified_capability
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR_MODULE=src/integrations/ghl/highlevel_rest/note_path.py
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR_IMPORT_AUTHORIZED=YES
+NOTE_PATH_SOURCE_MODIFICATION_AUTHORIZED=NO
+CAPABILITY_VALIDATION_MUST_PRECEDE_ADAPTER_BINDING=YES
+RAW_OR_STRUCTURALLY_FORGED_CAPABILITY=REJECT
+ADAPTER_VERIFIED_CAPABILITY_BINDING_REQUIRED=YES
+ADAPTER_VERIFIED_CAPABILITY_BINDING_SOURCE=EXACT_VALIDATED_CAPABILITY_OBJECT
+ADAPTER_CAPABILITY_REMINT=FORBIDDEN
+BOUND_CONTACT_GET_FOR_ASSEMBLY=FORBIDDEN
+ISSUE_BOUND_CONTACT_CAPABILITY_DURING_ASSEMBLY=FORBIDDEN
+```
+
+Existing validator contract (inspect-only; do not change source):
+
+```text
+_require_issued_verified_capability(
+  capability,
+  *,
+  location_id,
+  contact_id,
+  consumer_authorization_identity,
+  consumer_workflow_run_id,
+) -> _VerifiedContactBindingCapability
+```
+
+Frozen implementation sequence for the future consumer:
+
+1. Validate `verified_capability` with
+   `note_path._require_issued_verified_capability`, passing `location_id`,
+   `contact_id`, `consumer_authorization_identity`, and
+   `consumer_workflow_run_id` taken from that **same** capability object.
+   Capability validation must precede adapter binding.
+2. Copy `contact_id`, `location_id`, and consumer identity fields only from the
+   validated result. Do not accept alternate caller values for those fields.
+3. Create the `NotePathAdapter` (and internal HTTP client / provider / transport
+   objects as otherwise authorized) using only validated identity fields.
+4. Set `adapter._verified_contact_binding_capability` to the **exact validated
+   capability object** returned/confirmed by the validator
+   (`ADAPTER_VERIFIED_CAPABILITY_BINDING_SOURCE=EXACT_VALIDATED_CAPABILITY_OBJECT`).
+5. Do **not** mint, reissue, reconstruct, or transform a capability during
+   assembly (`ADAPTER_CAPABILITY_REMINT=FORBIDDEN`).
+6. Do **not** perform bound-contact GET, preflight GET, or any network call to
+   obtain or refresh a capability for assembly
+   (`BOUND_CONTACT_GET_FOR_ASSEMBLY=FORBIDDEN`).
+
+```text
+VALIDATED_CAPABILITY_ADAPTER_BINDING_FROZEN=YES
+CAPABILITY_VALIDATOR_FROZEN=YES
+```
+
+### 6.3 Designed internal construction order (offline consumer)
+
+Normative order inside the production assembler path for the future consumer
+(not implemented here):
+
+1. Validate process-issued capability exactly as frozen in 6.2
+   (`COMPOSITION_ROOT_MUST_REQUIRE_PROCESS_ISSUED_CAPABILITY=YES`).
+2. Copy `contact_id`, `location_id`, and consumer identity only from the
+   validated capability result.
 3. Construct `ConcreteLiveNoteHttpClient()` internally. Default session remains
    `StdlibLiveNoteHttpSession`. No caller URL/base-URL/host/route/HighLevel
    target is accepted. Frozen transport `BASE_URL` remains
@@ -426,16 +515,127 @@ consumer (design carried from AT8K / AT8K1 / post-AT8K2; not implemented here):
    `resource_name`, bearer token, or `InjectedLiveNoteCredential`.
 5. Obtain credential only through the existing provider seam. Real Secret
    Manager live invocation is not authorized under AT8L.
-6. Construct `BoundedLiveNoteTransport(bound_contact_id=capability.contact_id,
+6. Construct `BoundedLiveNoteTransport(bound_contact_id=<validated contact_id>,
    credential=<provider credential>, http_client=<root-owned client>)`.
-7. Construct `NotePathAdapter` with capability-derived `location_id` /
-   `contact_id`, the bounded transport, capability consumer identity fields,
-   and root-owned / test-only-seam execution store selection. Do not promote
-   `execution_store` to a production public assembler argument.
-8. Return the adapter only. Do not return credential, token, HTTP client, or
-   accessor.
+7. Construct `NotePathAdapter` with validated `location_id` / `contact_id`, the
+   bounded transport, and validated consumer identity fields. Do not pass a
+   production public `execution_store` argument.
+8. Bind `adapter._verified_contact_binding_capability` to the exact validated
+   capability object (step 4 in 6.2). Do not remint.
+9. Production execution-store handling must follow 6.5 (fail closed under AT8L;
+   no invented production store construction).
+10. Return the adapter only. Do not return credential, token, HTTP client,
+    accessor, or a reminted capability.
 
-### 6.3 Sealed resource identity ownership (without payload access)
+### 6.4 Private test-only assembly seam (normative)
+
+```text
+PUBLIC_PRODUCTION_ASSEMBLER_ARGS=verified_capability_only
+PRIVATE_TEST_ASSEMBLY_SEAM_REQUIRED=YES
+PRIVATE_TEST_ASSEMBLY_SEAM_SYMBOL=_assemble_bound_live_note_runtime_for_tests
+PRIVATE_TEST_ASSEMBLY_SEAM_MODULE=src/integrations/ghl/highlevel_rest/live_note_runtime.py
+TEST_ONLY_SYNTHETIC_SECRET_ACCESSOR_INJECTION=YES
+TEST_ONLY_EXECUTION_STORE_INJECTION=YES
+TEST_ONLY_EXECUTION_STORE_INJECTION_IS_PRIVATE_SEAM=YES
+TEST_ONLY_SEAMS_ARE_NOT_PRODUCTION_PUBLIC_ARGS=YES
+```
+
+Frozen private test seam:
+
+```text
+_assemble_bound_live_note_runtime_for_tests(
+  *,
+  verified_capability,
+  synthetic_secret_accessor=...,
+  execution_store=...,
+) -> NotePathAdapter
+```
+
+```text
+TEST_ONLY_SEAM_MAY_ACCEPT=
+  verified_capability
+  synthetic_secret_accessor
+  execution_store
+
+TEST_ONLY_SEAM_MAY_NOT_ACCEPT=
+  contact_id
+  location_id
+  resource_name
+  bearer_token
+  credential
+  authorization
+  http_client
+  base_url
+  url
+  host
+  route
+  headers
+  secret_payload
+```
+
+Normative test-seam rules:
+
+1. The public production assembler remains `assemble_bound_live_note_runtime`
+   with `verified_capability` only.
+2. Offline deterministic tests must use
+   `_assemble_bound_live_note_runtime_for_tests` as the private seam.
+3. The private seam must still validate `verified_capability` with
+   `note_path._require_issued_verified_capability` and bind the exact validated
+   object to the adapter. Test injection does not bypass capability validation.
+4. `synthetic_secret_accessor` may be the existing
+   `SyntheticLiveNoteSecretAccessor` (or equivalent offline double already
+   permitted by existing seams). It is not caller credential supply and not a
+   resource-name override.
+5. `execution_store` injection is test-only and private. It is not a production
+   public assembler argument.
+6. The private seam must not accept contact/location/resource/bearer/
+   credential/authorization/HTTP target overrides.
+7. Do not export the private test seam from package `__init__.py` as a public
+   production API. Optional package export remains composition-root symbol only.
+
+```text
+PRIVATE_TEST_ASSEMBLY_SEAM_FROZEN=YES
+```
+
+### 6.5 Production execution-store ownership without construction authority
+
+Preserve the ownership rule. Do not invent production store wiring under AT8L.
+
+```text
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
+CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
+PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_AUTHORIZED_IN_AT8L=NO
+PRODUCTION_EXECUTION_STORE_CONFIGURATION_SOURCE=UNRESOLVED
+PRODUCTION_ASSEMBLY_WITHOUT_ROOT_OWNED_EXECUTION_STORE=FAIL_CLOSED
+TEST_ONLY_EXECUTION_STORE_INJECTION=YES
+TEST_ONLY_EXECUTION_STORE_INJECTION_IS_PRIVATE_SEAM=YES
+```
+
+Normative production-store rules under AT8L:
+
+1. Production assembly must not accept caller-supplied `execution_store` as a
+   public argument.
+2. The composition root owns the **rule** that production store selection is
+   root-owned. That rule is not yet implemented construction.
+3. AT8L does **not** authorize implementing production execution-store
+   construction.
+4. Production store configuration source remains `UNRESOLVED`. AT8L must not
+   invent:
+   - production `db_path`
+   - `commitment_key`
+   - environment/config lookup for store placement
+   - new secret/config authority for store construction
+5. Production assembly without a root-owned execution store must fail closed
+   under AT8L (`PRODUCTION_ASSEMBLY_WITHOUT_ROOT_OWNED_EXECUTION_STORE=FAIL_CLOSED`).
+6. Offline tests inject execution store only through
+   `_assemble_bound_live_note_runtime_for_tests`.
+
+A later, separately authorized unit is required before production store
+construction/configuration may be implemented.
+
+### 6.6 Sealed resource identity ownership (without payload access)
 
 ```text
 DESIGNED_SEALED_LIVE_NOTE_REST_RESOURCE_NAME=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
@@ -458,35 +658,26 @@ identity constant and to refuse caller/env/historical-MCP overrides. AT8L does
 - adding `google-cloud-secretmanager` or any package manifest change.
 
 Offline tests must use the existing `SyntheticLiveNoteSecretAccessor` (or an
-equivalent test double already authorized by existing seams) through a
-test-only root-owned seam. Production assembly without a later-authorized
-concrete accessor must fail closed.
-
-### 6.4 Test-only seams (allowed)
-
-```text
-TEST_ONLY_SYNTHETIC_SECRET_ACCESSOR_INJECTION=YES
-TEST_ONLY_EXECUTION_STORE_INJECTION=YES
-TEST_ONLY_SEAMS_ARE_NOT_PRODUCTION_PUBLIC_ARGS=YES
-```
-
-Test-only seams must be owned by the composition root module and must not
-create caller authority over contact/location/resource/credential/HTTP target.
+equivalent test double already authorized by existing seams) only through the
+private test assembly seam in 6.4. Production assembly without a
+later-authorized concrete accessor must fail closed.
 
 ## 7. Authorized offline implementation scope
 
 Exactly one missing assembly component is in scope for the future consumer:
 
-1. offline runtime composition root
-   `assemble_bound_live_note_runtime` in
-   `src/integrations/ghl/highlevel_rest/live_note_runtime.py`
+1. offline runtime composition root symbols in
+   `src/integrations/ghl/highlevel_rest/live_note_runtime.py`:
+   - public `assemble_bound_live_note_runtime`
+   - private `_assemble_bound_live_note_runtime_for_tests`
 2. directly corresponding deterministic tests in
    `tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py`
-3. optional package export of that symbol only
+3. optional package export of the public composition-root symbol only
 4. AT8L proof/docs under the reserved paths
 
 No additional runtime capability, live execution path, transport-touch, concrete
-GSM accessor, IAM change, or alternate authority path is authorized.
+GSM accessor, production execution-store construction, IAM change, or alternate
+authority path is authorized.
 
 Existing modules may be **imported and constructed** by the composition root
 without modification:
@@ -500,11 +691,15 @@ IMPORT_OK=InjectedLiveNoteCredential
 IMPORT_OK=BoundedLiveNoteTransport
 IMPORT_OK=NotePathAdapter
 IMPORT_OK=_VerifiedContactBindingCapability
+IMPORT_OK=note_path._require_issued_verified_capability
 IMPORT_OK=At1ExecutionStore
 ```
 
 ```text
 MODIFY_OK_FOR_THOSE_MODULES=NO
+NOTE_PATH_SOURCE_MODIFICATION_AUTHORIZED=NO
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR_IMPORT_AUTHORIZED=YES
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_AUTHORIZED_IN_AT8L=NO
 ```
 
 ## 8. Required invariants to preserve unchanged
@@ -528,15 +723,25 @@ LIVE_EXECUTION_AUTHORIZED_FLAGS_REMAIN_FALSE=REQUIRED
 
 ```text
 TEST_ASSEMBLER_REQUIRES_PROCESS_ISSUED_CAPABILITY=PASS
+TEST_ASSEMBLER_USES_NOTE_PATH_REQUIRE_ISSUED_VERIFIED_CAPABILITY=PASS
+TEST_ASSEMBLER_REJECTS_RAW_OR_STRUCTURALLY_FORGED_CAPABILITY=PASS
 TEST_ASSEMBLER_REJECTS_RAW_CONTACT_ID=PASS
 TEST_ASSEMBLER_REJECTS_RAW_LOCATION_ID=PASS
 TEST_ASSEMBLER_REJECTS_CALLER_RESOURCE_NAME=PASS
 TEST_ASSEMBLER_REJECTS_CALLER_BEARER_TOKEN=PASS
 TEST_ASSEMBLER_REJECTS_CALLER_CREDENTIAL=PASS
 TEST_ASSEMBLER_REJECTS_CALLER_HTTP_CLIENT=PASS
+TEST_ASSEMBLER_PUBLIC_ARGS_VERIFIED_CAPABILITY_ONLY=PASS
 TEST_ASSEMBLER_NO_PRODUCTION_PUBLIC_EXECUTION_STORE_ARG=PASS
-TEST_ASSEMBLER_TEST_ONLY_EXECUTION_STORE_SEAM=PASS
-TEST_ASSEMBLER_COPIES_CAPABILITY_CONTACT_AND_LOCATION_ONLY=PASS
+TEST_ASSEMBLER_PRODUCTION_WITHOUT_ROOT_OWNED_STORE_FAIL_CLOSED=PASS
+TEST_ASSEMBLER_NO_PRODUCTION_STORE_CONSTRUCTION_INVENTED=PASS
+TEST_PRIVATE_TEST_SEAM_SYMBOL_PRESENT=PASS
+TEST_PRIVATE_TEST_SEAM_ACCEPTS_SYNTHETIC_ACCESSOR_AND_STORE_ONLY=PASS
+TEST_PRIVATE_TEST_SEAM_REJECTS_TARGET_CREDENTIAL_HTTP_OVERRIDES=PASS
+TEST_ASSEMBLER_BINDS_EXACT_VALIDATED_CAPABILITY_OBJECT=PASS
+TEST_ASSEMBLER_NO_CAPABILITY_REMINT=PASS
+TEST_ASSEMBLER_NO_BOUND_CONTACT_GET_FOR_ASSEMBLY=PASS
+TEST_ASSEMBLER_COPIES_VALIDATED_CAPABILITY_IDENTITY_ONLY=PASS
 TEST_ASSEMBLER_RETURNS_NOTE_PATH_ADAPTER_ONLY=PASS
 TEST_ASSEMBLER_DOES_NOT_RETURN_CREDENTIAL_OR_TOKEN=PASS
 TEST_ASSEMBLER_ZERO_REAL_NETWORK=PASS
@@ -574,16 +779,20 @@ DEPLOYMENT_CHANGES=0
 ```text
 AT8L_IMPLEMENTS_IN_THIS_PR=NO
 AT8L_AUTHORIZATION_ONLY=YES
+AT8L_IMPLEMENTATION_STARTED=NO
 
 HIGHLEVEL_CALL_AUTHORIZED=NO
 LIVE_NOTE_WRITE_AUTHORIZED=NO
 LIVE_NOTE_READ_AUTHORIZED=NO
 LIVE_CRM_MUTATION_AUTHORIZED=NO
+CRM_MUTATION_AUTHORIZED=NO
 REAL_SECRET_VALUE_READ_AUTHORIZED=NO
 REAL_TOKEN_RUNTIME_USE_AUTHORIZED=NO
 LIVE_MUTATION_GRANT_CREATION_AUTHORIZED=NO
 TRANSPORT_TOUCH_AUTHORIZED=NO
 CONCRETE_GSM_ACCESSOR_IMPLEMENTATION_AUTHORIZED=NO
+NOTE_PATH_SOURCE_MODIFICATION_AUTHORIZED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_AUTHORIZED_IN_AT8L=NO
 IAM_CHANGE_AUTHORIZED=NO
 GCP_MUTATION_AUTHORIZED=NO
 RUNTIME_SA_IMPERSONATION_AUTHORIZED=NO
@@ -591,6 +800,8 @@ SERVICE_ACCOUNT_KEY_AUTHORIZED=NO
 DEPLOYMENT_CHANGE_AUTHORIZED=NO
 PACKAGE_MANIFEST_CHANGE_AUTHORIZED=NO
 PRODUCTION_PLATFORM_BIND_AUTHORIZED=NO
+BOUND_CONTACT_GET_FOR_ASSEMBLY=FORBIDDEN
+ADAPTER_CAPABILITY_REMINT=FORBIDDEN
 ```
 
 ## 11. Competition delta handling boundary
@@ -679,11 +890,34 @@ TRANSPORT_TOUCH_AUTHORIZED=NO
 NOTE_PATH_VERIFIED_CAPABILITY_PROVENANCE_ENFORCED=YES
 COMPOSITION_ROOT_MUST_REQUIRE_PROCESS_ISSUED_CAPABILITY=YES
 COMPOSITION_ROOT_CAPABILITY_PROVENANCE_ENFORCED=NO_AT_AUTHORING
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR=note_path._require_issued_verified_capability
+COMPOSITION_ROOT_CAPABILITY_VALIDATOR_IMPORT_AUTHORIZED=YES
+NOTE_PATH_SOURCE_MODIFICATION_AUTHORIZED=NO
+CAPABILITY_VALIDATION_MUST_PRECEDE_ADAPTER_BINDING=YES
+RAW_OR_STRUCTURALLY_FORGED_CAPABILITY=REJECT
+ADAPTER_VERIFIED_CAPABILITY_BINDING_REQUIRED=YES
+ADAPTER_VERIFIED_CAPABILITY_BINDING_SOURCE=EXACT_VALIDATED_CAPABILITY_OBJECT
+ADAPTER_CAPABILITY_REMINT=FORBIDDEN
+BOUND_CONTACT_GET_FOR_ASSEMBLY=FORBIDDEN
+CAPABILITY_VALIDATOR_FROZEN=YES
+VALIDATED_CAPABILITY_ADAPTER_BINDING_FROZEN=YES
 
 PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_RULE=YES
 PRODUCTION_EXECUTION_STORE_ROOT_OWNERSHIP_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_IMPLEMENTED=NO
+PRODUCTION_EXECUTION_STORE_CONSTRUCTION_AUTHORIZED_IN_AT8L=NO
+PRODUCTION_EXECUTION_STORE_CONFIGURATION_SOURCE=UNRESOLVED
+PRODUCTION_ASSEMBLY_WITHOUT_ROOT_OWNED_EXECUTION_STORE=FAIL_CLOSED
 TEST_ONLY_EXECUTION_STORE_INJECTION=YES
+TEST_ONLY_EXECUTION_STORE_INJECTION_IS_PRIVATE_SEAM=YES
 CALLER_SUPPLIED_EXECUTION_STORE_FOR_PRODUCTION=NO
+
+PUBLIC_PRODUCTION_ASSEMBLER_ARGS=verified_capability_only
+PRIVATE_TEST_ASSEMBLY_SEAM_REQUIRED=YES
+PRIVATE_TEST_ASSEMBLY_SEAM_SYMBOL=_assemble_bound_live_note_runtime_for_tests
+PRIVATE_TEST_ASSEMBLY_SEAM_FROZEN=YES
+TEST_ONLY_SEAM_MAY_ACCEPT=synthetic_secret_accessor,execution_store
+TEST_ONLY_SEAM_MAY_NOT_ACCEPT=contact_id,location_id,resource_name,bearer_token,credential,authorization,http_client,base_url,host,route
 
 CALLER_SUPPLIED_CONTACT_ID=NO
 CALLER_SUPPLIED_LOCATION_ID=NO
@@ -717,11 +951,25 @@ BLOCKED_FUTURE_PATHS=
   deployment
   live mutation authorization
 
+TRANSPORT_TOUCH_AUTHORIZED=NO
+CONCRETE_GSM_ACCESSOR_IMPLEMENTATION_AUTHORIZED=NO
+REAL_SECRET_VALUE_READ_AUTHORIZED=NO
+HIGHLEVEL_CALL_AUTHORIZED=NO
+CRM_MUTATION_AUTHORIZED=NO
+IAM_CHANGE_AUTHORIZED=NO
+GCP_MUTATION_AUTHORIZED=NO
+DEPLOYMENT_CHANGE_AUTHORIZED=NO
+PACKAGE_MANIFEST_CHANGE_AUTHORIZED=NO
+
 AUTHORIZED_CONSUMER_UNIT=NW008_AT8L_GHL_REST_LIVE_NOTE_RUNTIME_CONSTRUCTION_PATH_IMPLEMENTATION_001
 AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
 GRANT_STATUS=CONDITIONAL
 GRANT_ACTIVATION=MERGE_TO_MAIN
 AUTHORIZATION_EFFECTIVE=NO
+
+AT8L_IMPLEMENTATION_STARTED=NO
+RUNTIME_TEST_CHANGES=0
+EXTERNAL_EFFECTS=0
 
 GCP_MUTATIONS=0
 REAL_SECRET_PAYLOAD_READS=0
@@ -733,11 +981,13 @@ DEPLOYMENT_CHANGES=0
 ## 15. Stop condition
 
 ```text
+STOP_FOR_EXACT_HEAD_REREVIEW=YES
 STOP_FOR_INDEPENDENT_AT8L_REVIEW=YES
 NEXT_STEP_AFTER_MERGE_AND_REVIEW=NW008_AT8L_GHL_REST_LIVE_NOTE_RUNTIME_CONSTRUCTION_PATH_IMPLEMENTATION_001
 NEXT_STEP_NOT_STARTED=YES
+AT8L_IMPLEMENTATION_STARTED=NO
 IMPLEMENTATION_NOT_AUTHORIZED_UNTIL_THIS_ARTIFACT_MERGED_AND_CONSUMER_VERIFIES=YES
 ```
 
-STOP for independent AT8L review. Do not start the implementation consumer in
-this lane.
+STOP for exact-head re-review. Do not start the implementation consumer in this
+lane.
