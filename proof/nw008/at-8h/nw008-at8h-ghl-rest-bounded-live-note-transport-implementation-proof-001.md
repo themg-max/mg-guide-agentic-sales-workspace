@@ -18,6 +18,8 @@ NW008_AT8H_GHL_REST_BOUNDED_LIVE_NOTE_TRANSPORT_IMPLEMENTATION_001
 PR111_REVIEWED_HEAD=92325fbb358c63f6d4a2ca5da5c3cde77f774d62
 PR111_MERGE_SHA=47fc7166557e79c867c6e428d1ca464c9a7fc385
 IMPLEMENTATION_COMMIT_SHA=51b1751f5a3348d4c34f92d9c691d9f43e0ceb4c
+PREVIOUS_REVIEWED_HEAD_SHA=8a22199979bea1a7aed9e8df802e8258c9395e35
+IMPLEMENTATION_HEAD_SHA=3e793c9d3f0175c2e02d6f0c39a53a5fb8b63dc4
 ```
 
 ```text
@@ -86,6 +88,8 @@ PHASE1_DETERMINISTIC_VALIDATION=PASS
 BASE_REF=origin/main
 BASE_SHA=47fc7166557e79c867c6e428d1ca464c9a7fc385
 IMPLEMENTATION_COMMIT_SHA=51b1751f5a3348d4c34f92d9c691d9f43e0ceb4c
+PREVIOUS_REVIEWED_HEAD_SHA=8a22199979bea1a7aed9e8df802e8258c9395e35
+IMPLEMENTATION_HEAD_SHA=3e793c9d3f0175c2e02d6f0c39a53a5fb8b63dc4
 ```
 
 ## Implementation
@@ -110,10 +114,12 @@ Behavior:
 - Exact POST `/contacts/{bound_contact_id}/notes`.
 - Exact GET `/contacts/{bound_contact_id}/notes/{same_run_note_id}`.
 - Same-run note id is retained only in memory after a successful POST.
+- Transport call history is private and contains only redacted route shapes.
 - Caller-supplied contact override, caller-supplied readback note id, search,
   list, pagination, generic execute, fallback, and automatic retry are rejected
   before HTTP.
-- POST timeout / 5xx / unparseable success body classify `status=ambiguous`.
+- POST timeout / 5xx / unparseable success body / 2xx response without a
+  nonempty string `note.id` classify `status=ambiguous`.
 - Ambiguous POST consumes the one POST budget and does not unlock GET.
 - Provider envelopes are normalized to `{note: {id, body, contactId}}`.
 
@@ -171,9 +177,11 @@ TEST_AUTH_HEADER_NOT_LOGGED=PASS
 TEST_TOKEN_NOT_LOGGED=PASS
 TEST_RAW_PROVIDER_RESPONSE_NOT_PUBLISHED=PASS
 TEST_POST_TIMEOUT_CLASSIFIED_AMBIGUOUS=PASS
+TEST_POST_SUCCESS_WITHOUT_NOTE_ID_CLASSIFIED_AMBIGUOUS=PASS
 TEST_NO_SECOND_POST_AFTER_AMBIGUITY=PASS
 TEST_PROVIDER_RESPONSE_NORMALIZATION=PASS
 TEST_PROVIDER_NOTE_ID_ONLY_IN_MEMORY_FOR_SAME_RUN_READBACK=PASS
+TEST_DIAGNOSTIC_CALL_HISTORY_IS_PRIVATE_AND_REDACTED=PASS
 TEST_AT8G_DURABLE_RESERVATION_CONTRACT_UNCHANGED=PASS
 TEST_PR107_TRUST_BOUNDARY_UNCHANGED=PASS
 TEST_ZERO_REAL_NETWORK_CALLS=PASS
