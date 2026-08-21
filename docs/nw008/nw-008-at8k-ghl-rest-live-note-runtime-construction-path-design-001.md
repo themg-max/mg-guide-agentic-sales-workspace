@@ -793,6 +793,8 @@ planning artifacts on branch
 AT8J_DURABLY_PRESERVED=YES
 AT8K_DURABLY_PRESERVED=YES
 DURABILITY_MECHANISM=TOPIC_BRANCH_COMMIT_ARTIFACT_ONLY
+DURABILITY_BRANCH=nw008-at8k-ghl-rest-live-note-runtime-construction-path-design-001
+DURABILITY_COMMIT_SHA=6ebeb9267670cc63971eed607cc6487c48840b73
 ```
 
 ### F) Authorization designability gate
