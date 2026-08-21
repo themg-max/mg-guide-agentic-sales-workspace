@@ -50,7 +50,7 @@ AUTHORIZATION_ARTIFACT_MUTABLE_BY_CONSUMER=NO
 CONSUMPTION_RECORD_PATH=proof/nw008/at-8m2/nw008-at8m2-offline-execution-store-substrate-implementation-consumption-001.md
 
 MODE_GRANT_ALIAS=OFFLINE_DETERMINISTIC_IMPLEMENTATION_GRANT
-IMPLEMENTATION_MODE=OFFLINE_AND_DETERMINISTIC_TEST_ONLY
+IMPLEMENTATION_MODE=OFFLINE_DETERMINISTIC_NO_EXTERNAL_EFFECTS
 ```
 
 This artifact is an authorization proposal only. Creating, reviewing, or merging
@@ -301,7 +301,7 @@ LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
 ## 6. Frozen implementation mode (normative)
 
 ```text
-IMPLEMENTATION_MODE=OFFLINE_AND_DETERMINISTIC_TEST_ONLY
+IMPLEMENTATION_MODE=OFFLINE_DETERMINISTIC_NO_EXTERNAL_EFFECTS
 MODE=OFFLINE_DETERMINISTIC_IMPLEMENTATION_GRANT
 
 REAL_SECRET_ACCESS_DURING_IMPLEMENTATION=NO
@@ -309,7 +309,7 @@ SECRET_PAYLOAD_READS_DURING_IMPLEMENTATION=0
 REAL_SECRET_PAYLOAD_READS=0
 REAL_COMMITMENT_KEY_READS=0
 
-REAL_SECRET_MANAGER_ACCESS=NO
+REAL_SECRET_MANAGER_ACCESS=FORBIDDEN
 REAL_SECRET_MANAGER_PROVIDER_IMPLEMENTATION_AUTHORIZED=NO
 SYNTHETIC_PROVIDER_IMPLEMENTATION_AUTHORIZED=YES
 
@@ -317,14 +317,16 @@ REAL_CREDENTIAL_USE=NO
 TOKEN_VALUE_EXPOSURE=NO
 
 LIVE_NETWORK_CALLS=0
-HIGHLEVEL_CALLS=0
-CRM_MUTATIONS=0
+HIGHLEVEL_CALLS=FORBIDDEN
+CRM_MUTATIONS=FORBIDDEN
 
 GCP_MUTATIONS=0
 IAM_CHANGE=NO
-SECRET_CREATE=NO
-SECRET_IAM=NO
+SECRET_CREATE=FORBIDDEN
+SECRET_CREATION=FORBIDDEN
+SECRET_IAM=FORBIDDEN
 SECRET_POLICY_CHANGE=NO
+DEPLOYMENT=FORBIDDEN
 DEPLOYMENT_CHANGE=NO
 PRODUCTION_CONFIGURATION_CHANGE=NO
 RUNTIME_SA_IMPERSONATION=NO
@@ -338,7 +340,9 @@ LIVE_NOTE_READ_AUTHORIZED=NO
 LIVE_CRM_MUTATION_AUTHORIZED=NO
 LIVE_MUTATION_AUTHORIZATION_CREATION_AUTHORIZED=NO
 LIVE_RUNTIME_ACTIVATION_AUTHORIZED=NO
+LIVE_PRODUCTION_STORE_ACTIVATION=FORBIDDEN
 PRODUCTION_STORE_CONSTRUCTION_ACTIVATION_AUTHORIZED=NO
+PRODUCTION_COMPOSITION_ROOT_STORE_WIRING=FORBIDDEN
 
 LIVE_NOTE_SECRET_ACCESSOR_REUSE_FOR_COMMITMENT_KEY=FORBIDDEN
 PR120_AUTHORITY_REUSE=FORBIDDEN
@@ -350,6 +354,7 @@ NEW_HTTP_LIBRARY_DEPENDENCY_AUTHORIZED=NO
 NEW_SECRET_MANAGER_LIBRARY_DEPENDENCY_AUTHORIZED=NO
 
 EXTERNAL_EFFECTS_ALLOWED=0
+EXTERNAL_EFFECTS=0
 ```
 
 ## 7. Authoring vs consumer writable scope (normative)
@@ -403,8 +408,10 @@ AUTHORIZED_TEST_PATHS=
 
 Notes:
 
-- The first four test paths are the AT8M1-frozen construction consumers and must
-  be adapted to the provenance-bound construction path.
+- The first four test paths are the AT8M1-frozen construction consumers and
+  **must** move to the canonical provenance-bound material construction path.
+  No raw-key-only constructor retention and no test-only compat seam are
+  authorized.
 - `tests/integrations/ghl/test_at1_commitment_key_provider.py` is authorized as a
   **new** deterministic provider-focused test module (create-or-extend within
   that exact path only).
@@ -412,10 +419,16 @@ Notes:
 #### Authorized proof/doc paths
 
 ```text
-AUTHORIZED_PROOF_DOC_PATHS=
+AUTHORIZED_PROOF_PATHS=
   proof/nw008/at-8m2/**
-  docs/nw008/nw-008-at8m2-*
+
+AUTHORIZED_DOC_PATH_EXACT=
+  docs/nw008/nw-008-at8m2-offline-execution-store-substrate-implementation-001.md
 ```
+
+Multiple proof files under `proof/nw008/at-8m2/**` are allowed because
+deterministic implementation proof may require more than one proof artifact.
+The documentation path is exact (no broad `nw-008-at8m2-*` glob).
 
 Required consumption record path (under proof glob):
 
@@ -435,7 +448,7 @@ AT8M2_CONSUMER_WRITABLE_SCOPE_EXACT=
   tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py
   tests/integrations/ghl/test_at1_commitment_key_provider.py
   proof/nw008/at-8m2/**
-  docs/nw008/nw-008-at8m2-*
+  docs/nw008/nw-008-at8m2-offline-execution-store-substrate-implementation-001.md
 ```
 
 No other path is writable by the consumer under this grant.
@@ -501,6 +514,7 @@ proof/nw008/at-8h/**=BLOCKED
 proof/nw008/at-8g/**=BLOCKED
 docs/nw008/nw-008-at8m-*=BLOCKED_EXCEPT_READ
 docs/nw008/nw-008-at8m1-*=BLOCKED_EXCEPT_READ
+docs/nw008/nw-008-at8m2-*=BLOCKED_EXCEPT_EXACT_AUTHORIZED_DOC_PATH
 governance/authorizations/**=BLOCKED_EXCEPT_THIS_ARTIFACT_ALREADY_MERGED
 ```
 
@@ -522,6 +536,8 @@ PACKAGE_MANIFESTS=BLOCKED
 LIVE_NOTE_SECRET_ACCESSOR_REUSE=BLOCKED
 PR120_AUTHORITY_SURFACE=BLOCKED
 AT8K2_AUTHORITY_SURFACE=BLOCKED
+PRODUCTION_COMPOSITION_ROOT_STORE_WIRING=BLOCKED
+LIVE_PRODUCTION_STORE_ACTIVATION=BLOCKED
 ```
 
 ## 8. Freeze provider contract (normative)
@@ -531,13 +547,22 @@ PROVIDER_SCOPE=EXECUTION_STORE_COMMITMENT_KEY_ONLY
 PROVIDER_MODULE=src/integrations/ghl/at1_commitment_key_provider.py
 
 PROVIDER_RESULT_BINDS_PAYLOAD_AND_VERSION_RESOURCE=YES
+PROVIDER_RESULT_IS_PROVENANCE_AUTHORITY=YES
 INDEPENDENT_KEY_AND_VERSION_INPUTS=FORBIDDEN
+
+PROVIDER_RESOLUTION_OCCURS_OUTSIDE_STORE=YES
+STORE_ACCEPTS_COMMITMENT_KEY_PROVIDER=NO
+STORE_ACCEPTS_PROVENANCE_BOUND_MATERIAL=YES
 
 VERSION_RESOURCE_MUST_MATCH=
 projects/<project>/secrets/<secret>/versions/<numeric-version>
 
+NUMERIC_VERSION_MUST_BE_POSITIVE_INTEGER=YES
 LATEST_ALLOWED=NO
 ALIASES_ALLOWED=NO
+QUERY_STRING_ALLOWED=NO
+FRAGMENT_ALLOWED=NO
+WHITESPACE_ALLOWED=NO
 
 SYNTHETIC_PROVIDER_IMPLEMENTATION_AUTHORIZED=YES
 REAL_SECRET_MANAGER_PROVIDER_IMPLEMENTATION_AUTHORIZED=NO
@@ -556,7 +581,7 @@ Exact public symbol names inside
 `src/integrations/ghl/at1_commitment_key_provider.py` are an implementation
 detail of the consumer, subject to the contracts frozen here.
 
-### 8.2 Provenance-bound provider result
+### 8.2 Provenance-bound provider result and store boundary
 
 The provider must return **one** logical material object / result that binds
 together:
@@ -566,8 +591,37 @@ together:
 
 ```text
 PROVIDER_RESULT_BINDS_PAYLOAD_AND_VERSION_RESOURCE=YES
+PROVIDER_RESULT_IS_PROVENANCE_AUTHORITY=YES
 INDEPENDENT_KEY_AND_VERSION_INPUTS=FORBIDDEN
 ```
+
+Provider resolution occurs **outside** the store:
+
+```text
+PROVIDER_RESOLUTION_OCCURS_OUTSIDE_STORE=YES
+STORE_ACCEPTS_COMMITMENT_KEY_PROVIDER=NO
+STORE_ACCEPTS_PROVENANCE_BOUND_MATERIAL=YES
+```
+
+`At1ExecutionStore` must accept already-resolved provenance-bound material. It
+must **not** accept a commitment-key provider object, must not invoke provider
+I/O, and must not resolve secrets.
+
+Store verification duties vs non-duties:
+
+```text
+STORE_VERIFIES_VERSION_RESOURCE_EQUALITY=YES
+STORE_VERIFIES_PAYLOAD_ORIGIN_FROM_SECRET_MANAGER=NO
+```
+
+Explanation (normative):
+
+The provider result binds payload + exact version resource and is the
+provenance authority for that pairing. `At1ExecutionStore` may validate the
+version-resource identity shape and compare it with persisted metadata, but it
+does **not** independently prove that arbitrary payload bytes originated from
+Google Secret Manager. Secret-origin attestation is outside store scope and is
+not authorized as a store responsibility under this grant.
 
 Callers must not be able to pair arbitrary key payload with an independently
 supplied version resource through any production-capable API.
@@ -581,19 +635,29 @@ version resource name:
 projects/<project>/secrets/<secret>/versions/<numeric-version>
 ```
 
+Additional shape constraints:
+
+```text
+NUMERIC_VERSION_MUST_BE_POSITIVE_INTEGER=YES
+LATEST_ALLOWED=NO
+ALIASES_ALLOWED=NO
+QUERY_STRING_ALLOWED=NO
+FRAGMENT_ALLOWED=NO
+WHITESPACE_ALLOWED=NO
+```
+
 Normative refusals:
 
 ```text
 VERSION_RESOURCE_LATEST=REJECT
 VERSION_RESOURCE_ALIAS=REJECT
 VERSION_RESOURCE_MISSING_NUMERIC_VERSION=REJECT
+VERSION_RESOURCE_NON_POSITIVE_NUMERIC_VERSION=REJECT
 VERSION_RESOURCE_NON_MATCHING_SHAPE=REJECT
+VERSION_RESOURCE_WITH_QUERY_STRING=REJECT
+VERSION_RESOURCE_WITH_FRAGMENT=REJECT
+VERSION_RESOURCE_WITH_WHITESPACE=REJECT
 EMPTY_VERSION_RESOURCE=REJECT
-```
-
-```text
-LATEST_ALLOWED=NO
-ALIASES_ALLOWED=NO
 ```
 
 ### 8.4 Synthetic vs real provider
@@ -602,6 +666,8 @@ ALIASES_ALLOWED=NO
 SYNTHETIC_PROVIDER_IMPLEMENTATION_AUTHORIZED=YES
 REAL_SECRET_MANAGER_PROVIDER_IMPLEMENTATION_AUTHORIZED=NO
 REAL_COMMITMENT_KEY_READ_AUTHORIZED=NO
+REAL_SECRET_MANAGER_ACCESS=FORBIDDEN
+REAL_COMMITMENT_KEY_READS=FORBIDDEN
 ```
 
 The consumer may implement a synthetic/offline provider that emits deterministic
@@ -612,15 +678,39 @@ The consumer must **not** implement a real Secret Manager-backed provider under
 this grant, must not perform real secret reads, must not create secrets, and
 must not configure secret IAM.
 
+### 8.5 Material security (payload exposure)
+
+```text
+COMMITMENT_MATERIAL_PAYLOAD_LOGGING=FORBIDDEN
+COMMITMENT_MATERIAL_PAYLOAD_REPR_EXPOSURE=FORBIDDEN
+COMMITMENT_MATERIAL_PAYLOAD_SERIALIZATION=FORBIDDEN
+COMMITMENT_MATERIAL_VERSION_RESOURCE_LOGGABLE=YES
+COMMITMENT_KEY_PAYLOAD_STORED_IN_DB=NO
+```
+
+Commitment-key payload must not appear in logs, `repr`/`str` debug surfaces,
+exception messages, serialized public projections, or SQLite. The non-secret
+version resource identity may be logged and may be persisted as store metadata.
+
 ## 9. Freeze store contract (normative)
 
 ```text
 INITIAL_STORE_SCHEMA_VERSION=1
+CURRENT_STORE_SCHEMA_VERSION=1
+SUPPORTED_STORE_SCHEMA_VERSIONS=1
 
 LEGACY_UNVERSIONED_STORE_AUTO_MIGRATION=NO
 LEGACY_UNVERSIONED_STORE_OPEN=FAIL_CLOSED
 
+AT8M2_FORWARD_MIGRATION_STEP_IMPLEMENTED=NO
+FORWARD_MIGRATION_FRAMEWORK_POLICY=FORWARD_ONLY_WHEN_A_FUTURE_VERSION_EXISTS
+UNKNOWN_NEWER_SCHEMA_VERSION=FAIL_CLOSED
+MISSING_OR_INVALID_SCHEMA_METADATA=FAIL_CLOSED
+
 NEW_STORE_INITIALIZATION_ATOMIC=YES
+INITIALIZATION_SCHEMA_AND_METADATA_ATOMIC=YES
+INITIALIZATION_FAILURE_MUST_NOT_PRODUCE_ACCEPTABLE_PARTIAL_STORE=YES
+REOPEN_AFTER_INTERRUPTED_INITIALIZATION=FAIL_CLOSED
 PARTIAL_SCHEMA_INITIALIZATION=FAIL_CLOSED
 
 COMMITMENT_KEY_VERSION_RESOURCE_METADATA_MUTABLE=NO
@@ -634,24 +724,52 @@ STORE_METADATA_FIELDS=
   schema_version
   commitment_key_version_resource
 
-FORWARD_ONLY_SCHEMA_MIGRATIONS=YES
-FORWARD_ONLY_SCHEMA_MIGRATIONS_APPLY_FROM_VERSION=1
-UNKNOWN_NEWER_SCHEMA_VERSION=FAIL_CLOSED
-MISSING_OR_INVALID_SCHEMA_METADATA=FAIL_CLOSED
-
 COMMITMENT_KEY_VERSIONING_MODEL=PIN_STORE_TO_EXACT_SECRET_VERSION
 STORE_COMMITMENT_KEY_VERSION_IMMUTABLE_AFTER_INITIALIZATION=YES
 SILENT_COMMITMENT_KEY_ROTATION=FORBIDDEN
+
+STORE_ACCEPTS_COMMITMENT_KEY_PROVIDER=NO
+STORE_ACCEPTS_PROVENANCE_BOUND_MATERIAL=YES
+STORE_VERIFIES_VERSION_RESOURCE_EQUALITY=YES
+STORE_VERIFIES_PAYLOAD_ORIGIN_FROM_SECRET_MANAGER=NO
 ```
 
-### 9.1 Metadata bootstrap rules
+### 9.1 Schema v1 reality (AT8M2)
+
+AT8M2 implements schema version **1** only:
+
+```text
+INITIAL_STORE_SCHEMA_VERSION=1
+CURRENT_STORE_SCHEMA_VERSION=1
+SUPPORTED_STORE_SCHEMA_VERSIONS=1
+AT8M2_FORWARD_MIGRATION_STEP_IMPLEMENTED=NO
+```
+
+There is no AT8M2 migration step from v1 to a later version because no later
+supported version exists in this unit. Forward-only migration remains the
+**framework policy** for a future version when one is authorized later:
+
+```text
+FORWARD_MIGRATION_FRAMEWORK_POLICY=FORWARD_ONLY_WHEN_A_FUTURE_VERSION_EXISTS
+```
+
+AT8M2 must still fail closed on:
+
+- legacy unversioned stores;
+- missing/corrupt/invalid metadata;
+- unknown newer schema versions than the running code understands.
+
+AT8M2 must **not** claim or prove a forward migration step behavior as an
+implementation requirement of this unit.
+
+### 9.2 Metadata bootstrap rules
 
 On first initialization of a new store file:
 
 1. create required schema tables and metadata in one atomic initialization
    boundary;
-2. write `schema_version=1` (initial) and the pinned
-   `commitment_key_version_resource` from the provenance-bound material object;
+2. write `schema_version=1` and the pinned `commitment_key_version_resource`
+   from the provenance-bound material object;
 3. never persist commitment-key payload bytes in SQLite, logs, or public
    projections.
 
@@ -662,25 +780,32 @@ On reopen:
 2. require supplied material object's version resource to equal the pinned
    metadata version resource; fail closed on mismatch;
 3. never silently re-pin or rewrite `commitment_key_version_resource`;
-4. if `schema_version` is older than code current: apply only forward-only
-   store-owned migrations starting from version 1;
-5. if `schema_version` is newer than code understands: fail closed.
+4. if `schema_version` equals supported current (1): open normally;
+5. if `schema_version` is newer than the running code understands: fail closed;
+6. if a future authorized version introduces migrations, apply only forward-only
+   store-owned migrations under a later grant — not under AT8M2.
 
 Legacy unversioned stores (claims/attempts/ledgers without authoritative
 metadata) must fail closed. Auto-migration of legacy unversioned stores is
 forbidden. Commitment-key provenance must not be inferred post hoc for legacy
 files.
 
-### 9.2 Atomic initialization
+### 9.3 Atomic initialization
 
 ```text
 NEW_STORE_INITIALIZATION_ATOMIC=YES
+INITIALIZATION_SCHEMA_AND_METADATA_ATOMIC=YES
+INITIALIZATION_FAILURE_MUST_NOT_PRODUCE_ACCEPTABLE_PARTIAL_STORE=YES
+REOPEN_AFTER_INTERRUPTED_INITIALIZATION=FAIL_CLOSED
 PARTIAL_SCHEMA_INITIALIZATION=FAIL_CLOSED
 ```
 
-Partial initialization states are invalid. A store file left in a partial schema
-state must fail closed on subsequent open. The consumer must prove atomic
-initialization failure behavior deterministically.
+Schema tables and metadata must initialize as one acceptable store boundary.
+Initialization failure must not leave behind a store file that subsequent open
+treats as valid. Reopen after interrupted initialization must fail closed.
+
+Exact SQLite transaction mechanics remain an implementation detail of the
+consumer, provided the atomicity and fail-closed reopen contracts hold.
 
 ## 10. Constructor / API decision (normative)
 
@@ -691,104 +816,191 @@ resource arrive as one provenance-bound material object.
 CANONICAL_CONSTRUCTION_PATH=PROVENANCE_BOUND_MATERIAL_OBJECT_ONLY
 INDEPENDENT_KEY_AND_VERSION_PRODUCTION_INPUTS=FORBIDDEN
 RAW_KEY_PLUS_SEPARATE_VERSION_RESOURCE_PRODUCTION_API=FORBIDDEN
+RAW_KEY_ONLY_STORE_CONSTRUCTOR_RETAINED=NO
+TEST_ONLY_COMPAT_SEAM_ALLOWED=NO
+STORE_ACCEPTS_COMMITMENT_KEY_PROVIDER=NO
+STORE_ACCEPTS_PROVENANCE_BOUND_MATERIAL=YES
 ```
 
 Do not leave raw key + separately supplied version resource as independent
-production-capable inputs.
+production-capable inputs. Do not retain a raw-key-only store constructor.
 
-Current main constructor shape (historical; to be replaced/adapted by consumer):
+Current main constructor shape (historical; must be removed/replaced by
+consumer — not retained even as test-only):
 
 ```text
 At1ExecutionStore(db_path=..., commitment_key=...)
 ```
 
 That historical shape supplies key payload without pinned version provenance and
-is incompatible with the AT8M1 pin model as a production-capable API.
+is incompatible with the AT8M1 pin model.
 
-### 10.1 Required production-capable construction invariant
+### 10.1 Required construction invariant
 
-Any production-capable `At1ExecutionStore` construction path authorized for
-retention after this consumer must:
+Any `At1ExecutionStore` construction path authorized for retention after this
+consumer must:
 
 1. accept commitment-key material only as a provenance-bound object that already
-   pairs payload + exact version resource; or
-2. accept a provider result with the same binding; and
-3. refuse independent key/version injection.
+   pairs payload + exact version resource; and
+2. refuse provider objects as store constructor inputs; and
+3. refuse independent key/version injection; and
+4. refuse raw-key-only construction.
 
 Exact symbol names and parameter spellings are consumer implementation details
 inside authorized source paths, provided the invariant holds.
 
-### 10.2 Test-only compatibility seam (conditional)
-
-If a test-only compatibility seam is retained for transitional fixtures:
+### 10.2 No test-only compatibility seam
 
 ```text
-TEST_ONLY_COMPAT_SEAM_ALLOWED=YES_WITH_CONSTRAINTS
-TEST_ONLY_COMPAT_SEAM_MUST_BE_MARKED_TEST_ONLY=YES
-TEST_ONLY_COMPAT_SEAM_SYNTHETIC_ONLY=YES
-TEST_ONLY_COMPAT_SEAM_NON_PRODUCTION_CAPABLE=YES
-TEST_ONLY_COMPAT_SEAM_NON_EXPORTED_OR_OTHERWISE_NON_PRODUCTION_CAPABLE=YES
-TEST_ONLY_COMPAT_SEAM_VERSION_PROVENANCE_MUST_STILL_BE_EXPLICIT=YES
+TEST_ONLY_COMPAT_SEAM_ALLOWED=NO
+RAW_KEY_ONLY_STORE_CONSTRUCTOR_RETAINED=NO
 ```
 
-Constraints:
+A test-only compatibility seam is **not** authorized. All four frozen
+constructor-consumer tests must move to the canonical provenance-bound material
+path:
 
-- mark it test-only;
-- synthetic-only;
-- non-exported or otherwise non-production-capable;
-- version provenance must still be explicit (no implicit/missing version);
-- must not reintroduce independent key/version production inputs;
-- must not become the documented production construction path.
+```text
+tests/integrations/ghl/test_at1_live_transport_remediation.py
+tests/integrations/ghl/highlevel_rest/test_note_path_at1_execution_store.py
+tests/integrations/ghl/highlevel_rest/test_live_note_transport.py
+tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py
+```
 
-Prefer migrating authorized tests to the canonical provenance-bound path. A
-compat seam is optional and only justified if it reduces risk while preserving
-all fail-closed provenance rules.
+## 11. One-shot consumption event (normative)
 
-## 11. Authorized implementation objectives (future consumer)
+```text
+AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
+AUTHORIZATION_REUSABLE=NO
+AUTHORIZATION_TRANSFERABLE=NO
+
+AUTHORIZATION_CONSUMPTION_EVENT=
+FIRST_COMMITTED_MUTATION_TO_ANY_AUTHORIZED_CONSUMER_SOURCE_OR_TEST_PATH
+
+PARTIAL_IMPLEMENTATION_CONSUMES_AUTHORIZATION=YES
+FAILED_IMPLEMENTATION_CONSUMES_AUTHORIZATION=YES
+ABANDONED_IMPLEMENTATION_AFTER_FIRST_MUTATION_CONSUMES_AUTHORIZATION=YES
+RETRY_AFTER_CONSUMPTION_REQUIRES_NEW_AUTHORIZATION=YES
+PRE-CONSUMPTION_READ_ONLY_VALIDATION_DOES_NOT_CONSUME_AUTHORIZATION=YES
+```
+
+Consumption occurs at the first **committed** mutation to any authorized
+consumer source or test path listed in §7.2. After that event:
+
+- partial implementation has consumed the grant;
+- failed implementation has consumed the grant;
+- abandoned implementation after first mutation has consumed the grant;
+- retry requires a **new** authorization artifact/unit.
+
+Read-only pre-consumption validation (fetch, merge-base checks, blob-sha
+verification, inventory re-grep, local non-committed experiments that are
+discarded without commit to authorized paths) does **not** consume the grant.
+
+Proof/doc path writes under authorized proof/doc paths should record
+consumption but do not redefine the consumption event away from first committed
+source/test mutation. The consumer must still emit the required consumption
+record.
+
+## 12. Implementation ancestry and pre-mutation recording (normative)
+
+```text
+CONSUMER_BRANCH_MUST_DESCEND_FROM_AUTHORIZATION_MERGE_SHA=YES
+AUTHORIZATION_ARTIFACT_BLOB_SHA_MUST_MATCH_REVIEWED_MERGED_BLOB=YES
+```
+
+Before any mutation to an authorized consumer source or test path, the consumer
+must verify and record:
+
+```text
+AUTHORIZATION_PR=<future number>
+AUTHORIZATION_REVIEWED_HEAD=<future SHA>
+AUTHORIZATION_MERGE_SHA=<future SHA>
+AUTHORIZATION_ARTIFACT_BLOB_SHA=<future SHA>
+```
+
+Rules:
+
+1. consumer branch must descend from the authorization merge SHA;
+2. the authorization artifact blob SHA on the consumer base must match the
+   reviewed merged blob SHA of this artifact on `main`;
+3. mismatch → STOP; do not mutate authorized paths;
+4. record the four fields above in the consumption record (and any
+   implementation doc) before first authorized source/test mutation.
+
+Placeholders remain `<future …>` until this authorization PR is reviewed and
+merged; the consumer fills concrete values at consumption time.
+
+## 13. Authorized implementation objectives (future consumer)
 
 When effective, the consumer may implement only:
 
-1. store metadata table and schema version marker in `At1ExecutionStore`;
-2. atomic new-store initialization and fail-closed partial-init handling;
+1. store metadata table and schema version marker in `At1ExecutionStore`
+   (`schema_version=1` current);
+2. atomic new-store initialization and fail-closed partial/interrupted-init
+   handling;
 3. pin of `commitment_key_version_resource` at initialization (immutable after);
-4. forward-only migration / fail-closed open rules including legacy unversioned
-   refusal and unknown-newer-schema refusal;
-5. synthetic commitment-key provider module at the exact authorized path;
-6. canonical provenance-bound construction path;
-7. adaptations of the frozen construction-consumer tests;
+4. fail-closed open rules for legacy unversioned stores, missing/corrupt
+   metadata, and unknown newer schema;
+5. synthetic commitment-key provider module at the exact authorized path
+   (provider resolution outside store);
+6. canonical provenance-bound material construction path only (no raw-key
+   constructor; no test-only compat seam; store does not accept provider
+   objects);
+7. adaptations of all four frozen construction-consumer tests to the canonical
+   path;
 8. new provider tests at the exact authorized provider test path;
-9. proof/docs under the authorized proof/doc globs, including one-shot
-   consumption record.
+9. proof under `proof/nw008/at-8m2/**` and the exact implementation doc path,
+   including one-shot consumption record.
 
-## 12. Required implementation proof (later consumer; normative checklist)
+AT8M2 does **not** implement a forward migration step.
+
+## 14. Required implementation proof (later consumer; normative checklist)
 
 The implementation consumer must include deterministic tests covering at least:
 
 ```text
 REQUIRED_DETERMINISTIC_PROOFS=
   - new store initialization
+  - schema v1 initialization succeeds
+  - schema v1 reopen succeeds
   - atomic initialization failure
+  - initialization failure must not produce acceptable partial store
+  - reopen after interrupted initialization fails closed
   - exact numeric version acceptance
   - latest/alias rejection
+  - query-string/fragment/whitespace version rejection
+  - non-positive numeric version rejection
   - reopen with same version succeeds
   - reopen with different version fails
   - missing metadata fails
   - corrupt metadata fails
-  - legacy unversioned store fails
-  - unknown newer schema fails
-  - schema forward migration behavior
+  - legacy/unversioned store fails closed
+  - unknown newer schema fails closed
+  - AT8M2 performs no migration step
   - commitment-key payload never stored
+  - commitment-key payload not logged/repr/serialized
   - independent key/version injection impossible
+  - store rejects provider object construction input
+  - store accepts only provenance-bound material
+```
+
+Removed from AT8M2 required proofs (explicitly not an AT8M2 implementation
+requirement):
+
+```text
+AT8M2_NOT_REQUIRED_PROOFS=
+  - schema forward migration behavior
 ```
 
 Proof expectations:
 
 - tests are offline and deterministic;
+- `IMPLEMENTATION_MODE=OFFLINE_DETERMINISTIC_NO_EXTERNAL_EFFECTS`;
 - no real Secret Manager access;
 - no HighLevel / CRM / IAM / deployment side effects;
 - consumption record cites which tests cover each required proof bullet.
 
-## 13. Explicit non-authority / forbidden
+## 15. Explicit non-authority / forbidden
 
 ```text
 AT8M2_AUTHORIZATION_IMPLEMENTS_CODE=NO
@@ -814,6 +1026,11 @@ PRODUCTION_COMPOSITION_ROOT_STORE_WIRING=FORBIDDEN
 LIVE_MUTATION_AUTHORIZATION_CREATION=FORBIDDEN
 PACKAGE_MANIFEST_MUTATION=FORBIDDEN
 DEPENDENCY_MANIFEST_MUTATION=FORBIDDEN
+
+TEST_ONLY_COMPAT_SEAM_ALLOWED=NO
+RAW_KEY_ONLY_STORE_CONSTRUCTOR_RETAINED=NO
+STORE_ACCEPTS_COMMITMENT_KEY_PROVIDER=NO
+AT8M2_FORWARD_MIGRATION_STEP_IMPLEMENTED=NO
 ```
 
 ### Non-transitivity
@@ -837,7 +1054,7 @@ implementation grant proposal; it becomes usable only after merge + consumer
 verification. Even after effectiveness, it does not grant live activation or
 real secret access.
 
-## 14. Live blockers intentionally out of scope
+## 16. Live blockers intentionally out of scope
 
 Preserved from AT8M / AT8M1; not closed by this authorization:
 
@@ -857,7 +1074,7 @@ LIVE_HIGHLEVEL_EXECUTION_READY=NO
 LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
 ```
 
-## 15. Validation (this authorization PR)
+## 17. Validation (this authorization PR)
 
 ```text
 ARTIFACTS_CHANGED=1
@@ -873,21 +1090,23 @@ EXTERNAL_EFFECTS=0
 IMPLEMENTATION_CHANGE=NO
 ```
 
-Expected validation commands after artifact creation:
+Expected validation commands after artifact creation/normalization:
 
 ```text
-git status --short --untracked-files=all
 git diff --name-status origin/main...HEAD
 git diff --check origin/main...HEAD
 # name-status must list exactly the one authorization artifact
 ```
 
-## 16. Return
+## 18. Return
 
 ```text
 AT8M2_AUTHORIZATION_ARTIFACT_CREATED=YES
+AT8M2_AUTHORIZATION_NORMALIZATION_COMPLETE=YES
 AT8M2_AUTHORIZATION_PR_CLASS=authorization
-AT8M2_MODE=OFFLINE_DETERMINISTIC_IMPLEMENTATION_GRANT
+AT8M2_MODE=AUTHORIZATION_ARTIFACT_ONLY
+AT8M2_IMPLEMENTATION_MODE=OFFLINE_DETERMINISTIC_NO_EXTERNAL_EFFECTS
+AT8M2_GRANT=OFFLINE_DETERMINISTIC_EXECUTION_STORE_SUBSTRATE_IMPLEMENTATION
 AT8M2_AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
 AT8M2_AUTHORIZATION_REUSABLE=NO
 AT8M2_AUTHORIZATION_TRANSFERABLE=NO
@@ -912,30 +1131,67 @@ AUTHORIZED_TEST_PATHS=
   tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py
   tests/integrations/ghl/test_at1_commitment_key_provider.py
 
-AUTHORIZED_PROOF_DOC_PATHS=
+AUTHORIZED_PROOF_PATHS=
   proof/nw008/at-8m2/**
-  docs/nw008/nw-008-at8m2-*
+
+AUTHORIZED_DOC_PATH_EXACT=
+  docs/nw008/nw-008-at8m2-offline-execution-store-substrate-implementation-001.md
 
 PROVIDER_SCOPE=EXECUTION_STORE_COMMITMENT_KEY_ONLY
 PROVIDER_MODULE=src/integrations/ghl/at1_commitment_key_provider.py
 PROVIDER_RESULT_BINDS_PAYLOAD_AND_VERSION_RESOURCE=YES
+PROVIDER_RESULT_IS_PROVENANCE_AUTHORITY=YES
+PROVIDER_RESOLUTION_OCCURS_OUTSIDE_STORE=YES
+STORE_ACCEPTS_COMMITMENT_KEY_PROVIDER=NO
+STORE_ACCEPTS_PROVENANCE_BOUND_MATERIAL=YES
+STORE_VERIFIES_VERSION_RESOURCE_EQUALITY=YES
+STORE_VERIFIES_PAYLOAD_ORIGIN_FROM_SECRET_MANAGER=NO
 INDEPENDENT_KEY_AND_VERSION_INPUTS=FORBIDDEN
 LATEST_ALLOWED=NO
 ALIASES_ALLOWED=NO
+QUERY_STRING_ALLOWED=NO
+FRAGMENT_ALLOWED=NO
+WHITESPACE_ALLOWED=NO
+NUMERIC_VERSION_MUST_BE_POSITIVE_INTEGER=YES
 SYNTHETIC_PROVIDER_IMPLEMENTATION_AUTHORIZED=YES
 REAL_SECRET_MANAGER_PROVIDER_IMPLEMENTATION_AUTHORIZED=NO
 
+COMMITMENT_MATERIAL_PAYLOAD_LOGGING=FORBIDDEN
+COMMITMENT_MATERIAL_PAYLOAD_REPR_EXPOSURE=FORBIDDEN
+COMMITMENT_MATERIAL_PAYLOAD_SERIALIZATION=FORBIDDEN
+COMMITMENT_MATERIAL_VERSION_RESOURCE_LOGGABLE=YES
+
 INITIAL_STORE_SCHEMA_VERSION=1
+CURRENT_STORE_SCHEMA_VERSION=1
+SUPPORTED_STORE_SCHEMA_VERSIONS=1
+AT8M2_FORWARD_MIGRATION_STEP_IMPLEMENTED=NO
+FORWARD_MIGRATION_FRAMEWORK_POLICY=FORWARD_ONLY_WHEN_A_FUTURE_VERSION_EXISTS
 LEGACY_UNVERSIONED_STORE_AUTO_MIGRATION=NO
 LEGACY_UNVERSIONED_STORE_OPEN=FAIL_CLOSED
+UNKNOWN_NEWER_SCHEMA_VERSION=FAIL_CLOSED
 NEW_STORE_INITIALIZATION_ATOMIC=YES
-PARTIAL_SCHEMA_INITIALIZATION=FAIL_CLOSED
+INITIALIZATION_SCHEMA_AND_METADATA_ATOMIC=YES
+INITIALIZATION_FAILURE_MUST_NOT_PRODUCE_ACCEPTABLE_PARTIAL_STORE=YES
+REOPEN_AFTER_INTERRUPTED_INITIALIZATION=FAIL_CLOSED
 COMMITMENT_KEY_VERSION_RESOURCE_METADATA_MUTABLE=NO
 SCHEMA_VERSION_METADATA_MUTABLE=FORWARD_ONLY_MIGRATION
 COMMITMENT_KEY_PAYLOAD_STORED_IN_DB=NO
 
 CANONICAL_CONSTRUCTION_PATH=PROVENANCE_BOUND_MATERIAL_OBJECT_ONLY
-RAW_KEY_PLUS_SEPARATE_VERSION_RESOURCE_PRODUCTION_API=FORBIDDEN
+RAW_KEY_ONLY_STORE_CONSTRUCTOR_RETAINED=NO
+TEST_ONLY_COMPAT_SEAM_ALLOWED=NO
+
+AUTHORIZATION_CONSUMPTION_EVENT=
+FIRST_COMMITTED_MUTATION_TO_ANY_AUTHORIZED_CONSUMER_SOURCE_OR_TEST_PATH
+AUTHORIZATION_CONSUMPTION_EVENT_FROZEN=YES
+PARTIAL_IMPLEMENTATION_CONSUMES_AUTHORIZATION=YES
+FAILED_IMPLEMENTATION_CONSUMES_AUTHORIZATION=YES
+ABANDONED_IMPLEMENTATION_AFTER_FIRST_MUTATION_CONSUMES_AUTHORIZATION=YES
+RETRY_AFTER_CONSUMPTION_REQUIRES_NEW_AUTHORIZATION=YES
+PRE-CONSUMPTION_READ_ONLY_VALIDATION_DOES_NOT_CONSUME_AUTHORIZATION=YES
+
+CONSUMER_BRANCH_MUST_DESCEND_FROM_AUTHORIZATION_MERGE_SHA=YES
+AUTHORIZATION_ARTIFACT_BLOB_SHA_MUST_MATCH_REVIEWED_MERGED_BLOB=YES
 
 EXTERNAL_EFFECTS=0
 IMPLEMENTATION_PERFORMED=NO
