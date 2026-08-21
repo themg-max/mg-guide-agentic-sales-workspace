@@ -33,25 +33,24 @@ PREFLIGHT_CLEAN=YES
 AUTHORIZATION_CONSUMPTION_EVENT=
 FIRST_COMMITTED_MUTATION_TO_ANY_AUTHORIZED_CONSUMER_SOURCE_OR_TEST_PATH
 PRE-CONSUMPTION_READ_ONLY_VALIDATION_DOES_NOT_CONSUME_AUTHORIZATION=YES
-AUTHORIZATION_CONSUMED=NO
+AUTHORIZATION_CONSUMED=YES
 AUTHORIZATION_REUSABLE=NO
 AUTHORIZATION_TRANSFERABLE=NO
 
-IMPLEMENTATION_SOURCE_TEST_MUTATION_COMMITTED=NO
+IMPLEMENTATION_SOURCE_TEST_MUTATION_COMMITTED=YES
+IMPLEMENTATION_SCOPE=AUTHORIZED_PATHS_ONLY
 EXTERNAL_EFFECTS=0
 ```
 
 This record was created after authorization merge ancestry, authorization
 artifact blob identity, PR125 reviewed-head ancestry, and a clean non-main
-worktree were verified. No authorized source or test file has been modified by
-this record.
-
-The next committed mutation to an authorized source or test path consumes the
+worktree were verified. The implementation change set contains the first
+committed mutation to an authorized source/test path and therefore consumes the
 one-shot AT8M2R1 authorization, including if subsequent implementation
 validation fails or the implementation is abandoned.
 
-All later implementation changes are limited to the exact paths frozen by the
-merged authorization:
+All implementation changes are limited to the exact paths frozen by the merged
+authorization:
 
 ```text
 AUTHORIZED_SOURCE_PATHS=

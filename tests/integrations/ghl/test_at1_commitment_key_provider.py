@@ -159,6 +159,7 @@ def test_atomic_initialization_failure_rolls_back_all_schema(tmp_path: Path, mon
         with pytest.raises(ExecutionStoreSchemaError, match="atomic store initialization failed"):
             _store(db_path)
 
+    assert db_path.exists()
     with sqlite3.connect(db_path) as connection:
         table_names = {
             row[0]
@@ -172,9 +173,69 @@ def test_atomic_initialization_failure_rolls_back_all_schema(tmp_path: Path, mon
         }
     assert table_names == set()
 
-    reopened = _store(db_path)
-    assert _metadata(db_path) == (1, VERSION_RESOURCE)
-    _close(reopened)
+    # Failed-init artifact remains preexisting and empty: reopen must fail closed.
+    with pytest.raises(
+        ExecutionStoreSchemaError,
+        match="preexisting empty store artifact cannot be initialized",
+    ):
+        _store(db_path)
+
+
+def test_preexisting_empty_store_fails_closed(tmp_path: Path) -> None:
+    zero_byte_path = tmp_path / "preexisting-zero-byte.sqlite3"
+    zero_byte_path.write_bytes(b"")
+    assert zero_byte_path.exists()
+    assert zero_byte_path.stat().st_size == 0
+    with pytest.raises(
+        ExecutionStoreSchemaError,
+        match="preexisting empty store artifact cannot be initialized",
+    ):
+        _store(zero_byte_path)
+
+    empty_sqlite_path = tmp_path / "preexisting-empty-sqlite.sqlite3"
+    with sqlite3.connect(empty_sqlite_path) as connection:
+        connection.execute("PRAGMA user_version = 0")
+    assert empty_sqlite_path.exists()
+    with sqlite3.connect(empty_sqlite_path) as connection:
+        table_names = {
+            row[0]
+            for row in connection.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+                """
+            )
+        }
+    assert table_names == set()
+    with pytest.raises(
+        ExecutionStoreSchemaError,
+        match="preexisting empty store artifact cannot be initialized",
+    ):
+        _store(empty_sqlite_path)
+
+
+def test_failed_initialization_artifact_reopen_fails_closed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    db_path = tmp_path / "failed-init-artifact.sqlite3"
+    original_statements = At1ExecutionStore._schema_statements
+
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            At1ExecutionStore,
+            "_schema_statements",
+            staticmethod(lambda: (*original_statements(), "CREATE TABLE broken (")),
+        )
+        with pytest.raises(ExecutionStoreSchemaError, match="atomic store initialization failed"):
+            _store(db_path)
+
+    assert db_path.exists()
+    with pytest.raises(
+        ExecutionStoreSchemaError,
+        match="preexisting empty store artifact cannot be initialized",
+    ):
+        _store(db_path)
 
 
 def test_interrupted_initialization_reopen_fails_closed(tmp_path: Path) -> None:
@@ -193,6 +254,27 @@ def test_interrupted_initialization_reopen_fails_closed(tmp_path: Path) -> None:
         _store(db_path)
 
 
+def test_partial_schema_store_fails_closed(tmp_path: Path) -> None:
+    db_path = tmp_path / "partial-schema.sqlite3"
+    with sqlite3.connect(db_path) as connection:
+        connection.execute(At1ExecutionStore._schema_statements()[0])
+        connection.execute(
+            """
+            INSERT INTO at1_store_metadata (
+                singleton,
+                schema_version,
+                commitment_key_version_resource
+            )
+            VALUES (1, 1, ?)
+            """,
+            (VERSION_RESOURCE,),
+        )
+        connection.execute(At1ExecutionStore._schema_statements()[1])
+
+    with pytest.raises(ExecutionStoreSchemaError, match="partially initialized"):
+        _store(db_path)
+
+
 def test_legacy_unversioned_store_fails_closed(tmp_path: Path) -> None:
     db_path = tmp_path / "legacy-unversioned.sqlite3"
     with sqlite3.connect(db_path) as connection:
@@ -201,6 +283,48 @@ def test_legacy_unversioned_store_fails_closed(tmp_path: Path) -> None:
 
     with pytest.raises(ExecutionStoreSchemaError, match="no authoritative metadata"):
         _store(db_path)
+
+
+def test_at8m2r1_repair_has_no_secret_manager_or_external_effects(
+    tmp_path: Path, monkeypatch
+) -> None:
+    blocked_prefixes = (
+        "google.cloud",
+        "google.auth",
+        "requests",
+        "httpx",
+        "urllib.request",
+        "secretmanager",
+    )
+
+    def _block_import(name, globals=None, locals=None, fromlist=(), level=0):  # noqa: A002
+        root = name.split(".", 1)[0]
+        if name.startswith(blocked_prefixes) or root in {
+            "requests",
+            "httpx",
+            "secretmanager",
+        }:
+            raise AssertionError(f"forbidden external import attempted: {name}")
+        return original_import(name, globals, locals, fromlist, level)
+
+    import builtins
+
+    original_import = builtins.__import__
+    monkeypatch.setattr(builtins, "__import__", _block_import)
+
+    fresh_path = tmp_path / "no-external-effects.sqlite3"
+    assert not fresh_path.exists()
+    store = _store(fresh_path)
+    assert _metadata(fresh_path) == (1, VERSION_RESOURCE)
+    _close(store)
+
+    empty_path = tmp_path / "preexisting-empty-for-effects.sqlite3"
+    empty_path.write_bytes(b"")
+    with pytest.raises(
+        ExecutionStoreSchemaError,
+        match="preexisting empty store artifact cannot be initialized",
+    ):
+        _store(empty_path)
 
 
 def test_missing_and_corrupt_metadata_fail_closed(tmp_path: Path) -> None:
