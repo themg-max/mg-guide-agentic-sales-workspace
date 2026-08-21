@@ -332,52 +332,66 @@ by this design.
 ### Decision
 
 ```text
-PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=YES
+PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=PARTIAL
 PRODUCTION_COMMITMENT_KEY_CLASS=SECRET_MATERIAL
+PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS_IDENTIFIED=YES
+PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS=GOOGLE_SECRET_MANAGER
 COMMITMENT_KEY_SECRET_DISTINCT_FROM_MG_GUIDE_PIT_GHL=YES
+COMMITMENT_KEY_SECRET_RESOURCE_IDENTIFIED=NO
 COMMITMENT_KEY_SECRET_RESOURCE_CREATED=NO
 COMMITMENT_KEY_SECRET_IAM_CONFIGURED=NO
+COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED=NO
+COMMITMENT_KEY_ACCESS_PRINCIPAL=UNRESOLVED
+SAME_PRINCIPAL_FOR_GHL_AND_COMMITMENT_KEY=UNRESOLVED
 AT8K2_IAM_AUTHORITY_REUSABLE_FOR_COMMITMENT_KEY=NO
 HARDCODED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
 CALLER_SUPPLIED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
-PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS=GOOGLE_SECRET_MANAGER_VIA_ROOT_OWNED_ACCESSOR
 REAL_COMMITMENT_KEY_READS=0
+COMMITMENT_KEY_USES_LIVE_NOTE_SECRET_ACCESSOR=NO
+COMMITMENT_KEY_ACCESSOR_OR_PROVIDER=SEPARATE_NARROW_FUTURE_DESIGN
 ```
 
 The commitment key keys HMAC-SHA256 evidence commitments
 (`At1ExecutionStore._commitment`); possession enables forging evidence
-commitments, so it is secret material in full. The intended governed source is
-a dedicated Google Secret Manager secret — a distinct resource from
-`MG_GUIDE_PIT_GHL` (which is the HighLevel PIT credential and must not be
-reused) — read at assembly time only by the composition root through a
-root-owned secret accessor implementing the existing `LiveNoteSecretAccessor`
-protocol (`read_secret_payload`), authenticating via ADC / workload identity as
-the AT8K2-created single-purpose runtime principal, under single-secret
-`roles/secretmanager.secretAccessor` IAM on that future secret only.
+commitments, so it is secret material in full. The source class is identified as
+Google Secret Manager: a dedicated future secret distinct from
+`MG_GUIDE_PIT_GHL` (the HighLevel PIT credential must not be reused). The
+specific commitment-key secret resource is not identified, not created, and not
+IAM-bound by this unit.
 
-This unit does not read, create, name-allocate, or bind the key resource. The
-AT8K2 IAM grant covered `MG_GUIDE_PIT_GHL` only and is consumed; it is not
-reusable for the commitment-key secret. Resource creation and IAM binding for
-the commitment-key secret are later explicitly authorized units; the concrete
-accessor contract is AT8N (below). This unit does not name the new secret.
+Commitment-key access principal is UNRESOLVED. AT8M does not decide that the
+AT8K2-created GHL runtime principal
+(`serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com`)
+will receive commitment-key IAM. Whether the same principal serves both GHL PIT
+and commitment-key access is a later governed decision. AT8K2 IAM authority
+covered `MG_GUIDE_PIT_GHL` only, is consumed, and is not reusable for any
+commitment-key secret.
 
-### Commitment key versioning (recorded decision candidate; not implemented)
+Commitment-key delivery must not use the GHL-specific
+`LiveNoteSecretAccessor` / live-note credential path. A separate narrow
+accessor or provider for the commitment-key secret is a future design unit
+distinct from AT8N. This unit does not read, create, name-allocate, or bind
+the key resource.
+
+### Commitment key versioning (candidates only; not decided; not implemented)
 
 ```text
 COMMITMENT_KEY_VERSIONING_MODEL=UNRESOLVED
 SILENT_COMMITMENT_KEY_ROTATION=FORBIDDEN
 KEY_VERSION_REQUIRED_FOR_HISTORICAL_VERIFICATION=YES
-PREFERRED_MODEL=RECORD_KEY_VERSION_WITH_EACH_COMMITMENT
+CANDIDATE_MODEL_1=RECORD_KEY_VERSION_WITH_EACH_COMMITMENT
+CANDIDATE_MODEL_2=PIN_STORE_TO_EXACT_SECRET_VERSION
 ```
 
 Stored commitments verify only under the key that produced them, so historical
 evidence verification requires knowing which key version produced each
-commitment. The recorded candidate is to persist the key version alongside each
-stored commitment so verification remains possible across rotations; the
-alternative (authorized re-commitment migration on rotation) remains available
-to the deciding unit. The model is UNRESOLVED and must be frozen by a later
-governed design unit before production store-construction authorization;
-silent rotation is forbidden under any model.
+commitment. Two candidates are recorded without preference: (1) persist the
+key version alongside each stored commitment so verification remains possible
+across rotations; (2) pin the store to an exact Secret Manager secret version
+for the life of the store file, with any version change requiring an authorized
+store rebuild or re-commitment path. The model is UNRESOLVED and must be frozen
+by a later governed design unit before production store-construction
+authorization; silent rotation is forbidden under any model.
 
 ## Architecture question 6 — PRODUCTION_STORE_LIFECYCLE
 
@@ -447,21 +461,22 @@ later governed design unit. This unit implements no monitoring.
 ```text
 STORE_DB_PATH_DEPENDS_ON_RUNTIME_PLATFORM_IDENTITY=NO
 STORE_COMMITMENT_KEY_ACCESS_DEPENDS_ON_RUNTIME_PLATFORM_IDENTITY=YES
-RUNTIME_PRINCIPAL_FOR_KEY_ACCESS=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com (created by AT8K2)
+COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED=NO
+COMMITMENT_KEY_ACCESS_PRINCIPAL=UNRESOLVED
+SAME_PRINCIPAL_FOR_GHL_AND_COMMITMENT_KEY=UNRESOLVED
 PRODUCTION_WORKLOAD_PRINCIPAL_ATTACHED=NO
 SERVICE_ACCOUNT_ATTACHED_BY_THIS_UNIT=NO
 ```
 
 The database path is platform configuration and does not vary with runtime
-identity. Commitment-key access, however, is bound to the runtime platform
-identity: the AT8K2-created single-purpose service account is the identity that
-will hold single-secret accessor rights on the future commitment-key secret,
-and the accessor must authenticate via ADC / workload identity only (SA keys
-forbidden; user-managed keys remain 0 per AT8K2 readback). Because the runtime
-identity mechanism on the local host is UNRESOLVED (Q1), no commitment-key
-read can occur in production until that mechanism is designed and authorized.
-This unit attaches no service account to any resource and applies no IAM;
-binding remains a later authorized lane.
+identity. Commitment-key access does depend on some future runtime identity
+mechanism, but that principal is not decided here. AT8M does not assign
+commitment-key IAM to the AT8K2-created GHL runtime principal and does not
+decide whether GHL PIT and commitment-key access share one principal. Because
+the local-host identity mechanism is UNRESOLVED (Q1) and the commitment-key
+access principal is UNRESOLVED (Q5), no commitment-key read can occur in
+production until both are designed and authorized. This unit attaches no
+service account to any resource and applies no IAM.
 
 ## Derived fields
 
@@ -474,7 +489,12 @@ SQLITE_PRODUCTION_SUITABLE=CONDITIONAL
 
 PRODUCTION_DB_PATH_AUTHORITY_IDENTIFIED=YES
 PRODUCTION_DB_PATH_CONFIGURATION_REQUIRED=YES
-PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=YES
+PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=PARTIAL
+PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS_IDENTIFIED=YES
+PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS=GOOGLE_SECRET_MANAGER
+COMMITMENT_KEY_SECRET_RESOURCE_IDENTIFIED=NO
+COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED=NO
+COMMITMENT_KEY_USES_LIVE_NOTE_SECRET_ACCESSOR=NO
 
 HARDCODED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
 CALLER_SUPPLIED_PRODUCTION_COMMITMENT_KEY=FORBIDDEN
@@ -486,6 +506,9 @@ BLOCKERS_FOR_STORE_IMPLEMENTATION_AUTHORIZATION=
   runtime-identity-mechanism
   commitment-key-versioning-model
   store-schema-versioning-scope
+  commitment-key-access-principal
+  commitment-key-secret-resource-identity
+  commitment-key-accessor-design
 ```
 
 Persistence model: embedded SQLite via `At1ExecutionStore` on governed durable
@@ -494,19 +517,19 @@ path supplied by required orchestrator-governed configuration (no default,
 fail-closed).
 
 `PRODUCTION_STORE_IMPLEMENTATION_AUTHORIZATION_DESIGNABLE=NO`: a production
-store-construction implementation authorization cannot be drafted until three
-blockers are each resolved by later governed units: (1) the runtime identity
-mechanism on the local host (Q1), without which no production secret access
-exists; (2) the commitment-key versioning model (Q5), without which evidence
-verification semantics are undefined; (3) the store schema-versioning
-authorization scope (Q6), including whether `At1ExecutionStore` modification is
-in scope. When all three resolve, the authorization must additionally be
-conditioned on: this design merged on `main`; the AT8N accessor contract freeze
-(or an equivalent root-owned accessor seam for commitment-key delivery); no
-real secret payload reads during implementation; no live transport execution.
-It must not authorize secret resource creation, IAM, deployment, or live CRM
-mutation, and it must not reuse PR120 or AT8K2 (PR117) authority — both are
-consumed and not reusable.
+store-construction implementation authorization cannot be drafted until the
+named blockers are each resolved by later governed units, including: the
+runtime identity mechanism on the local host (Q1); the commitment-key
+versioning model (Q5); the store schema-versioning authorization scope (Q6),
+including whether `At1ExecutionStore` modification is in scope; the
+commitment-key access principal and whether it is the same as the GHL runtime
+principal; the commitment-key secret resource identity; and a separate narrow
+commitment-key accessor/provider design (not the GHL live-note accessor). When
+those resolve, the authorization must additionally be conditioned on: this
+design merged on `main`; no real secret payload reads during implementation;
+no live transport execution. It must not authorize secret resource creation,
+IAM, deployment, or live CRM mutation, and it must not reuse PR120 or AT8K2
+(PR117) authority — both are consumed and not reusable.
 
 ## Next parallel planning unit
 
@@ -515,17 +538,24 @@ NEXT_PARALLEL_PLANNING_UNIT=NW008_AT8N_CONCRETE_SECRET_MANAGER_ACCESSOR_DESIGN_0
 NEXT_PR_CLASS=planning_only
 NEXT_MODE=READ_ONLY_ARCHITECTURE_DECISION
 AT8N_PLANNING_RECOMMENDED=YES
+
+AT8N_SCOPE=GHL_PIT_SECRET_MANAGER_ACCESSOR_ONLY
+AT8N_EXACT_RESOURCE=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
+AT8N_CALLER_RESOURCE_OVERRIDE=FORBIDDEN
+COMMITMENT_KEY_USES_LIVE_NOTE_SECRET_ACCESSOR=NO
+COMMITMENT_KEY_ACCESSOR_OR_PROVIDER=SEPARATE_NARROW_FUTURE_DESIGN
 ```
 
-AT8N must be PLANNING_ONLY initially. Its design must later freeze:
+AT8N must be PLANNING_ONLY initially and is scoped to the GHL PIT Secret
+Manager accessor only. Its design must later freeze:
 
 - `GoogleSecretManagerLiveNoteSecretAccessor` exact contract (implementing the
   existing `LiveNoteSecretAccessor` protocol `read_secret_payload`);
 - ADC / workload identity only, under the AT8K2-created runtime principal, with
   the local-host identity mechanism itself resolved by a separate governed
   unit before any production use;
-- exact `MG_GUIDE_PIT_GHL` resource identity
-  (`projects/831270426395/secrets/MG_GUIDE_PIT_GHL`);
+- exact resource identity only:
+  `projects/831270426395/secrets/MG_GUIDE_PIT_GHL`;
 - caller resource override forbidden;
 - environment token discovery forbidden;
 - gcloud / shell secret retrieval forbidden;
@@ -536,10 +566,9 @@ AT8N must be PLANNING_ONLY initially. Its design must later freeze:
 - zero real payload reads during implementation;
 - runtime principal attachment remains separate.
 
-AT8N covers the accessor contract in general; its application to the
-commitment-key secret (Q5) inherits the same freeze list, with the
-commitment-key resource identity itself allocated only under a later explicitly
-authorized unit.
+AT8N does not design commitment-key access. Commitment-key delivery requires a
+separate narrow future accessor/provider design and must not reuse the GHL
+live-note secret accessor path.
 
 ## Non-authority
 
@@ -581,20 +610,32 @@ artifact above; `git diff --check origin/main...HEAD` is clean.
 
 ```text
 AT8M_PLANNING_COMPLETE=YES
+AT8M_FINAL_NORMALIZATION_COMPLETE=YES
 
 AT8K2_SOURCE_STATE_CORRECTED=YES
 
 PRODUCTION_RUNTIME_PLATFORM_DECIDED=PARTIAL
 PRODUCTION_RUNTIME_HOST_CLASS_DECIDED=YES
 PRODUCTION_RUNTIME_IDENTITY_MECHANISM_DECIDED=NO
+PRODUCTION_RUNTIME_PRINCIPAL_IDENTIFIED=YES
+PRODUCTION_RUNTIME_PRINCIPAL_CREATED=YES
+PRODUCTION_WORKLOAD_PRINCIPAL_ATTACHED=NO
 PRODUCTION_PERSISTENCE_MODEL_DECIDED=YES
 SQLITE_PRODUCTION_SUITABLE=CONDITIONAL
 
 PRODUCTION_DB_PATH_AUTHORITY_IDENTIFIED=YES
 PRODUCTION_DB_PATH_CONFIGURATION_REQUIRED=YES
-PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=YES
+
+PRODUCTION_COMMITMENT_KEY_AUTHORITY_IDENTIFIED=PARTIAL
+PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS_IDENTIFIED=YES
+PRODUCTION_COMMITMENT_KEY_SOURCE_CLASS=GOOGLE_SECRET_MANAGER
+COMMITMENT_KEY_SECRET_RESOURCE_IDENTIFIED=NO
 COMMITMENT_KEY_SECRET_RESOURCE_CREATED=NO
 COMMITMENT_KEY_SECRET_IAM_CONFIGURED=NO
+COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED=NO
+COMMITMENT_KEY_ACCESS_PRINCIPAL=UNRESOLVED
+SAME_PRINCIPAL_FOR_GHL_AND_COMMITMENT_KEY=UNRESOLVED
+COMMITMENT_KEY_USES_LIVE_NOTE_SECRET_ACCESSOR=NO
 COMMITMENT_KEY_VERSIONING_MODEL=UNRESOLVED
 STORE_SCHEMA_VERSIONING_SCOPE_RESOLVED=NO
 
@@ -606,8 +647,11 @@ LIVE_HIGHLEVEL_EXECUTION_READY=NO
 LIVE_MUTATION_AUTHORIZATION_DESIGNABLE=NO
 
 AT8N_PLANNING_RECOMMENDED=YES
+AT8N_SCOPE=GHL_PIT_SECRET_MANAGER_ACCESSOR_ONLY
+AT8N_SCOPE_GHL_ONLY=YES
+COMMITMENT_KEY_ACCESSOR_SEPARATED=YES
 
 EXTERNAL_EFFECTS=0
 ```
 
-STOP for architecture re-review.
+STOP for formal planning-PR review.
