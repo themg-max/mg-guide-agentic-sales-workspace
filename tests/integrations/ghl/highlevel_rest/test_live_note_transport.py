@@ -12,6 +12,7 @@ import pytest
 
 import integrations.ghl.highlevel_rest.note_path as note_path_module
 from integrations.ghl import At1ExecutionStore
+from integrations.ghl.at1_commitment_key_provider import SyntheticCommitmentKeyProvider
 from integrations.ghl.highlevel_rest import NotePathAdapter, TransportError
 from integrations.ghl.highlevel_rest.live_note_transport import (
     AMBIGUITY_TRUTH,
@@ -658,7 +659,10 @@ def test_injectable_into_note_path_adapter() -> None:
 def test_injectable_transport_preserves_at8g_store_ordinal(tmp_path: Path) -> None:
     store = At1ExecutionStore(
         db_path=tmp_path / "at8h-note-path.sqlite3",
-        commitment_key="synthetic-commitment-key",
+        commitment_material=SyntheticCommitmentKeyProvider(
+            payload="synthetic-commitment-key",
+            version_resource="projects/synthetic-project/secrets/at1-commitment-key/versions/1",
+        ).resolve(),
     )
     client = EchoNoteHttpClient()
     transport = _transport(client)
@@ -691,7 +695,10 @@ def test_injectable_transport_preserves_at8g_store_ordinal(tmp_path: Path) -> No
 def test_adapter_ambiguous_post_is_terminal_unknown(tmp_path: Path) -> None:
     store = At1ExecutionStore(
         db_path=tmp_path / "at8h-ambiguous.sqlite3",
-        commitment_key="synthetic-commitment-key",
+        commitment_material=SyntheticCommitmentKeyProvider(
+            payload="synthetic-commitment-key",
+            version_resource="projects/synthetic-project/secrets/at1-commitment-key/versions/1",
+        ).resolve(),
     )
     client = ScriptedHttpClient([LiveNoteHttpUncertainty("timeout")])
     transport = _transport(client)

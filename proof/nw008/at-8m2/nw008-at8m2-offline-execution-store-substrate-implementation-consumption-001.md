@@ -26,13 +26,18 @@ PRE-CONSUMPTION_READ_ONLY_VALIDATION_DOES_NOT_CONSUME_AUTHORIZATION=YES
 AUTHORIZATION_CONSUMED=YES
 AUTHORIZATION_REUSABLE=NO
 AUTHORIZATION_TRANSFERABLE=NO
+
+IMPLEMENTATION_SOURCE_TEST_MUTATION_COMMITTED=YES
+IMPLEMENTATION_SCOPE=AUTHORIZED_PATHS_ONLY
+EXTERNAL_EFFECTS=0
 ```
 
 This record was created after authorization merge ancestry, authorization artifact
 blob identity, and the frozen `At1ExecutionStore` consumer inventory were
-verified. The next committed mutation to an authorized source or test path
-consumes the one-shot authorization, including if subsequent implementation
-validation fails or the implementation is abandoned.
+verified. The implementation change set contains the first committed mutation to
+an authorized source/test path and therefore consumes the one-shot
+authorization, including if subsequent implementation validation fails or the
+implementation is abandoned.
 
-No source or test file has been modified by this record. All later implementation
-changes are limited to the exact paths frozen by the merged authorization.
+All implementation changes are limited to the exact paths frozen by the merged
+authorization.

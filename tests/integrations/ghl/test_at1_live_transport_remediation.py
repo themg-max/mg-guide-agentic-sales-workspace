@@ -19,6 +19,7 @@ from integrations.ghl import (
     PostGrantControlPlaneCallRefusedError,
     RunContinuationRefusedError,
 )
+from integrations.ghl.at1_commitment_key_provider import SyntheticCommitmentKeyProvider
 from integrations.ghl.bounded_at1_executor import EXACT_OPERATION_ORDER
 
 
@@ -29,6 +30,7 @@ FIXTURE_PATH = (
     / "at1-live-transport-remediation.json"
 )
 FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+_VERSION_RESOURCE = "projects/synthetic-project/secrets/at1-commitment-key/versions/1"
 
 
 class ScriptedEstablishedSession:
@@ -57,6 +59,16 @@ def _context() -> At1ExecutionContext:
     )
 
 
+def _execution_store(
+    db_path: Path, *, payload: str = "synthetic-commitment-key"
+) -> At1ExecutionStore:
+    material = SyntheticCommitmentKeyProvider(
+        payload=payload,
+        version_resource=_VERSION_RESOURCE,
+    ).resolve()
+    return At1ExecutionStore(db_path=db_path, commitment_material=material)
+
+
 def _adapter_and_executor(
     tmp_path: Path,
     case_id: str,
@@ -65,10 +77,7 @@ def _adapter_and_executor(
     owner_id: str = "owner-1",
     grant_active: bool = True,
 ) -> tuple[At1LiveTransportAdapter, BoundedAt1GhlExecutor, ScriptedEstablishedSession]:
-    store = At1ExecutionStore(
-        db_path=tmp_path / "at1-remediation.sqlite3",
-        commitment_key="synthetic-commitment-key",
-    )
+    store = _execution_store(tmp_path / "at1-remediation.sqlite3")
     session = ScriptedEstablishedSession(
         responses=list(FIXTURE["cases"][case_id]["responses"])
     )
@@ -342,7 +351,7 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
         {"location_id": binding.location_id, "contact_id": binding.contact_id},
     )
 
-    store_a = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store_a = _execution_store(db_path)
     session_a = ScriptedEstablishedSession(responses=list(FIXTURE["cases"]["success"]["responses"]))
     adapter_a = At1LiveTransportAdapter(
         session=session_a,
@@ -355,7 +364,7 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
     adapter_a.record_semantic_outcome(True)
     assert len(session_a.dispatch_log) == 1
 
-    store_b = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store_b = _execution_store(db_path)
     session_b = ScriptedEstablishedSession(responses=list(FIXTURE["cases"]["success"]["responses"]))
     adapter_b = At1LiveTransportAdapter(
         session=session_b,
@@ -367,9 +376,8 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
         adapter_b.dispatch(envelope)
     assert session_b.dispatch_log == []
 
-    store_c = At1ExecutionStore(
-        db_path=tmp_path / "at1-remediation-crash-before-dispatch.sqlite3",
-        commitment_key="synthetic-commitment-key",
+    store_c = _execution_store(
+        tmp_path / "at1-remediation-crash-before-dispatch.sqlite3"
     )
     store_c.acquire_claim("grant-run-crash-before-dispatch", "owner-1")
     store_c.record_attempt(
@@ -379,9 +387,8 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
         request_id="synthetic-crash-request-1",
         request_envelope=envelope,
     )
-    store_c_restarted = At1ExecutionStore(
-        db_path=tmp_path / "at1-remediation-crash-before-dispatch.sqlite3",
-        commitment_key="synthetic-commitment-key",
+    store_c_restarted = _execution_store(
+        tmp_path / "at1-remediation-crash-before-dispatch.sqlite3"
     )
     adapter_c = At1LiveTransportAdapter(
         session=ScriptedEstablishedSession(responses=[]),
@@ -392,9 +399,8 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
     with pytest.raises(RunContinuationRefusedError):
         adapter_c.dispatch(envelope)
 
-    store_d = At1ExecutionStore(
-        db_path=tmp_path / "at1-remediation-crash-after-dispatch.sqlite3",
-        commitment_key="synthetic-commitment-key",
+    store_d = _execution_store(
+        tmp_path / "at1-remediation-crash-after-dispatch.sqlite3"
     )
     store_d.acquire_claim("grant-run-crash-after-dispatch", "owner-1")
     store_d.record_attempt(
@@ -408,9 +414,8 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
         grant_run_id="grant-run-crash-after-dispatch",
         operation_ordinal=1,
     )
-    store_d_restarted = At1ExecutionStore(
-        db_path=tmp_path / "at1-remediation-crash-after-dispatch.sqlite3",
-        commitment_key="synthetic-commitment-key",
+    store_d_restarted = _execution_store(
+        tmp_path / "at1-remediation-crash-after-dispatch.sqlite3"
     )
     adapter_d = At1LiveTransportAdapter(
         session=ScriptedEstablishedSession(responses=[]),
@@ -442,7 +447,7 @@ def test_b36a_next_ordinal_refused_after_pre_dispatch_crash(tmp_path: Path) -> N
         },
     )
 
-    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store = _execution_store(db_path)
     store.acquire_claim("grant-run-crash-before-dispatch-next", "owner-1")
     store.record_attempt(
         grant_run_id="grant-run-crash-before-dispatch-next",
@@ -452,7 +457,7 @@ def test_b36a_next_ordinal_refused_after_pre_dispatch_crash(tmp_path: Path) -> N
         request_envelope=op1_envelope,
     )
 
-    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    restarted_store = _execution_store(db_path)
     session = ScriptedEstablishedSession(responses=[])
     adapter = At1LiveTransportAdapter(
         session=session,
@@ -486,7 +491,7 @@ def test_b36b_next_ordinal_refused_after_unresolved_dispatch(tmp_path: Path) -> 
         },
     )
 
-    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store = _execution_store(db_path)
     store.acquire_claim("grant-run-crash-after-dispatch-next", "owner-1")
     store.record_attempt(
         grant_run_id="grant-run-crash-after-dispatch-next",
@@ -500,7 +505,7 @@ def test_b36b_next_ordinal_refused_after_unresolved_dispatch(tmp_path: Path) -> 
         operation_ordinal=1,
     )
 
-    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    restarted_store = _execution_store(db_path)
     session = ScriptedEstablishedSession(responses=[])
     adapter = At1LiveTransportAdapter(
         session=session,
@@ -547,7 +552,7 @@ def test_b36c_next_ordinal_refused_after_response_captured_pre_parse(
         },
     }
 
-    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store = _execution_store(db_path)
     store.acquire_claim("grant-run-crash-response-pre-parse", "owner-1")
     store.record_attempt(
         grant_run_id="grant-run-crash-response-pre-parse",
@@ -566,7 +571,7 @@ def test_b36c_next_ordinal_refused_after_response_captured_pre_parse(
         response_envelope=response_envelope,
     )
 
-    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    restarted_store = _execution_store(db_path)
     session = ScriptedEstablishedSession(responses=[])
     adapter = At1LiveTransportAdapter(
         session=session,
@@ -617,7 +622,7 @@ def test_b36d_next_ordinal_refused_after_parsed_pre_semantic(
         },
     }
 
-    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store = _execution_store(db_path)
     store.acquire_claim("grant-run-crash-parsed-pre-semantic", "owner-1")
     store.record_attempt(
         grant_run_id="grant-run-crash-parsed-pre-semantic",
@@ -641,7 +646,7 @@ def test_b36d_next_ordinal_refused_after_parsed_pre_semantic(
         success=True,
     )
 
-    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    restarted_store = _execution_store(db_path)
     session = ScriptedEstablishedSession(responses=[])
     adapter = At1LiveTransportAdapter(
         session=session,
@@ -690,7 +695,7 @@ def test_b36e_parse_failure_pre_terminal_restart_refused(tmp_path: Path) -> None
         },
     }
 
-    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store = _execution_store(db_path)
     store.acquire_claim("grant-run-crash-parse-failure-pre-terminal", "owner-1")
     store.record_attempt(
         grant_run_id="grant-run-crash-parse-failure-pre-terminal",
@@ -719,7 +724,7 @@ def test_b36e_parse_failure_pre_terminal_restart_refused(tmp_path: Path) -> None
         success=False,
     )
 
-    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    restarted_store = _execution_store(db_path)
     session = ScriptedEstablishedSession(responses=[])
     adapter = At1LiveTransportAdapter(
         session=session,
@@ -768,7 +773,7 @@ def test_b36f_semantic_failure_pre_terminal_restart_refused(tmp_path: Path) -> N
         },
     }
 
-    store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store = _execution_store(db_path)
     store.acquire_claim("grant-run-crash-semantic-failure-pre-terminal", "owner-1")
     store.record_attempt(
         grant_run_id="grant-run-crash-semantic-failure-pre-terminal",
@@ -797,7 +802,7 @@ def test_b36f_semantic_failure_pre_terminal_restart_refused(tmp_path: Path) -> N
         success=False,
     )
 
-    restarted_store = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    restarted_store = _execution_store(db_path)
     session = ScriptedEstablishedSession(responses=[])
     adapter = At1LiveTransportAdapter(
         session=session,
@@ -820,8 +825,8 @@ def test_b36f_semantic_failure_pre_terminal_restart_refused(tmp_path: Path) -> N
 
 def test_b37_concurrent_atomic_claim_rejects_second_owner(tmp_path: Path) -> None:
     db_path = tmp_path / "at1-remediation-concurrent-claim.sqlite3"
-    store_1 = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
-    store_2 = At1ExecutionStore(db_path=db_path, commitment_key="synthetic-commitment-key")
+    store_1 = _execution_store(db_path)
+    store_2 = _execution_store(db_path)
 
     store_1.acquire_claim("grant-run-concurrency", "owner-1")
     with pytest.raises(ExecutionClaimError):

@@ -10,6 +10,12 @@ from pathlib import Path
 import sqlite3
 from typing import Any
 
+from integrations.ghl.at1_commitment_key_provider import (
+    CommitmentKeyMaterial,
+    _payload_bytes_from_material,
+    validate_version_resource,
+)
+
 
 AVAILABLE = "AVAILABLE"
 CLAIMED = "CLAIMED"
@@ -35,6 +41,10 @@ class RunContinuationRefusedError(RuntimeError):
     """Raised when a grant/run cannot continue due to an unresolved prior attempt."""
 
 
+class ExecutionStoreSchemaError(RuntimeError):
+    """Raised when the store schema or immutable metadata cannot be trusted."""
+
+
 def _canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
@@ -42,10 +52,27 @@ def _canonical_json(value: Any) -> str:
 class At1ExecutionStore:
     """SQLite-backed local execution store for AT-1 transport/evidence contracts."""
 
-    def __init__(self, db_path: str | Path, commitment_key: str) -> None:
-        if not isinstance(commitment_key, str) or not commitment_key.strip():
-            raise ValueError("commitment_key must be a non-empty string")
-        self._commitment_key = commitment_key.encode("utf-8")
+    _METADATA_TABLE = "at1_store_metadata"
+    _SCHEMA_VERSION = 1
+    _REQUIRED_TABLES = frozenset(
+        {
+            _METADATA_TABLE,
+            "execution_claims",
+            "attempts",
+            "protocol_ledger",
+            "business_ledger",
+        }
+    )
+
+    def __init__(
+        self,
+        db_path: str | Path,
+        commitment_material: CommitmentKeyMaterial,
+    ) -> None:
+        self._commitment_key = _payload_bytes_from_material(commitment_material)
+        self._commitment_key_version_resource = validate_version_resource(
+            commitment_material.version_resource
+        )
         self._db_path = str(db_path)
         self._connection = sqlite3.connect(
             self._db_path,
@@ -55,22 +82,59 @@ class At1ExecutionStore:
         )
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
-        self._initialize_schema()
+        try:
+            self._initialize_schema()
+        except ExecutionStoreSchemaError:
+            self._connection.close()
+            raise
 
     @property
     def db_path(self) -> str:
         return self._db_path
 
     def _initialize_schema(self) -> None:
-        self._connection.executescript(
+        table_names = self._table_names()
+        if not table_names:
+            self._initialize_new_schema()
+            return
+
+        if self._METADATA_TABLE not in table_names:
+            raise ExecutionStoreSchemaError(
+                "legacy or partially initialized store has no authoritative metadata"
+            )
+        if not self._REQUIRED_TABLES.issubset(table_names):
+            raise ExecutionStoreSchemaError("store schema is partially initialized")
+        self._validate_existing_metadata()
+
+    def _table_names(self) -> set[str]:
+        rows = self._connection.execute(
             """
-            CREATE TABLE IF NOT EXISTS execution_claims (
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+            """
+        ).fetchall()
+        return {str(row["name"]) for row in rows}
+
+    @staticmethod
+    def _schema_statements() -> tuple[str, ...]:
+        return (
+            """
+            CREATE TABLE at1_store_metadata (
+                singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+                schema_version INTEGER NOT NULL,
+                commitment_key_version_resource TEXT NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE execution_claims (
                 grant_run_id TEXT PRIMARY KEY,
                 owner_id TEXT NOT NULL,
                 claimed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS attempts (
+            )
+            """,
+            """
+            CREATE TABLE attempts (
                 grant_run_id TEXT NOT NULL,
                 operation_ordinal INTEGER NOT NULL,
                 operation_id TEXT NOT NULL,
@@ -88,17 +152,19 @@ class At1ExecutionStore:
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (grant_run_id, operation_ordinal),
                 UNIQUE (grant_run_id, request_id)
-            );
-
-            CREATE TABLE IF NOT EXISTS protocol_ledger (
+            )
+            """,
+            """
+            CREATE TABLE protocol_ledger (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 grant_run_id TEXT NOT NULL,
                 call_name TEXT NOT NULL,
                 payload_json TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-
-            CREATE TABLE IF NOT EXISTS business_ledger (
+            )
+            """,
+            """
+            CREATE TABLE business_ledger (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 grant_run_id TEXT NOT NULL,
                 operation_ordinal INTEGER NOT NULL,
@@ -108,9 +174,64 @@ class At1ExecutionStore:
                 request_digest TEXT,
                 response_digest TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            );
-            """
+            )
+            """,
         )
+
+    def _initialize_new_schema(self) -> None:
+        try:
+            self._connection.execute("BEGIN IMMEDIATE")
+            for statement in self._schema_statements():
+                self._connection.execute(statement)
+            self._connection.execute(
+                """
+                INSERT INTO at1_store_metadata (
+                    singleton,
+                    schema_version,
+                    commitment_key_version_resource
+                )
+                VALUES (1, ?, ?)
+                """,
+                (self._SCHEMA_VERSION, self._commitment_key_version_resource),
+            )
+            self._connection.execute("COMMIT")
+        except sqlite3.Error as exc:
+            if self._connection.in_transaction:
+                self._connection.execute("ROLLBACK")
+            raise ExecutionStoreSchemaError("atomic store initialization failed") from exc
+
+    def _validate_existing_metadata(self) -> None:
+        rows = self._connection.execute(
+            """
+            SELECT
+                singleton,
+                schema_version,
+                commitment_key_version_resource,
+                typeof(schema_version) AS schema_version_type
+            FROM at1_store_metadata
+            """
+        ).fetchall()
+        if len(rows) != 1:
+            raise ExecutionStoreSchemaError("store metadata must contain exactly one row")
+
+        row = rows[0]
+        if (
+            row["singleton"] != 1
+            or row["schema_version_type"] != "integer"
+            or row["schema_version"] != self._SCHEMA_VERSION
+        ):
+            raise ExecutionStoreSchemaError("store schema version is unsupported or corrupt")
+
+        try:
+            persisted_version_resource = validate_version_resource(
+                row["commitment_key_version_resource"]
+            )
+        except ValueError as exc:
+            raise ExecutionStoreSchemaError(
+                "store commitment-key version metadata is corrupt"
+            ) from exc
+        if persisted_version_resource != self._commitment_key_version_resource:
+            raise ExecutionStoreSchemaError("store commitment-key version does not match")
 
     def _commitment(self, value: Any) -> str:
         payload = _canonical_json(value).encode("utf-8")
