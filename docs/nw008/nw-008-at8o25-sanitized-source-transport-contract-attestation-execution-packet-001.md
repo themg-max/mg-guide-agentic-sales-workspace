@@ -1,0 +1,332 @@
+# NW-008 AT8O25 Sanitized Source-Transport Contract Attestation Execution Packet
+
+## Packet Binding
+
+```text
+UNIT=
+NW008_AT8O25_SANITIZED_SOURCE_TRANSPORT_CONTRACT_ATTESTATION_EXECUTION_PACKET_001
+
+PR_CLASS=planning_only
+
+MODE=
+SANITIZED_SOURCE_TRANSPORT_CONTRACT_ATTESTATION_EXECUTION_PACKET_ONLY
+
+ARTIFACT_OWNER=VS_CODE_ORCHESTRATOR
+
+AUTHORIZATION_UNIT=
+NW008_AT8O24_SANITIZED_SOURCE_TRANSPORT_CONTRACT_ATTESTATION_AUTHORIZATION_DECISION_001
+
+AUTHORIZATION_REVIEWED_HEAD=
+873de85409f656f9b7a9db4358157b22f323a40f
+
+AUTHORIZATION_MERGE_COMMIT=
+c3fa2a5676956b7571123d8014351f2d07e50c28
+
+AUTHORIZATION_REVIEWED_HEAD_ANCESTRY_VERIFIED=YES
+AUTHORIZATION_MERGE_COMMIT_ANCESTRY_VERIFIED=YES
+
+AUTHORIZATION_ACTIVATION_CONDITION_SATISFIED=YES
+AUTHORIZATION_EFFECTIVE=YES
+AUTHORIZATION_STATE=AVAILABLE
+```
+
+## Purpose and Non-Execution Boundary
+
+AT8O25 freezes the exact pre-access gates, one-shot human-review procedure,
+sanitized fact allowlist, forbidden-material blocklist, consumption semantics,
+and proof contract for the AT8O24-authorized review.
+
+This execution packet does not begin or perform that review and does not access
+private control-plane metadata.
+
+```text
+MAX_PRIVATE_CONTRACT_REVIEW_ATTEMPTS=1
+PRIVATE_CONTRACT_REVIEW_ATTEMPTS_USED=0
+AUTHORITY_REUSABLE=NO
+RETRY_AUTHORIZED=NO
+
+INSPECTION_ACTOR_CLASS=
+HUMAN_AUTHORIZED_METADATA_REVIEWER
+
+HUMAN_APPROVAL_REQUIRED=YES
+```
+
+## Authorized Review Surface
+
+```text
+AUTHORIZED_REVIEW_SURFACE=
+PRIVATE_CONTROL_PLANE_SOURCE_TRANSPORT_CONTRACT_METADATA_ONLY
+
+LIVE_SOURCE_TRANSPORT_ACCESS=FORBIDDEN
+PRIVATE_DATA_PLANE_ACCESS=FORBIDDEN
+AUTHORITY_RECORD_VALUE_ACCESS=FORBIDDEN
+
+TARGET_LOCATOR_RESULT_VALUES_ACCESS=FORBIDDEN
+TARGET_LOCATOR_RESULT_VALUES_RETURN=FORBIDDEN
+
+BROAD_PRIVATE_CONTROL_PLANE_ENUMERATION=FORBIDDEN
+UNRELATED_PRIVATE_SOURCE_ACCESS=FORBIDDEN
+```
+
+## Required Pre-Access Gates
+
+```text
+REQUIRED_PRE_ACCESS_GATES=
+EXACT_AUTHORIZED_REVIEW_SOURCE_AVAILABLE|
+AUTHORIZED_ACTOR_CONFIRMED|
+AUTHORIZED_21_FACT_ALLOWLIST_LOADED|
+FORBIDDEN_MATERIAL_BLOCKLIST_LOADED|
+PROOF_CAPTURE_DESTINATION_READY|
+NO_BROAD_ENUMERATION_REQUIRED|
+NO_PRIVATE_DATA_PLANE_ACCESS_REQUIRED
+
+REQUIRED_PRE_ACCESS_GATE_COUNT=7
+EVERY_REQUIRED_GATE_MUST_EQUAL_YES=YES
+```
+
+Current gate state while creating AT8O25:
+
+```text
+EXACT_AUTHORIZED_REVIEW_SOURCE_AVAILABLE=UNKNOWN
+AUTHORIZED_ACTOR_CONFIRMED=UNKNOWN
+AUTHORIZED_21_FACT_ALLOWLIST_LOADED=YES
+FORBIDDEN_MATERIAL_BLOCKLIST_LOADED=YES
+PROOF_CAPTURE_DESTINATION_READY=UNKNOWN
+NO_BROAD_ENUMERATION_REQUIRED=YES
+NO_PRIVATE_DATA_PLANE_ACCESS_REQUIRED=YES
+
+ALL_REQUIRED_PRE_ACCESS_GATES_YES=NO
+```
+
+The `UNKNOWN` values are deliberately not resolved in this planning-only PR.
+If any required gate is `NO` or `UNKNOWN`:
+
+```text
+EXECUTION_ALLOWED=NO
+PRIVATE_CONTRACT_REVIEW_EXECUTED=NO
+PRIVATE_CONTRACT_REVIEW_ATTEMPTS_USED=0
+ATTEMPT_CONSUMED=NO
+STOP_FOR_GOVERNANCE_REVIEW=YES
+```
+
+## Authorized 21-Fact Allowlist
+
+Output is authorized only for these exact AT8O24 facts:
+
+```text
+AUTHORIZED_SANITIZED_CONTRACT_FACTS=
+LOCATOR_SOURCE_TRANSPORT_CONNECTOR_SAFE_ALIAS|
+LOCATOR_SOURCE_TRANSPORT_OPERATION_SAFE_ALIAS|
+LOCATOR_SOURCE_TRANSPORT_SCHEMA_OR_DESCRIPTOR_VERSION|
+ONE_SOURCE_FACING_REQUEST_SEMANTICS_MODEL|
+AT8O20_AUTHORIZED_SOURCE_SCOPE_COMPATIBILITY|
+EXACT_REQUEST_PROJECTION_MECHANISM|
+AUTHORIZED_REQUEST_PROJECTION_FIELDS_SUPPORTED|
+NON_REQUESTED_FIELD_PREVENTION_MODEL|
+FORBIDDEN_VALUE_EXCLUSION_MODEL|
+SAFE_RESPONSE_OR_SANITIZATION_CONTRACT|
+SAFE_LOCATOR_FALLBACK_ENFORCEMENT_MODEL|
+PAGINATION_MODEL|
+CONTINUATION_MODEL|
+IMPLICIT_FOLLOWUP_MODEL|
+RETRY_MODEL|
+SINGLE_INVOCATION_COMPLETION_MODEL|
+DISPATCH_RECEIPT_MODEL|
+NON_SECRET_OPERATION_IDENTIFIER_MODEL|
+NON_SECRET_CORRELATION_IDENTIFIER_MODEL|
+PRIVATE_DATA_PLANE_SEPARATION_CONTRACT|
+SOURCE_TRANSPORT_AUTHORITY_CLASS
+
+AUTHORIZED_FACT_COUNT=21
+NON_REQUESTED_FIELD_RETURN=FORBIDDEN
+SAFE_UNDISCLOSABLE_VALUE=NOT_AUTHORIZED_TO_DISCLOSE
+```
+
+The `SAFE_LOCATOR_FALLBACK_ENFORCEMENT_MODEL` proof must establish whether the
+contract enforces `NOT_AUTHORIZED_TO_DISCLOSE` without first retrieving
+prohibited raw material.
+
+## Proof Contract
+
+Every returned fact must contain exactly the following proof fields:
+
+```text
+REQUIRED_FACT_PROOF_FIELDS=
+FACT_NAME|
+SANITIZED_VALUE|
+EVIDENCE_BASIS|
+SAFE_REVIEWABLE_SOURCE_PROVENANCE
+
+EVIDENCE_BASIS_ALLOWED_VALUES=OBSERVED|DERIVED
+OBSERVED_VERSUS_DERIVED_PROVENANCE_REQUIRED=YES
+REVIEWABLE_SOURCE_PROVENANCE_REQUIRED=YES
+RESULT_CONTENT=SANITIZED_SOURCE_TRANSPORT_CONTRACT_FACTS_ONLY
+```
+
+For each returned record:
+
+- `FACT_NAME` must be one of the exact 21 allowlisted names.
+- `SANITIZED_VALUE` must contain no forbidden material.
+- `EVIDENCE_BASIS` must be exactly `OBSERVED` or `DERIVED`.
+- `SAFE_REVIEWABLE_SOURCE_PROVENANCE` must cite reviewable provenance without
+  exposing forbidden private material.
+- An unavailable or unsafe value must be
+  `NOT_AUTHORIZED_TO_DISCLOSE`; it must not be recovered by first retrieving
+  forbidden raw material and then transforming it.
+
+## Forbidden Private-Material Blocklist
+
+- exact endpoint URL
+- raw private control-plane path
+- authority-record content
+- exact human principal
+- principal email
+- principal user ID
+- credentials
+- tokens
+- ADC contents
+- IAM policy binding contents
+- secrets
+- private customer/contact data
+
+No forbidden raw material may be accessed merely to redact, hash, truncate,
+encode, or transform it.
+
+## Frozen One-Shot Human-Review Procedure
+
+After AT8O25 has merged and before any private metadata access, the authorized
+human reviewer must:
+
+1. Reverify AT8O24 activation and availability with zero attempts used.
+2. Evaluate all seven pre-access gates without private metadata access.
+3. Stop without consuming the attempt if any gate is `NO` or `UNKNOWN`.
+4. Load and enforce the exact 21-fact allowlist and forbidden-material
+   blocklist before access.
+5. Confirm that the exact review requires neither broad enumeration, live
+   source-transport invocation, nor private data-plane access.
+6. Mark the attempt consumed immediately upon the first authorized private
+   control-plane contract metadata access for any allowlisted fact.
+7. Perform no retry, follow-up review, unrelated access, or access outside the
+   authorized review surface.
+8. Capture only sanitized fact records conforming to the proof contract.
+9. Fail closed immediately if forbidden material is encountered or the
+   authorization boundary cannot be proven.
+10. Record exactly one result-vocabulary value and stop.
+
+AT8O25 freezes this procedure but does not authorize bypassing any pre-access
+gate and does not itself initiate step 6.
+
+## Attempt Consumption
+
+```text
+AUTHORIZATION_CONSUMPTION_MODEL=
+CONSUMED_ON_FIRST_AUTHORIZED_PRIVATE_CONTROL_PLANE_CONTRACT_METADATA_ACCESS_FOR_ANY_AUTHORIZED_AT8O24_FACT
+
+PRE_ACCESS_FAILURE_CONSUMES_ATTEMPT=NO
+POST_ACCESS_FAILURE_CONSUMES_ATTEMPT=YES
+INDETERMINATE_ACCESS_CONSUMES_ATTEMPT=YES
+SUCCESS_CONSUMES_ATTEMPT=YES
+
+DISTRIBUTED_ATOMICITY_CLAIMED=NO
+```
+
+## Result Vocabulary
+
+```text
+AUTHORIZED_RESULT_VOCABULARY=
+NOT_EXECUTED|
+SUCCESS_SANITIZED|
+PARTIAL_SANITIZED|
+FAIL_CLOSED_FORBIDDEN_MATERIAL|
+FAIL_CLOSED_SOURCE_UNAVAILABLE_PRE_ACCESS|
+FAIL_CLOSED_SOURCE_FAILURE_POST_ACCESS|
+FAIL_CLOSED_AUTHORIZATION_MISMATCH|
+ERROR_CONSUMED|
+INDETERMINATE_CONSUMED
+```
+
+`NOT_EXECUTED`, `FAIL_CLOSED_SOURCE_UNAVAILABLE_PRE_ACCESS`, and a pre-access
+`FAIL_CLOSED_AUTHORIZATION_MISMATCH` do not consume the attempt. Every result
+reached after authorized metadata access consumes the sole attempt. If whether
+access occurred cannot be determined, the result is
+`INDETERMINATE_CONSUMED`.
+
+## Hard Blocks
+
+- private source-contract review execution during AT8O25
+- private control-plane metadata access during AT8O25
+- AT8O20 dispatch
+- AT8O16 dispatch
+- AT8O12 dispatch
+- target locator result access
+- live source-transport invocation
+- private data-plane invocation
+- broad private-control-plane enumeration
+- unrelated private-source access
+- raw forbidden value retrieval for redaction
+- ADC inspection
+- IAM inspection or mutation
+- Token Creator authorization
+- service-account impersonation
+- MG MCP mutation
+- deployment
+- HighLevel calls
+- CRM mutation
+
+```text
+PRIVATE_SOURCE_CONTRACT_REVIEW_EXECUTION_DURING_AT8O25=BLOCKED
+PRIVATE_CONTROL_PLANE_METADATA_ACCESS_DURING_AT8O25=BLOCKED
+AT8O20_DISPATCH=BLOCKED
+AT8O16_DISPATCH=BLOCKED
+AT8O12_DISPATCH=BLOCKED
+TARGET_LOCATOR_RESULT_ACCESS=BLOCKED
+LIVE_SOURCE_TRANSPORT_INVOCATION=BLOCKED
+PRIVATE_DATA_PLANE_INVOCATION=BLOCKED
+BROAD_PRIVATE_CONTROL_PLANE_ENUMERATION=BLOCKED
+UNRELATED_PRIVATE_SOURCE_ACCESS=BLOCKED
+RAW_FORBIDDEN_VALUE_RETRIEVAL_FOR_REDACTION=BLOCKED
+ADC_INSPECTION=BLOCKED
+IAM_INSPECTION_OR_MUTATION=BLOCKED
+TOKEN_CREATOR_AUTHORIZATION=BLOCKED
+SERVICE_ACCOUNT_IMPERSONATION=BLOCKED
+MG_MCP_MUTATION=BLOCKED
+DEPLOYMENT=BLOCKED
+HIGHLEVEL_CALL=BLOCKED
+CRM_MUTATION=BLOCKED
+```
+
+## Preserved Independent Authority State
+
+```text
+AT8O20_AUTHORIZATION_STATE=AVAILABLE
+AT8O20_INSPECTION_ATTEMPTS_USED=0
+AT8O20_LOCATOR_METADATA_INSPECTION_DISPATCHED=NO
+AT8O20_DISPATCH_READINESS=NOT_PROVEN
+AT8O20_AUTHORITY_MODIFIED=NO
+
+AT8O16_AUTHORIZATION_STATE=AVAILABLE
+AT8O16_INSPECTION_ATTEMPTS_USED=0
+AT8O16_INSPECTION_DISPATCHED=NO
+AT8O16_AUTHORITY_MODIFIED=NO
+
+AT8O12_AUTHORIZATION_STATE=AVAILABLE
+AT8O12_INSPECTION_ATTEMPTS_USED=0
+ORIGINAL_AT8O12_INSPECTION_DISPATCHED=NO
+AT8O12_AUTHORITY_MODIFIED=NO
+```
+
+## Current Packet State
+
+```text
+EXECUTION_ALLOWED=NO
+PRIVATE_CONTRACT_REVIEW_EXECUTED=NO
+PRIVATE_CONTRACT_REVIEW_ATTEMPTS_USED=0
+ATTEMPT_CONSUMED=NO
+IMPLEMENTATION_PERFORMED=NO
+EXTERNAL_EFFECTS=0
+
+STOP_FOR_GOVERNANCE_REVIEW=YES
+```
+
+No human private metadata review or private metadata access occurs while
+creating AT8O25.
