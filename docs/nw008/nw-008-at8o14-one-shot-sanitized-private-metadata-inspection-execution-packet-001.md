@@ -248,7 +248,7 @@ receipt contract are not identified. Consequently
 
 ```text
 FUTURE_EXECUTION_PROOF_PATH=
-docs/nw008/nw-008-at8o15-one-shot-sanitized-private-metadata-inspection-execution-proof-001.md
+proof/nw008/nw-008-at8o15-one-shot-sanitized-private-metadata-inspection-execution-proof-001.md
 
 PROOF_CAPTURE_PATH_DEFINED=YES
 EXECUTION_PROOF_CREATED=NO
