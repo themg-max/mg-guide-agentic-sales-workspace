@@ -104,7 +104,10 @@ The execution-proof destination is reserved as:
 
 ```text
 PROOF_CAPTURE_DESTINATION=
-proof/nw008/nw-008-at8o27-sanitized-source-transport-contract-attestation-execution-proof-001.md
+proof/nw008/nw-008-at8o28-sanitized-source-transport-contract-attestation-execution-proof-001.md
+
+POST_EXECUTION_PROOF_UNIT=
+NW008_AT8O28_SANITIZED_SOURCE_TRANSPORT_CONTRACT_ATTESTATION_EXECUTION_PROOF_001
 
 PRE_EXECUTION_PROOF_FILE_CREATION_PERMITTED=NO
 ```
@@ -203,6 +206,60 @@ review path avoids it. The current value remains:
 NO_PRIVATE_DATA_PLANE_ACCESS_REQUIRED=UNKNOWN
 ```
 
+## Durable Pre-Access Checkpoint
+
+Actual gate results must be captured in a separate durable artifact and pass
+formal review and human merge before any private metadata access:
+
+```text
+PRE_ACCESS_GATE_RESOLUTION_ARTIFACT_REQUIRED=YES
+
+PRE_ACCESS_GATE_RESOLUTION_UNIT=
+NW008_AT8O27_PRE_ACCESS_GATE_RESOLUTION_ATTESTATION_001
+
+PRE_ACCESS_GATE_RESOLUTION_ARTIFACT=
+proof/nw008/nw-008-at8o27-pre-access-gate-resolution-attestation-001.md
+
+PRE_ACCESS_GATE_RESOLUTION_REVIEW_REQUIRED=YES
+PRE_ACCESS_GATE_RESOLUTION_MERGE_REQUIRED_BEFORE_METADATA_ACCESS=YES
+```
+
+AT8O27 must contain exactly seven gate-result records, one for each exact
+AT8O25 gate. Every record must use this schema:
+
+```text
+AT8O27_REQUIRED_GATE_RESULT_RECORD_COUNT=7
+
+GATE_NAME=<exact AT8O25 gate name>
+GATE_VALUE=YES|NO|UNKNOWN
+EVIDENCE_BASIS=<safe evidence classification or explanation>
+SAFE_REVIEWABLE_PROVENANCE=<reviewable non-forbidden provenance>
+```
+
+AT8O27 may set:
+
+```text
+ALL_REQUIRED_PRE_ACCESS_GATES_YES=
+YES_ONLY_IF_ALL_SEVEN_EXACT_GATE_RECORDS_EQUAL_YES
+```
+
+Private metadata access is permitted only after the durable checkpoint:
+
+```text
+PRIVATE_METADATA_ACCESS_PERMITTED=
+YES_ONLY_IF_AT8O27_FORMALLY_REVIEWED_AND_HUMAN_MERGED_AND_REVIEWED_HEAD_ANCESTRY_VERIFIED_AND_ALL_SEVEN_EXACT_GATES_EQUAL_YES_AND_AT8O24_REMAINS_AVAILABLE_WITH_ATTEMPTS_USED_0
+```
+
+This requires all of the following:
+
+- AT8O27 has been formally reviewed.
+- AT8O27 has been human-merged.
+- The AT8O27 reviewed-head ancestry has been verified.
+- All seven exact gate records equal `YES`.
+- AT8O24 remains `AVAILABLE` with `attempts_used=0`.
+
+Neither AT8O26 review nor merge substitutes for the AT8O27 checkpoint.
+
 ## Required Seven-Gate Evaluation
 
 Before any private metadata access, one gate-result record is required for each
@@ -221,7 +278,7 @@ NO_PRIVATE_DATA_PLANE_ACCESS_REQUIRED
 REQUIRED_PRE_ACCESS_GATE_COUNT=7
 
 ALL_REQUIRED_PRE_ACCESS_GATES_YES=
-YES_ONLY_IF_ALL_SEVEN_EXACT_GATES_EQUAL_YES
+YES_ONLY_IF_ALL_SEVEN_EXACT_GATE_RECORDS_EQUAL_YES
 ```
 
 The two existing positive gates retain merged AT8O25 as their safe reviewable
@@ -231,11 +288,22 @@ packet.
 If any gate remains `NO` or `UNKNOWN`:
 
 ```text
+PRIVATE_METADATA_ACCESS_PERMITTED=NO
 EXECUTION_ALLOWED=NO
 ATTEMPT_CONSUMED=NO
 AT8O24_AUTHORIZATION_STATE=AVAILABLE
 AT8O24_PRIVATE_CONTRACT_REVIEW_ATTEMPTS_USED=0
 PRIVATE_CONTRACT_REVIEW_EXECUTED=NO
+```
+
+## Future Units
+
+```text
+POST_EXECUTION_PROOF_UNIT=
+NW008_AT8O28_SANITIZED_SOURCE_TRANSPORT_CONTRACT_ATTESTATION_EXECUTION_PROOF_001
+
+FUTURE_READINESS_RECONCILIATION_UNIT=
+NW008_AT8O29_AT8O21_DISPATCH_READINESS_RECONCILIATION_001
 ```
 
 ## Hard Blocks
@@ -275,6 +343,7 @@ NO_BROAD_ENUMERATION_REQUIRED=UNKNOWN
 NO_PRIVATE_DATA_PLANE_ACCESS_REQUIRED=UNKNOWN
 
 ALL_REQUIRED_PRE_ACCESS_GATES_YES=NO
+PRIVATE_METADATA_ACCESS_PERMITTED=NO
 EXECUTION_ALLOWED=NO
 
 AT8O24_AUTHORIZATION_EFFECTIVE=YES
