@@ -1,0 +1,632 @@
+# NW-008 AT-8O8 - Option B Pre-Retrieval Authority Resolution Contract 001
+
+```text
+UNIT=NW008_AT8O8_OPTION_B_PRE_RETRIEVAL_AUTHORITY_RESOLUTION_CONTRACT_001
+PR_CLASS=planning_only
+MODE=OPTION_B_ADAPTER_CONTRACT_DESIGN_ONLY
+ARTIFACT_OWNER=VS_CODE_ORCHESTRATOR
+
+PREDECESSOR_UNIT=NW008_AT8O7_OPTION_B_BOUNDED_ADAPTER_CONTRACT_FIT_001
+PREDECESSOR_REVIEWED_HEAD=daba2aa9cf7a50374b195c324a1de8c16e70730d
+PREDECESSOR_MERGE_COMMIT=cd0a70b440fb6b0807098195fe2e11090d7ac410
+PREDECESSOR_REVIEWED_HEAD_ANCESTOR_OF_ORIGIN_MAIN=YES
+PREDECESSOR_MERGE_COMMIT_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+OPTION_B_ADAPTER_PLACEMENT=UNKNOWN
+OPTION_B_CAN_KEEP_MG_MCP_RETRIEVAL_CONTRACT_UNCHANGED=UNKNOWN
+OPTION_B_OPAQUE_REF_TO_PACKET_ID_RESOLUTION_FIT=UNKNOWN
+OPTION_B_EXACTLY_ONE_ACTIVE_RESOLUTION_FIT=UNKNOWN
+OPTION_B_ACTIVE_SUPERSEDED_REVOKED_LINEAGE_FIT=UNKNOWN
+OPTION_B_PROVENANCE_BINDING_FIT=UNKNOWN
+OPTION_B_EXACT_VERSION_BINDING_FIT=UNKNOWN
+OPTION_B_AUTHORITY_RECORD_TRUST_VALIDATION_FIT=UNKNOWN
+OPTION_B_AUTHORITY_RECORD_ADMISSIBILITY_VALIDATION_FIT=UNKNOWN
+OPTION_B_PRIVATE_PII_BOUNDARY_FIT=UNKNOWN
+OPTION_B_FAIL_CLOSED_FIT=UNKNOWN
+OPTION_B_NEW_INFRASTRUCTURE_REQUIRED=UNKNOWN
+OPTION_B_NEW_IAM_SURFACE_REQUIRED=UNKNOWN
+OPTION_B_COMPLETE_AUTHORITY_RETRIEVAL_CONTRACT_FIT=UNKNOWN
+
+PREFERRED_OPTION=UNRESOLVED
+FINAL_MECHANISM_SELECTION_DESIGNABLE=NO
+TOKEN_CREATOR_BINDING_AUTHORIZATION_DESIGNABLE=NO
+
+OPTION_B_TARGET_RESPONSIBILITY_CLASS=PRE_RETRIEVAL_PRIVATE_AUTHORITY_RESOLUTION
+OPTION_B_TARGET_OWNS_OPAQUE_REF_RESOLUTION=YES
+OPTION_B_TARGET_OWNS_AUTHORITY_LIFECYCLE_SELECTION=YES
+OPTION_B_TARGET_OWNS_AUTHORITY_PROVENANCE_BINDING=YES
+OPTION_B_TARGET_OWNS_AUTHORITY_VERSION_BINDING=YES
+OPTION_B_TARGET_OWNS_AUTHORITY_TRUST_VALIDATION=YES
+OPTION_B_TARGET_OWNS_AUTHORITY_ADMISSIBILITY_VALIDATION=YES
+OPTION_B_TARGET_OWNS_FAIL_CLOSED_AUTHORITY_DECISION=YES
+OPTION_B_TARGET_OWNS_PACKET_RETRIEVAL=NO
+OPTION_B_TARGET_OWNS_PACKET_CONTENT_VALIDATION=NO
+OPTION_B_TARGET_HANDOFF_CANDIDATE=RESOLVED_PACKET_ID_TO_EXISTING_EXACT_RETRIEVAL_CONTRACT
+OPTION_B_TARGET_HANDOFF_PROVEN=NO
+
+CANDIDATE_HANDOFF_SCHEMA_DESIGNED=YES
+CANDIDATE_HANDOFF_COMPATIBILITY_WITH_EXISTING_EXACT_RETRIEVAL_CONTRACT=UNKNOWN
+EXISTING_EXACT_RETRIEVAL_REQUEST_SCHEMA_VERIFIED_FOR_AT8O8=NO
+HANDOFF_REQUEST_SCHEMA_MUTATION_AUTHORIZED=NO
+
+CALLER_MAY_SELECT_TARGET_RUNTIME_PRINCIPAL=NO
+CALLER_MAY_SELECT_IDENTITY_MECHANISM=NO
+CALLER_MAY_DOWNGRADE_MAPPING_VERSION=NO
+TRUSTED_RESOLVER_CONTEXT_IDENTITY_MECHANISM_REQUIRED=YES
+TRUSTED_RESOLVER_CONTEXT_TARGET_RUNTIME_PRINCIPAL_REQUIRED=YES
+TRUSTED_RESOLVER_CONTEXT_CURRENT_MAPPING_VERSION_REQUIRED=YES
+
+HISTORICAL_SUPERSEDED_EVENT_PERMITTED=YES
+SUPERSEDED_EVENT_ALONE_IMPLIES_FAILURE=NO
+EXACTLY_ONE_CURRENT_ACTIVE_RESULT_REQUIRED=YES
+
+SELECTED_IDENTITY_MECHANISM=LOCAL_OPERATOR_ADC_PLUS_SHORT_LIVED_SERVICE_ACCOUNT_IMPERSONATION
+TARGET_RUNTIME_PRINCIPAL=mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+AUTHORIZED_USER_ADC_REQUIRED=YES
+GENERIC_IMPLICIT_ADC_CHAIN_FOR_PRODUCTION=FORBIDDEN
+GOOGLE_APPLICATION_CREDENTIALS_OVERRIDE=FORBIDDEN
+USER_MANAGED_SERVICE_ACCOUNT_KEY_AS_BASE_CREDENTIAL=FORBIDDEN
+COMPUTE_METADATA_BASE_CREDENTIAL=FORBIDDEN_FOR_CURRENT_LOCAL_HOST
+
+EXACT_HUMAN_SOURCE_PRINCIPAL_VISIBILITY=PRIVATE
+EXACT_HUMAN_SOURCE_PRINCIPAL=UNRESOLVED
+
+DEC_027_RETIRED_PRINCIPAL=ai-rolodex-ci@ai-rolodex-to-crm.iam.gserviceaccount.com
+DEC_027_RETIRED_PRINCIPAL_PERMANENTLY_RETIRED=YES
+DEC_027_RETIRED_PRINCIPAL_REUSE=FORBIDDEN
+
+IMPLEMENTATION_PERFORMED=NO
+IAM_CHANGES=0
+ADC_MUTATIONS=0
+CREDENTIAL_USE=0
+SECRET_READS=0
+SERVICE_ACCOUNT_IMPERSONATION_EXECUTED=NO
+HIGHLEVEL_CALLS=0
+CRM_MUTATIONS=0
+DEPLOYMENT_CHANGES=0
+EXTERNAL_EFFECTS=0
+```
+
+## 1. Purpose and design boundary
+
+AT8O8 defines an implementation-neutral contract for pre-retrieval private
+authority resolution. It does not select adapter placement, authorize
+implementation, or prove Option B fit.
+
+The authority resolver decides whether one exact packet identity may proceed to
+the existing exact-retrieval contract. It never retrieves or validates packet
+content.
+
+```text
+AUTHORITY_VALIDATION_AND_PACKET_VALIDATION_ARE_DISTINCT=YES
+AUTHORITY_RESOLUTION_FAILURE_PREVENTS_PACKET_RETRIEVAL=YES
+PACKET_RETRIEVAL_REQUIRES_EXPLICIT_AUTHORITY_ALLOW_DECISION=YES
+DEFAULT_AUTHORITY_DECISION=DENY
+```
+
+## 2. Opaque reference input contract
+
+```text
+OPAQUE_REF_INPUT_CONTRACT_DESIGNED=YES
+OPAQUE_REF_INPUT_REQUIRED=YES
+OPAQUE_REF_INPUT_MUST_BE_NON_EMPTY=YES
+OPAQUE_REF_CONTAINS_DIRECT_PII=NO
+OPAQUE_REF_TREATED_AS_SENSITIVE_PSEUDONYMOUS_IDENTIFIER=YES
+OPAQUE_REF_REVERSIBLE_PRINCIPAL_DISCLOSURE=FORBIDDEN
+OPAQUE_REF_DERIVATION_MECHANISM_SELECTED=NO
+OPAQUE_REF_DERIVATION_CONTRACT_VERSIONED_IF_USED=YES
+OPAQUE_REF_INPUT_EXACT_MATCH_REQUIRED=YES
+OPAQUE_REF_INPUT_CASE_FOLDING=FORBIDDEN
+OPAQUE_REF_INPUT_TRIMMING_OR_REWRITE=FORBIDDEN
+OPAQUE_REF_REASSIGNMENT=FORBIDDEN
+```
+
+The resolver treats `opaque_ref` as an exact, sensitive pseudonymous
+identifier. It contains no direct PII, but its handling must prevent reversible
+principal disclosure. No derivation mechanism is selected. If one is later
+selected, it requires an explicit versioned contract.
+
+The logical request envelope requires:
+
+```text
+request_id
+opaque_ref
+requested_at
+requested_by
+consumer_type
+correlation_id
+```
+
+Missing, malformed, rewritten, or conflicting input fails closed before any
+authority-record read can produce an allow decision.
+
+Security-policy inputs are supplied by trusted resolver context, never selected
+or downgraded by the caller:
+
+```text
+CALLER_MAY_SELECT_TARGET_RUNTIME_PRINCIPAL=NO
+CALLER_MAY_SELECT_IDENTITY_MECHANISM=NO
+CALLER_MAY_DOWNGRADE_MAPPING_VERSION=NO
+TRUSTED_RESOLVER_CONTEXT_IDENTITY_MECHANISM_REQUIRED=YES
+TRUSTED_RESOLVER_CONTEXT_TARGET_RUNTIME_PRINCIPAL_REQUIRED=YES
+TRUSTED_RESOLVER_CONTEXT_CURRENT_MAPPING_VERSION_REQUIRED=YES
+```
+
+## 3. Authority record input contract
+
+```text
+AUTHORITY_RECORD_INPUT_CONTRACT_DESIGNED=YES
+AUTHORITY_RECORD_SCHEMA_VERSION_REQUIRED=YES
+AUTHORITY_RECORD_EVENT_ID_REQUIRED=YES
+AUTHORITY_RECORD_EVENT_VERSION_REQUIRED=YES
+AUTHORITY_SUBJECT_REF=opaque_ref
+AUTHORITY_RECORD_SUBJECT_REF_REQUIRED=YES
+AUTHORITY_RECORD_STATE_REQUIRED=YES
+AUTHORITY_RECORD_SOURCE_PRINCIPAL_BINDING_REQUIRED=YES
+AUTHORITY_RECORD_SOURCE_PRINCIPAL_BINDING_REPRESENTATION=UNRESOLVED
+RAW_EXACT_SOURCE_PRINCIPAL_PERSISTENCE_REQUIRED=NO
+EXACT_SOURCE_PRINCIPAL_TRANSIENT_VALIDATION_IF_REQUIRED=UNRESOLVED
+AUTHORITY_RECORD_MAPPING_BINDING_REQUIRED=YES
+AUTHORITY_RECORD_APPROVAL_PROOF_REQUIRED=YES
+AUTHORITY_RECORD_IMMUTABLE_PROVENANCE_REQUIRED=YES
+```
+
+Each logical authority event contains:
+
+```text
+schema_version
+event_id
+event_version
+event_type
+authority_subject_ref
+record_state
+source_principal_binding
+source_principal_class
+selected_identity_mechanism
+target_runtime_principal
+predecessor_event_id
+successor_event_id
+mapping_contract_version
+resolved_packet_id
+resolved_packet_source_id
+resolved_packet_source_class
+resolved_packet_consumer_type
+authority_source_version
+authority_provenance_ref
+approval_proof_refs
+trust_state
+admissibility_state
+approved_at
+effective_at
+```
+
+`authority_subject_ref` is the stable lineage partition key and equals the
+request `opaque_ref`. Event relationships use `predecessor_event_id` and
+`successor_event_id`; no second authority-subject identity is introduced.
+
+The source-principal binding representation remains unresolved. Raw exact
+principal persistence is not required. If transient exact-principal validation
+is later required, it may occur only inside the approved private
+authority-resolution boundary and never enter packet handoff, public proof,
+logs, telemetry, or this repository.
+
+## 4. Lineage state machine
+
+```text
+LINEAGE_STATE_MACHINE_DESIGNED=YES
+
+ABSENT_TO_ACTIVE_EVENT=APPROVE
+ACTIVE_TO_SUPERSEDED_EVENT=SUPERSEDE
+ACTIVE_TO_REVOKED_EVENT=REVOKE
+SUPERSEDED_STATE_IS_HISTORICAL=YES
+REVOKED_STATE_IS_TERMINAL=YES
+AUTHORITY_SUBJECT_REF_REUSE_AFTER_TERMINAL_STATE=FORBIDDEN
+
+HISTORICAL_SUPERSEDED_EVENT_PERMITTED=YES
+SUPERSEDED_EVENT_ALONE_IMPLIES_FAILURE=NO
+EXACTLY_ONE_CURRENT_ACTIVE_RESULT_REQUIRED=YES
+```
+
+Events are ordered by an explicit monotonic event version. Duplicate versions,
+gaps that violate the governed lineage contract, conflicting transitions,
+multiple current active events, or a terminal revoked outcome fail closed.
+
+Historical superseded events remain valid audit history. They do not alone
+cause failure when the evaluated resolution scope contains exactly one valid
+current active event.
+
+## 5. Exactly-one-active selection algorithm
+
+```text
+EXACTLY_ONE_ACTIVE_SELECTION_ALGORITHM_DESIGNED=YES
+SELECTION_ALGORITHM_IS_IMPLEMENTATION_NEUTRAL=YES
+```
+
+The resolver must execute these ordered logical steps:
+
+1. Validate the request envelope and exact opaque reference.
+2. Read the complete governed authority lineage for that exact reference.
+3. Validate schema versions, event identity uniqueness, and event ordering.
+4. Validate every state transition and terminal-state constraint.
+5. Partition historical events from current candidates.
+6. Require exactly one current `ACTIVE` candidate.
+7. Validate that candidate's authority provenance and exact source version.
+8. Validate authority-record trust and admissibility.
+9. Validate identity mechanism and target runtime principal bindings.
+10. Validate mapping contract version and resolved packet identity.
+11. Emit one `ALLOW_PACKET_RETRIEVAL` decision or one fail-closed denial.
+
+```text
+ZERO_CURRENT_ACTIVE_RESULTS=FAIL_CLOSED
+MULTIPLE_CURRENT_ACTIVE_RESULTS=FAIL_CLOSED
+TERMINAL_REVOKED_RESULT=FAIL_CLOSED
+INVALID_LINEAGE_ORDER=FAIL_CLOSED
+AUTHORITY_VALIDATION_FAILURE=FAIL_CLOSED
+ALLOW_DECISION_CARDINALITY=EXACTLY_ONE_OR_ZERO
+```
+
+No step may return a packet identity after an earlier step fails.
+
+## 6. Mapping version binding
+
+```text
+MAPPING_VERSION_BINDING_CONTRACT_DESIGNED=YES
+MAPPING_CONTRACT_VERSION_REQUIRED=YES
+MAPPING_RECORD_ID_REQUIRED=YES
+MAPPING_RECORD_VERSION_REQUIRED=YES
+MAPPING_AUTHORITY_EVENT_BINDING_REQUIRED=YES
+MAPPING_PACKET_ID_BINDING_REQUIRED=YES
+MAPPING_PACKET_SOURCE_ID_BINDING_REQUIRED=YES
+MAPPING_PACKET_SOURCE_CLASS_BINDING_REQUIRED=YES
+MAPPING_PACKET_CONSUMER_TYPE_BINDING_REQUIRED=YES
+MAPPING_VERSION_EXACT_MATCH_REQUIRED=YES
+MAPPING_VERSION_FALLBACK=FORBIDDEN
+MAPPING_VERSION_DOWNGRADE=FORBIDDEN
+```
+
+The mapping binding logically includes:
+
+```text
+mapping_contract_version
+mapping_record_id
+mapping_record_version
+opaque_ref
+authority_event_id
+authority_event_version
+authority_source_version
+resolved_packet_id
+resolved_packet_source_id
+resolved_packet_source_class
+resolved_packet_consumer_type
+mapping_provenance_ref
+mapping_effective_at
+mapping_integrity_hash
+```
+
+The resolver rejects missing, stale, ambiguous, downgraded, or mismatched
+mapping versions. It cannot infer a replacement mapping.
+
+## 7. Provenance binding
+
+```text
+PROVENANCE_BINDING_CONTRACT_DESIGNED=YES
+AUTHORITY_SOURCE_VERSION_REQUIRED=YES
+AUTHORITY_PROVENANCE_REF_REQUIRED=YES
+APPROVAL_PROOF_REFS_REQUIRED=YES
+MAPPING_PROVENANCE_REF_REQUIRED=YES
+PACKET_BINDING_PROVENANCE_REQUIRED=YES
+PROVENANCE_CHAIN_EXACT_MATCH_REQUIRED=YES
+```
+
+An allow decision binds the request, active authority event, authority source
+version, mapping record version, resolved packet ID, approval proof references,
+and integrity hashes into one audit decision. Any broken or conflicting link
+denies packet retrieval.
+
+## 8. Authority trust contract
+
+```text
+AUTHORITY_TRUST_CONTRACT_DESIGNED=YES
+AUTHORITY_TRUST_VALIDATION_REQUIRED_BEFORE_HANDOFF=YES
+AUTHORITY_TRUST_UNKNOWN=FAIL_CLOSED
+AUTHORITY_TRUST_PROVISIONAL=FAIL_CLOSED
+AUTHORITY_TRUST_REVOKED=FAIL_CLOSED
+AUTHORITY_APPROVAL_PROOF_VALIDATION_REQUIRED=YES
+
+OPTION_B_AUTHORITY_RECORD_TRUST_VALIDATION_FIT=UNKNOWN
+```
+
+Authority trust validates the authority record and its human approval proof.
+It is distinct from packet trust, which remains owned by existing packet
+retrieval after a successful handoff.
+
+## 9. Authority admissibility contract
+
+```text
+AUTHORITY_ADMISSIBILITY_CONTRACT_DESIGNED=YES
+AUTHORITY_ADMISSIBILITY_REQUIRED_BEFORE_HANDOFF=YES
+AUTHORITY_RECORD_CLASS_MATCH_REQUIRED=YES
+AUTHORITY_ACTIVE_STATE_REQUIRED=YES
+AUTHORITY_IDENTITY_MECHANISM_MATCH_REQUIRED=YES
+AUTHORITY_TARGET_RUNTIME_PRINCIPAL_MATCH_REQUIRED=YES
+AUTHORITY_PRIVATE_PII_PROCESSING_AUTHORITY_REQUIRED=YES
+AUTHORITY_ADMISSIBILITY_UNKNOWN=FAIL_CLOSED
+
+OPTION_B_AUTHORITY_RECORD_ADMISSIBILITY_VALIDATION_FIT=UNKNOWN
+```
+
+An authority record is admissible only when its class, current state, identity
+mechanism, target principal, PII-processing authority, provenance, and mapping
+bindings match the request scope and trusted resolver context.
+
+## 10. Private-PII boundary
+
+```text
+PRIVATE_PII_BOUNDARY_CONTRACT_DESIGNED=YES
+EXACT_SOURCE_PRINCIPAL_DATA_CLASS=PRIVATE_PII
+EXACT_SOURCE_PRINCIPAL_PUBLIC_OUTPUT=FORBIDDEN
+EXACT_SOURCE_PRINCIPAL_PACKET_HANDOFF=FORBIDDEN
+EXACT_SOURCE_PRINCIPAL_LOGGING=FORBIDDEN
+EXACT_SOURCE_PRINCIPAL_TELEMETRY=FORBIDDEN
+EXACT_SOURCE_PRINCIPAL_PUBLIC_PROOF=FORBIDDEN
+PRIVATE_PII_SUCCESS_SHAPED_REDACTION_FALLBACK=FORBIDDEN
+
+OPTION_B_PRIVATE_PII_BOUNDARY_FIT=UNKNOWN
+```
+
+The source-principal binding remains private. Whether transient exact-principal
+validation is required remains unresolved; if required, the exact value may
+exist only in approved private authority-processing memory. Failure to
+establish that boundary denies resolution rather than returning a redacted or
+partial success.
+
+## 11. Resolved packet-ID handoff contract
+
+```text
+RESOLVED_PACKET_ID_HANDOFF_CONTRACT_DESIGNED=YES
+OPTION_B_TARGET_HANDOFF_CANDIDATE=RESOLVED_PACKET_ID_TO_EXISTING_EXACT_RETRIEVAL_CONTRACT
+OPTION_B_TARGET_HANDOFF_PROVEN=NO
+CANDIDATE_HANDOFF_SCHEMA_DESIGNED=YES
+CANDIDATE_HANDOFF_COMPATIBILITY_WITH_EXISTING_EXACT_RETRIEVAL_CONTRACT=UNKNOWN
+EXISTING_EXACT_RETRIEVAL_REQUEST_SCHEMA_VERIFIED_FOR_AT8O8=NO
+HANDOFF_REQUEST_SCHEMA_MUTATION_AUTHORIZED=NO
+HANDOFF_REQUIRES_ALLOW_PACKET_RETRIEVAL_DECISION=YES
+HANDOFF_CONTAINS_EXACT_SOURCE_PRINCIPAL=NO
+HANDOFF_MUTATES_PACKET_REQUEST=NO
+HANDOFF_MAPPING_BOUND_FIELDS_MUST_EXACTLY_MATCH_MAPPING_BINDING=YES
+HANDOFF_REQUESTED_AT_SOURCE=REQUEST_ENVELOPE
+PACKET_VALIDATION_REMAINS_DOWNSTREAM=YES
+```
+
+The candidate handoff schema is:
+
+```text
+packet_id <- resolved_packet_id
+source_id <- resolved_packet_source_id
+source_class <- resolved_packet_source_class
+consumer_type <- resolved_packet_consumer_type
+requested_at <- request_envelope.requested_at
+```
+
+The four mapping-bound handoff fields must exactly match the validated mapping
+record. `requested_at` is request-envelope metadata and is not stored in or
+derived from the mapping record.
+
+Compatibility with the existing exact-retrieval request remains `UNKNOWN`
+because that request schema was not verified for AT8O8. This candidate schema
+does not authorize request-schema mutation and must not be represented as an
+accepted existing request.
+
+The authority decision ID and correlation ID remain in the private audit
+boundary and are not added to the unchanged packet request. A missing or
+denied authority decision produces no handoff.
+
+## 12. Failure code set
+
+```text
+FAILURE_CODE_SET_DESIGNED=YES
+
+AUTHORITY_OPAQUE_REF_INVALID
+AUTHORITY_OPAQUE_REF_NOT_FOUND
+AUTHORITY_LINEAGE_NOT_FOUND
+AUTHORITY_LINEAGE_SCHEMA_INVALID
+AUTHORITY_LINEAGE_ORDER_INVALID
+AUTHORITY_LINEAGE_TRANSITION_INVALID
+AUTHORITY_NO_ACTIVE_RESULT
+AUTHORITY_MULTIPLE_ACTIVE_RESULTS
+AUTHORITY_TERMINAL_REVOKED
+AUTHORITY_SOURCE_VERSION_MISMATCH
+AUTHORITY_PROVENANCE_BINDING_MISMATCH
+AUTHORITY_APPROVAL_PROOF_INVALID
+AUTHORITY_TRUST_VALIDATION_FAILED
+AUTHORITY_ADMISSIBILITY_VALIDATION_FAILED
+AUTHORITY_PRIVATE_PII_BOUNDARY_UNAVAILABLE
+AUTHORITY_IDENTITY_MECHANISM_MISMATCH
+AUTHORITY_TARGET_RUNTIME_PRINCIPAL_MISMATCH
+AUTHORITY_MAPPING_NOT_FOUND
+AUTHORITY_MAPPING_VERSION_MISMATCH
+AUTHORITY_MAPPING_INTEGRITY_MISMATCH
+AUTHORITY_PACKET_ID_MISSING
+AUTHORITY_PACKET_ID_AMBIGUOUS
+AUTHORITY_PACKET_HANDOFF_MISMATCH
+AUTHORITY_INTERNAL_CONTRACT_FAILURE
+```
+
+Every failure code has the same execution effect:
+
+```text
+AUTHORITY_DECISION=DENY
+PACKET_RETRIEVAL_ALLOWED=NO
+PACKET_RETRIEVAL_EXECUTED=NO
+PRIVATE_SOURCE_PRINCIPAL_OUTPUT=NO
+```
+
+## 13. Audit decision envelope
+
+```text
+AUDIT_DECISION_ENVELOPE_DESIGNED=YES
+AUDIT_DECISION_IMMUTABLE=YES
+AUDIT_DECISION_PRIVATE=YES
+AUDIT_ENVELOPE_EXACT_SOURCE_PRINCIPAL_ALLOWED=NO
+AUDIT_DENIAL_SUCCESS_SHAPED=NO
+DENY_AUDIT_RESOLVED_PACKET_ID=OMIT
+DENY_AUDIT_HANDOFF_CAPABLE_PACKET_ID=FORBIDDEN
+```
+
+The private audit envelope contains:
+
+```text
+authority_decision_id
+authority_contract_version
+request_id
+correlation_id
+opaque_ref_audit_ref
+decision
+failure_code
+packet_retrieval_allowed
+authority_event_id
+authority_event_version
+authority_source_version
+mapping_record_id
+mapping_record_version
+resolved_packet_id_when_decision_is_allow
+authority_trust_outcome
+authority_admissibility_outcome
+selected_identity_mechanism
+target_runtime_principal
+provenance_proof_refs
+requested_at
+evaluated_at
+```
+
+Denied decisions always omit the resolved packet ID and may not retain any
+handoff-capable packet identifier. If rejected-packet diagnostic correlation is
+required, it uses a non-handoff-capable digest or private audit reference.
+Audit access remains private and separately governed.
+
+## 14. Authority validation versus packet validation
+
+```text
+AUTHORITY_VALIDATION_OWNER=PRE_RETRIEVAL_PRIVATE_AUTHORITY_RESOLVER
+PACKET_VALIDATION_OWNER=EXISTING_EXACT_RETRIEVAL_CONTRACT
+AUTHORITY_VALIDATION_PRECEDES_PACKET_VALIDATION=YES
+PACKET_VALIDATION_CAN_OVERRIDE_AUTHORITY_ALLOW_WITH_DENIAL=YES
+PACKET_VALIDATION_CAN_OVERRIDE_AUTHORITY_DENIAL_WITH_ALLOW=NO
+EXISTING_PACKET_TRUST_VALIDATION_REUSED_AFTER_HANDOFF=YES
+EXISTING_PACKET_ADMISSIBILITY_VALIDATION_REUSED_AFTER_HANDOFF=YES
+```
+
+Authority validation covers opaque-ref resolution, lineage, exactly-one-active
+selection, authority provenance/version binding, authority trust, authority
+admissibility, private PII, and the packet-ID mapping.
+
+Packet validation covers exact packet identity, packet source constraints,
+packet trust, packet admissibility, consumer eligibility, packet provenance,
+and packet content integrity. Passing authority validation does not bypass any
+packet validation.
+
+## 15. Runtime identity constraints
+
+```text
+SELECTED_IDENTITY_MECHANISM=LOCAL_OPERATOR_ADC_PLUS_SHORT_LIVED_SERVICE_ACCOUNT_IMPERSONATION
+TARGET_RUNTIME_PRINCIPAL=mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+AUTHORIZED_USER_ADC_REQUIRED=YES
+GENERIC_IMPLICIT_ADC_CHAIN_FOR_PRODUCTION=FORBIDDEN
+GOOGLE_APPLICATION_CREDENTIALS_OVERRIDE=FORBIDDEN
+USER_MANAGED_SERVICE_ACCOUNT_KEY_AS_BASE_CREDENTIAL=FORBIDDEN
+COMPUTE_METADATA_BASE_CREDENTIAL=FORBIDDEN_FOR_CURRENT_LOCAL_HOST
+
+EXACT_HUMAN_SOURCE_PRINCIPAL_VISIBILITY=PRIVATE
+EXACT_HUMAN_SOURCE_PRINCIPAL=UNRESOLVED
+SOURCE_PRINCIPAL_SELECTION_EXECUTED=NO
+
+DEC_027_RETIRED_PRINCIPAL=ai-rolodex-ci@ai-rolodex-to-crm.iam.gserviceaccount.com
+DEC_027_RETIRED_PRINCIPAL_PERMANENTLY_RETIRED=YES
+DEC_027_RETIRED_PRINCIPAL_REUSE=FORBIDDEN
+```
+
+These constraints are carried forward unchanged. AT8O8 does not inspect ADC,
+select a human source principal, authorize Token Creator, modify IAM, or
+authorize runtime identity changes.
+
+## 16. MG MCP AT8O7 context validation
+
+```text
+MG_MCP_AT8O7_EXPECTED_CONTEXT_STATE=UNKNOWN
+MG_MCP_AT8O7_EXPECTED_CONTEXT_SURFACED=NO
+MG_MCP_AT8O7_TARGETED_SEARCH_PERFORMED=YES
+MG_MCP_AT8O7_ALIAS_VALIDATION_PERFORMED=YES
+MG_MCP_AT8O7_INDEX_VALIDATION_PERFORMED=YES
+MG_MCP_AT8O7_EXACT_UNIT_MATCH_FOUND=NO
+MG_MCP_AT8O7_EXACT_ARTIFACT_MATCH_FOUND=NO
+MG_MCP_AT8O7_ALIAS_MATCH_FOUND=NO
+MG_MCP_AT8O7_INDEX_MATCH_FOUND=NO
+MISSING_MG_MCP_RESULT_IMPLIES_AUTHORITY=NO
+MISSING_MG_MCP_RESULT_IMPLIES_INCAPABILITY=NO
+AT8O8_AUTHORING_MG_MCP_CONNECTOR_RETRIEVAL_EXECUTED=NO
+```
+
+Targeted read-only source, alias, and catalog inspection did not surface the
+expected AT8O7 context. This absence grants no authority and proves no
+incapability. All Option B fit states remain unresolved.
+
+## 17. Preserved unresolved states
+
+```text
+OPTION_B_ADAPTER_PLACEMENT=UNKNOWN
+OPTION_B_CAN_KEEP_MG_MCP_RETRIEVAL_CONTRACT_UNCHANGED=UNKNOWN
+OPTION_B_OPAQUE_REF_TO_PACKET_ID_RESOLUTION_FIT=UNKNOWN
+OPTION_B_EXACTLY_ONE_ACTIVE_RESOLUTION_FIT=UNKNOWN
+OPTION_B_ACTIVE_SUPERSEDED_REVOKED_LINEAGE_FIT=UNKNOWN
+OPTION_B_PROVENANCE_BINDING_FIT=UNKNOWN
+OPTION_B_EXACT_VERSION_BINDING_FIT=UNKNOWN
+OPTION_B_AUTHORITY_RECORD_TRUST_VALIDATION_FIT=UNKNOWN
+OPTION_B_AUTHORITY_RECORD_ADMISSIBILITY_VALIDATION_FIT=UNKNOWN
+OPTION_B_PRIVATE_PII_BOUNDARY_FIT=UNKNOWN
+OPTION_B_FAIL_CLOSED_FIT=UNKNOWN
+OPTION_B_NEW_INFRASTRUCTURE_REQUIRED=UNKNOWN
+OPTION_B_NEW_IAM_SURFACE_REQUIRED=UNKNOWN
+OPTION_B_COMPLETE_AUTHORITY_RETRIEVAL_CONTRACT_FIT=UNKNOWN
+
+PREFERRED_OPTION=UNRESOLVED
+FINAL_MECHANISM_SELECTION_DESIGNABLE=NO
+TOKEN_CREATOR_BINDING_AUTHORIZATION_DESIGNABLE=NO
+```
+
+Contract design does not prove implementation fit, select placement, or
+authorize mechanism selection.
+
+## 18. Explicit non-actions
+
+```text
+ADAPTER_CODE_CREATED=NO
+AUTHORITY_INDEX_CREATED=NO
+MG_MCP_MODIFIED=NO
+PACKET_SCHEMA_ALTERED=NO
+PRIVATE_PII_INGESTED=NO
+PRIVATE_RETRIEVAL_EXECUTED=NO
+SOURCE_PRINCIPAL_SELECTED=NO
+PRIVATE_AUTHORITY_RECORD_CREATED=NO
+ADC_INSPECTED=NO
+IAM_MODIFIED=NO
+TOKEN_CREATOR_AUTHORIZED=NO
+DEPLOYMENT_CHANGES=0
+HIGHLEVEL_CALLS=0
+CRM_MUTATIONS=0
+SRC_MODIFIED=NO
+TESTS_MODIFIED=NO
+WORKFLOWS_MODIFIED=NO
+IMPLEMENTATION_PERFORMED=NO
+EXTERNAL_EFFECTS=0
+```
+
+## 19. Validation and stop condition
+
+```text
+ARTIFACTS_CHANGED=1
+ARTIFACT_PATH=docs/nw008/nw-008-at8o8-option-b-pre-retrieval-authority-resolution-contract-001.md
+RUNTIME_OR_HIGHER_RISK_PATHS_CHANGED=0
+IMPLEMENTATION_PERFORMED=NO
+EXTERNAL_EFFECTS=0
+STOP_FOR_ARCHITECTURE_REVIEW=YES
+```
