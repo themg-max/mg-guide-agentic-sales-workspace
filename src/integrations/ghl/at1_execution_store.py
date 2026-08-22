@@ -74,6 +74,9 @@ class At1ExecutionStore:
             commitment_material.version_resource
         )
         self._db_path = str(db_path)
+        # sqlite3.connect() creates a missing path; capture preexistence first so a
+        # preexisting empty artifact is never treated as fresh initialization.
+        path_preexisted = Path(self._db_path).exists()
         self._connection = sqlite3.connect(
             self._db_path,
             isolation_level=None,
@@ -83,7 +86,7 @@ class At1ExecutionStore:
         self._connection.row_factory = sqlite3.Row
         self._connection.execute("PRAGMA foreign_keys = ON")
         try:
-            self._initialize_schema()
+            self._initialize_schema(path_preexisted=path_preexisted)
         except ExecutionStoreSchemaError:
             self._connection.close()
             raise
@@ -92,9 +95,13 @@ class At1ExecutionStore:
     def db_path(self) -> str:
         return self._db_path
 
-    def _initialize_schema(self) -> None:
+    def _initialize_schema(self, *, path_preexisted: bool) -> None:
         table_names = self._table_names()
         if not table_names:
+            if path_preexisted:
+                raise ExecutionStoreSchemaError(
+                    "preexisting empty store artifact cannot be initialized"
+                )
             self._initialize_new_schema()
             return
 
