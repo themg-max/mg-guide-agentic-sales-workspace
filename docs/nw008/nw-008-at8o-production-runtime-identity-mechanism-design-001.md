@@ -31,7 +31,9 @@ The AT-1 bounded transport runtime executes as a single-instance, long-lived
 local process on an operator-controlled host. It is not a Cloud Run service,
 Cloud Function, GKE workload, or Compute Engine VM with attached metadata
 server. The runtime must acquire GCP credentials from the local environment to
-access Secret Manager and HighLevel via REST.
+access Secret Manager and HighLevel via REST. For the current host class, the
+only selected base credential class is explicitly validated local
+authorized-user ADC; generic implicit ADC discovery is forbidden.
 
 ## 2. Target runtime principal
 
@@ -41,31 +43,46 @@ TARGET_RUNTIME_PRINCIPAL_IDENTIFIED=YES
 ```
 
 This service account was established in prior AT8K design as the
-least-privilege principal for the GHL note-path runtime. It holds only the
-IAM bindings required for Secret Manager accessor on the specific secrets
-consumed by the runtime.
+least-privilege principal for the GHL note-path runtime. The concrete GHL PIT
+Secret Manager accessor binding was configured by AT8K2 through PR117 and
+PR118. It is secret-specific, not project-wide.
 
 ```text
 USER_MANAGED_SERVICE_ACCOUNT_KEYS=0
 AI_ROLODEX_CI_PRINCIPAL_REUSE=FORBIDDEN
 DEC_027_PRESERVED=YES
+
+GHL_PIT_SECRET_RESOURCE=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
+GHL_PIT_SECRET_ACCESS_IAM_ALREADY_CONFIGURED=YES
+GHL_PIT_SECRET_ACCESS_IAM_SOURCE=AT8K2_PR117_PR118
+PROJECT_WIDE_SECRET_ACCESSOR=NO
+
+AT8K2_IAM_AUTHORIZATION_CONSUMED=YES
+AT8K2_IAM_AUTHORIZATION_REUSABLE=NO
 ```
 
 DEC-027 prohibits reuse of the `ai-rolodex-to-crm` CI/deployment principal
-for runtime workloads. The runtime principal is distinct.
+for runtime workloads. The runtime principal is distinct. AT8O does not reuse
+the consumed AT8K2 authorization or modify the existing GHL PIT binding.
 
 ## 3. AT8N parallel planning status
 
 ```text
 AT8N_STATUS=PENDING_PARALLEL_PLANNING
 AT8N_SUPERSEDED=NO
-AT8N_SCOPE=GHL_PIT_SECRET_MANAGER_ACCESSOR_ONLY
+AT8N_SCOPE=GHL_PIT_CONCRETE_SECRET_MANAGER_ACCESSOR_DESIGN_ONLY
+AT8N_NEW_GHL_PIT_IAM_GRANT_REQUIRED=NO
+
+COMMITMENT_KEY_SECRET_RESOURCE_IDENTIFIED=NO
+COMMITMENT_KEY_SECRET_IAM_CONFIGURED=NO
+COMMITMENT_KEY_SECRET_IAM_DESIGN_INCLUDED_IN_AT8N=NO
 ```
 
-AT8N plans the GHL PIT Secret Manager accessor binding for the runtime
-principal. It is a parallel, non-overlapping lane. AT8O designs the identity
-mechanism (how the runtime acquires credentials); AT8N designs the IAM grant
-(what the credential authorizes). Neither implements anything.
+AT8N reconciles the already-configured concrete GHL PIT Secret Manager
+accessor binding for the runtime principal. No new GHL PIT IAM grant is
+required. It remains a parallel, non-overlapping planning lane. Commitment-key
+secret resource identification and IAM are outside AT8N. Neither lane
+implements anything.
 
 ## 4. Identity mechanism evaluation
 
@@ -76,31 +93,33 @@ OPTION=A
 MECHANISM=LOCAL_OPERATOR_ADC_PLUS_SHORT_LIVED_SERVICE_ACCOUNT_IMPERSONATION
 ```
 
-The operator authenticates locally via `gcloud auth application-default login`.
-The runtime discovers the operator's ADC, then uses
-`google.auth.impersonated_credentials` to obtain short-lived access tokens for
-the target runtime service account.
+The mechanism requires preexisting local authorized-user ADC belonging to a
+human operator. A future separately authorized implementation would use that
+base credential to obtain short-lived access tokens for the target runtime
+service account. AT8O neither provisions nor mutates ADC, and it does not
+identify the operator principal.
 
 | Criterion | Assessment |
 | --- | --- |
 | Trust boundary | Operator identity is the trust root; runtime identity is derived |
 | Credential lifetime | Short-lived (default 1 hour, configurable ≤12 hours); auto-refreshed |
 | Keyless | YES — no exported service account key |
-| Operator dependency | YES — operator must have active ADC and `roles/iam.serviceAccountTokenCreator` on target SA |
+| Operator dependency | YES — an exact human operator principal must have active authorized-user ADC |
 | Auditability | HIGH — Cloud Audit Logs record both operator identity and impersonated SA; impersonation events are logged |
 | Revocation | Immediate — revoke operator ADC or remove Token Creator binding |
 | Local-host compatibility | YES — works on any host with gcloud CLI and network access |
-| Required IAM | `roles/iam.serviceAccountTokenCreator` on target SA for operator principal |
+| Required IAM | The mechanism requires `roles/iam.serviceAccountTokenCreator` on the target SA, but the source principal is unresolved and no binding is designable yet |
 | Fail-closed behavior | YES — missing ADC, expired credentials, or removed Token Creator binding all fail before any Secret Manager or HighLevel call |
 | Portability to governed host | HIGH — same SA works with Workload Identity Federation or attached SA on Cloud Run/GKE |
 
 **Strengths**: Keyless, auditable, revocable, fail-closed, portable. Operator
 identity is traceable. No long-lived credentials stored on disk beyond the
-operator's own ADC refresh token (managed by gcloud).
+operator's own authorized-user ADC refresh token (managed by gcloud).
 
-**Weaknesses**: Requires operator to maintain active ADC. Token Creator binding
-is an additional IAM grant. Adds impersonation latency (~1 RPC per token
-refresh).
+**Weaknesses**: Requires an exact operator identity to be selected and maintain
+active authorized-user ADC. The Token Creator binding cannot be authorized or
+applied until that source principal is identified. Adds impersonation latency
+(~1 RPC per token refresh).
 
 ### 4.2 Option B: Direct user ADC as production runtime identity
 
@@ -232,8 +251,14 @@ Option D when the host migrates.
 ## 6. Resolved identity parameters
 
 ```text
-SOURCE_PRINCIPAL_IDENTIFIED=YES
-SOURCE_PRINCIPAL=OPERATOR_ADC_IDENTITY
+SOURCE_PRINCIPAL_CLASS_IDENTIFIED=YES
+SOURCE_PRINCIPAL_CLASS=HUMAN_OPERATOR_USER_ADC
+
+SOURCE_PRINCIPAL_IDENTIFIED=NO
+SOURCE_PRINCIPAL=UNRESOLVED
+
+TOKEN_CREATOR_SOURCE_PRINCIPAL_IDENTIFIED=NO
+TOKEN_CREATOR_BINDING_AUTHORIZATION_DESIGNABLE=NO
 
 TARGET_RUNTIME_PRINCIPAL_IDENTIFIED=YES
 TARGET_RUNTIME_PRINCIPAL=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
@@ -242,20 +267,31 @@ SERVICE_ACCOUNT_TOKEN_CREATOR_BINDING_REQUIRED=YES
 TOKEN_CREATOR_TARGET_RESOURCE=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
 IMPERSONATION_TOKEN_LIFETIME_POLICY=DEFAULT_1_HOUR
 
+BASE_CREDENTIAL_CLASS=LOCAL_AUTHORIZED_USER_ADC
+AUTHORIZED_USER_ADC_REQUIRED=YES
+
+GENERIC_IMPLICIT_ADC_CHAIN_FOR_PRODUCTION=FORBIDDEN
+GOOGLE_APPLICATION_CREDENTIALS_OVERRIDE=FORBIDDEN
+USER_MANAGED_SERVICE_ACCOUNT_KEY_AS_BASE_CREDENTIAL=FORBIDDEN
+COMPUTE_METADATA_BASE_CREDENTIAL=FORBIDDEN_FOR_CURRENT_LOCAL_HOST
+EXTERNAL_ACCOUNT_BASE_CREDENTIAL=NOT_SELECTED
+
 MISSING_RUNTIME_IDENTITY=FAIL_CLOSED
-IDENTITY_DISCOVERY_FROM_ENVIRONMENT=FORBIDDEN_UNLESS_EXPLICITLY_DESIGNED
 CALLER_SUPPLIED_RUNTIME_IDENTITY_OVERRIDE=FORBIDDEN
 ```
 
-The operator's ADC identity is the source principal. The runtime impersonates
-the target SA with short-lived tokens (default 1-hour lifetime). The Token
-Creator binding is on the target SA resource, granted to the operator's
-identity.
+The source principal class is a human operator using local authorized-user ADC,
+but no exact operator principal is identified. AT8O must not guess one.
+Consequently, although Option A inherently requires a Token Creator binding on
+the target service account, that binding is not authorization-designable until
+the exact source principal is separately identified and reviewed.
 
-Identity discovery from environment variables or implicit ADC chain is
-forbidden unless explicitly designed in a future implementation authorization.
-The runtime must fail closed if the impersonation chain cannot be established.
-Caller-supplied identity overrides are forbidden.
+The base credential contract accepts only local authorized-user ADC. Generic
+implicit ADC discovery, `GOOGLE_APPLICATION_CREDENTIALS` overrides,
+user-managed service account keys, and compute metadata credentials are
+forbidden for the current local host. External-account credentials are not
+selected. Missing or nonconforming identity fails closed, and caller-supplied
+identity overrides are forbidden.
 
 ## 7. AT8N advancement
 
@@ -265,10 +301,10 @@ COMMITMENT_KEY_SECRET_IAM_DESIGN_INCLUDED=NO
 LIVE_PRODUCTION_STORE_ACTIVATION_AUTHORIZATION_DESIGNABLE=NO
 ```
 
-AT8N can proceed in parallel. It designs the Secret Manager accessor IAM
-binding for the target SA, independent of the identity mechanism decision.
-AT8O does not include commitment-key secret IAM design (AT8N scope) or live
-production store activation authorization.
+AT8N can proceed in parallel to reconcile the existing concrete GHL PIT
+accessor binding. It does not require a new GHL PIT IAM grant and does not
+include commitment-key secret IAM design. AT8O does not make live production
+store activation authorization designable.
 
 ## 8. Implementation boundary
 
@@ -277,6 +313,8 @@ AT8O_IMPLEMENTS_CODE=NO
 AT8O_IMPLEMENTS_IAM=NO
 AT8O_IMPLEMENTS_IMPERSONATION=NO
 AT8O_READS_SECRETS=NO
+AT8O_MUTATES_ADC=NO
+AT8O_USES_CREDENTIALS=NO
 
 NEXT_IMPLEMENTATION_REQUIRES_SEPARATE_AUTHORIZATION=YES
 NEXT_IMPLEMENTATION_MUST_FREEZE_IDENTITY_MECHANISM=YES
