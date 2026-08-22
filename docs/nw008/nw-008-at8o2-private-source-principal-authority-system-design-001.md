@@ -10,14 +10,32 @@ PR130_REVIEWED_HEAD=c8fa48f8be206ba2a0df497b59ab87e31e783bbc
 PR130_MERGE_SHA=fdf0b0454f2afea8702b7e92e5fb93fccb894350
 PR130_REVIEWED_HEAD_ANCESTOR_OF_MAIN=YES
 
-PRIVATE_AUTHORITY_SYSTEM_OF_RECORD_IDENTIFIED=YES
-PRIVATE_AUTHORITY_SYSTEM_OF_RECORD=GOVERNED_PRIVATE_APPEND_ONLY_GIT_AUTHORITY_REGISTRY
+PRIVATE_AUTHORITY_ARCHITECTURE_DESIGNED=YES
 
-PRIVATE_AUTHORITY_WRITE_PATH_IDENTIFIED=YES
-PRIVATE_AUTHORITY_WRITE_PATH=HUMAN_APPROVED_PULL_REQUEST_TO_PROTECTED_APPEND_ONLY_PRIVATE_REGISTRY
-PRIVATE_AUTHORITY_RECORD_CREATION_AUTHORITY_IDENTIFIED=YES
-PRIVATE_AUTHORITY_RECORD_CREATION_AUTHORITY=PRIVATE_AUTHORITY_HUMAN_REVIEWER_QUORUM
-PRIVATE_AUTHORITY_RECORDING_ACTOR=GOVERNED_PRIVATE_REGISTRY_MERGE_WORKFLOW
+PRIVATE_AUTHORITY_SYSTEM_DESIGN_CANDIDATE_IDENTIFIED=YES
+PRIVATE_AUTHORITY_SYSTEM_DESIGN_CANDIDATE=GOVERNED_PRIVATE_APPEND_ONLY_GIT_AUTHORITY_REGISTRY
+
+PRIVATE_AUTHORITY_SYSTEM_OF_RECORD_IDENTIFIED=NO
+PRIVATE_AUTHORITY_SYSTEM_OF_RECORD=UNRESOLVED
+PRIVATE_AUTHORITY_SYSTEM_SELECTION_REQUIRES_MG_AUTHORITY=YES
+PRIVATE_AUTHORITY_SYSTEM_PROVISIONED=NO
+
+PRIVATE_AUTHORITY_WRITE_MODEL_DESIGNED=YES
+PRIVATE_AUTHORITY_WRITE_PATH_CANDIDATE=HUMAN_APPROVED_PULL_REQUEST_TO_PROTECTED_APPEND_ONLY_PRIVATE_REGISTRY
+PRIVATE_AUTHORITY_WRITE_PATH_IDENTIFIED=NO
+
+PRIVATE_AUTHORITY_CREATION_AUTHORITY_CLASS_DESIGNED=YES
+PRIVATE_AUTHORITY_CREATION_AUTHORITY_CLASS=PRIVATE_AUTHORITY_HUMAN_REVIEWER_QUORUM
+PRIVATE_AUTHORITY_RECORD_CREATION_AUTHORITY_IDENTIFIED=NO
+
+PRIVATE_REGISTRY_VALIDATION_ACTOR=GOVERNED_AUTOMATED_VALIDATION_WORKFLOW
+PRIVATE_REGISTRY_MERGE_AUTHORITY=HUMAN_ONLY
+PRIVATE_AUTHORITY_RECORDING_EVENT=HUMAN_AUTHORIZED_MERGE
+
+AUTOMATED_WORKFLOW_MAY_MERGE=NO
+AUTOMATED_WORKFLOW_MAY_SELECT_PRINCIPAL=NO
+AUTOMATED_WORKFLOW_MAY_MODIFY_APPROVED_PAYLOAD=NO
+AUTOMATED_WORKFLOW_MAY_BYPASS_REVIEW=NO
 
 PRIVATE_AUTHORITY_RECORD_SCHEMA_REQUIRED=YES
 PRIVATE_AUTHORITY_RECORD_VERSIONING_REQUIRED=YES
@@ -28,12 +46,19 @@ SOURCE_PRINCIPAL_REPLACEMENT_REQUIRES_NEW_PUBLIC_REF=YES
 PRIVATE_RECORD_SUPERSESSION_REQUIRED=YES
 REVOKED_RECORD_USE=FORBIDDEN
 
-PRIVATE_RUNTIME_RETRIEVAL_PATH_IDENTIFIED=YES
-PRIVATE_RUNTIME_RETRIEVAL_PATH=OPAQUE_REF_LOOKUP_VIA_PRIVATE_MG_MCP_AUTHORITY_INDEX
+PRIVATE_RUNTIME_RETRIEVAL_CONTRACT_DESIGNED=YES
+PRIVATE_RUNTIME_RETRIEVAL_PATH_IDENTIFIED=NO
+PRIVATE_RUNTIME_RETRIEVAL_PATH_CANDIDATE=OPAQUE_REF_LOOKUP_VIA_PRIVATE_MG_MCP_AUTHORITY_INDEX
+PRIVATE_RUNTIME_RETRIEVAL_EXECUTED=NO
 
-MG_MCP_ROLE=READ_ONLY_RETRIEVAL_AFTER_GOVERNED_INGESTION
-MG_MCP_INGESTION_PATH_IDENTIFIED=YES
-MG_MCP_INGESTION_PATH=GOVERNED_PRIVATE_REGISTRY_TO_PRIVATE_AUTHORITY_INDEX
+MG_MCP_ROLE=READ_ONLY_RETRIEVAL_AFTER_SEPARATELY_APPROVED_GOVERNED_INGESTION
+MG_MCP_PRIVATE_AUTHORITY_INDEX_CAPABILITY_VERIFIED=NO
+MG_MCP_PRIVATE_AUTHORITY_INDEX=UNRESOLVED
+MG_MCP_INGESTION_PATH_IDENTIFIED=NO
+MG_MCP_INGESTION_PATH_CANDIDATE=GOVERNED_PRIVATE_REGISTRY_TO_PRIVATE_AUTHORITY_INDEX
+MG_MCP_INGESTION_DESIGN_REQUIRES_SEPARATE_MG_ARCHITECTURE_REVIEW=YES
+MG_MCP_INDEX_EXTENSION_AUTHORIZED=NO
+MG_MCP_INGESTION_IMPLEMENTATION_AUTHORIZED=NO
 MG_MCP_WRITE_AUTHORITY_ASSUMED=NO
 
 SOURCE_PRINCIPAL_IDENTIFIED=NO
@@ -56,23 +81,29 @@ EXTERNAL_EFFECTS=0
 
 ## 1. Decision and boundary
 
-AT8O2 selects a governed private append-only Git authority registry as the
-system of record for exact human source-principal authority. The registry is
-private infrastructure outside this public repository. Its concrete repository
-identifier, host details, branch name, access groups, and endpoints are not
-published here.
+AT8O2 designs a governed private append-only Git authority registry as the
+candidate system of record for exact human source-principal authority. It does
+not select that candidate as the operational system of record. Selection
+requires separate MG authority and architecture review. If selected, the
+registry would be private infrastructure outside this public repository; its
+concrete repository identifier, host details, branch name, access groups, and
+endpoints would not be published here.
 
-MG MCP is not the system of record and receives no runtime writes. It remains a
-read-only governed context surface. A separately governed ingestion workflow
-may project approved private registry records into a private MG MCP authority
-index for read-only lookup.
+MG MCP is not selected as the system of record and receives no runtime writes.
+It remains a read-only governed context surface. A private authority index and
+registry-to-index ingestion path are candidates only: capability is unverified,
+no index is identified, and both require separate MG architecture review and
+authorization.
 
 This design does not provision the registry or index, configure ingestion,
 select a human principal, create a record, use credentials, inspect ADC, or
 authorize IAM.
 
 ```text
-PRIVATE_AUTHORITY_SYSTEM_DESIGN_DECIDED=YES
+PRIVATE_AUTHORITY_ARCHITECTURE_DESIGNED=YES
+PRIVATE_AUTHORITY_SYSTEM_DESIGN_CANDIDATE_IDENTIFIED=YES
+PRIVATE_AUTHORITY_SYSTEM_OF_RECORD_IDENTIFIED=NO
+PRIVATE_AUTHORITY_SYSTEM_SELECTION_REQUIRES_MG_AUTHORITY=YES
 PRIVATE_AUTHORITY_SYSTEM_PROVISIONED=NO
 PRIVATE_AUTHORITY_REGISTRY_IDENTIFIER_PUBLIC=NO
 PRIVATE_INFRASTRUCTURE_IDENTIFIERS_PUBLIC=NO
@@ -82,11 +113,16 @@ MG_MCP_SYSTEM_OF_RECORD=NO
 
 ## 2. Write authority and creation path
 
-All record creation and lifecycle events use a pull request against the private
-registry. Direct pushes and force pushes are forbidden. The protected
-append-only branch requires:
+The candidate write model uses a pull request against a private registry for
+all record creation and lifecycle events. If separately selected by MG
+authority, direct pushes and force pushes would be forbidden, and the protected
+append-only branch would require:
 
 ```text
+PRIVATE_AUTHORITY_WRITE_MODEL_DESIGNED=YES
+PRIVATE_AUTHORITY_WRITE_PATH_CANDIDATE=HUMAN_APPROVED_PULL_REQUEST_TO_PROTECTED_APPEND_ONLY_PRIVATE_REGISTRY
+PRIVATE_AUTHORITY_WRITE_PATH_IDENTIFIED=NO
+
 PRIVATE_REGISTRY_DIRECT_PUSH=FORBIDDEN
 PRIVATE_REGISTRY_FORCE_PUSH=FORBIDDEN
 PRIVATE_REGISTRY_HISTORY_REWRITE=FORBIDDEN
@@ -94,19 +130,31 @@ PRIVATE_REGISTRY_REQUIRED_HUMAN_APPROVALS=2
 PRIVATE_REGISTRY_SIGNED_COMMITS_REQUIRED=YES
 PRIVATE_REGISTRY_SCHEMA_VALIDATION_REQUIRED=YES
 PRIVATE_REGISTRY_APPEND_ONLY_VALIDATION_REQUIRED=YES
+
+PRIVATE_AUTHORITY_CREATION_AUTHORITY_CLASS_DESIGNED=YES
+PRIVATE_AUTHORITY_CREATION_AUTHORITY_CLASS=PRIVATE_AUTHORITY_HUMAN_REVIEWER_QUORUM
+PRIVATE_AUTHORITY_RECORD_CREATION_AUTHORITY_IDENTIFIED=NO
+
+PRIVATE_REGISTRY_VALIDATION_ACTOR=GOVERNED_AUTOMATED_VALIDATION_WORKFLOW
+PRIVATE_REGISTRY_MERGE_AUTHORITY=HUMAN_ONLY
+PRIVATE_AUTHORITY_RECORDING_EVENT=HUMAN_AUTHORIZED_MERGE
+
+AUTOMATED_WORKFLOW_MAY_MERGE=NO
+AUTOMATED_WORKFLOW_MAY_SELECT_PRINCIPAL=NO
+AUTOMATED_WORKFLOW_MAY_MODIFY_APPROVED_PAYLOAD=NO
+AUTOMATED_WORKFLOW_MAY_BYPASS_REVIEW=NO
 ```
 
-The human reviewer quorum is the record-creation authority. It approves the
-exact private principal and the complete record event. The merge workflow is
-the recording actor: it may validate and merge approved content, but it may not
-select, infer, substitute, or rewrite the principal.
+The human reviewer quorum is the designed creation-authority class, not an
+identified authority. Humans alone may approve and merge the exact private
+principal and complete record event. The automated workflow validates only; it
+may not merge, select, infer, substitute, or rewrite the principal.
 
 ```text
 SOURCE_PRINCIPAL_SELECTION_AUTHORITY=HUMAN_ONLY
-SOURCE_PRINCIPAL_SELECTION_BY_MERGE_WORKFLOW=FORBIDDEN
-RECORDING_ACTOR_MAY_SELECT_PRINCIPAL=NO
-RECORDING_ACTOR_MAY_MODIFY_APPROVED_PAYLOAD=NO
-RECORDING_ACTOR_MAY_BYPASS_REVIEW=NO
+AUTOMATED_WORKFLOW_MAY_SELECT_PRINCIPAL=NO
+AUTOMATED_WORKFLOW_MAY_MODIFY_APPROVED_PAYLOAD=NO
+AUTOMATED_WORKFLOW_MAY_BYPASS_REVIEW=NO
 ```
 
 The exact identities authorized to review or operate the private workflow are
@@ -115,9 +163,9 @@ their member values, and grants no access.
 
 ## 3. Append-only authority record model
 
-The registry stores an append-only event stream per opaque public reference.
-Every approved event is a new immutable file revision and signed Git commit.
-No approved event is edited in place.
+The candidate registry architecture stores an append-only event stream per
+opaque public reference. Every approved event would be a new immutable file
+revision and signed Git commit. No approved event may be edited in place.
 
 ### 3.1 Required envelope
 
@@ -145,6 +193,13 @@ correlation_contract_version   AT8O1 contract version
 google_subject_id              optional private stable subject identifier
 ```
 
+```text
+EVENT_ID_UNIQUE_GLOBALLY=YES
+EVENT_VERSION_UNIQUE_PER_PUBLIC_REF=YES
+DUPLICATE_EVENT_ID=FAIL_CLOSED
+DUPLICATE_PUBLIC_REF_EVENT_VERSION=FAIL_CLOSED
+```
+
 The schema must reject access tokens, refresh tokens, credential payloads,
 service account keys, arbitrary secrets, and public-repository paths.
 
@@ -165,8 +220,8 @@ validated.
 
 Approval makes an event immutable. Any post-approval correction requires a
 `SUPERSEDE` event and a newly approved lineage under a new public reference; it
-never amends an approved payload or rewrites Git history. The registry retains
-every approved event for audit.
+never amends an approved payload or rewrites Git history. The candidate
+requires retention of every approved event for audit.
 
 ```text
 APPROVED_EVENT_MUTATION=FORBIDDEN
@@ -177,9 +232,10 @@ SCHEMA_VERSION_EXPLICIT=YES
 APPROVED_HISTORY_RETENTION_REQUIRED=YES
 ```
 
-Git history supplies the durable version chain, while schema validation
-supplies domain-level monotonicity and state-transition checks. Git alone is
-not treated as sufficient authority validation.
+Under the candidate architecture, Git history supplies the durable version
+chain, while schema validation supplies domain-level monotonicity and
+state-transition checks. Git alone is not treated as sufficient authority
+validation.
 
 The only valid lifecycle is:
 
@@ -230,9 +286,9 @@ The resolver fails closed if a lineage has malformed ordering, conflicting
 active states, missing predecessor/successor links, or a terminal
 `SUPERSEDED`/`REVOKED` state.
 
-## 5. Governed MG MCP ingestion
+## 5. Governed MG MCP ingestion candidate
 
-The ingestion path is an offline governed projection:
+The candidate ingestion design is an offline governed projection:
 
 ```text
 PRIVATE_SYSTEM_OF_RECORD
@@ -243,8 +299,9 @@ PRIVATE_SYSTEM_OF_RECORD
   -> read-only opaque-ref retrieval
 ```
 
-The ingestion workflow reads only approved commits and validates the entire
-lineage before publishing a projection. It must preserve:
+If separately approved and implemented, the ingestion workflow would read only
+approved commits and validate the entire lineage before publishing a
+projection. It must preserve:
 
 ```text
 - public_ref
@@ -257,6 +314,16 @@ lineage before publishing a projection. It must preserve:
 - approval and effective timestamps
 - optional private Google subject binding
 - source Git commit identity
+```
+
+The exact source commit SHA is mandatory projection metadata captured at
+ingestion time. It is not self-referential record content.
+
+```text
+SOURCE_COMMIT_SHA_REQUIRED=YES
+SOURCE_COMMIT_SHA_BOUND_AT_INGESTION=YES
+PROJECTION_SOURCE_COMMIT_REQUIRED=YES
+PROJECTION_SOURCE_COMMIT_MISMATCH=FAIL_CLOSED
 ```
 
 The private index must not expose the exact principal to public search,
@@ -272,22 +339,34 @@ MG_MCP_PUBLIC_INDEXING=FORBIDDEN
 MG_MCP_CROSS_TENANT_RETRIEVAL=FORBIDDEN
 MG_MCP_EXACT_PRINCIPAL_LOGGING=FORBIDDEN
 MG_MCP_INGESTION_EXECUTED=NO
+MG_MCP_PRIVATE_AUTHORITY_INDEX_CAPABILITY_VERIFIED=NO
+MG_MCP_PRIVATE_AUTHORITY_INDEX=UNRESOLVED
+MG_MCP_INGESTION_PATH_IDENTIFIED=NO
+MG_MCP_INGESTION_PATH_CANDIDATE=GOVERNED_PRIVATE_REGISTRY_TO_PRIVATE_AUTHORITY_INDEX
+MG_MCP_INGESTION_DESIGN_REQUIRES_SEPARATE_MG_ARCHITECTURE_REVIEW=YES
+MG_MCP_INDEX_EXTENSION_AUTHORIZED=NO
+MG_MCP_INGESTION_IMPLEMENTATION_AUTHORIZED=NO
 MG_MCP_WRITE_AUTHORITY_ASSUMED=NO
 ```
 
-This is not an MG MCP write by the application or runtime. It is a separately
-governed platform ingestion from the private system of record. The current
-read-only MG MCP surface does not authorize, expose, or execute that ingestion.
-Concrete private endpoint, index, and job identifiers remain unpublished.
+The candidate is not an MG MCP write by the application or runtime. It would
+be a separately governed platform ingestion from a selected private system of
+record. The current read-only MG MCP surface does not authorize, expose, or
+execute that ingestion. Concrete private endpoint, index, and job identifiers
+are unresolved and remain unpublished.
 
 ## 6. Private runtime retrieval contract
 
-The future private preflight retrieves by exact opaque public reference from
-the private MG MCP authority index. It requests one lineage and receives one
+The retrieval contract is designed, but no path or private MG MCP authority
+index is identified. The candidate path would let a future private preflight
+retrieve by exact opaque public reference, request one lineage, and receive one
 resolved private authority result.
 
 ```text
-PRIVATE_RUNTIME_RETRIEVAL_PATH_IDENTIFIED=YES
+PRIVATE_RUNTIME_RETRIEVAL_CONTRACT_DESIGNED=YES
+PRIVATE_RUNTIME_RETRIEVAL_PATH_IDENTIFIED=NO
+PRIVATE_RUNTIME_RETRIEVAL_PATH_CANDIDATE=OPAQUE_REF_LOOKUP_VIA_PRIVATE_MG_MCP_AUTHORITY_INDEX
+PRIVATE_RUNTIME_RETRIEVAL_EXECUTED=NO
 PRIVATE_RUNTIME_RETRIEVAL_INPUT=EXACT_OPAQUE_PUBLIC_REF
 PRIVATE_RUNTIME_RETRIEVAL_CARDINALITY=EXACTLY_ONE_ACTIVE_RESULT
 PRIVATE_RUNTIME_RETRIEVAL_RESULT_VISIBILITY=PRIVATE_ONLY
@@ -321,6 +400,8 @@ PRIVATE_RETRIEVAL_SUPERSEDED=FAIL_CLOSED
 PRIVATE_RETRIEVAL_REVOKED=FAIL_CLOSED
 PRIVATE_RETRIEVAL_TARGET_MISMATCH=FAIL_CLOSED
 PRIVATE_RETRIEVAL_MECHANISM_MISMATCH=FAIL_CLOSED
+PROJECTION_SOURCE_COMMIT_REQUIRED=YES
+PROJECTION_SOURCE_COMMIT_MISMATCH=FAIL_CLOSED
 PRIVATE_RETRIEVAL_PUBLIC_PII_OUTPUT=FORBIDDEN
 ```
 
@@ -338,14 +419,16 @@ SOURCE_PRINCIPAL_SELECTION_EXECUTED=NO
 PRIVATE_AUTHORITY_RECORD_CREATED=NO
 PRIVATE_AUTHORITY_SYSTEM_PROVISIONED=NO
 MG_MCP_PRIVATE_INDEX_PROVISIONED=NO
+MG_MCP_INDEX_EXTENSION_AUTHORIZED=NO
+MG_MCP_INGESTION_IMPLEMENTATION_AUTHORIZED=NO
 MG_MCP_INGESTION_EXECUTED=NO
 PRIVATE_RUNTIME_RETRIEVAL_EXECUTED=NO
 ```
 
-Token Creator authorization remains blocked until the private registry and
-ingestion path are implemented under separate authority, a human-approved
-source-principal record exists, the active record is retrievable privately, and
-AT8O1 ADC correlation succeeds.
+Token Creator authorization remains blocked until MG authority selects a
+system and write path, separately authorizes and implements any registry and
+ingestion path, a human-approved source-principal record exists, the active
+record is retrievable privately, and AT8O1 ADC correlation succeeds.
 
 ```text
 TOKEN_CREATOR_BINDING_AUTHORIZATION_DESIGNABLE=NO
