@@ -1,0 +1,225 @@
+# NW-008 AT-8O7 - Option B Bounded Adapter Contract Fit 001
+
+```text
+UNIT=NW008_AT8O7_OPTION_B_BOUNDED_ADAPTER_CONTRACT_FIT_001
+PR_CLASS=planning_only
+MODE=OPTION_B_CONTRACT_FIT_ASSESSMENT_ONLY
+ARTIFACT_OWNER=VS_CODE_ORCHESTRATOR
+
+PR135_REVIEWED_HEAD=0bb1f4a981a5909d4b27b248340c0d1b73b60551
+PR135_REVIEWED_HEAD_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+OPTION_B_ADAPTER_PLACEMENT=UNKNOWN
+OPTION_B_CAN_KEEP_MG_MCP_RETRIEVAL_CONTRACT_UNCHANGED=UNKNOWN
+OPTION_B_OPAQUE_REF_TO_PACKET_ID_RESOLUTION_FIT=UNKNOWN
+OPTION_B_EXACTLY_ONE_ACTIVE_RESOLUTION_FIT=UNKNOWN
+OPTION_B_ACTIVE_SUPERSEDED_REVOKED_LINEAGE_FIT=UNKNOWN
+OPTION_B_PROVENANCE_BINDING_FIT=UNKNOWN
+OPTION_B_EXACT_VERSION_BINDING_FIT=UNKNOWN
+OPTION_B_TRUST_VALIDATION_FIT=UNKNOWN
+OPTION_B_ADMISSIBILITY_VALIDATION_FIT=UNKNOWN
+OPTION_B_PRIVATE_PII_BOUNDARY_FIT=UNKNOWN
+OPTION_B_FAIL_CLOSED_FIT=UNKNOWN
+OPTION_B_NEW_INFRASTRUCTURE_REQUIRED=UNKNOWN
+OPTION_B_NEW_IAM_SURFACE_REQUIRED=UNKNOWN
+OPTION_B_COMPLETE_AUTHORITY_RETRIEVAL_CONTRACT_FIT=UNKNOWN
+
+OPTION_B_TARGET_PLACEMENT_CLASS=IN_PROCESS_OR_EXISTING_PRIVATE_CONTROL_PLANE
+OPTION_B_TARGET_OWNS_ONLY_OPAQUE_REF_RESOLUTION_AND_LIFECYCLE_SELECTION=YES
+OPTION_B_TARGET_HANDOFF=RESOLVED_PACKET_ID_TO_UNCHANGED_EXACT_RETRIEVAL_CONTRACT
+OPTION_B_TARGET_IMPLIES_PLACEMENT_SELECTION=NO
+OPTION_B_CONTRACT_FIT_PROOF_REQUIRED=YES
+
+PREFERRED_OPTION=UNRESOLVED
+FINAL_MECHANISM_SELECTION_DESIGNABLE=NO
+TOKEN_CREATOR_BINDING_AUTHORIZATION_DESIGNABLE=NO
+
+IMPLEMENTATION_PERFORMED=NO
+IAM_CHANGES=0
+ADC_MUTATIONS=0
+CREDENTIAL_USE=0
+SECRET_READS=0
+SERVICE_ACCOUNT_IMPERSONATION_EXECUTED=NO
+HIGHLEVEL_CALLS=0
+CRM_MUTATIONS=0
+DEPLOYMENT_CHANGES=0
+EXTERNAL_EFFECTS=0
+```
+
+## 1. Purpose and evidence boundary
+
+AT8O7 assesses whether a bounded adapter can supply AT8O2 opaque-reference and
+authority-lifecycle semantics outside the existing MG MCP exact-retrieval
+contract, then hand a resolved packet identity to that unchanged contract.
+
+This assessment uses repository-visible planning artifacts and read-only source
+inspection of the existing private control plane. It does not select placement,
+define a deployable adapter contract, or perform a live capability probe.
+
+```text
+PRIVATE_CONTROL_PLANE_SOURCE_INSPECTION_PERFORMED=YES
+LIVE_CAPABILITY_PROBE_PERFORMED=NO
+PRIVATE_INFRASTRUCTURE_IDENTIFIER_PUBLISHED=NO
+```
+
+## 2. Existing exact-retrieval boundary
+
+Read-only inspection confirms that the existing retrieval surface:
+
+- accepts and validates an exact `packet_id`;
+- rejects stored/requested packet-ID mismatches;
+- restricts source classes and consumer types;
+- rejects degraded or provisional trust;
+- requires verified admissibility and active consumer eligibility; and
+- carries source identity, source version, and provenance metadata.
+
+These controls are reusable only after a valid packet identity has been
+resolved. They do not themselves define an opaque-reference mapping, authority
+lineage, or exactly-one-`ACTIVE` selection contract.
+
+```text
+EXISTING_RETRIEVAL_INPUT_KEY_CLASS=PACKET_ID
+EXISTING_RETRIEVAL_PACKET_ID_EXACT_MATCH_ENFORCED=YES
+EXISTING_RETRIEVAL_TRUST_GATE_EXISTS=YES
+EXISTING_RETRIEVAL_ADMISSIBILITY_GATE_EXISTS=YES
+EXISTING_RETRIEVAL_CONSUMER_ELIGIBILITY_GATE_EXISTS=YES
+EXISTING_RETRIEVAL_PROVENANCE_FIELDS_EXIST=YES
+EXISTING_RETRIEVAL_VERSION_FIELDS_EXIST=YES
+```
+
+## 3. Placement assessment
+
+```text
+OPTION_B_ADAPTER_PLACEMENT=UNKNOWN
+OPTION_B_TARGET_PLACEMENT_CLASS=IN_PROCESS_OR_EXISTING_PRIVATE_CONTROL_PLANE
+OPTION_B_TARGET_IMPLIES_PLACEMENT_SELECTION=NO
+OPTION_B_NEW_INFRASTRUCTURE_REQUIRED=UNKNOWN
+OPTION_B_NEW_IAM_SURFACE_REQUIRED=UNKNOWN
+```
+
+The smallest-surface target is either an in-process boundary or an existing
+private-control-plane boundary. Neither placement is selected or proven to
+have the required private-PII authority, isolation, runtime identity, or
+operational ownership. External-service placement is not selected.
+
+Until placement is resolved, new infrastructure and IAM requirements remain
+`UNKNOWN`.
+
+## 4. Resolution and lifecycle fit
+
+```text
+OPTION_B_OPAQUE_REF_TO_PACKET_ID_RESOLUTION_FIT=UNKNOWN
+OPTION_B_EXACTLY_ONE_ACTIVE_RESOLUTION_FIT=UNKNOWN
+OPTION_B_ACTIVE_SUPERSEDED_REVOKED_LINEAGE_FIT=UNKNOWN
+```
+
+A bounded adapter could own opaque-reference resolution and lifecycle selection
+without changing the packet-ID lookup interface, but no adapter schema or
+algorithm is defined. Evidence does not yet establish:
+
+- a total, collision-safe opaque-reference mapping;
+- one and only one active result;
+- ordered `ACTIVE`, `SUPERSEDED`, and `REVOKED` lineage evaluation;
+- rejection of malformed or conflicting lineages; or
+- atomic binding of the selected active lineage to one packet identity.
+
+These fit states remain `UNKNOWN`, not `YES`.
+
+## 5. Provenance and version binding
+
+```text
+OPTION_B_PROVENANCE_BINDING_FIT=UNKNOWN
+OPTION_B_EXACT_VERSION_BINDING_FIT=UNKNOWN
+```
+
+The existing retrieval contract exposes source/provenance and version fields,
+but an adapter would need its own immutable mapping version and must bind that
+version, the selected authority event, and the resolved packet identity into
+one auditable decision. No such adapter contract is yet defined.
+
+## 6. Trust, admissibility, and private-PII boundary
+
+```text
+OPTION_B_TRUST_VALIDATION_FIT=UNKNOWN
+OPTION_B_ADMISSIBILITY_VALIDATION_FIT=UNKNOWN
+OPTION_B_PRIVATE_PII_BOUNDARY_FIT=UNKNOWN
+```
+
+Existing retrieval trust and admissibility gates can validate a packet after
+handoff. They do not validate the adapter's private authority record, mapping,
+or lifecycle decision. The adapter would need separately governed trust and
+admissibility checks before invoking exact retrieval.
+
+Current ingestion authority excludes private PII, and no adapter placement has
+been approved to hold or process the exact source principal. Private-PII
+boundary fit therefore remains `UNKNOWN`.
+
+## 7. Fail-closed requirements
+
+```text
+OPTION_B_FAIL_CLOSED_FIT=UNKNOWN
+```
+
+A conforming adapter must fail closed for:
+
+```text
+OPAQUE_REF_NOT_FOUND=FAIL_CLOSED_REQUIRED
+OPAQUE_REF_MULTIPLE_ACTIVE_RESULTS=FAIL_CLOSED_REQUIRED
+OPAQUE_REF_LINEAGE_INVALID=FAIL_CLOSED_REQUIRED
+OPAQUE_REF_SUPERSEDED=FAIL_CLOSED_REQUIRED
+OPAQUE_REF_REVOKED=FAIL_CLOSED_REQUIRED
+OPAQUE_REF_MAPPING_VERSION_MISMATCH=FAIL_CLOSED_REQUIRED
+RESOLVED_PACKET_ID_MISSING=FAIL_CLOSED_REQUIRED
+RESOLVED_PACKET_ID_MISMATCH=FAIL_CLOSED_REQUIRED
+PROVENANCE_BINDING_MISMATCH=FAIL_CLOSED_REQUIRED
+TRUST_OR_ADMISSIBILITY_FAILURE=FAIL_CLOSED_REQUIRED
+```
+
+These are design requirements, not evidence that a conforming adapter exists.
+
+## 8. Complete contract fit
+
+```text
+OPTION_B_CAN_KEEP_MG_MCP_RETRIEVAL_CONTRACT_UNCHANGED=UNKNOWN
+OPTION_B_COMPLETE_AUTHORITY_RETRIEVAL_CONTRACT_FIT=UNKNOWN
+OPTION_B_CONTRACT_FIT_PROOF_REQUIRED=YES
+
+PREFERRED_OPTION=UNRESOLVED
+FINAL_MECHANISM_SELECTION_DESIGNABLE=NO
+```
+
+The architecture target could preserve the existing exact-retrieval interface
+by placing all missing authority semantics before packet lookup. However,
+unchanged reuse is not proven until a bounded adapter contract demonstrates
+every resolution, lifecycle, provenance, version, trust, admissibility,
+private-PII, and fail-closed requirement.
+
+Option B remains the lead assessment candidate, not a selected mechanism.
+
+## 9. Explicit non-actions
+
+```text
+ADAPTER_CREATED=NO
+AUTHORITY_INDEX_CREATED=NO
+MG_MCP_MODIFIED=NO
+PACKET_SCHEMA_ALTERED=NO
+PRIVATE_PII_INGESTED=NO
+PRIVATE_RETRIEVAL_EXECUTED=NO
+SOURCE_PRINCIPAL_SELECTED=NO
+PRIVATE_AUTHORITY_RECORD_CREATED=NO
+ADC_INSPECTED=NO
+IAM_MODIFIED=NO
+TOKEN_CREATOR_AUTHORIZED=NO
+SRC_MODIFIED=NO
+TESTS_MODIFIED=NO
+WORKFLOWS_MODIFIED=NO
+TOKEN_CREATOR_BINDING_AUTHORIZATION_DESIGNABLE=NO
+IMPLEMENTATION_PERFORMED=NO
+EXTERNAL_EFFECTS=0
+```
+
+## 10. Stop condition
+
+```text
+STOP_FOR_ARCHITECTURE_REVIEW=YES
+```
