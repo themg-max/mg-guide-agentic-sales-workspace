@@ -1,0 +1,220 @@
+# NW-008 AT8O27 Pre-Access Gate Resolution Attestation
+
+## Attestation Binding
+
+```text
+UNIT=
+NW008_AT8O27_PRE_ACCESS_GATE_RESOLUTION_ATTESTATION_001
+
+PR_CLASS=proof_only
+
+MODE=
+PRE_ACCESS_GATE_RESOLUTION_ATTESTATION_ONLY
+
+ARTIFACT_OWNER=VS_CODE_ORCHESTRATOR
+
+AT8O26_REVIEWED_HEAD=
+49fa7eb0f519524d08f1e98972c0631c78bf0958
+
+AT8O26_ACTUAL_MERGE_COMMIT=
+01ac1051790b04cccd56409dd05927736c4d3294
+
+AT8O26_REVIEWED_HEAD_ANCESTRY_VERIFIED=YES
+AT8O26_ACTUAL_MERGE_COMMIT_ANCESTRY_VERIFIED=YES
+```
+
+## Non-Access Attestation
+
+AT8O27 records the seven exact AT8O25 pre-access gate results using only safe,
+reviewable public-repository evidence and the evidence contracts established
+by merged AT8O26.
+
+```text
+PRIVATE_CONTRACT_METADATA_ACCESSED=NO
+PRIVATE_CONTRACT_REVIEW_EXECUTED=NO
+PRIVATE_CONTROL_PLANE_ENUMERATION_PERFORMED=NO
+ATTEMPT_CONSUMED=NO
+
+AT8O24_AUTHORIZATION_STATE=AVAILABLE
+AT8O24_PRIVATE_CONTRACT_REVIEW_ATTEMPTS_USED=0
+```
+
+## Exact Seven Gate-Result Records
+
+### Record 1
+
+```text
+GATE_NAME=EXACT_AUTHORIZED_REVIEW_SOURCE_AVAILABLE
+GATE_VALUE=UNKNOWN
+EVIDENCE_BASIS=HUMAN_GOVERNED_PRIVATE_CONTROL_PLANE_SOURCE_BINDING_ATTESTATION_NOT_PROVIDED
+SAFE_REVIEWABLE_PROVENANCE=MERGED_AT8O26_SOURCE_BINDING_EVIDENCE_CONTRACT_AT_REVIEWED_HEAD_49fa7eb0f519524d08f1e98972c0631c78bf0958_AND_MERGE_COMMIT_01ac1051790b04cccd56409dd05927736c4d3294
+```
+
+No qualifying source-binding attestation establishes availability. No exact
+source, endpoint, path, or private identifier was requested or disclosed.
+
+### Record 2
+
+```text
+GATE_NAME=AUTHORIZED_ACTOR_CONFIRMED
+GATE_VALUE=UNKNOWN
+EVIDENCE_BASIS=HUMAN_GOVERNANCE_ATTESTATION_NOT_PROVIDED
+SAFE_REVIEWABLE_PROVENANCE=MERGED_AT8O26_HUMAN_ACTOR_EVIDENCE_CONTRACT_AT_REVIEWED_HEAD_49fa7eb0f519524d08f1e98972c0631c78bf0958_AND_MERGE_COMMIT_01ac1051790b04cccd56409dd05927736c4d3294
+```
+
+No qualifying human-governance attestation confirms an approved
+`HUMAN_AUTHORIZED_METADATA_REVIEWER`. No exact human principal was requested
+or disclosed.
+
+### Record 3
+
+```text
+GATE_NAME=AUTHORIZED_21_FACT_ALLOWLIST_LOADED
+GATE_VALUE=YES
+EVIDENCE_BASIS=MERGED_REPO_ARTIFACT
+SAFE_REVIEWABLE_PROVENANCE=docs/nw008/nw-008-at8o25-sanitized-source-transport-contract-attestation-execution-packet-001.md_AT_REVIEWED_HEAD_61f590e9644aebea7ed3cad66daa2cde894bb673_AND_MERGE_COMMIT_e04173c503ca96da2f7869f14230692a30f95a08
+```
+
+Merged AT8O25 contains and freezes the exact 21-fact allowlist.
+
+### Record 4
+
+```text
+GATE_NAME=FORBIDDEN_MATERIAL_BLOCKLIST_LOADED
+GATE_VALUE=YES
+EVIDENCE_BASIS=MERGED_REPO_ARTIFACT
+SAFE_REVIEWABLE_PROVENANCE=docs/nw008/nw-008-at8o25-sanitized-source-transport-contract-attestation-execution-packet-001.md_AT_REVIEWED_HEAD_61f590e9644aebea7ed3cad66daa2cde894bb673_AND_MERGE_COMMIT_e04173c503ca96da2f7869f14230692a30f95a08
+```
+
+Merged AT8O25 contains and freezes the forbidden private-material blocklist.
+
+### Record 5
+
+```text
+GATE_NAME=PROOF_CAPTURE_DESTINATION_READY
+GATE_VALUE=YES
+EVIDENCE_BASIS=REPOSITORY_POLICY_AND_RESERVED_UNOCCUPIED_PROOF_PATH
+SAFE_REVIEWABLE_PROVENANCE=governance/required-pr-checks.md_PLUS_MERGED_AT8O26_REVIEWED_HEAD_49fa7eb0f519524d08f1e98972c0631c78bf0958_AND_MERGE_COMMIT_01ac1051790b04cccd56409dd05927736c4d3294_PLUS_ORIGIN_MAIN_EXACT_AT8O28_PATH_AVAILABILITY_CHECK_RESULT_COUNT_0
+```
+
+The repository policy recognizes `execution_proof` artifacts under `proof/**`;
+merged AT8O26 reserves the exact destination; and the exact reserved path is
+unoccupied on `origin/main`:
+
+```text
+PROOF_CAPTURE_DESTINATION=
+proof/nw008/nw-008-at8o28-sanitized-source-transport-contract-attestation-execution-proof-001.md
+
+EXACT_AT8O28_PATH_AVAILABILITY_CHECK_RESULT_COUNT=0
+PRE_EXECUTION_PROOF_FILE_CREATED=NO
+```
+
+### Record 6
+
+```text
+GATE_NAME=NO_BROAD_ENUMERATION_REQUIRED
+GATE_VALUE=UNKNOWN
+EVIDENCE_BASIS=HUMAN_GOVERNED_PRIVATE_CONTROL_PLANE_SOURCE_BINDING_ATTESTATION_NOT_PROVIDED
+SAFE_REVIEWABLE_PROVENANCE=MERGED_AT8O26_DIRECT_REACHABILITY_EVIDENCE_CONTRACT_AT_REVIEWED_HEAD_49fa7eb0f519524d08f1e98972c0631c78bf0958_AND_MERGE_COMMIT_01ac1051790b04cccd56409dd05927736c4d3294
+```
+
+The policy prohibition against enumeration is not treated as evidence that the
+exact authorized source is directly reachable.
+
+### Record 7
+
+```text
+GATE_NAME=NO_PRIVATE_DATA_PLANE_ACCESS_REQUIRED
+GATE_VALUE=UNKNOWN
+EVIDENCE_BASIS=HUMAN_GOVERNED_PRIVATE_CONTROL_PLANE_SOURCE_BINDING_ATTESTATION_NOT_PROVIDED
+SAFE_REVIEWABLE_PROVENANCE=MERGED_AT8O26_METADATA_ONLY_PATH_EVIDENCE_CONTRACT_AT_REVIEWED_HEAD_49fa7eb0f519524d08f1e98972c0631c78bf0958_AND_MERGE_COMMIT_01ac1051790b04cccd56409dd05927736c4d3294
+```
+
+The policy prohibition against private data-plane access is not treated as
+evidence that the authorized review path is metadata/control-plane only.
+
+## Gate Resolution
+
+```text
+GATE_RESULT_RECORD_COUNT=7
+GATE_RESULT_YES_COUNT=3
+GATE_RESULT_NO_COUNT=0
+GATE_RESULT_UNKNOWN_COUNT=4
+
+ALL_REQUIRED_PRE_ACCESS_GATES_YES=NO
+PRIVATE_METADATA_ACCESS_PERMITTED=NO
+EXECUTION_ALLOWED=NO
+```
+
+AT8O27 may set `ALL_REQUIRED_PRE_ACCESS_GATES_YES=YES` only when all seven
+exact gate-result records equal `YES`. Four records remain `UNKNOWN`;
+therefore the one-shot private metadata review may not begin.
+
+## Unresolved Evidence Requirements
+
+`AUTHORIZED_ACTOR_CONFIRMED` may be resolved only by:
+
+```text
+HUMAN_GOVERNANCE_ATTESTATION
+```
+
+The following three source-path gates may be resolved only by:
+
+```text
+HUMAN_GOVERNED_PRIVATE_CONTROL_PLANE_SOURCE_BINDING_ATTESTATION
+```
+
+That source-binding attestation must safely establish all three facts:
+
+- the exact authorized review source is available;
+- the exact source is directly reachable without broad enumeration;
+- the review path is exclusively metadata/control-plane and requires no
+  private data-plane access.
+
+## Forbidden Publication and Access
+
+AT8O27 does not request, access, or publish:
+
+- exact source
+- endpoint or path
+- exact human principal
+- credentials or tokens
+- ADC contents
+- IAM binding contents
+- secrets
+- private customer/contact data
+
+```text
+AT8O20_DISPATCH=BLOCKED
+AT8O16_DISPATCH=BLOCKED
+AT8O12_DISPATCH=BLOCKED
+PRIVATE_CONTRACT_METADATA_ACCESS=BLOCKED
+PRIVATE_CONTROL_PLANE_ENUMERATION=BLOCKED
+PRIVATE_DATA_PLANE_ACCESS=BLOCKED
+TARGET_LOCATOR_RESULT_ACCESS=BLOCKED
+ADC_INSPECTION=BLOCKED
+IAM_INSPECTION_OR_MUTATION=BLOCKED
+TOKEN_CREATOR_AUTHORIZATION=BLOCKED
+SERVICE_ACCOUNT_IMPERSONATION=BLOCKED
+MG_MCP_MUTATION=BLOCKED
+DEPLOYMENT=BLOCKED
+HIGHLEVEL_CALL=BLOCKED
+CRM_MUTATION=BLOCKED
+```
+
+## Stop State
+
+Only a formally reviewed, human-merged, ancestry-verified AT8O27 with all seven
+gate records equal to `YES` may permit the AT8O24 one-shot human review. This
+artifact does not meet that condition.
+
+```text
+AT8O24_AUTHORIZATION_STATE=AVAILABLE
+AT8O24_PRIVATE_CONTRACT_REVIEW_ATTEMPTS_USED=0
+PRIVATE_CONTRACT_REVIEW_EXECUTED=NO
+ATTEMPT_CONSUMED=NO
+IMPLEMENTATION_PERFORMED=NO
+EXTERNAL_EFFECTS=0
+
+STOP_FOR_FORMAL_REVIEW=YES
+```
