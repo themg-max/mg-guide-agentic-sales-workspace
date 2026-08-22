@@ -18,6 +18,8 @@ SOURCE_PRINCIPAL_SELECTION_EXECUTED=NO
 
 PREFERRED_OPTION=UNRESOLVED
 FINAL_MECHANISM_SELECTION_DESIGNABLE=NO
+AT8O9_PUBLIC_REPO_EVIDENCE_SUFFICIENT_FOR_FINAL_SELECTION=NO
+PRIVATE_SOURCE_AUTHORITY_EVIDENCE_REQUIRED_FOR_NEXT_DECISION=YES
 
 IMPLEMENTATION_PERFORMED=NO
 EXTERNAL_EFFECTS=0
@@ -128,14 +130,24 @@ candidate compatibility and unchanged downstream-contract reuse remain
 ### 3.3 MG MCP retrieval discoverability observation
 
 ```text
-UNKNOWN: expected MG MCP context was not surfaced for AT8O8/exact retrieval.
-Action: retain this as a discoverability observation and use canonical repo source for AT8O9 evidence.
+repo_source_review_search=NW008_AT8O9_OPTION_B_EXISTING_CONTRACT_AND_PLACEMENT_FIT_001
+RESULT_COUNT=0
+
+repo_source_review_search=exact retrieval contract packet_id source_id source_class consumer_type requested_at
+RESULT_COUNT=0
+
+approved_docs_search=MG MCP exact packet retrieval packet_id expected_source_id expected_source_class
+RESULT_COUNT=0
+
+UNKNOWN: expected MG MCP context was not surfaced for AT8O9/exact retrieval.
+Action: retain as discoverability observation; do not infer absence.
 CONNECTOR_ZERO_RESULTS_IMPLY_ABSENCE=NO
 ```
 
-The repository also does not surface the canonical exact request source.
-Neither observation proves that the private connector, private control plane,
-or MG MCP lacks the contract.
+Independent review produced zero results for the named AT8O9 unit, exact
+five-field request query, and approved-docs query. The repository also does not
+surface the canonical exact request source. None of these observations proves
+that the private connector, private control plane, or MG MCP lacks the contract.
 
 ## 4. Domain B - existing placement candidates
 
@@ -151,7 +163,8 @@ service.
 CANDIDATE_ID=IN_PROCESS_LOCAL_RUNTIME
 EXISTING_SURFACE=YES
 SOURCE_PATHS=docs/nw008/nw-008-at8o-production-runtime-identity-mechanism-design-001.md; src/integrations/ghl/highlevel_rest/live_note_runtime.py
-RESPONSIBILITY_BOUNDARY_FIT=YES
+IN_PROCESS_PLACEMENT_BOUNDARY_COMPATIBLE=YES
+IN_PROCESS_COMPLETE_RESPONSIBILITY_IMPLEMENTATION_FIT=UNKNOWN
 OPAQUE_REF_RESOLUTION_FIT=UNKNOWN
 LIFECYCLE_SELECTION_FIT=UNKNOWN
 PROVENANCE_BINDING_FIT=UNKNOWN
@@ -161,30 +174,38 @@ AUTHORITY_ADMISSIBILITY_VALIDATION_FIT=UNKNOWN
 PRIVATE_PII_BOUNDARY_FIT=UNKNOWN
 FAIL_CLOSED_FIT=UNKNOWN
 PACKET_RETRIEVAL_OWNERSHIP_REMAINS_DOWNSTREAM=YES
-NEW_INFRA_REQUIRED=NO
+PLACEMENT_COMPUTE_REUSES_EXISTING_PROCESS=YES
+NEW_COMPUTE_SURFACE_FOR_IN_PROCESS_PLACEMENT_REQUIRED=NO
 NEW_IAM_SURFACE_REQUIRED=UNKNOWN
 
-INFRA_CLASS=NO_NEW_INFRA
+END_TO_END_OPTION_B_INFRA_CLASS=UNKNOWN
 IAM_CLASS=UNKNOWN
 COMPLETE_AT8O8_CONTRACT_FIT=UNKNOWN
 ```
 
-`RESPONSIBILITY_BOUNDARY_FIT=YES` is limited to architectural placement: the
-existing local process can place a preflight before a downstream call without
-taking ownership of packet retrieval. This follows the existing local-process
-host class at
+`IN_PROCESS_PLACEMENT_BOUNDARY_COMPATIBLE=YES` proves only architectural
+placement compatibility: the existing local process can place a preflight
+before a downstream call without taking ownership of packet retrieval. It does
+not prove that opaque-ref resolution, lifecycle selection, provenance/version
+binding, authority trust/admissibility validation, private-PII handling, or
+resolver-specific fail-closed behavior is implemented. Those complete
+responsibilities remain `UNKNOWN`. Placement compatibility follows the existing
+local-process host class at
 `docs/nw008/nw-008-at8o-production-runtime-identity-mechanism-design-001.md:24-36`
 and AT8O8's separation of authority and packet validation at
 `docs/nw008/nw-008-at8o8-option-b-pre-retrieval-authority-resolution-contract-001.md:507-526`.
 
-`NEW_INFRA_REQUIRED=NO` and `INFRA_CLASS=NO_NEW_INFRA` apply only to placing
-code in the already-defined local process. They do not assert that a governed
-authority source or private retrieval path already exists. The current
-composition root fails closed for production and contains no authority resolver
+`PLACEMENT_COMPUTE_REUSES_EXISTING_PROCESS=YES` and
+`NEW_COMPUTE_SURFACE_FOR_IN_PROCESS_PLACEMENT_REQUIRED=NO` apply only to the
+placement compute boundary. They do not assert that a governed authority source
+or private retrieval path already exists, and they do not resolve the
+end-to-end Option B infrastructure class. The current composition root fails
+closed for production and contains no authority resolver
 (`src/integrations/ghl/highlevel_rest/live_note_runtime.py:47-55`). The private
 runtime retrieval path and its authentication/authorization remain unidentified
 (`docs/nw008/nw-008-at8o2-private-source-principal-authority-system-design-001.md:358-410`).
-Consequently all substantive resolver and IAM fits remain `UNKNOWN`.
+Consequently complete resolver, end-to-end infrastructure, and IAM fits remain
+`UNKNOWN`.
 
 ### 4.2 Candidate EXISTING_PRIVATE_CONTROL_PLANE
 
@@ -245,15 +266,17 @@ EXACT_HUMAN_SOURCE_PRINCIPAL_VISIBILITY=PRIVATE
 EXACT_HUMAN_SOURCE_PRINCIPAL=UNRESOLVED
 SOURCE_PRINCIPAL_SELECTION_EXECUTED=NO
 
-SOURCE_PRINCIPAL_BINDING_REPRESENTATION_FIT=YES
+SOURCE_PRINCIPAL_BINDING_ABSTRACTION_DESIGN_SUPPORTED=YES
+EXISTING_SOURCE_PRINCIPAL_BINDING_IMPLEMENTATION_FIT=UNKNOWN
 RAW_EXACT_SOURCE_PRINCIPAL_PERSISTENCE_REQUIRED=NO
 PRIVATE_TRANSIENT_PRINCIPAL_VALIDATION_REQUIRED=UNKNOWN
 ```
 
-`SOURCE_PRINCIPAL_BINDING_REPRESENTATION_FIT=YES` means only that the
-architecture supports a governed abstraction. AT8O1 defines a non-derived,
-non-reassignable opaque reference, private immutable record version, and
-publicly safe boolean correlation evidence
+`SOURCE_PRINCIPAL_BINDING_ABSTRACTION_DESIGN_SUPPORTED=YES` means only that the
+architecture can represent a governed abstraction. It does not prove an
+existing implementation fit. AT8O1 defines a non-derived, non-reassignable
+opaque reference, private immutable record version, and publicly safe boolean
+correlation evidence
 (`docs/nw008/nw-008-at8o1-runtime-source-principal-authority-design-001.md:112-161`
 and lines 188-192). This is sufficient evidence that public/runtime handoff
 surfaces need not use the exact human value as their binding identifier.
@@ -276,16 +299,19 @@ No exact human principal was identified, retrieved, selected, or printed.
 
 ## 6. Domain D - infrastructure and IAM
 
-| Candidate | Viability state | `INFRA_CLASS` | `IAM_CLASS` | Evidence-bounded conclusion |
-| --- | --- | --- | --- | --- |
-| `IN_PROCESS_LOCAL_RUNTIME` | Conditional; complete fit `UNKNOWN` | `NO_NEW_INFRA` | `UNKNOWN` | Placement itself reuses the existing local process. Private authority retrieval authentication/authorization is not designed, so IAM cannot be classified. |
-| `EXISTING_PRIVATE_CONTROL_PLANE` | Conditional; complete fit `UNKNOWN` | `UNKNOWN` | `UNKNOWN` | The surface exists, but reuse/extension, operating ownership, private-PII authority, and access model are unresolved. |
+| Candidate | Viability state | Placement compute | End-to-end infra class | `IAM_CLASS` | Evidence-bounded conclusion |
+| --- | --- | --- | --- | --- | --- |
+| `IN_PROCESS_LOCAL_RUNTIME` | Conditional; complete fit `UNKNOWN` | Existing process reused; no new compute surface | `UNKNOWN` | `UNKNOWN` | Placement compute is resolved only. Authority-source infrastructure and private retrieval authentication/authorization are not designed. |
+| `EXISTING_PRIVATE_CONTROL_PLANE` | Conditional; complete fit `UNKNOWN` | `UNKNOWN` | `UNKNOWN` | `UNKNOWN` | The surface exists, but reuse/extension, operating ownership, private-PII authority, and access model are unresolved. |
 
 ```text
 ANY_COMPLETE_VIABLE_CANDIDATE_PROVEN=NO
 ANY_PROVEN_VIABLE_CANDIDATE_REQUIRES_NEW_INFRASTRUCTURE=UNKNOWN
 ANY_PROVEN_VIABLE_CANDIDATE_REQUIRES_NEW_IAM_SURFACE=UNKNOWN
 
+PLACEMENT_COMPUTE_REUSES_EXISTING_PROCESS=YES
+NEW_COMPUTE_SURFACE_FOR_IN_PROCESS_PLACEMENT_REQUIRED=NO
+END_TO_END_OPTION_B_INFRA_CLASS=UNKNOWN
 OPTION_B_NEW_INFRASTRUCTURE_REQUIRED=UNKNOWN
 OPTION_B_NEW_IAM_SURFACE_REQUIRED=UNKNOWN
 ```
@@ -321,16 +347,26 @@ source principal has Token Creator authority.
 
 | Candidate placement | Existing retrieval compatibility | Private-principal binding fit | New infrastructure requirement | New IAM requirement | Complete AT8O8 contract fit |
 | --- | --- | --- | --- | --- | --- |
-| `IN_PROCESS_LOCAL_RUNTIME` | `UNKNOWN` - exact downstream request schema is not surfaced | Abstraction `YES`; candidate validation and PII boundary `UNKNOWN` | Placement `NO_NEW_INFRA`; end-to-end Option B `UNKNOWN` | `UNKNOWN` | `UNKNOWN` |
+| `IN_PROCESS_LOCAL_RUNTIME` | `UNKNOWN` - exact downstream request schema is not surfaced | Abstraction design supported `YES`; existing binding implementation and PII boundary `UNKNOWN` | Existing placement compute reused `YES`; new compute surface `NO`; end-to-end Option B infra `UNKNOWN` | `UNKNOWN` | `UNKNOWN` |
 | `EXISTING_PRIVATE_CONTROL_PLANE` | `UNKNOWN` - exact downstream request schema is not surfaced | `UNKNOWN` - record reuse and private-PII fit are unproven | `UNKNOWN` | `UNKNOWN` | `UNKNOWN` |
 
 The matrix does not resolve all decision-critical unknowns. It supports no final
 candidate selection.
 
 ```text
+AT8O9_PUBLIC_REPO_EVIDENCE_SUFFICIENT_FOR_FINAL_SELECTION=NO
+PRIVATE_SOURCE_AUTHORITY_EVIDENCE_REQUIRED_FOR_NEXT_DECISION=YES
+NEXT_UNIT_AFTER_AT8O9_REVIEW_AND_MERGE=NW008_AT8O10_EXACT_RETRIEVAL_AND_PRIVATE_AUTHORITY_SOURCE_ACQUISITION_001
+AT8O10_STARTED=NO
 PREFERRED_OPTION=UNRESOLVED
 FINAL_MECHANISM_SELECTION_DESIGNABLE=NO
 ```
+
+AT8O10 may begin only after AT8O9 review and merge. Its bounded purpose is to
+acquire authoritative, read-only planning evidence for the canonical exact
+retrieval request and private authority access/source model. It may not execute
+private retrieval, select a human principal, change IAM, activate credentials,
+or implement Option B.
 
 Evidence still required before final selection is designable:
 
@@ -374,10 +410,14 @@ New AT8O9-specific determinations supported by direct evidence are:
 
 | Determination | State | Citation |
 | --- | --- | --- |
-| Governed source-principal binding abstraction supported | `YES` | `docs/nw008/nw-008-at8o1-runtime-source-principal-authority-design-001.md:112-161` |
+| Governed source-principal binding abstraction design supported | `YES` | `docs/nw008/nw-008-at8o1-runtime-source-principal-authority-design-001.md:112-161` |
+| Existing source-principal binding implementation fit | `UNKNOWN` | AT8O8 leaves representation/transient validation unresolved; no implementation exists in the inspected surfaces |
 | Raw exact-principal persistence required by AT8O8 | `NO` | `docs/nw008/nw-008-at8o8-option-b-pre-retrieval-authority-resolution-contract-001.md:155-211` |
-| In-process responsibility-boundary fit | `YES` | `docs/nw008/nw-008-at8o-production-runtime-identity-mechanism-design-001.md:24-36`; AT8O8 lines 507-526 |
-| New compute infrastructure required for in-process placement itself | `NO` | Same existing local-process evidence; `src/integrations/ghl/highlevel_rest/live_note_runtime.py:47-55` |
+| In-process placement-boundary compatibility | `YES` | `docs/nw008/nw-008-at8o-production-runtime-identity-mechanism-design-001.md:24-36`; AT8O8 lines 507-526 |
+| In-process complete responsibility implementation fit | `UNKNOWN` | `src/integrations/ghl/highlevel_rest/live_note_runtime.py:47-55` contains no authority resolver |
+| Placement compute reuses existing process | `YES` | Same existing local-process evidence |
+| New compute surface required for in-process placement | `NO` | Same existing local-process evidence |
+| End-to-end Option B infrastructure class | `UNKNOWN` | Authority source and private retrieval path remain unresolved |
 | Packet retrieval remains downstream for both bounded candidates | `YES` | `docs/nw008/nw-008-at8o8-option-b-pre-retrieval-authority-resolution-contract-001.md:507-526` |
 
 ## 10. Validation and non-actions
