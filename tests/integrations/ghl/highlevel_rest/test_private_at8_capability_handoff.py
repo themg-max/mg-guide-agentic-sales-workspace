@@ -90,6 +90,16 @@ def _issue_synthetic_capability(
     )
 
 
+def _root_owned_private_delivery_reference() -> object:
+    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+    )
+    return note_path_module._register_root_owned_private_binding_delivery_reference(
+        trusted_binding_source=trusted_binding_source
+    )
+
+
 class _UntrustedStructuralBindingSource:
     def get_trusted_binding_source(self) -> note_path_module._TrustedPrivateBindingSource:
         return note_path_module._TrustedPrivateBindingSource(
@@ -158,6 +168,78 @@ def test_valid_internal_private_at8_handoff() -> None:
         "fake_transport_bound_contact_verification"
     )
     assert [method for method, _, _ in bound_transport.calls] == ["GET"]
+
+
+def test_root_owned_private_delivery_reference_issues_capability() -> None:
+    workflow_run_id = "synthetic-workflow-run-root-owned-delivery-001"
+    reference = _root_owned_private_delivery_reference()
+    signature = inspect.signature(
+        note_path_module._issue_root_owned_private_binding_delivery_capability
+    )
+
+    assert tuple(signature.parameters) == (
+        "safe_private_delivery_reference",
+        "consumer_authorization_identity",
+        "consumer_workflow_run_id",
+    )
+    assert "location_id" not in signature.parameters
+    assert "contact_id" not in signature.parameters
+    assert "private_binding" not in signature.parameters
+    assert "source_locator" not in signature.parameters
+    assert not hasattr(
+        NotePathAdapter, "_issue_root_owned_private_binding_delivery_capability"
+    )
+
+    capability = note_path_module._issue_root_owned_private_binding_delivery_capability(
+        safe_private_delivery_reference=reference,
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+
+    adapter, transport = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+    adapter._verified_contact_binding_capability = capability
+
+    assert adapter._require_trusted_verified_capability() is capability
+    assert capability.trusted_binding_source.trusted_origin == (
+        "private_at8_verified_binding_handoff"
+    )
+    assert transport.calls == []
+
+
+@pytest.mark.parametrize(
+    "safe_private_delivery_reference",
+    (None, object(), note_path_module._RootOwnedPrivateBindingDeliveryReference(object())),
+)
+def test_root_owned_private_delivery_reference_unavailable_fails_closed(
+    safe_private_delivery_reference: object,
+) -> None:
+    with pytest.raises(BindingError, match="root-owned private binding delivery is unavailable"):
+        note_path_module._issue_root_owned_private_binding_delivery_capability(
+            safe_private_delivery_reference=safe_private_delivery_reference,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-root-owned-unavailable-001",
+        )
+
+
+def test_root_owned_private_delivery_capability_issuance_failure_fails_closed() -> None:
+    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+    )
+    reference = note_path_module._register_root_owned_private_binding_delivery_reference(
+        trusted_binding_source=trusted_binding_source
+    )
+    object.__setattr__(trusted_binding_source, "contact_id", "tampered-contact-001")
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._issue_root_owned_private_binding_delivery_capability(
+            safe_private_delivery_reference=reference,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-root-owned-tampered-001",
+        )
 
 
 def test_raw_private_binding_direct_handoff_blocks() -> None:

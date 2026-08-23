@@ -56,6 +56,24 @@ def _issued_capability(
     )
 
 
+def _root_owned_private_delivery_capability(
+    *,
+    consumer_workflow_run_id: str = "synthetic-workflow-run-root-owned-runtime-001",
+):
+    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+    )
+    reference = note_path_module._register_root_owned_private_binding_delivery_reference(
+        trusted_binding_source=trusted_binding_source
+    )
+    return note_path_module._issue_root_owned_private_binding_delivery_capability(
+        safe_private_delivery_reference=reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+    )
+
+
 def _synthetic_accessor() -> SyntheticLiveNoteSecretAccessor:
     return SyntheticLiveNoteSecretAccessor(
         payloads={
@@ -175,7 +193,9 @@ def test_public_assembler_uses_only_root_owned_dependencies(
         lambda: dependencies,
     )
 
-    adapter = assemble_bound_live_note_runtime(verified_capability=_issued_capability())
+    adapter = assemble_bound_live_note_runtime(
+        verified_capability=_root_owned_private_delivery_capability()
+    )
     transport = adapter._transport
 
     assert isinstance(adapter, NotePathAdapter)

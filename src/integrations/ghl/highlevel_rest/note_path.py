@@ -155,6 +155,13 @@ class _VerifiedContactBindingCapability:
 
 
 @dataclass(frozen=True)
+class _RootOwnedPrivateBindingDeliveryReference:
+    """Opaque process-local handle for an already-registered private source."""
+
+    _trust_marker: object
+
+
+@dataclass(frozen=True)
 class _SourceIssuanceSnapshot:
     workflow_id: str
     source_execution_unit: str
@@ -240,6 +247,8 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
     issued_sources = _IdentityRegistry()
     issued_capabilities = _IdentityRegistry()
     verified_bound_contact_gets = _IdentityRegistry()
+    root_owned_delivery_references = _IdentityRegistry()
+    root_owned_delivery_marker = object()
 
     def _issue_source(
         *,
@@ -435,30 +444,22 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             contact_id=contact_id,
         )
 
-    def handoff_private_at8_capability_from_registered_source(
-        *,
+    def _require_private_at8_handoff_source(
         trusted_binding_source: object,
-        consumer_authorization_identity: str,
-        consumer_workflow_run_id: str,
-        workflow_id: str = _WORKFLOW_ID,
-        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
-        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
-    ) -> _VerifiedContactBindingCapability:
-        _require_at8_provenance(
-            workflow_id=workflow_id,
-            source_execution_unit=source_execution_unit,
-            source_proof_merge_sha=source_proof_merge_sha,
-        )
+    ) -> _TrustedPrivateBindingSource:
         if (
             not isinstance(trusted_binding_source, _TrustedPrivateBindingSource)
-            or not isinstance(issued_sources.get(trusted_binding_source), _SourceIssuanceSnapshot)
+            or not isinstance(
+                issued_sources.get(trusted_binding_source), _SourceIssuanceSnapshot
+            )
         ):
             raise BindingError("verified-contact capability trusted binding source is invalid")
         source_snapshot = issued_sources.get(trusted_binding_source)
         assert isinstance(source_snapshot, _SourceIssuanceSnapshot)
         if (
             source_snapshot.trusted_origin != _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF
-            or trusted_binding_source != _TrustedPrivateBindingSource(
+            or trusted_binding_source
+            != _TrustedPrivateBindingSource(
                 workflow_id=source_snapshot.workflow_id,
                 source_execution_unit=source_snapshot.source_execution_unit,
                 source_proof_merge_sha=source_snapshot.source_proof_merge_sha,
@@ -469,7 +470,10 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             )
         ):
             raise BindingError("verified-contact capability trusted binding source is invalid")
-        if trusted_binding_source._trust_marker is not source_markers[_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF]:
+        if (
+            trusted_binding_source._trust_marker
+            is not source_markers[_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF]
+        ):
             raise BindingError("verified-contact capability trusted binding source is invalid")
         if trusted_binding_source.workflow_id != _WORKFLOW_ID:
             raise BindingError(
@@ -486,6 +490,25 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             or not trusted_binding_source.contact_id.startswith("synthetic-")
         ):
             raise BindingError("verified-contact capability trusted binding source is invalid")
+        return trusted_binding_source
+
+    def handoff_private_at8_capability_from_registered_source(
+        *,
+        trusted_binding_source: object,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _VerifiedContactBindingCapability:
+        _require_at8_provenance(
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        trusted_binding_source = _require_private_at8_handoff_source(
+            trusted_binding_source
+        )
         return _issue_capability(
             trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
             location_id=trusted_binding_source.location_id,
@@ -497,6 +520,47 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
                 "consumer_workflow_run_id", consumer_workflow_run_id
             ),
             trusted_binding_source=trusted_binding_source,
+        )
+
+    def register_root_owned_private_binding_delivery_reference(
+        *,
+        trusted_binding_source: object,
+    ) -> _RootOwnedPrivateBindingDeliveryReference:
+        """Seal an already-registered private handoff source into an opaque handle."""
+        trusted_binding_source = _require_private_at8_handoff_source(
+            trusted_binding_source
+        )
+        reference = _RootOwnedPrivateBindingDeliveryReference(
+            _trust_marker=root_owned_delivery_marker
+        )
+        root_owned_delivery_references.add(reference, trusted_binding_source)
+        return reference
+
+    def issue_root_owned_private_binding_delivery_capability(
+        *,
+        safe_private_delivery_reference: object,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+    ) -> _VerifiedContactBindingCapability:
+        """Issue only from an opaque reference registered by the root-owned seam."""
+        if (
+            not isinstance(
+                safe_private_delivery_reference,
+                _RootOwnedPrivateBindingDeliveryReference,
+            )
+            or safe_private_delivery_reference._trust_marker
+            is not root_owned_delivery_marker
+        ):
+            raise BindingError("root-owned private binding delivery is unavailable")
+        trusted_binding_source = root_owned_delivery_references.get(
+            safe_private_delivery_reference
+        )
+        if not isinstance(trusted_binding_source, _TrustedPrivateBindingSource):
+            raise BindingError("root-owned private binding delivery is unavailable")
+        return handoff_private_at8_capability_from_registered_source(
+            trusted_binding_source=trusted_binding_source,
+            consumer_authorization_identity=consumer_authorization_identity,
+            consumer_workflow_run_id=consumer_workflow_run_id,
         )
 
     def require_issued_verified_capability(
@@ -603,6 +667,8 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
         issue_synthetic_test_capability,
         issue_private_at8_handoff_source_for_synthetic_tests,
         handoff_private_at8_capability_from_registered_source,
+        register_root_owned_private_binding_delivery_reference,
+        issue_root_owned_private_binding_delivery_capability,
         build_bound_contact_get,
         require_issued_verified_capability,
     )
@@ -613,6 +679,8 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
     _issue_synthetic_test_capability,
     _issue_private_at8_handoff_source_for_synthetic_tests,
     _handoff_private_at8_capability_from_registered_source,
+    _register_root_owned_private_binding_delivery_reference,
+    _issue_root_owned_private_binding_delivery_capability,
     _build_bound_contact_get,
     _require_issued_verified_capability,
 ) = _build_internal_trust_issuer()
