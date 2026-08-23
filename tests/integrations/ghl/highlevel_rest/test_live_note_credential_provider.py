@@ -11,6 +11,7 @@ import pytest
 from integrations.ghl.highlevel_rest.live_note_credential_provider import (
     LiveNoteCredentialProvider,
     LiveNoteCredentialProviderError,
+    RootOwnedLiveNoteCredentialInjection,
     SyntheticLiveNoteSecretAccessor,
 )
 from integrations.ghl.highlevel_rest.live_note_transport import (
@@ -94,6 +95,38 @@ def test_credential_provider_synthetic_only() -> None:
     source = PROVIDER_PATH.read_text(encoding="utf-8")
     assert "os.environ" not in source
     assert "getenv(" not in source
+
+
+def test_root_owned_injection_builds_provider_from_synthetic_accessor() -> None:
+    accessor = SyntheticLiveNoteSecretAccessor(
+        payloads={SYNTHETIC_RESOURCE: SYNTHETIC_TOKEN}
+    )
+    injection = RootOwnedLiveNoteCredentialInjection(
+        accessor=accessor,
+        resource_name=SYNTHETIC_RESOURCE,
+    )
+
+    provider = injection.build_provider()
+
+    assert accessor.synthetic_read_count == 0
+    assert provider.get_credential().bearer_token == SYNTHETIC_TOKEN
+    assert accessor.synthetic_read_count == 1
+    assert SYNTHETIC_RESOURCE not in repr(injection)
+    assert SYNTHETIC_TOKEN not in repr(injection)
+
+
+def test_root_owned_injection_rejects_missing_accessor_or_resource() -> None:
+    accessor = SyntheticLiveNoteSecretAccessor(
+        payloads={SYNTHETIC_RESOURCE: SYNTHETIC_TOKEN}
+    )
+
+    with pytest.raises(LiveNoteCredentialProviderError, match="accessor"):
+        RootOwnedLiveNoteCredentialInjection(
+            accessor=None,  # type: ignore[arg-type]
+            resource_name=SYNTHETIC_RESOURCE,
+        )
+    with pytest.raises(LiveNoteCredentialProviderError, match="resource_name"):
+        RootOwnedLiveNoteCredentialInjection(accessor=accessor, resource_name="")
 
 
 def test_zero_real_secret_reads(monkeypatch: pytest.MonkeyPatch) -> None:
