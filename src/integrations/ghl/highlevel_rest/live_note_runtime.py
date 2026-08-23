@@ -12,6 +12,7 @@ from integrations.ghl.at1_execution_store import At1ExecutionStore
 from . import note_path
 from .live_note_credential_provider import (
     LiveNoteCredentialProvider,
+    RootOwnedLiveNoteCredentialInjection,
     SyntheticLiveNoteSecretAccessor,
 )
 from .live_note_http_client import ConcreteLiveNoteHttpClient
@@ -25,6 +26,36 @@ _SEALED_LIVE_NOTE_REST_RESOURCE_NAME = (
 
 class LiveNoteRuntimeAssemblyError(RuntimeError):
     """Raised when assembly would exceed the authorized offline boundary."""
+
+
+class _RootOwnedLiveNoteRuntimeDependencies:
+    """Dependencies resolved exclusively by the composition root's environment."""
+
+    def __init__(
+        self,
+        *,
+        credential_injection: RootOwnedLiveNoteCredentialInjection,
+        execution_store: At1ExecutionStore,
+    ) -> None:
+        if not isinstance(
+            credential_injection, RootOwnedLiveNoteCredentialInjection
+        ):
+            raise LiveNoteRuntimeAssemblyError(
+                "root-owned credential injection is required"
+            )
+        if not isinstance(execution_store, At1ExecutionStore):
+            raise LiveNoteRuntimeAssemblyError(
+                "root-owned execution store is required"
+            )
+        self.credential_injection = credential_injection
+        self.execution_store = execution_store
+
+
+def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDependencies:
+    """Resolve dependencies supplied by a future root-owned production substrate."""
+    raise LiveNoteRuntimeAssemblyError(
+        "production live-note runtime assembly requires root-owned dependencies"
+    )
 
 
 def _validate_issued_capability(
@@ -48,11 +79,27 @@ def assemble_bound_live_note_runtime(
     *,
     verified_capability: object,
 ) -> NotePathAdapter:
-    """Validate the production capability, then fail closed without a root store."""
-    _validate_issued_capability(verified_capability)
-    raise LiveNoteRuntimeAssemblyError(
-        "production live-note runtime assembly requires a root-owned execution store"
+    """Assemble only from validated capability and root-owned dependencies."""
+    validated_capability = _validate_issued_capability(verified_capability)
+    dependencies = _resolve_root_owned_runtime_dependencies()
+    credential = dependencies.credential_injection.build_provider().get_credential()
+    transport = BoundedLiveNoteTransport(
+        bound_contact_id=validated_capability.contact_id,
+        credential=credential,
+        http_client=ConcreteLiveNoteHttpClient(),
     )
+    adapter = NotePathAdapter(
+        location_id=validated_capability.location_id,
+        contact_id=validated_capability.contact_id,
+        transport=transport,
+        consumer_authorization_identity=(
+            validated_capability.consumer_authorization_identity
+        ),
+        consumer_workflow_run_id=validated_capability.consumer_workflow_run_id,
+        execution_store=dependencies.execution_store,
+    )
+    adapter._verified_contact_binding_capability = validated_capability
+    return adapter
 
 
 def _assemble_bound_live_note_runtime_for_tests(

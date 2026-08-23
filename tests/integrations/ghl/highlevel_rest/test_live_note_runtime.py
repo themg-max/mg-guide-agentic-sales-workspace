@@ -11,6 +11,7 @@ import integrations.ghl.highlevel_rest.live_note_runtime as runtime
 import integrations.ghl.highlevel_rest.note_path as note_path_module
 from integrations.ghl.highlevel_rest import NotePathAdapter, assemble_bound_live_note_runtime
 from integrations.ghl.highlevel_rest.live_note_credential_provider import (
+    RootOwnedLiveNoteCredentialInjection,
     SyntheticLiveNoteSecretAccessor,
 )
 from integrations.ghl.highlevel_rest.note_path import BindingError
@@ -118,7 +119,7 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
     monkeypatch.setattr(note_path_module, "_require_issued_verified_capability", _validator)
 
     with pytest.raises(
-        runtime.LiveNoteRuntimeAssemblyError, match="root-owned execution store"
+        runtime.LiveNoteRuntimeAssemblyError, match="root-owned dependencies"
     ):
         assemble_bound_live_note_runtime(verified_capability=capability)
 
@@ -151,9 +152,60 @@ def test_production_path_fails_closed_without_constructing_runtime(
     monkeypatch.setattr(runtime, "NotePathAdapter", _unexpected_construction)
 
     with pytest.raises(
-        runtime.LiveNoteRuntimeAssemblyError, match="root-owned execution store"
+        runtime.LiveNoteRuntimeAssemblyError, match="root-owned dependencies"
     ):
         assemble_bound_live_note_runtime(verified_capability=capability)
+
+
+def test_public_assembler_uses_only_root_owned_dependencies(
+    execution_store: At1ExecutionStore,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    accessor = _synthetic_accessor()
+    dependencies = runtime._RootOwnedLiveNoteRuntimeDependencies(
+        credential_injection=RootOwnedLiveNoteCredentialInjection(
+            accessor=accessor,
+            resource_name=runtime._SEALED_LIVE_NOTE_REST_RESOURCE_NAME,
+        ),
+        execution_store=execution_store,
+    )
+    monkeypatch.setattr(
+        runtime,
+        "_resolve_root_owned_runtime_dependencies",
+        lambda: dependencies,
+    )
+
+    adapter = assemble_bound_live_note_runtime(verified_capability=_issued_capability())
+    transport = adapter._transport
+
+    assert isinstance(adapter, NotePathAdapter)
+    assert adapter._verified_contact_binding_capability is not None
+    assert transport.total_network_calls == 0
+    assert transport.post_attempts == 0
+    assert transport.get_attempts == 0
+    assert transport._http_client.call_history == ()
+    assert accessor.REAL_SECRET_READS == 0
+    assert accessor.synthetic_read_count == 1
+
+
+def test_root_owned_dependency_container_rejects_overrides(
+    execution_store: At1ExecutionStore,
+) -> None:
+    injection = RootOwnedLiveNoteCredentialInjection(
+        accessor=_synthetic_accessor(),
+        resource_name=runtime._SEALED_LIVE_NOTE_REST_RESOURCE_NAME,
+    )
+
+    with pytest.raises(runtime.LiveNoteRuntimeAssemblyError, match="credential"):
+        runtime._RootOwnedLiveNoteRuntimeDependencies(
+            credential_injection=object(),  # type: ignore[arg-type]
+            execution_store=execution_store,
+        )
+    with pytest.raises(runtime.LiveNoteRuntimeAssemblyError, match="execution store"):
+        runtime._RootOwnedLiveNoteRuntimeDependencies(
+            credential_injection=injection,
+            execution_store=object(),  # type: ignore[arg-type]
+        )
 
 
 def test_private_test_seam_has_only_synthetic_accessor_and_store_args() -> None:
@@ -281,7 +333,7 @@ def test_private_test_seam_returns_adapter_without_network_or_real_secret_reads(
     assert "Authorization" not in caplog.text
 
 
-def test_runtime_never_remints_capabilities_or_constructs_production_store() -> None:
+def test_runtime_never_remints_capabilities_or_accepts_caller_overrides() -> None:
     source = Path(runtime.__file__).read_text(encoding="utf-8")
     public_source = inspect.getsource(assemble_bound_live_note_runtime)
 
@@ -289,9 +341,7 @@ def test_runtime_never_remints_capabilities_or_constructs_production_store() -> 
     assert "_issue_synthetic_test_capability" not in source
     assert "_handoff_private_at8_verified_binding_capability" not in source
     assert "At1ExecutionStore(" not in public_source
-    assert "LiveNoteCredentialProvider" not in public_source
-    assert "ConcreteLiveNoteHttpClient" not in public_source
-    assert "BoundedLiveNoteTransport" not in public_source
+    assert "_resolve_root_owned_runtime_dependencies" in public_source
 
 
 def test_frozen_blocked_module_boundaries_remain_intact() -> None:

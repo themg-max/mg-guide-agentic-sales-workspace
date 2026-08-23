@@ -81,6 +81,39 @@ class SyntheticLiveNoteSecretAccessor:
         return self.__repr__()
 
 
+class RootOwnedLiveNoteCredentialInjection:
+    """Bind a root-owned accessor to one sealed credential resource."""
+
+    def __init__(
+        self,
+        *,
+        accessor: LiveNoteSecretAccessor,
+        resource_name: str,
+    ) -> None:
+        if accessor is None or not hasattr(accessor, "read_secret_payload"):
+            raise LiveNoteCredentialProviderError(
+                "root-owned credential injection requires an accessor"
+            )
+        if not isinstance(resource_name, str) or not resource_name.strip():
+            raise LiveNoteCredentialProviderError(
+                "root-owned credential injection requires a resource_name"
+            )
+        self._accessor = accessor
+        self._resource_name = resource_name
+
+    def build_provider(self) -> "LiveNoteCredentialProvider":
+        """Create the provider without exposing its accessor or resource identity."""
+        return LiveNoteCredentialProvider(
+            accessor=self._accessor,
+            resource_name=self._resource_name,
+        )
+
+    def __repr__(self) -> str:
+        return "RootOwnedLiveNoteCredentialInjection(<redacted>)"
+
+    __str__ = __repr__
+
+
 class LiveNoteCredentialProvider:
     """Credential provider that returns ``InjectedLiveNoteCredential``.
 
