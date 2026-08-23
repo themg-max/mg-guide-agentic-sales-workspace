@@ -97,7 +97,7 @@ SAFE_REVIEWABLE_SOURCE_PROVENANCE=NW008_AT8O29_ATTESTATION_RECEIPT_B_001; NW008_
 FACT_NAME=AT8O20_AUTHORIZED_SOURCE_SCOPE_COMPATIBILITY
 SANITIZED_VALUE=COMPATIBLE_WITH_BOUNDED_AT8O20_AUTHORIZED_SOURCE_SCOPE
 EVIDENCE_BASIS=DERIVED
-SAFE_REVIEWABLE_SOURCE_PROVENANCE=NW008_AT8O29_ATTESTATION_RECEIPT_B_001; NW008_AT8O24_HUMAN_METADATA_REVIEWER_GRANT_RECEIPT_001; governance/authorizations/nw008/nw-008-at8o24-sanitized-source-transport-contract-attestation-authorization-decision-001.md; docs/nw008/nw-008-at8o23-sanitized-source-transport-contract-attestation-authorization-request-001.md; docs/nw008/nw-008-at8o25-sanitized-source-transport-contract-attestation-execution-packet-001.md; proof/nw008/nw-008-at8o29-pre-access-gate-resolution-attestation-002.md
+SAFE_REVIEWABLE_SOURCE_PROVENANCE=NW008_AT8O29_ATTESTATION_RECEIPT_B_001; NW008_AT8O24_HUMAN_METADATA_REVIEWER_GRANT_RECEIPT_001; governance/authorizations/nw008/nw-008-at8o20-private-execution-surface-locator-metadata-authorization-decision-001.md; governance/authorizations/nw008/nw-008-at8o24-sanitized-source-transport-contract-attestation-authorization-decision-001.md; docs/nw008/nw-008-at8o23-sanitized-source-transport-contract-attestation-authorization-request-001.md; docs/nw008/nw-008-at8o25-sanitized-source-transport-contract-attestation-execution-packet-001.md; proof/nw008/nw-008-at8o29-pre-access-gate-resolution-attestation-002.md
 ```
 
 ### Fact 06
