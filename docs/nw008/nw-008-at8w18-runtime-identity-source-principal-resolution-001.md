@@ -109,12 +109,14 @@ EXACT_SOURCE_PRINCIPAL_VALUE_READ_BY_THIS_LANE=NO
 EXACT_SOURCE_PRINCIPAL_VALUE_PUBLISHED=NO
 INFERRED_FROM_ACTIVE_ACCOUNT=NO
 
-SOURCE_PRINCIPAL_PRIVATE_BINDING_READY=NO
+PRIVATE_SOURCE_PRINCIPAL_DESIGNATION_EVIDENCE_PRESENT=NO
+SOURCE_PRINCIPAL_PRIVATE_BINDING_READY=UNKNOWN
 ```
 
-`SOURCE_PRINCIPAL_PRIVATE_BINDING_READY=NO` is a readiness result: the required
-designation evidence is absent. It does not claim that no human principal
-exists.
+`SOURCE_PRINCIPAL_PRIVATE_BINDING_READY=UNKNOWN` reflects the fact-state
+semantic required by AT8W12A: the required private designation is not
+affirmatively established and no private-designation evidence is present. It
+is not a claim that no human principal exists.
 
 ### 4.2 Read-only authorized-user ADC correlation
 
@@ -141,12 +143,14 @@ ADC_TOKEN_MINTED=NO
 EXACT_DESIGNATED_PRINCIPAL_AVAILABLE_FOR_CORRELATION=NO
 ACTIVE_ACCOUNT_VALUE_PUBLISHED=NO
 
-AUTHORIZED_USER_ADC_CORRELATION_READY=NO
+EXACT_ADC_CORRELATION_ESTABLISHED=NO
+AUTHORIZED_USER_ADC_CORRELATION_READY=UNKNOWN
 ```
 
-`AUTHORIZED_USER_ADC_CORRELATION_READY=NO` means the exact required correlation
-is not established. It does not assert that the observed account and ADC belong
-to different humans.
+`AUTHORIZED_USER_ADC_CORRELATION_READY=UNKNOWN` means the exact required
+correlation is unresolved because the private designation evidence is absent and
+no definitive correlation was established. It does not assert that the
+observed account and ADC belong to different humans.
 
 ### 4.3 Read-only effective Token Creator evaluation
 
@@ -168,38 +172,39 @@ PROJECT_TOKEN_CREATOR_MEMBER_COUNT=9
 IAM_MEMBER_VALUES_PUBLISHED=NO
 EXACT_SOURCE_PRINCIPAL_AVAILABLE_FOR_MEMBER_COMPARISON=NO
 EXACT_SOURCE_EFFECTIVE_ACCESS_AFFIRMATIVELY_ESTABLISHED=NO
+EXACT_SOURCE_EFFECTIVE_ACCESS_EVALUATED=NO
 
-EFFECTIVE_TOKEN_CREATOR_ACCESS_READY=NO
+EFFECTIVE_TOKEN_CREATOR_ACCESS_READY=UNKNOWN
 ```
 
 The target service-account policy contains no Token Creator binding. A
 project-level Token Creator binding has members, but the absent private source
-designation prevents an exact member comparison. Therefore effective access
-for the required source principal is not affirmatively established and the
-readiness fact is exactly `NO`.
+designation prevents an exact member comparison. The exact effective access for
+the required source principal remains unresolved and therefore the readiness
+fact is `UNKNOWN` rather than `NO`.
 
 ## 5. Exact resolution and fail-closed decision
 
 ```text
-SOURCE_PRINCIPAL_PRIVATE_BINDING_READY=NO
-AUTHORIZED_USER_ADC_CORRELATION_READY=NO
-EFFECTIVE_TOKEN_CREATOR_ACCESS_READY=NO
+SOURCE_PRINCIPAL_PRIVATE_BINDING_READY=UNKNOWN
+AUTHORIZED_USER_ADC_CORRELATION_READY=UNKNOWN
+EFFECTIVE_TOKEN_CREATOR_ACCESS_READY=UNKNOWN
 
 REQUIRED_IDENTITY_FACT_COUNT=3
 REQUIRED_IDENTITY_FACTS_YES=0
-REQUIRED_IDENTITY_FACTS_NO=3
-REQUIRED_IDENTITY_FACTS_UNKNOWN=0
-ALL_REQUIRED_IDENTITY_FACTS_EXACT_YES_OR_NO=YES
+REQUIRED_IDENTITY_FACTS_NO=0
+REQUIRED_IDENTITY_FACTS_UNKNOWN=3
+ALL_REQUIRED_IDENTITY_FACTS_EXACT_YES_OR_NO=NO
 RUNTIME_IDENTITY_CHAIN_READY=NO
 ```
 
-No fact is recorded as `UNKNOWN`. Each `NO` is tied to a missing prerequisite
-or missing affirmative evidence and blocks advancement without asserting a
-broader negative fact outside the inspected scope.
+The aggregate remains fail-closed `NO`: the required identity chain is not
+affirmatively ready. The unresolved private designation and exact correlation
+conditions are represented as `UNKNOWN`, not as a fabricated negative fact.
 
-Because `EFFECTIVE_TOKEN_CREATOR_ACCESS_READY=NO`, identity-resolution actions
-stop here. No commitment-key, store, implementation, deployment, or live
-execution step is entered.
+Because `EFFECTIVE_TOKEN_CREATOR_ACCESS_READY=UNKNOWN`, identity-resolution
+actions stop here. No commitment-key, store, implementation, deployment, or
+live execution step is entered.
 
 ## 6. Missing prerequisite and separate IAM authorization proposal
 
@@ -211,11 +216,15 @@ exists. A subsequent read-only check must correlate the designated principal
 to active authorized-user ADC without reading credential material or minting a
 token.
 
-Only after those two facts are `YES`, a separate exact target-service-account
+Only after those two facts are `YES`, and only if the designated source still
+lacks effective Token Creator access, a separate exact target-service-account
 IAM authorization may be proposed and formally reviewed:
 
 ```text
-SEPARATE_IAM_AUTHORIZATION_REQUIRED=YES
+SEPARATE_IAM_AUTHORIZATION_REQUIRED=UNKNOWN
+IAM_AUTHORIZATION_REQUIRED_IF=
+  EXACT_DESIGNATED_SOURCE_LACKS_EFFECTIVE_TOKEN_CREATOR_ACCESS
+DO_NOT_CREATE_IAM_AUTHORIZATION_YET=YES
 PROPOSED_SEPARATE_UNIT=
   NW008_TARGET_SERVICE_ACCOUNT_TOKEN_CREATOR_IAM_AUTHORIZATION_001
 PROPOSED_AUTHORIZATION_CLASS=
