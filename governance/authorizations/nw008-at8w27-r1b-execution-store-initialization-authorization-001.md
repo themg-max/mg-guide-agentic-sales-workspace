@@ -262,7 +262,16 @@ already persists as the non-secret
 DESIGNATED_DB_PATH=
   /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
 
+DESIGNATED_PRIMARY_SQLITE_DB_PATH=
+  /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
+
+DESIGNATED_DB_PARENT=
+  /Users/achandler/Library/Application Support/mg-guide/nw008
+
 OTHER_DB_PATHS_ALLOWED=NO
+OTHER_PRIMARY_DB_PATHS_ALLOWED=NO
+SECOND_DURABLE_DATABASE_ALLOWED=NO
+ALTERNATE_DATABASE_PATH_ALLOWED=NO
 CALLER_DB_PATH_OVERRIDE_ALLOWED=NO
 
 EXPECTED_PRE_EXECUTION_DB_STATE=ABSENT
@@ -273,17 +282,86 @@ EXPECTED_COMMITMENT_KEY_VERSION_RESOURCE=
   projects/ai-rolodex-to-crm/secrets/MG_GUIDE_NW008_COMMITMENT_KEY/versions/1
 ```
 
-Only the exact designated path may be created or opened. No alternate path,
-temporary path, test path, or caller override is permitted under this grant.
+Only the exact designated primary path may be created or opened as the durable
+At1ExecutionStore database. No alternate path, temporary validation DB, copied
+DB, backup DB, test path, or caller override is permitted under this grant.
 
-## 8. Pre-execution fail-closed check
+### 7.1 Primary DB versus SQLite-engine transient sidecars
+
+```text
+SQLITE_ENGINE_MANAGED_TRANSIENT_SIDECARS_ALLOWED=YES
+
+SQLITE_ENGINE_MANAGED_TRANSIENT_SIDECAR_SCOPE=
+  SAME_DIRECTORY_AS_DESIGNATED_PRIMARY_DB_ONLY
+
+SQLITE_ENGINE_MANAGED_TRANSIENT_SIDECAR_PURPOSE=
+  SQLITE_INTERNAL_TRANSACTION_DURABILITY_ONLY
+
+SQLITE_ENGINE_AUTOMATIC_SIDECAR_CREATE_REMOVE=
+  PERMITTED_AS_INCIDENTAL_EFFECT_OF_AUTHORIZED_CONSTRUCTOR_ONLY
+
+OPERATOR_CREATED_SIDECARS_ALLOWED=NO
+OPERATOR_MANAGED_SIDECAR_DELETE_ALLOWED=NO
+```
+
+SQLite may automatically create and remove engine-managed transient transaction
+sidecars (for example rollback/WAL/journal companions) in the same directory as
+the designated primary DB only, solely as an incidental effect of the already
+authorized At1ExecutionStore constructor/open lifecycle.
+
+This does **not** authorize:
+
+- a second durable database;
+- an alternate primary DB path;
+- operator-created journal, backup, copy, or temporary validation DB files;
+- operator-managed sidecar deletion or cleanup mutation.
+
+`DB_DELETE_ALLOWED=NO` means no operator/application deletion of the primary DB
+and no cleanup mutation by the consumer. It does **not** prohibit SQLite's
+internal automatic transaction-journal create/remove lifecycle.
+
+## 8. Pre-execution fail-closed checks
 
 Before impersonation or any Secret Manager call, the execution consumer must
-check the exact designated DB path only for filesystem existence.
+perform the following existence/type checks only, in order, and must not mutate
+filesystem state.
+
+### 8.1 Parent directory pre-consumption check
+
+```text
+DESIGNATED_DB_PARENT=
+  /Users/achandler/Library/Application Support/mg-guide/nw008
+
+PRE_EXECUTION_PARENT_CHECK=
+  EXACT_PARENT_EXISTENCE_AND_DIRECTORY_TYPE_ONLY
+
+REQUIRE_BEFORE_IMPERSONATION=
+  PARENT_DIRECTORY_EXISTS=YES
+  PARENT_PATH_IS_DIRECTORY=YES
+
+IF_PARENT_MISSING_OR_NOT_DIRECTORY=
+  AUTHORIZATION_CONSUMED=NO
+  STOP_CODE=DESIGNATED_SQLITE_PARENT_NOT_READY
+  STOP=YES
+```
+
+If the exact parent path does not exist or is not a directory, the consumer must
+stop immediately and return to governance. In that fail-closed stop the consumer
+must not:
+
+- create the parent directory;
+- chmod/chown or otherwise repair the path;
+- impersonate the runtime SA;
+- mint a token;
+- read C4;
+- touch or create SQLite;
+- construct At1ExecutionStore.
+
+### 8.2 Designated primary DB pre-existence check
 
 ```text
 PRE_EXECUTION_DB_CHECK=
-  EXACT_DESIGNATED_PATH_EXISTENCE_ONLY
+  EXACT_DESIGNATED_PRIMARY_PATH_EXISTENCE_ONLY
 
 IF_DESIGNATED_DB_FILE_EXISTS=
   AUTHORIZATION_CONSUMED=NO
@@ -291,8 +369,9 @@ IF_DESIGNATED_DB_FILE_EXISTS=
   STOP=YES
 ```
 
-If the designated file already exists, the consumer must stop immediately and
-return to governance. In that fail-closed stop the consumer must not:
+If the designated primary file already exists, the consumer must stop
+immediately and return to governance. In that fail-closed stop the consumer
+must not:
 
 - delete, rename, truncate, or repair the file;
 - inspect payload rows;
@@ -302,8 +381,8 @@ return to governance. In that fail-closed stop the consumer must not:
 - mint a token;
 - construct At1ExecutionStore.
 
-Existence-only checking of the exact designated path is permitted. No other
-filesystem mutation is permitted by the pre-check.
+Existence/type-only checking of the exact parent and designated primary path is
+permitted. No other filesystem mutation is permitted by the pre-checks.
 
 ## 9. Store effect budget
 
@@ -315,23 +394,34 @@ AT1_EXECUTION_STORE_INITIAL_CREATION_MAX=1
 AT1_EXECUTION_STORE_REOPEN_MAX=1
 
 OTHER_DB_PATHS_ALLOWED=NO
+OTHER_PRIMARY_DB_PATHS_ALLOWED=NO
+SECOND_DURABLE_DATABASE_ALLOWED=NO
+ALTERNATE_DATABASE_PATH_ALLOWED=NO
 
 DB_DELETE_ALLOWED=NO
 DB_RENAME_ALLOWED=NO
 DB_TRUNCATE_ALLOWED=NO
 DB_REPAIR_ALLOWED=NO
+
+SQLITE_ENGINE_MANAGED_TRANSIENT_SIDECARS_ALLOWED=YES
+OPERATOR_CREATED_SIDECARS_ALLOWED=NO
+OPERATOR_MANAGED_SIDECAR_DELETE_ALLOWED=NO
 ```
 
 The first At1ExecutionStore construction may create, at the exact designated
-path only:
+primary path only:
 
-- the SQLite file;
+- the primary SQLite file;
 - table `at1_store_metadata`;
 - table `execution_claims`;
 - table `attempts`;
 - table `protocol_ledger`;
 - table `business_ledger`;
 - exactly one metadata row required by the existing implementation.
+
+Incidental SQLite-engine-managed transient sidecars in the same parent directory
+remain permitted solely under §7.1 and do not count as a second durable database
+or as an additional `DESIGNATED_SQLITE_CREATE`.
 
 Permitted immutable metadata values:
 
@@ -342,15 +432,38 @@ commitment_key_version_resource=
   projects/ai-rolodex-to-crm/secrets/MG_GUIDE_NW008_COMMITMENT_KEY/versions/1
 ```
 
-The second construction is a controlled reopen only. It must use the same
-in-memory C4 material and the same exact designated path. It may validate
-constructor-level metadata/schema checks. It must not recreate schema as a
-repair path, must not delete or replace the file, and must not write business
-or protocol rows.
+### 9.1 Connection-close lifecycle
 
-After initial construction succeeds, exactly one close followed by exactly one
-reopen is permitted. Additional constructions, path changes, or reopen loops
-are forbidden.
+```text
+STORE_CONNECTION_CLOSE_EVENTS_REQUIRED=2
+FIRST_STORE_CONNECTION_CLOSE_REQUIRED_BEFORE_REOPEN=YES
+FINAL_REOPENED_STORE_CONNECTION_CLOSE_REQUIRED=YES
+
+NEW_STORE_CLOSE_API_IMPLEMENTATION_AUTHORIZED=NO
+SOURCE_CODE_CHANGE_AUTHORIZED=NO
+```
+
+The second construction is a controlled reopen only. It must use the same
+in-memory C4 material and the same exact designated primary path. It may
+validate constructor-level metadata/schema checks. It must not recreate schema
+as a repair path, must not delete or replace the primary file, and must not
+write business or protocol rows.
+
+After initial construction succeeds, the R1B execution consumer must
+deterministically close the connection from the first At1ExecutionStore instance
+before constructing the second instance. After successful reopen validation, the
+second store connection must also be closed before the execution unit
+terminates.
+
+Exactly two store connection-close events are required:
+
+1. close of the initial-construction store connection before reopen; and
+2. close of the reopened store connection before unit termination.
+
+Additional constructions, path changes, or reopen loops are forbidden. This
+authorization does not authorize a new store-close API, source-code change, or
+any `src/**` / `tests/**` modification. The consumer must use the already
+existing connection lifecycle surface.
 
 ## 10. Business / protocol write budget
 
@@ -438,12 +551,19 @@ PERMITTED_PROOF_FIELDS=
   exact_c4_resource_identifier|
   c4_read_attempt_count|
   designated_db_path|
+  designated_db_parent|
+  parent_directory_preflight_result|
   designated_db_pre_execution_state|
   designated_sqlite_created|
   at1_execution_store_initial_construction_result|
+  first_store_connection_close_before_reopen_result|
   at1_execution_store_reopen_result|
+  final_reopened_store_connection_close_result|
+  store_connection_close_event_count|
   schema_version_validated|
   commitment_key_version_resource_validated|
+  second_durable_database_created|
+  operator_created_sidecars|
   success_or_failure|
   safe_sanitized_error_category_or_stop_code|
   forbidden_effect_zero_ledger
@@ -481,11 +601,14 @@ The grant is consumed when the future execution consumer begins the first
 service-account impersonation attempt, regardless of success or failure.
 Failure does not restore the grant. No other unit may consume or inherit it.
 
-Exception: if the pre-execution designated-DB existence check fails closed with
-`STOP_CODE=DESIGNATED_SQLITE_PREEXISTS_UNEXPECTEDLY` before any impersonation
-attempt, the authorization remains unconsumed
-(`AUTHORIZATION_CONSUMED=NO`) and no R1B execution effects may proceed under
-this artifact until governance disposition.
+Exception: if either pre-execution filesystem check fails closed before any
+impersonation attempt with
+
+- `STOP_CODE=DESIGNATED_SQLITE_PARENT_NOT_READY`, or
+- `STOP_CODE=DESIGNATED_SQLITE_PREEXISTS_UNEXPECTEDLY`,
+
+the authorization remains unconsumed (`AUTHORIZATION_CONSUMED=NO`) and no R1B
+execution effects may proceed under this artifact until governance disposition.
 
 Before the first impersonation attempt, the execution consumer must
 independently verify:
@@ -502,9 +625,13 @@ PRE_EXECUTION_REQUIRED=
   EXACT_IDENTITY_MECHANISM_MATCH|
   EXACT_C4_RESOURCE_MATCH|
   EXACT_DESIGNATED_DB_PATH_MATCH|
+  EXACT_DESIGNATED_DB_PARENT_MATCH|
+  PARENT_DIRECTORY_EXISTS|
+  PARENT_PATH_IS_DIRECTORY|
   DESIGNATED_DB_ABSENT|
   IDENTITY_SECRET_AND_STORE_EFFECT_BUDGETS_ENFORCED|
   BUSINESS_PROTOCOL_AND_RUNTIME_ZERO_BUDGETS_ENFORCED|
+  STORE_CONNECTION_CLOSE_LIFECYCLE_ENFORCED|
   PAYLOAD_AND_TOKEN_NON_DISCLOSURE_ENFORCED
 ```
 
@@ -523,7 +650,10 @@ C4_EXACT_SECRET_ACCESS=PASS
 DESIGNATED_SQLITE_CREATED=YES
 
 AT1_EXECUTION_STORE_INITIAL_CONSTRUCTION=PASS
+FIRST_STORE_CONNECTION_CLOSE_BEFORE_REOPEN=PASS
 AT1_EXECUTION_STORE_REOPEN=PASS
+FINAL_REOPENED_STORE_CONNECTION_CLOSE=PASS
+STORE_CONNECTION_CLOSE_EVENTS=2
 
 SCHEMA_VERSION_VALIDATED=1
 
@@ -546,6 +676,10 @@ IAM_MUTATIONS=0
 SERVICE_ACCOUNT_KEYS_CREATED=0
 DEPLOYMENTS=0
 
+SECOND_DURABLE_DATABASE_CREATED=NO
+OPERATOR_CREATED_SIDECARS=NO
+OPERATOR_MANAGED_SIDECAR_DELETES=NO
+
 PAYLOADS_PUBLISHED=NO
 PAYLOADS_PERSISTED=NO
 TOKENS_PUBLISHED=NO
@@ -556,12 +690,15 @@ An access result is PASS only when Secret Manager returns the payload for the
 exact requested numeric-version C4 resource under the impersonated runtime
 principal, without resource or principal substitution. Store construction and
 reopen are PASS only when the existing At1ExecutionStore constructor completes
-successfully at the exact designated path and validates
-`schema_version=1` plus the exact commitment-key version resource string.
+successfully at the exact designated primary path and validates
+`schema_version=1` plus the exact commitment-key version resource string, with
+the required two connection-close events completed using the existing lifecycle
+surface and without source-code or new close-API changes.
 
 ## 15. Fail-closed behavior
 
-If impersonation, token mint, C4 read, initial construction, or reopen fails,
+If parent preflight, designated-DB preflight, impersonation, token mint, C4
+read, initial construction, required first close, reopen, or final close fails,
 the execution consumer must STOP.
 
 ```text
@@ -574,28 +711,34 @@ USE_LATEST_ON_FAILURE=NO
 ALTER_IAM_ON_FAILURE=NO
 CHANGE_RESOURCE_IDENTITY_ON_FAILURE=NO
 CHANGE_RUNTIME_PRINCIPAL_ON_FAILURE=NO
+CREATE_PARENT_DIRECTORY_ON_FAILURE=NO
+CHMOD_CHOWN_PARENT_ON_FAILURE=NO
 DB_REPAIR_ON_FAILURE=NO
 DB_DELETE_ON_FAILURE=NO
 DB_RENAME_ON_FAILURE=NO
 DB_TRUNCATE_ON_FAILURE=NO
+OPERATOR_SIDECAR_DELETE_ON_FAILURE=NO
 CLEANUP_MUTATION_ON_FAILURE=NO
 START_PRODUCTION_RUNTIME_ON_FAILURE=NO
 ASSEMBLE_PRODUCTION_RUNTIME_ON_FAILURE=NO
 CALL_HIGHLEVEL_ON_FAILURE=NO
 READ_B2_ON_FAILURE=NO
+IMPLEMENT_NEW_STORE_CLOSE_API_ON_FAILURE=NO
+SOURCE_CODE_CHANGE_ON_FAILURE=NO
 FALL_BACK_TO_DIRECT_USER_ADC_SECRET_ACCESS_ON_FAILURE=NO
 FALL_BACK_TO_R1A_AUTHORIZATION_ON_FAILURE=NO
 ```
 
 No retry. No second token. No second C4 read. No DB repair. No cleanup
-mutation.
+mutation. No parent-path repair. No operator sidecar deletion. No source-code
+or new close-API implementation under this grant.
 
 Safe failure categories may identify non-sensitive classes such as
 authentication unavailable, impersonation denied, permission denied, resource
-not found, disabled version, dependency unavailable, designated path
-pre-exists, schema/metadata mismatch, or sanitized transport/store failure.
-They must not include payload, token, credential, header, or operator
-principal material.
+not found, disabled version, dependency unavailable, designated parent not
+ready, designated path pre-exists, schema/metadata mismatch, connection-close
+failure, or sanitized transport/store failure. They must not include payload,
+token, credential, header, or operator principal material.
 
 ## 16. Non-escalation
 
@@ -675,13 +818,26 @@ C4_SECRET_READ_ATTEMPTS_MAX=1
 B2_SECRET_READ_ATTEMPTS_MAX=0
 DESIGNATED_SQLITE_CREATE_MAX=1
 AT1_EXECUTION_STORE_CONSTRUCTIONS_MAX=2
+AT1_EXECUTION_STORE_INITIAL_CREATION_MAX=1
+AT1_EXECUTION_STORE_REOPEN_MAX=1
 HIGHLEVEL_CALLS_MAX=0
 CRM_MUTATIONS_MAX=0
+PRODUCTION_RUNTIME_ASSEMBLY_MAX=0
+PRODUCTION_RUNTIME_STARTS_MAX=0
+
+SQLITE_ENGINE_MANAGED_TRANSIENT_SIDECARS_ALLOWED=YES
+STORE_CONNECTION_CLOSE_EVENTS_REQUIRED=2
+NEW_STORE_CLOSE_API_IMPLEMENTATION_AUTHORIZED=NO
+SOURCE_CODE_CHANGE_AUTHORIZED=NO
+
+R1B_SUCCESS_AUTHORIZES_R2=NO
+R1B_SUCCESS_AUTHORIZES_R3=NO
+R1B_SUCCESS_AUTHORIZES_R4=NO
 
 EXECUTION_PERFORMED=NO
 SQLITE_CREATED=NO
 SECRET_PAYLOAD_READS=0
 
 NEXT=
-  return R1B authorization PR to ChatGPT for independent reviewer disposition
+  return amended PR #204 to ChatGPT for exact-head reviewer disposition
 ```
