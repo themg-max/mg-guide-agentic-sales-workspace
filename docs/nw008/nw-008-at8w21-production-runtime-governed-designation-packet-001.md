@@ -12,7 +12,7 @@ RESOLUTION_ARTIFACT=docs/nw008/nw-008-at8w21-production-runtime-governed-designa
 
 CURRENT_PHASE=TEMPLATE
 DESIGNATION_PACKET_COMPLETE=NO
-IDENTITY_DESIGNATION_COMPLETE=NO
+IDENTITY_DESIGNATION_COMPLETE=YES
 COMMITMENT_KEY_DESIGNATION_COMPLETE=NO
 STORE_DESIGNATION_COMPLETE=NO
 PLACEHOLDERS_ARE_ACTUAL_DESIGNATIONS=NO
@@ -51,15 +51,23 @@ secret, deployment, IAM, configuration, or mutation authority.
 
 ```text
 IDENTITY_SECTION:
-IDENTITY_DESIGNATION_COMPLETE=NO
-SOURCE_PRINCIPAL_PRIVATE_ATTESTATION_REF=<template placeholder; not designated>
+IDENTITY_DESIGNATION_COMPLETE=YES
+SOURCE_PRINCIPAL_PRIVATE_ATTESTATION_REF=NW008-ID-ATT-18bfa765-fdbe-4cf7-8b35-9f8518a4d0af
 DO_NOT_PUBLISH_PRINCIPAL=YES
 ```
 
-No source principal or private attestation reference is designated. A future
-designation must remain private to human governance and may be represented here
-only by an opaque reference. The placeholder above is not an attestation and
-does not identify a principal.
+Human governance has privately designated exactly one human operational source
+principal for NW-008. The exact principal remains private to human governance
+and is intentionally undisclosed; the resource-owner/admin account is not the
+routine NW-008 source identity. Only the opaque attestation reference above is
+published. That reference is a random identifier pointing to the private
+governance designation record; it is not derived from, and cannot be reversed
+into, the principal.
+
+This designation does not prove ADC correlation, does not prove Token Creator
+access, does not prove service-account impersonation, and does not prove
+runtime identity readiness. It is not an IAM grant, does not authorize token
+minting, and creates no runtime or mutation authority.
 
 ## 4. Commitment key section
 
