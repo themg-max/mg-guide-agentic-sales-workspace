@@ -102,6 +102,12 @@ CONFIG_DELIVERY_MODEL=
   VS Code/orchestrator loads the dedicated runtime.env file and injects its
   validated values into the governed NW-008 child-process environment before
   runtime composition begins.
+
+ROOT_COMPOSITION_CONFIGURATION_LOCUS=
+  PROCESS_ENVIRONMENT
+
+ROOT_COMPOSITION_DIRECT_CONFIG_FILE_READ=
+  FORBIDDEN
 ```
 
 ### 3.1 Surface semantics
@@ -115,7 +121,11 @@ CONFIG_DELIVERY_MODEL=
    validates required keys against designation contracts, and supplies the
    resulting environment to the governed NW-008 child process **before**
    runtime composition begins.
-4. Absence of the file, parent directory, or required keys remains a fail-closed
+4. The root composition configuration locus is **process environment only**.
+   Runtime composition code reads `ROOT_OWNED_DB_CONFIG_KEY` from the process
+   environment. Direct read of `runtime.env` (or any other config file) by the
+   composition root is **FORBIDDEN**.
+5. Absence of the file, parent directory, or required keys remains a fail-closed
    precondition failure until a separately authorized Lane C execution unit
    provisions them.
 
@@ -133,11 +143,14 @@ NOT_DESIGNATED_AS_NW008_RUNTIME_CONFIG_SURFACE=
   any path inside the git repository or git worktrees
 ```
 
-## 4. Designated configuration binding (from AT8W21; unchanged)
+## 4. Designated configuration binding (from AT8W21; unchanged key/path)
 
 This unit does not re-open store designation. It binds the already-designated
 root-owned DB configuration key and exact DB path to the newly designated
-configuration surface.
+configuration surface, and freezes the composition-root read locus.
+
+Human governance correction (pre-use): the exact governed key spelling is
+`MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH` only.
 
 ```text
 RUNTIME_HOST=MG-NW008-RUNTIME-HOST-01
@@ -146,33 +159,60 @@ RUNTIME_HOST_BINDING=Aarons-MacBook-Pro
 ROOT_OWNED_DB_CONFIG_KEY=
   MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
 
+ROOT_OWNED_DB_CONFIG_VALUE=
+  /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
+
 EXACT_DB_PATH=
   /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
+
+ROOT_OWNED_DB_CONFIG_VALUE_EQUALS_EXACT_DB_PATH=YES
+
+ROOT_COMPOSITION_CONFIGURATION_LOCUS=
+  PROCESS_ENVIRONMENT
+
+ROOT_COMPOSITION_DIRECT_CONFIG_FILE_READ=
+  FORBIDDEN
 
 STORE_SUBSTRATE=EMBEDDED_SQLITE_VIA_At1ExecutionStore
 STORAGE_CLASS=OPERATOR_GOVERNED_DURABLE_LOCAL_DISK
 ```
 
-### 4.1 Human-packet key typography normalization
-
-The human designation packet for this unit contained the key token
-`MG_GUIDIDE_NW008_EXECUTION_STORE_DB_PATH` (extra `I`). That token is treated
-as a typographical error. The canonical key remains the AT8W21 / AT8W23
-designated value:
+### 4.1 Exact key spelling lock
 
 ```text
-HUMAN_PACKET_KEY_TOKEN_OBSERVED=
-  MG_GUIDIDE_NW008_EXECUTION_STORE_DB_PATH
-CANONICAL_ROOT_OWNED_DB_CONFIG_KEY=
+ROOT_OWNED_DB_CONFIG_KEY=
   MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
-KEY_NORMALIZED_TO_CANONICAL=YES
+
+ALTERNATE_KEY_SPELLINGS_AUTHORIZED=NO
+TYPO_TOKEN_MG_GUIDIDE_AUTHORIZED=NO
 NEW_KEY_CREATED=NO
+KEY_SPELLING_LOCKED=YES
 ```
 
-No alternate key is designated. Install and verification units MUST use only
+Install, injection, composition, and verification units MUST use exactly
+`MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH`. No alternate spelling is designated.
+
+### 4.2 Composition-root configuration locus
+
+```text
+ROOT_COMPOSITION_CONFIGURATION_LOCUS=PROCESS_ENVIRONMENT
+ROOT_COMPOSITION_DIRECT_CONFIG_FILE_READ=FORBIDDEN
+
+ORCHESTRATOR_MAY_READ_DESIGNATED_RUNTIME_ENV_FILE=YES
+  PURPOSE=validate + inject into child process environment only
+  TIMING=before runtime composition begins
+
+COMPOSITION_ROOT_MAY_READ_PROCESS_ENV=YES
+COMPOSITION_ROOT_MAY_OPEN_RUNTIME_ENV_FILE=NO
+COMPOSITION_ROOT_MAY_OPEN_ANY_CONFIG_FILE_FOR_DB_PATH=NO
+```
+
+The designated `runtime.env` file is an **orchestrator delivery surface**, not a
+composition-root input file. After injection, the only authorized locus for the
+root-owned DB path during composition is the process environment variable
 `MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH`.
 
-### 4.2 Required file content contract (designation only; not installed)
+### 4.3 Required file content contract (designation only; not installed)
 
 When a later authorized Lane C execution unit installs configuration, the
 designated surface MUST present at least:
@@ -188,6 +228,7 @@ Rules for later install (not performed by this unit):
 ```text
 FILE_FORMAT=KEY=VALUE dotenv lines
 REQUIRED_KEY=MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
+REQUIRED_VALUE=ROOT_OWNED_DB_CONFIG_VALUE
 REQUIRED_VALUE_EXACT_MATCH=EXACT_DB_PATH
 QUOTING=optional; value after unquote must equal EXACT_DB_PATH exactly
 COMMENTS_ALLOWED=YES (# prefix)
@@ -195,6 +236,7 @@ EXPORT_PREFIX_ALLOWED=NO
 INTERPOLATION_ALLOWED=NO
 ADDITIONAL_KEYS_ALLOWED=YES only if separately designated later
 SECRET_PAYLOADS_IN_FILE=FORBIDDEN
+COMPOSITION_ROOT_DIRECT_FILE_READ_STILL_FORBIDDEN=YES
 ```
 
 ## 5. Lane C residual work (not authorized here)
@@ -222,9 +264,12 @@ STEP_C2=INSTALL_ROOT_OWNED_DB_CONFIG_VALUE
     fresh human-governed config mutation authorization
   SURFACE=GOVERNED_RUNTIME_CONFIG_SURFACE (this designation)
   KEY=MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
-  VALUE=EXACT_DB_PATH
+  VALUE=ROOT_OWNED_DB_CONFIG_VALUE
+  VALUE_EQUALS=
+    /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
   ENV_VAR_SET_WITHOUT_AUTHORITY=FORBIDDEN
   AD_HOC_EXPORT_WITHOUT_FILE=FORBIDDEN
+  COMPOSITION_ROOT_DIRECT_FILE_READ=FORBIDDEN
 
 STEP_C3=READ_ONLY_EXTERNAL_CONFIG_VERIFICATION
   STATUS=NOT_EXECUTED
@@ -232,6 +277,7 @@ STEP_C3=READ_ONLY_EXTERNAL_CONFIG_VERIFICATION
     CURRENT_PARENT_PATH_EXISTS=YES
     AND CURRENT_CONFIG_SURFACE_EXISTS=YES
     AND CURRENT_CONFIG_KEY_PRESENT=YES
+    AND CONFIG_VALUE_MATCHES_ROOT_OWNED_DB_CONFIG_VALUE=YES
     AND CONFIG_VALUE_MATCHES_EXACT_DB_PATH=YES
     AND DB_FILE_STILL_ABSENT_OR_ONLY_CREATED_BY_AUTHORIZED_RUNTIME=YES
 ```
@@ -285,6 +331,7 @@ FORBIDDEN=
   SQLITE_CREATE|
   SQLITE_WRITE|
   ENV_VAR_SET_WITHOUT_SEPARATE_AUTHORITY|
+  ROOT_COMPOSITION_DIRECT_CONFIG_FILE_READ|
   SECRET_PAYLOAD_READ|
   TOKEN_MINT|
   IAM_MUTATION|
@@ -315,10 +362,17 @@ CONFIG_SURFACE_OWNER=VS_CODE_ORCHESTRATOR
 CONFIG_SURFACE_SCOPE=NW008_RUNTIME_ONLY
 CONFIG_SOURCE_CLASS=ORCHESTRATOR_GOVERNED_ENVIRONMENT_CONFIGURATION
 
-ROOT_OWNED_DB_CONFIG_KEY=MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
+ROOT_OWNED_DB_CONFIG_KEY=
+  MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
+ROOT_OWNED_DB_CONFIG_VALUE=
+  /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
 EXACT_DB_PATH=
   /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
-KEY_NORMALIZED_TO_CANONICAL=YES
+ROOT_OWNED_DB_CONFIG_VALUE_EQUALS_EXACT_DB_PATH=YES
+KEY_SPELLING_LOCKED=YES
+
+ROOT_COMPOSITION_CONFIGURATION_LOCUS=PROCESS_ENVIRONMENT
+ROOT_COMPOSITION_DIRECT_CONFIG_FILE_READ=FORBIDDEN
 
 LANE_C_SURFACE_DESIGNATION=COMPLETE
 LANE_C_EXECUTION_STATUS=NOT_STARTED
@@ -344,8 +398,14 @@ NEXT=
 PR_CLASS=planning_only
 CONFIG_SURFACE_DESIGNATED=YES
 GOVERNED_RUNTIME_CONFIG_SURFACE_EXACT=YES
-ROOT_OWNED_DB_CONFIG_KEY_CANONICAL=YES
+ROOT_OWNED_DB_CONFIG_KEY=
+  MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
+ROOT_OWNED_DB_CONFIG_VALUE=
+  /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
+ROOT_OWNED_DB_CONFIG_KEY_SPELLING_LOCKED=YES
 EXACT_DB_PATH_BOUND_FROM_AT8W21=YES
+ROOT_COMPOSITION_CONFIGURATION_LOCUS=PROCESS_ENVIRONMENT
+ROOT_COMPOSITION_DIRECT_CONFIG_FILE_READ=FORBIDDEN
 NO_DIRECTORY_CREATED=YES
 NO_RUNTIME_ENV_WRITTEN=YES
 NO_DB_CREATED=YES
