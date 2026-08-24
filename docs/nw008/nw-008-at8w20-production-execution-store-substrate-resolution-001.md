@@ -84,8 +84,10 @@ GOVERNING_WRITER_MODEL=EXACTLY_ONE_GOVERNED_LOCAL_RUNTIME_WRITER
 
 HOST_CLASS_DESIGNATED=YES
 STORE_SUBSTRATE_CLASS_DESIGNATED=YES
-EXACT_GOVERNED_RUNTIME_HOST_INSTANCE_DESIGNATED=NO
-EXACT_ABSOLUTE_DB_PATH_DESIGNATED=NO
+EXACT_GOVERNED_RUNTIME_HOST_INSTANCE_DESIGNATED=UNKNOWN
+EXACT_ABSOLUTE_DB_PATH_DESIGNATED=UNKNOWN
+EXACT_HOST_DESIGNATION_EVIDENCE_PRESENT=NO
+EXACT_DB_PATH_DESIGNATION_EVIDENCE_PRESENT=NO
 ```
 
 The host and substrate **classes** above are exact merged design decisions.
@@ -97,29 +99,35 @@ This lane does not invent either value.
 ## 4. Exact resolution
 
 ```text
-PRODUCTION_DB_PATH_CONFIGURATION_DESIGNATED=NO
-PRODUCTION_DB_PATH_DURABILITY_VERIFIED=NO
-SINGLE_WRITER_CONSTRAINT_VERIFIED=NO
-NON_EPHEMERAL_STORAGE_VERIFIED=NO
+EXACT_GOVERNED_RUNTIME_HOST_INSTANCE_DESIGNATED=UNKNOWN
+PRODUCTION_DB_PATH_CONFIGURATION_DESIGNATED=UNKNOWN
+PRODUCTION_DB_PATH_DURABILITY_VERIFIED=UNKNOWN
+SINGLE_WRITER_CONSTRAINT_VERIFIED=UNKNOWN
+NON_EPHEMERAL_STORAGE_VERIFIED=UNKNOWN
+
+DURABILITY_ATTESTATION_EVIDENCE_PRESENT=NO
+SINGLE_WRITER_ATTESTATION_EVIDENCE_PRESENT=NO
+NON_EPHEMERAL_ATTESTATION_EVIDENCE_PRESENT=NO
 
 FACT_YES_COUNT=0
-FACT_NO_COUNT=4
-FACT_UNKNOWN_COUNT=0
+FACT_NO_COUNT=0
+FACT_UNKNOWN_COUNT=5
 PRODUCTION_EXECUTION_STORE_EXTERNAL_PREREQUISITES_READY=NO
 C3_EXTERNAL_CONFIG_PREREQUISITES_READY=NO
 ```
 
 | Fact | Exact result | Evidence | Missing governed prerequisite |
 | --- | --- | --- | --- |
-| `PRODUCTION_DB_PATH_CONFIGURATION_DESIGNATED` | **NO** | Merged design requires a root-owned orchestrator configuration value, but merged evidence names neither an exact configuration key nor an exact absolute DB path | Human/orchestrator designation of the exact governed runtime host instance, the exact root-owned configuration key, and one exact absolute DB path on that host |
-| `PRODUCTION_DB_PATH_DURABILITY_VERIFIED` | **NO** | No exact path is designated and no merged operator attestation proves survival across both process restart and host reboot | Operator attestation binding the exact host and absolute path to durable local storage and affirming restart and reboot survival |
-| `SINGLE_WRITER_CONSTRAINT_VERIFIED` | **NO** | The design requires one writer, but no merged operating attestation binds an exact host/process topology to that constraint | Operator attestation that exactly one governed runtime process opens the store for write and that no second process or host shares write access |
-| `NON_EPHEMERAL_STORAGE_VERIFIED` | **NO** | The design forbids tmpfs, container scratch, and other ephemeral storage, but no exact filesystem/storage-class attestation exists | Operator attestation that the designated absolute path is backed by non-ephemeral operator-governed local disk |
+| `EXACT_GOVERNED_RUNTIME_HOST_INSTANCE_DESIGNATED` | **UNKNOWN** | The exact host identity was not designated in the merged evidence and no exact-instance private attestation is present | Human/orchestrator designation of the exact governed runtime host instance |
+| `PRODUCTION_DB_PATH_CONFIGURATION_DESIGNATED` | **UNKNOWN** | Merged design requires a root-owned orchestrator configuration value, but merged evidence names neither an exact configuration key nor an exact absolute DB path | Human/orchestrator designation of the exact root-owned configuration key and one exact absolute DB path on that host |
+| `PRODUCTION_DB_PATH_DURABILITY_VERIFIED` | **UNKNOWN** | No exact path is designated and no merged operator attestation proves survival across both process restart and host reboot | Operator attestation binding the exact host and absolute path to durable local storage and affirming restart and reboot survival |
+| `SINGLE_WRITER_CONSTRAINT_VERIFIED` | **UNKNOWN** | The design requires one writer, but no merged operating attestation binds an exact host/process topology to that constraint | Operator attestation that exactly one governed runtime process opens the store for write and that no second process or host shares write access |
+| `NON_EPHEMERAL_STORAGE_VERIFIED` | **UNKNOWN** | The design forbids tmpfs, container scratch, and other ephemeral storage, but no exact filesystem/storage-class attestation exists | Operator attestation that the designated absolute path is backed by non-ephemeral operator-governed local disk |
 
-These are exact `NO` results rather than `UNKNOWN`: the required designation
-and attestations are absent from the merged evidence set. Absence does not prove
-the opposite physical property; it proves that the governed readiness fact is
-not verified and therefore must fail closed.
+These are exact `UNKNOWN` results under AT8W12A semantics. The required
+designations and attestations are absent from the merged evidence set, so the
+work does not claim global absence; it claims the governed readiness fact is
+not affirmatively established and therefore must fail closed.
 
 ## 5. Required future designation and attestation packet
 
