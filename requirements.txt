@@ -2,6 +2,7 @@ jsonschema==4.23.0
 PyYAML==6.0.2
 google-adk==1.18.0
 google-cloud-firestore==2.27.0
+google-cloud-secret-manager==2.27.0
 pytest==8.3.5
 referencing==0.35.1
 rpds-py==0.20.1

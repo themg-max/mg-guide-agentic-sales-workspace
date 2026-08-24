@@ -6,7 +6,10 @@ from pathlib import Path
 import pytest
 
 from integrations.ghl import At1ExecutionStore
-from integrations.ghl.at1_commitment_key_provider import SyntheticCommitmentKeyProvider
+from integrations.ghl.at1_commitment_key_provider import (
+    DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE,
+    SyntheticCommitmentKeyProvider,
+)
 import integrations.ghl.highlevel_rest.live_note_runtime as runtime
 import integrations.ghl.highlevel_rest.note_path as note_path_module
 from integrations.ghl.highlevel_rest import NotePathAdapter, assemble_bound_live_note_runtime
@@ -156,13 +159,13 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
     ]
 
 
-def test_production_path_fails_closed_without_constructing_runtime(
+def test_missing_root_owned_config_fails_closed_before_runtime_construction(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     capability = _issued_capability()
 
     def _unexpected_construction(*args: object, **kwargs: object) -> None:
-        raise AssertionError("production assembly must not construct runtime dependencies")
+        raise AssertionError("missing root-owned configuration must stop assembly")
 
     monkeypatch.setattr(runtime, "ConcreteLiveNoteHttpClient", _unexpected_construction)
     monkeypatch.setattr(runtime, "LiveNoteCredentialProvider", _unexpected_construction)
@@ -173,6 +176,38 @@ def test_production_path_fails_closed_without_constructing_runtime(
         runtime.LiveNoteRuntimeAssemblyError, match="root-owned dependencies"
     ):
         assemble_bound_live_note_runtime(verified_capability=capability)
+
+
+def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    db_path = tmp_path / "root-owned.sqlite3"
+    constructed: dict[str, object] = {}
+
+    class _FakeCommitmentKeyProvider:
+        def __init__(self) -> None:
+            constructed["provider"] = self
+
+        def resolve(self):
+            return SyntheticCommitmentKeyProvider(
+                payload="root-owned-test-commitment-key",
+                version_resource=DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE,
+            ).resolve()
+
+    monkeypatch.setenv(runtime._ROOT_OWNED_DB_CONFIG_KEY, str(db_path))
+    monkeypatch.setattr(
+        runtime, "GoogleSecretManagerCommitmentKeyProvider", _FakeCommitmentKeyProvider
+    )
+
+    dependencies = runtime._resolve_root_owned_runtime_dependencies()
+
+    assert isinstance(dependencies.execution_store, At1ExecutionStore)
+    assert dependencies.execution_store.db_path == str(db_path)
+    assert dependencies.credential_injection.build_provider().resource_name == (
+        runtime._SEALED_LIVE_NOTE_REST_RESOURCE_NAME
+    )
+    assert "provider" in constructed
+    dependencies.execution_store._connection.close()
 
 
 def test_public_assembler_uses_only_root_owned_dependencies(
@@ -376,6 +411,7 @@ def test_frozen_blocked_module_boundaries_remain_intact() -> None:
 
     assert 'BASE_URL = "https://services.leadconnectorhq.com"' in transport_source
     assert "_require_issued_verified_capability" in note_path_source
-    assert "GoogleSecretManagerLiveNoteSecretAccessor" not in provider_source
-    assert "CONCRETE_SECRET_MANAGER_NETWORK_CLIENT = False" in provider_source
+    assert "GoogleSecretManagerLiveNoteSecretAccessor" in provider_source
+    assert "versions/1" in provider_source
+    assert "runtime.env" not in Path(runtime.__file__).read_text(encoding="utf-8")
     assert "AUTOMATIC_RETRY = False" in http_client_source

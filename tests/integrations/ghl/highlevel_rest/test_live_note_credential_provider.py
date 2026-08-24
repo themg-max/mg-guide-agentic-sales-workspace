@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import ast
 import logging
-import os
-import subprocess
+from types import SimpleNamespace
 from pathlib import Path
 
 import pytest
 
 from integrations.ghl.highlevel_rest.live_note_credential_provider import (
+    DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE,
+    GoogleSecretManagerLiveNoteSecretAccessor,
     LiveNoteCredentialProvider,
     LiveNoteCredentialProviderError,
     RootOwnedLiveNoteCredentialInjection,
@@ -38,6 +39,16 @@ SYNTHETIC_RESOURCE = (
 SYNTHETIC_TOKEN = "synthetic-placeholder-token-at8i-credential"
 
 
+class _FakeSecretManagerClient:
+    def __init__(self, payload: bytes = b"fake-production-token") -> None:
+        self.payload = payload
+        self.request_names: list[str] = []
+
+    def access_secret_version(self, *, request: dict[str, str]) -> SimpleNamespace:
+        self.request_names.append(request["name"])
+        return SimpleNamespace(payload=SimpleNamespace(data=self.payload))
+
+
 def _provider(
     *,
     token: str = SYNTHETIC_TOKEN,
@@ -65,7 +76,7 @@ def test_credential_provider_injectable() -> None:
     assert provider.resource_name == SYNTHETIC_RESOURCE
 
 
-def test_credential_provider_synthetic_only() -> None:
+def test_credential_provider_synthetic_accessor_remains_offline() -> None:
     provider, accessor = _provider()
     credential = provider.get_credential()
 
@@ -77,8 +88,6 @@ def test_credential_provider_synthetic_only() -> None:
     assert LiveNoteCredentialProvider.ENVIRONMENT_TOKEN_DISCOVERY is False
     assert LiveNoteCredentialProvider.GCLOUD_SUBPROCESS_SECRET_ACCESS is False
     assert LiveNoteCredentialProvider.SHELL_SECRET_ACCESS is False
-    assert LiveNoteCredentialProvider.CONCRETE_SECRET_MANAGER_NETWORK_CLIENT is False
-
     tree = ast.parse(PROVIDER_PATH.read_text(encoding="utf-8"))
     imported_modules: set[str] = set()
     for node in ast.walk(tree):
@@ -89,7 +98,6 @@ def test_credential_provider_synthetic_only() -> None:
                 imported_modules.add(node.module)
     joined = "\n".join(sorted(imported_modules)).lower()
     assert "google.cloud" not in joined
-    assert "secretmanager" not in joined
     assert "subprocess" not in joined
     assert "os" not in imported_modules
     source = PROVIDER_PATH.read_text(encoding="utf-8")
@@ -129,35 +137,48 @@ def test_root_owned_injection_rejects_missing_accessor_or_resource() -> None:
         RootOwnedLiveNoteCredentialInjection(accessor=accessor, resource_name="")
 
 
-def test_zero_real_secret_reads(monkeypatch: pytest.MonkeyPatch) -> None:
-    def _forbid_subprocess(*_args: object, **_kwargs: object) -> None:
-        raise AssertionError("gcloud/shell secret access is forbidden in AT8I")
+def test_production_accessor_is_fixed_to_designated_version_and_uses_fake_client() -> None:
+    client = _FakeSecretManagerClient()
+    accessor = GoogleSecretManagerLiveNoteSecretAccessor(client=client)
 
-    def _forbid_getenv(key: str, default: object = None) -> object:
-        if "TOKEN" in key.upper() or "SECRET" in key.upper() or "GHL" in key.upper():
-            raise AssertionError(f"environment secret discovery forbidden: {key}")
-        return default
+    assert accessor.resource_name == DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+    assert accessor.version_resource == DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+    assert accessor.read_secret_payload(
+        resource_name=DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+    ) == "fake-production-token"
+    assert client.request_names == [DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE]
+    assert accessor.REAL_SECRET_READS == 1
 
-    monkeypatch.setattr(subprocess, "run", _forbid_subprocess)
-    monkeypatch.setattr(subprocess, "Popen", _forbid_subprocess)
-    monkeypatch.setattr(subprocess, "call", _forbid_subprocess)
-    monkeypatch.setattr(subprocess, "check_output", _forbid_subprocess)
-    monkeypatch.setattr(os, "getenv", _forbid_getenv)
-    monkeypatch.delenv("GHL_TOKEN", raising=False)
-    monkeypatch.delenv("HIGHLEVEL_TOKEN", raising=False)
 
-    # Ensure google-cloud-secretmanager is not importable/used by provider path.
-    import sys
+@pytest.mark.parametrize(
+    "resource_name",
+    [
+        "projects/831270426395/secrets/MG_GUIDE_PIT_GHL",
+        "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/latest",
+        "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/2",
+        "projects/831270426395/secrets/OTHER/versions/1",
+    ],
+)
+def test_production_accessor_rejects_non_designated_resource(
+    resource_name: str,
+) -> None:
+    accessor = GoogleSecretManagerLiveNoteSecretAccessor(
+        client=_FakeSecretManagerClient()
+    )
 
-    for name in list(sys.modules):
-        if name.startswith("google.cloud.secretmanager") or name == "google.cloud":
-            monkeypatch.delitem(sys.modules, name, raising=False)
+    with pytest.raises(LiveNoteCredentialProviderError, match="root-owned"):
+        accessor.read_secret_payload(resource_name=resource_name)
 
-    provider, accessor = _provider()
-    credential = provider.get_credential()
-    assert credential.bearer_token == SYNTHETIC_TOKEN
-    assert accessor.REAL_SECRET_READS == 0
-    assert accessor.synthetic_read_count == 1
+
+def test_production_accessor_has_no_resource_or_version_override() -> None:
+    with pytest.raises(TypeError):
+        GoogleSecretManagerLiveNoteSecretAccessor(
+            resource_name=DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+        )
+    with pytest.raises(TypeError):
+        GoogleSecretManagerLiveNoteSecretAccessor(
+            version_resource=DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+        )
 
 
 def test_token_not_logged(caplog: pytest.LogCaptureFixture) -> None:
@@ -217,7 +238,6 @@ def test_provider_module_import_policy() -> None:
     forbidden = {
         "google",
         "google.cloud",
-        "secretmanager",
         "subprocess",
         "requests",
         "httpx",
@@ -235,6 +255,9 @@ def test_provider_module_import_policy() -> None:
             module = node.module or ""
             assert not module.startswith("google")
             assert module.split(".", 1)[0] not in {"subprocess", "requests", "httpx"}
+    source = PROVIDER_PATH.read_text(encoding="utf-8")
+    assert "importlib.import_module" in source
+    assert "import google" not in source
 
 
 def test_private_target_boundary_unchanged() -> None:

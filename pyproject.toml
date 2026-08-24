@@ -12,6 +12,7 @@ dependencies = [
   "PyYAML==6.0.2",
   "google-adk==1.18.0",
   "google-cloud-firestore==2.27.0",
+  "google-cloud-secret-manager==2.27.0",
 ]
 
 [project.optional-dependencies]

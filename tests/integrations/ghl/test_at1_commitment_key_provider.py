@@ -4,11 +4,14 @@ import json
 from pathlib import Path
 import pickle
 import sqlite3
+from types import SimpleNamespace
 
 import pytest
 
 from integrations.ghl.at1_commitment_key_provider import (
     CommitmentKeyMaterial,
+    DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE,
+    GoogleSecretManagerCommitmentKeyProvider,
     SyntheticCommitmentKeyProvider,
 )
 from integrations.ghl.at1_execution_store import (
@@ -18,6 +21,16 @@ from integrations.ghl.at1_execution_store import (
 
 
 VERSION_RESOURCE = "projects/synthetic-project/secrets/at1-commitment-key/versions/1"
+
+
+class _FakeSecretManagerClient:
+    def __init__(self, payload: bytes = b"fake-production-commitment-key") -> None:
+        self.payload = payload
+        self.request_names: list[str] = []
+
+    def access_secret_version(self, *, request: dict[str, str]) -> SimpleNamespace:
+        self.request_names.append(request["name"])
+        return SimpleNamespace(payload=SimpleNamespace(data=self.payload))
 
 
 def _material(
@@ -103,6 +116,36 @@ def test_synthetic_provider_returns_opaque_exact_version_material() -> None:
 def test_provider_rejects_non_exact_version_resources(version_resource: str) -> None:
     with pytest.raises(ValueError, match="exact positive numeric version resource"):
         _material(version_resource=version_resource)
+
+
+def test_production_provider_is_fixed_to_designated_secret_version() -> None:
+    client = _FakeSecretManagerClient()
+    provider = GoogleSecretManagerCommitmentKeyProvider(client=client)
+
+    material = provider.resolve()
+
+    assert provider.version_resource == DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE
+    assert (
+        provider.secret_resource
+        == "projects/ai-rolodex-to-crm/secrets/MG_GUIDE_NW008_COMMITMENT_KEY"
+    )
+    assert material.version_resource == DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE
+    assert client.request_names == [DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE]
+    assert "fake-production-commitment-key" not in repr(material)
+
+
+def test_production_provider_has_no_secret_or_version_override() -> None:
+    with pytest.raises(TypeError):
+        GoogleSecretManagerCommitmentKeyProvider(
+            secret_resource="projects/example/secrets/other"
+        )
+    with pytest.raises(TypeError):
+        GoogleSecretManagerCommitmentKeyProvider(
+            version_resource=(
+                "projects/ai-rolodex-to-crm/secrets/"
+                "MG_GUIDE_NW008_COMMITMENT_KEY/versions/latest"
+            )
+        )
 
 
 def test_new_store_initializes_schema_v1_atomically(tmp_path: Path) -> None:
