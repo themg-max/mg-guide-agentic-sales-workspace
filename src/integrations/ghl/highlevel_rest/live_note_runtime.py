@@ -1,16 +1,22 @@
-"""Offline-only live-note runtime composition root.
+"""Live-note runtime composition root.
 
-Production assembly deliberately fails closed until a later authorization
-establishes root-owned execution-store construction and a concrete secret
-accessor. The private test seam is limited to deterministic synthetic inputs.
+Production adapters and root-owned dependency composition are implemented.
+Live runtime invocation remains separately authorization-gated; the private
+test seam is limited to deterministic synthetic inputs.
 """
 
 from __future__ import annotations
 
+import importlib
+
+from integrations.ghl.at1_commitment_key_provider import (
+    GoogleSecretManagerCommitmentKeyProvider,
+)
 from integrations.ghl.at1_execution_store import At1ExecutionStore
 
 from . import note_path
 from .live_note_credential_provider import (
+    GoogleSecretManagerLiveNoteSecretAccessor,
     LiveNoteCredentialProvider,
     RootOwnedLiveNoteCredentialInjection,
     SyntheticLiveNoteSecretAccessor,
@@ -20,8 +26,9 @@ from .live_note_transport import BoundedLiveNoteTransport
 from .note_path import NotePathAdapter
 
 _SEALED_LIVE_NOTE_REST_RESOURCE_NAME = (
-    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL"
+    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
 )
+_ROOT_OWNED_DB_CONFIG_KEY = "MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH"
 
 
 class LiveNoteRuntimeAssemblyError(RuntimeError):
@@ -52,9 +59,32 @@ class _RootOwnedLiveNoteRuntimeDependencies:
 
 
 def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDependencies:
-    """Resolve dependencies supplied by a future root-owned production substrate."""
-    raise LiveNoteRuntimeAssemblyError(
-        "production live-note runtime assembly requires root-owned dependencies"
+    """Resolve the minimal production dependencies from the orchestrator-owned process environment."""
+    db_path = importlib.import_module("os").environ.get(_ROOT_OWNED_DB_CONFIG_KEY)
+    if not isinstance(db_path, str) or not db_path.strip():
+        raise LiveNoteRuntimeAssemblyError(
+            "production live-note runtime assembly requires root-owned dependencies"
+        )
+
+    secret_accessor = GoogleSecretManagerLiveNoteSecretAccessor()
+    credential_injection = RootOwnedLiveNoteCredentialInjection(
+        accessor=secret_accessor,
+        resource_name=_SEALED_LIVE_NOTE_REST_RESOURCE_NAME,
+    )
+    commitment_key_provider = GoogleSecretManagerCommitmentKeyProvider()
+    try:
+        commitment_material = commitment_key_provider.resolve()
+        execution_store = At1ExecutionStore(
+            db_path=db_path,
+            commitment_material=commitment_material,
+        )
+    except (RuntimeError, ValueError, TypeError) as exc:
+        raise LiveNoteRuntimeAssemblyError(
+            "production live-note runtime assembly requires root-owned dependencies"
+        ) from exc
+    return _RootOwnedLiveNoteRuntimeDependencies(
+        credential_injection=credential_injection,
+        execution_store=execution_store,
     )
 
 

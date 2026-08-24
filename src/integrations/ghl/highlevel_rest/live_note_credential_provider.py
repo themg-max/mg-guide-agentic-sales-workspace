@@ -1,28 +1,14 @@
-"""Injectable live-note credential provider seam for offline assembly (AT8I).
+"""Live-note credential acquisition with a root-owned production accessor.
 
-Returns ``InjectedLiveNoteCredential`` from the frozen transport contract.
-
-AT8I authorizes:
-
-- credential provider code;
-- injectable Secret Manager accessor interface;
-- synthetic/fake accessor for deterministic tests.
-
-AT8I does NOT authorize:
-
-- concrete Google Secret Manager network client;
-- google-cloud-secretmanager dependency;
-- gcloud subprocess secret access;
-- shell secret access;
-- environment token discovery;
-- real token payload reads during implementation proof.
-
-``REAL_SECRET_READS=0`` and ``SECRET_PAYLOAD_READS=0`` are required for AT8I.
+Production composition constructs the Secret Manager adapter with one designated
+version resource. Live invocation remains separately authorization-gated; tests
+inject a fake client and never access a real Secret Manager payload.
 """
 
 from __future__ import annotations
 
-from typing import Protocol
+import importlib
+from typing import Any, Protocol
 
 from .live_note_transport import InjectedLiveNoteCredential, LiveNoteTransportError
 
@@ -32,11 +18,7 @@ class LiveNoteCredentialProviderError(ValueError):
 
 
 class LiveNoteSecretAccessor(Protocol):
-    """Injectable secret accessor interface.
-
-    Concrete Secret Manager network clients are not authorized in AT8I.
-    Deterministic tests must inject a synthetic accessor.
-    """
+    """Injectable secret accessor interface."""
 
     def read_secret_payload(self, *, resource_name: str) -> str:
         """Return a secret payload string for the configured resource name."""
@@ -79,6 +61,81 @@ class SyntheticLiveNoteSecretAccessor:
 
     def __str__(self) -> str:
         return self.__repr__()
+
+
+DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE = (
+    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
+)
+
+
+def _new_secret_manager_client() -> Any:
+    try:
+        secretmanager_module = importlib.import_module("google.cloud.secretmanager")
+    except ModuleNotFoundError as exc:  # pragma: no cover - dependency is optional in offline mode
+        raise RuntimeError(
+            "google-cloud-secret-manager is required for production secret resolution"
+        ) from exc
+    return secretmanager_module.SecretManagerServiceClient()
+
+
+class GoogleSecretManagerLiveNoteSecretAccessor:
+    """Production Secret Manager-backed accessor bound to the exact GHL PIT version."""
+
+    REAL_SECRET_READS = 0
+    SECRET_PAYLOAD_READS_ARE_SYNTHETIC = False
+
+    def __init__(
+        self,
+        *,
+        client: Any | None = None,
+    ) -> None:
+        self._client = client
+        self.REAL_SECRET_READS = 0
+        self.SECRET_PAYLOAD_READS_ARE_SYNTHETIC = False
+
+    @property
+    def resource_name(self) -> str:
+        return DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+
+    @property
+    def version_resource(self) -> str:
+        return DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+
+    def read_secret_payload(self, *, resource_name: str) -> str:
+        if resource_name != DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE:
+            raise LiveNoteCredentialProviderError(
+                "resource_name does not match the root-owned Secret Manager resource"
+            )
+        client = self._client if self._client is not None else _new_secret_manager_client()
+        response = client.access_secret_version(
+            request={"name": DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE}
+        )
+        payload = getattr(response, "payload", None)
+        if payload is None:
+            raise LiveNoteCredentialProviderError(
+                "Secret Manager response did not include a payload"
+            )
+        data = getattr(payload, "data", None)
+        if data is None:
+            raise LiveNoteCredentialProviderError(
+                "Secret Manager payload did not include data bytes"
+            )
+        value = data.decode("utf-8") if isinstance(data, bytes) else str(data)
+        if not value.strip():
+            raise LiveNoteCredentialProviderError(
+                "accessor returned an empty credential payload"
+            )
+        self.REAL_SECRET_READS += 1
+        return value
+
+    def __repr__(self) -> str:
+        return (
+            "GoogleSecretManagerLiveNoteSecretAccessor("
+            f"resource_name={DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE!r}, "
+            f"real_reads={self.REAL_SECRET_READS})"
+        )
+
+    __str__ = __repr__
 
 
 class RootOwnedLiveNoteCredentialInjection:
@@ -127,7 +184,6 @@ class LiveNoteCredentialProvider:
     ENVIRONMENT_TOKEN_DISCOVERY = False
     GCLOUD_SUBPROCESS_SECRET_ACCESS = False
     SHELL_SECRET_ACCESS = False
-    CONCRETE_SECRET_MANAGER_NETWORK_CLIENT = False
 
     def __init__(
         self,
