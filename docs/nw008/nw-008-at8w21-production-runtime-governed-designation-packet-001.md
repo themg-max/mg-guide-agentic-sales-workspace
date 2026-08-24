@@ -10,11 +10,11 @@ REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 RESOLUTION_BASE_REF=origin/main
 RESOLUTION_ARTIFACT=docs/nw008/nw-008-at8w21-production-runtime-governed-designation-packet-001.md
 
-CURRENT_PHASE=TEMPLATE
-DESIGNATION_PACKET_COMPLETE=NO
+CURRENT_PHASE=DESIGNATION_PACKET_COMPLETE
+DESIGNATION_PACKET_COMPLETE=YES
 IDENTITY_DESIGNATION_COMPLETE=YES
 COMMITMENT_KEY_DESIGNATION_COMPLETE=YES
-STORE_DESIGNATION_COMPLETE=NO
+STORE_DESIGNATION_COMPLETE=YES
 PLACEHOLDERS_ARE_ACTUAL_DESIGNATIONS=NO
 RUNTIME_RESOLUTION_AUTHORIZED=NO
 MUTATION_AUTHORITY_CREATED=NO
@@ -26,12 +26,13 @@ NO_TOKEN_MINT=YES
 EXTERNAL_EFFECTS=0
 ```
 
-This artifact is an incomplete human-governed, non-disclosing designation
-template. It identifies the governance decisions that must be completed before
-any runtime or secret-specific resolution work is considered. Every angle-bracket
-value is a template placeholder only; no placeholder records or implies an actual
-designation. This artifact does not authorize mutation, deployment, secret
-creation, secret payload access, IAM binding, or runtime-resolution work.
+This artifact is a human-governed, non-disclosing designation packet. Human
+governance has completed the identity, commitment-key, and store designation
+sections. Completing this packet does not authorize mutation, deployment,
+secret creation, secret payload access, IAM binding, configuration application,
+directory or database creation, runtime start, reconciliation, C3
+implementation, or any other runtime-resolution work. No runtime or mutation
+authority is created by this packet.
 
 ## 2. Historical provenance
 
@@ -99,20 +100,48 @@ authority.
 
 ```text
 STORE_SECTION:
-STORE_DESIGNATION_COMPLETE=NO
-EXACT_RUNTIME_HOST=<template placeholder; not designated>
-ROOT_OWNED_DB_CONFIG_KEY=<template placeholder; not designated>
-EXACT_DB_PATH=<template placeholder; not designated>
-RESTART_DURABILITY_ATTESTATION=<template placeholder; not designated>
-REBOOT_DURABILITY_ATTESTATION=<template placeholder; not designated>
-SINGLE_WRITER_ATTESTATION=<template placeholder; not designated>
-NON_EPHEMERAL_STORAGE_ATTESTATION=<template placeholder; not designated>
+STORE_DESIGNATION_COMPLETE=YES
+EXACT_RUNTIME_HOST=MG-NW008-RUNTIME-HOST-01
+EXACT_RUNTIME_HOST_BINDING=Aarons-MacBook-Pro
+ROOT_OWNED_DB_CONFIG_KEY=MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
+EXACT_DB_PATH=/Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
+STORE_SUBSTRATE=EMBEDDED_SQLITE_VIA_At1ExecutionStore
+STORAGE_CLASS=OPERATOR_GOVERNED_DURABLE_LOCAL_DISK
+WRITER_MODEL=EXACTLY_ONE_GOVERNED_LOCAL_RUNTIME_WRITER
+RESTART_DURABILITY_ATTESTATION=The designated DB path is on operator-governed persistent local APFS storage that survives process restart as a storage location. Actual At1ExecutionStore record-survival proof remains pending later authorized runtime validation.
+REBOOT_DURABILITY_ATTESTATION=The designated DB path is on the designated host's persistent internal APFS Data volume and survives host reboot as a storage location. Actual At1ExecutionStore record-survival proof remains pending later authorized runtime validation.
+SINGLE_WRITER_ATTESTATION=Exactly one governed NW-008 runtime process on MG-NW008-RUNTIME-HOST-01 may open the production execution store for write. Second-process, second-host, network-shared, and concurrent runtime writers are prohibited.
+NON_EPHEMERAL_STORAGE_ATTESTATION=The designated path is on persistent internal APFS Data storage and is outside repositories, git worktrees, temporary storage, tmpfs, container scratch, and network-mounted storage.
 ```
 
-No runtime host, root-owned DB configuration key, absolute DB path, or durable
-local-storage attestation is designated. Exact governed values may be recorded
-only after human governance separately authorizes the required resolution work.
-No configuration or runtime mutation is authorized by this template.
+Human governance designates `MG-NW008-RUNTIME-HOST-01` as the exact governed
+runtime host identifier. That identifier is the human-governed label for the
+exact local host resolved at designation time as `Aarons-MacBook-Pro`. No
+hardware serial number is published.
+
+The designated store substrate remains embedded SQLite via
+`At1ExecutionStore` on operator-governed durable local disk. The designated
+database path is exact and absolute:
+
+`/Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3`
+
+That path is outside the repository, outside git worktrees, and outside
+temporary, container-scratch, tmpfs, and network-mounted storage. The
+root-owned configuration key is
+`MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH` and is owned by the runtime
+composition root. This unit does not set that configuration value, does not
+create the parent directory, and does not create the database file.
+
+Storage-location persistence across process restart and host reboot is
+designated for the exact path on the designated host. Actual
+`At1ExecutionStore` DB record survival remains pending later authorized
+runtime validation and is not proven by this designation. The single-writer
+operating policy is designated; runtime enforcement of that policy remains
+pending and is not proven by this designation.
+
+Store designation completion does not authorize post-designation
+reconciliation, does not authorize C3 implementation, does not authorize
+configuration application, and creates no runtime or mutation authority.
 
 ## 6. Forbidden effects and no-mutation guardrails
 
@@ -132,24 +161,24 @@ FORBIDDEN=
   NEW_SERVICE_ACCOUNT
 ```
 
-This template is intentionally non-mutating and creates no mutation authority.
+This packet is intentionally non-mutating and creates no mutation authority.
 Any step that would alter runtime code, deployment, IAM, configuration, or
 secrets requires a separate and explicitly authorized execution lane.
 
 ## 7. Post-designation reconciliation
 
 ```text
-POST_DESIGNATION_READ_ONLY_RECONCILIATION=BLOCKED_UNTIL_PACKET_COMPLETE
+POST_DESIGNATION_READ_ONLY_RECONCILIATION=REQUIRES_SEPARATE_HUMAN_AUTHORIZATION
 READ_ONLY_RECONCILIATION_TARGET=EXACT_DESIGNATED_RUNTIME_HOST_AND_STORE
 READ_ONLY_RECONCILIATION_SCOPE=HOST_METADATA|DB_PATH|DURABILITY|WRITER_STATE|NON_EPHEMERAL_STORAGE
-READ_ONLY_RECONCILIATION_AUTHORIZED_BY_THIS_TEMPLATE=NO
+READ_ONLY_RECONCILIATION_AUTHORIZED_BY_THIS_PACKET=NO
 MUTATION_AUTHORITY_CREATED=NO
 ```
 
-Only after human governance completes the designation packet and separately
-authorizes reconciliation may exact-target read-only reconciliation occur
-against designated runtime host and store surfaces. This template cannot trigger
-that work. Any later mutation proposal requires separate explicit human
-authorization after an exact deficiency is proven; neither this template nor
-such evidence creates mutation authority. The design remains fail-closed and
-non-mutating.
+Although the designation packet is complete, exact-target read-only
+reconciliation against the designated runtime host and store surfaces may
+occur only after human governance separately authorizes that work. This packet
+does not authorize reconciliation. Any later mutation proposal requires
+separate explicit human authorization after an exact deficiency is proven;
+neither this packet nor such evidence creates mutation authority. The design
+remains fail-closed and non-mutating.
