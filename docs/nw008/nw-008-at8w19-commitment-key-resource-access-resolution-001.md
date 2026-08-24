@@ -244,27 +244,34 @@ authorization must be proposed. This artifact does not authorize that binding.
 
 ## 5. Exact commitment-key fact resolution
 
-For this lane, each requested fact is resolved to an exact binary result. A
-`NO` records that the affirmative readiness condition was not established by
-the ordered evidence available to this unit. It does not fabricate evidence
-of global resource absence or deny that human governance may later supply the
-missing prerequisite.
+For this lane, each requested fact is resolved under the AT8W12A semantic
+normalization: unresolved or uninspected evidence is `UNKNOWN`, while only
+affirmatively established facts remain `YES` or `NO`. A `NO` records a scoped
+negative result; `UNKNOWN` records that the exact resource, version, principal,
+and IAM evidence were not available to this unit.
 
 | Fact | Exact result | Evidence | Separate prerequisite or authorization |
 | --- | --- | --- | --- |
-| `COMMITMENT_KEY_SOURCE_DESIGNATED` | **NO** | No exact human-designated Secret Manager resource was supplied in the dispatch or merged predecessor evidence | Human governance must designate exactly one secret resource |
-| `COMMITMENT_KEY_EXACT_VERSION_BOUND` | **NO** | The source-designation gate failed, so exact-resource version metadata was not inspected and no positive numeric version was frozen | After designation, inspect exact metadata only; then human governance freezes one eligible numeric version |
-| `COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED` | **NO** | The ordered resource/version gates failed and no exact accessor decision was supplied | Human governance decides one exact IAM principal after the resource and version are bound |
-| `COMMITMENT_KEY_IAM_READY` | **NO** | Exact secret and principal inputs were unavailable, so exact secret IAM was not inspected | Inspect exact secret IAM after designation and principal decision; if missing, obtain separate secret-specific IAM authorization |
+| `COMMITMENT_KEY_SOURCE_DESIGNATED` | **UNKNOWN** | No exact human-designated Secret Manager resource was supplied in the dispatch or merged predecessor evidence, and the designation remains private | Human governance must designate exactly one secret resource |
+| `COMMITMENT_KEY_EXACT_VERSION_BOUND` | **UNKNOWN** | The source-designation gate is unresolved, so exact-resource version metadata was not inspected and no positive numeric version was frozen | After designation, inspect exact metadata only; then human governance freezes one eligible numeric version |
+| `COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED` | **UNKNOWN** | The ordered resource/version gates are unresolved and no exact accessor decision was supplied | Human governance decides one exact IAM principal after the resource and version are bound |
+| `COMMITMENT_KEY_IAM_READY` | **UNKNOWN** | Exact secret and principal inputs were unavailable, so exact secret IAM was not inspected | Inspect exact secret IAM after designation and principal decision; if missing, obtain separate secret-specific IAM authorization |
 
 ```text
-COMMITMENT_KEY_SOURCE_DESIGNATED=NO
-COMMITMENT_KEY_EXACT_VERSION_BOUND=NO
-COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED=NO
-COMMITMENT_KEY_IAM_READY=NO
+COMMITMENT_KEY_SOURCE_DESIGNATED=UNKNOWN
+COMMITMENT_KEY_EXACT_VERSION_BOUND=UNKNOWN
+COMMITMENT_KEY_ACCESS_PRINCIPAL_DECIDED=UNKNOWN
+COMMITMENT_KEY_IAM_READY=UNKNOWN
+
+HUMAN_DESIGNATION_EVIDENCE_PRESENT=NO
+STEP_2_STATUS=NOT_EXECUTED_BLOCKED
+STEP_3_STATUS=NOT_EXECUTED_BLOCKED
+STEP_4_STATUS=NOT_EXECUTED_BLOCKED
+STEP_5_STATUS=NOT_EXECUTED_BLOCKED
 
 COMMITMENT_KEY_FACT_YES_COUNT=0
-COMMITMENT_KEY_FACT_NO_COUNT=4
+COMMITMENT_KEY_FACT_NO_COUNT=0
+COMMITMENT_KEY_FACT_UNKNOWN_COUNT=4
 C4_EXTERNAL_PREREQUISITES_READY=NO
 ```
 
