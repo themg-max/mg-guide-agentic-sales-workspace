@@ -13,7 +13,7 @@ RESOLUTION_ARTIFACT=docs/nw008/nw-008-at8w21-production-runtime-governed-designa
 CURRENT_PHASE=TEMPLATE
 DESIGNATION_PACKET_COMPLETE=NO
 IDENTITY_DESIGNATION_COMPLETE=YES
-COMMITMENT_KEY_DESIGNATION_COMPLETE=NO
+COMMITMENT_KEY_DESIGNATION_COMPLETE=YES
 STORE_DESIGNATION_COMPLETE=NO
 PLACEHOLDERS_ARE_ACTUAL_DESIGNATIONS=NO
 RUNTIME_RESOLUTION_AUTHORIZED=NO
@@ -73,16 +73,27 @@ minting, and creates no runtime or mutation authority.
 
 ```text
 COMMITMENT_KEY_SECTION:
-COMMITMENT_KEY_DESIGNATION_COMPLETE=NO
-EXACT_SECRET_RESOURCE=<template placeholder; not designated>
-EXACT_VERSION=<template placeholder; not designated>
-ACCESS_PRINCIPAL=<template placeholder; not designated>
+COMMITMENT_KEY_DESIGNATION_COMPLETE=YES
+EXACT_SECRET_RESOURCE=projects/ai-rolodex-to-crm/secrets/MG_GUIDE_NW008_COMMITMENT_KEY
+EXACT_VERSION=1
+ACCESS_PRINCIPAL=serviceAccount:mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
 ```
 
-No Secret Manager resource, positive version, or access principal is designated.
-Those values may be captured only after human-governed metadata inspection and
-explicit authorization. This artifact does not infer them from placeholders,
-name matching, prior inventory, or ambient runtime state.
+Human governance has designated exactly one Secret Manager resource as the
+NW-008 execution commitment key. The designated secret was created
+specifically for NW-008 commitment use; no pre-existing or unrelated secret
+(including the GHL PIT secret) is reused. The designated version is exact
+numeric version 1, which was ENABLED at designation time. The alias "latest"
+is not designated or authorized, and the exact version is intentionally
+frozen. No secret payload is recorded in this artifact.
+
+The designated access principal is the existing NW-008 runtime service
+account (resolved by canonical metadata: display name "MG Guide GHL Note
+Runtime", unique ID 109958193780365695003). This access-principal designation
+does not prove IAM readiness; no Secret Accessor permission is asserted, no
+IAM inspection occurred, and no IAM mutation is authorized. This designation
+does not authorize C4 implementation and creates no runtime or mutation
+authority.
 
 ## 5. Store section
 
