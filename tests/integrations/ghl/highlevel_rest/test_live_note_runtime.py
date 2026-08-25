@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+import types
 from pathlib import Path
 
 import pytest
@@ -207,10 +208,16 @@ def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
             raise AssertionError("credential acquisition is outside resolver assembly")
 
     def _impersonate(source: object) -> object:
+        constructed["impersonation_factory_calls"] = (
+            int(constructed.get("impersonation_factory_calls", 0)) + 1
+        )
         constructed["impersonation_source"] = source
         return target_runtime_credentials
 
     def _new_client(credentials: object) -> object:
+        constructed["secret_manager_client_factory_calls"] = (
+            int(constructed.get("secret_manager_client_factory_calls", 0)) + 1
+        )
         constructed["client_credentials"] = credentials
         return shared_secret_manager_client
 
@@ -248,7 +255,68 @@ def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
     assert constructed["client_credentials"] is target_runtime_credentials
     assert constructed["provider_client"] is shared_secret_manager_client
     assert constructed["accessor_client"] is shared_secret_manager_client
+    assert constructed["impersonation_factory_calls"] == 1
+    assert constructed["secret_manager_client_factory_calls"] == 1
     dependencies.execution_store._connection.close()
+
+
+def test_impersonate_target_runtime_credentials_selects_sealed_principal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source_credentials = object()
+    captured: dict[str, object] = {
+        "constructor_calls": 0,
+        "network_calls": 0,
+        "token_mints": 0,
+        "real_impersonation_attempts": 0,
+    }
+
+    class _FakeImpersonatedCredentials:
+        def __init__(
+            self,
+            *,
+            source_credentials: object,
+            target_principal: str,
+            target_scopes: list[str],
+            lifetime: int,
+        ) -> None:
+            captured["constructor_calls"] = int(captured["constructor_calls"]) + 1
+            captured["source_credentials"] = source_credentials
+            captured["target_principal"] = target_principal
+            captured["target_scopes"] = list(target_scopes)
+            captured["lifetime"] = lifetime
+
+    fake_module = types.SimpleNamespace(Credentials=_FakeImpersonatedCredentials)
+    real_import_module = runtime.importlib.import_module
+
+    def _import_module(name: str, package: str | None = None) -> object:
+        if name == "google.auth.impersonated_credentials":
+            return fake_module
+        if name in {
+            "google.auth",
+            "google.cloud.secretmanager",
+            "google.cloud",
+        }:
+            raise AssertionError(f"unexpected live dependency import: {name}")
+        return real_import_module(name, package)
+
+    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
+
+    result = runtime._impersonate_target_runtime_credentials(source_credentials)
+
+    assert isinstance(result, _FakeImpersonatedCredentials)
+    assert captured["constructor_calls"] == 1
+    assert captured["source_credentials"] is source_credentials
+    assert captured["target_principal"] == (
+        "mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
+    )
+    assert captured["target_scopes"] == [
+        "https://www.googleapis.com/auth/cloud-platform"
+    ]
+    assert captured["lifetime"] == 3600
+    assert captured["real_impersonation_attempts"] == 0
+    assert captured["token_mints"] == 0
+    assert captured["network_calls"] == 0
 
 
 class _CloseTrackingConnection:
