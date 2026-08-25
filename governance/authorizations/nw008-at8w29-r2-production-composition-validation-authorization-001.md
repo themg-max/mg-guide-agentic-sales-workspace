@@ -17,7 +17,7 @@ AUTHORIZATION_BRANCH=
 
 BASE_REF=origin/main
 BASE_SHA=
-  f5ec221a667db91e43684f3acad98913b6e00bfa
+  e127b3d2723e58ff1a91e5ab3ff94bf170e6dfd3
 
 STATUS_AT_AUTHORING=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
 AUTHORIZATION_STATE_AT_AUTHORING=PROPOSED_NOT_EFFECTIVE
@@ -60,30 +60,36 @@ AUTHORIZATION_CONSUMED_IN_THIS_UNIT=NO
 ## 2. Purpose and explicit non-authority
 
 This artifact conditionally authorizes one later bounded production-composition
-validation of the actual production root. The future execution consumer may
-establish only whether:
+validation of the actual production root as repaired and durable on main via
+merged PR #210. The future execution consumer may establish only whether:
 
-1. a fresh short-lived runtime-SA identity can be acquired once and injected as
-   process Application Default Credentials for both production Secret Manager
-   clients;
-2. a process-local synthetic/competition-safe issued verified capability can be
+1. the composition root can resolve source ADC solely as the impersonation
+   source, construct exactly one short-lived target-runtime credential object
+   for `mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com`,
+   and bind exactly one Secret Manager client to that credential object;
+2. C4 and B2 both receive that same root-owned shared Secret Manager client;
+3. a process-local synthetic/competition-safe issued verified capability can be
    precreated and accepted by `_validate_issued_capability()` /
    `_require_issued_verified_capability()`;
-3. `assemble_bound_live_note_runtime(verified_capability=...)` can run exactly
+4. `assemble_bound_live_note_runtime(verified_capability=...)` can run exactly
    once and return a `NotePathAdapter` after:
    - verified capability validation;
    - DB path resolution from `MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH`;
-   - exact C4 resolution;
+   - root-owned source-ADC resolution and target-runtime credential construction;
+   - one shared Secret Manager client construction;
+   - exact C4 resolution through the shared client;
    - existing At1ExecutionStore construction at the designated path;
-   - exact B2 credential resolution into `InjectedLiveNoteCredential`;
+   - exact B2 credential resolution into `InjectedLiveNoteCredential` through the
+     same shared client;
    - one `ConcreteLiveNoteHttpClient` construction;
    - one `BoundedLiveNoteTransport` construction;
    - one `NotePathAdapter` construction;
+   - ownership transfer of the constructed store to the returned object graph;
    - return without invoking any adapter business method;
-4. composition succeeds with zero HTTP request dispatch and zero CRM/business
+5. composition succeeds with zero HTTP request dispatch and zero CRM/business
    effects; and
-5. the single store connection is deterministically closed afterward without
-   business/protocol writes.
+6. the single store connection is closed exactly once according to the ownership
+   model in section 10.1.
 
 ```text
 PURPOSE=
@@ -113,19 +119,22 @@ R3_AUTHORIZED=NO
 R4_AUTHORIZED=NO
 ```
 
-A successful R2 production-composition validation proves only that the
-production root can assemble once under the bound runtime principal, exact C4
-and B2 numeric secret versions, the existing designated store, one HTTP client,
-and one bounded transport, while remaining network-dormant and business-dormant.
-It does not authorize HighLevel dispatch, CRM mutation, note write, stage
-transition, business execution, execution claims, attempts, ledger writes,
-production runtime start, IAM mutation, key creation, deployment, DB
-create/recreate/repair/delete, or any later gate (R3/R4).
+A successful R2 production-composition validation proves only that the repaired
+production root can assemble once under the sealed target-runtime principal,
+exact C4 and B2 numeric secret versions, the existing designated store, one
+shared Secret Manager client, one HTTP client, and one bounded transport, while
+remaining network-dormant and business-dormant. It does not authorize HighLevel
+dispatch, CRM mutation, note write, stage transition, business execution,
+execution claims, attempts, ledger writes, production runtime start, IAM
+mutation, key creation, deployment, DB create/recreate/repair/delete, or any
+later gate (R3/R4).
 
-This grant does **not** revive, transfer, reuse, or extend the consumed AT8W28
-R1B revalidation authorization (PR #206) or any earlier consumed grant.
+This grant does **not** revive, transfer, reuse, or extend:
 
-## 3. Durable source prerequisites and R1B completion
+- the consumed AT8W28 R1B revalidation authorization (PR #206); or
+- the consumed R2 composition-root contract repair authorization (PR #209).
+
+## 3. Durable source prerequisites, R1B completion, and PR #210 repair gate
 
 ```text
 R1B_PROOF_PR=207
@@ -149,6 +158,34 @@ R1B_AUTHORIZATION_MERGE=
 R1B_AUTHORIZATION_STATE=CONSUMED
 R1B_AUTHORIZATION_REUSABLE=NO
 R1B_AUTHORIZATION_TRANSFERABLE=NO
+
+COMPOSITION_ROOT_REPAIR_PR=210
+COMPOSITION_ROOT_REPAIR_REVIEWED_HEAD=
+  f31e490ca55499264a368d4efbc5ea75e37bce6d
+COMPOSITION_ROOT_REPAIR_MERGE_COMMIT=
+  e127b3d2723e58ff1a91e5ab3ff94bf170e6dfd3
+COMPOSITION_ROOT_REPAIR_RECONCILIATION=PASS
+COMPOSITION_ROOT_REPAIR_ON_ORIGIN_MAIN=YES
+
+COMPOSITION_ROOT_REPAIR_AUTHORIZATION_PR=209
+COMPOSITION_ROOT_REPAIR_AUTHORIZATION_STATE=CONSUMED
+COMPOSITION_ROOT_REPAIR_AUTHORIZATION_REUSABLE=NO
+COMPOSITION_ROOT_REPAIR_AUTHORIZATION_TRANSFERABLE=NO
+
+IMPLEMENTATION_PROOF=
+  proof/nw008/at-8w29/nw008-at8w29-r2-composition-root-contract-repair-implementation-proof-001.md
+IMPLEMENTATION_PROOF_ON_ORIGIN_MAIN=YES
+
+CREDENTIAL_OWNERSHIP_REPAIR_DURABLE=YES
+TARGET_RUNTIME_SERVICE_ACCOUNT_SEALED=YES
+TARGET_RUNTIME_SCOPES_SEALED=YES
+TARGET_RUNTIME_CREDENTIAL_LIFETIME_SEALED=YES
+SHARED_RUNTIME_CREDENTIAL_OBJECT_DURABLE=YES
+SHARED_SECRET_MANAGER_CLIENT_DURABLE=YES
+C4_AND_B2_SHARED_CLIENT_DURABLE=YES
+STORE_LIFECYCLE_REPAIR_DURABLE=YES
+POST_STORE_FAILURE_CLOSE_GUARANTEE_DURABLE=YES
+SUCCESSFUL_STORE_OWNERSHIP_TRANSFER_DURABLE=YES
 
 SOURCE_R1A_PROOF_PR=203
 SOURCE_R1A_RESULT=PASS
@@ -174,20 +211,28 @@ LIVE_NOTE_HTTP_CLIENT_IMPLEMENTATION_DURABLE=YES
 BOUNDED_TRANSPORT_IMPLEMENTATION_DURABLE=YES
 NOTE_PATH_ADAPTER_IMPLEMENTATION_DURABLE=YES
 GOOGLE_CLOUD_SECRET_MANAGER_VERSION=2.27.0
-SOURCE_CODE_CHANGE_REQUIRED=NO
+
+# Historical authoring note: pre-PR #210 drafts assumed SOURCE_CODE_CHANGE_REQUIRED=NO
+# under a process-ADC client model. That model is SUPERSEDED by merged PR #210.
+# The durable repaired root is now the sole production composition contract.
+SOURCE_CODE_CHANGE_REQUIRED_FOR_R2_EXECUTION=NO
+ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_THIS_GRANT=NO
 ```
 
 PR #207 records governed R1B existing-store revalidation `RESULT=PASS` and
 `R1B_GATE_COMPLETE=YES` under consumed PR #206. The designated store file is
-therefore expected to be present. This AT8W29 authorization is a fresh one-shot
-production-composition grant only. It does not reopen, reuse, or extend the
-consumed AT8W28 R1B grant.
+therefore expected to be present.
+
+PR #210 records the durable composition-root ownership repair under consumed
+PR #209. This AT8W29 authorization is a fresh one-shot production-composition
+grant only. It does not reopen, reuse, or extend the consumed AT8W28 R1B grant
+or the consumed PR #209 repair grant.
 
 ## 4. Source-only production-composition preflight (authoring)
 
 Source inspection on `origin/main` at
-`f5ec221a667db91e43684f3acad98913b6e00bfa` resolved the production root without
-source changes.
+`e127b3d2723e58ff1a91e5ab3ff94bf170e6dfd3` resolved the repaired production root
+without additional source changes under this authorization unit.
 
 ### 4.1 Assembly sequence evidence
 
@@ -198,25 +243,43 @@ source changes.
      -> note_path._require_issued_verified_capability(...)
 2. _resolve_root_owned_runtime_dependencies():
      a. db_path = os.environ["MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH"]
-     b. GoogleSecretManagerLiveNoteSecretAccessor()
-     c. RootOwnedLiveNoteCredentialInjection(
+     b. source_credentials = _resolve_source_application_credentials()
+        # source ADC is impersonation source only
+     c. target_runtime_credentials =
+          _impersonate_target_runtime_credentials(source_credentials)
+        # one sealed target-runtime credential object
+     d. secret_manager_client =
+          _new_secret_manager_client(target_runtime_credentials)
+        # one root-owned shared Secret Manager client
+     e. GoogleSecretManagerLiveNoteSecretAccessor(
+          client=secret_manager_client
+        )
+     f. RootOwnedLiveNoteCredentialInjection(
           accessor=...,
           resource_name=
             projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1
         )
-     d. GoogleSecretManagerCommitmentKeyProvider().resolve()  # exact C4
-     e. At1ExecutionStore(db_path=db_path, commitment_material=...)
-3. dependencies.credential_injection.build_provider().get_credential()
-     -> InjectedLiveNoteCredential  # exact B2 read occurs here
-4. ConcreteLiveNoteHttpClient()
-5. BoundedLiveNoteTransport(
-     bound_contact_id=...,
-     credential=...,
-     http_client=...
-   )
-6. NotePathAdapter(...; execution_store=...)
-7. adapter._verified_contact_binding_capability = validated_capability
-8. return adapter
+     g. GoogleSecretManagerCommitmentKeyProvider(
+          client=secret_manager_client
+        ).resolve()  # exact C4 through shared client
+     h. At1ExecutionStore(db_path=db_path, commitment_material=...)
+3. store_ownership = _StoreOwnershipGuard(execution_store)
+4. try:
+     a. dependencies.credential_injection.build_provider().get_credential()
+          -> InjectedLiveNoteCredential  # exact B2 read occurs here
+     b. ConcreteLiveNoteHttpClient()
+     c. BoundedLiveNoteTransport(
+          bound_contact_id=...,
+          credential=...,
+          http_client=...
+        )
+     d. NotePathAdapter(...; execution_store=...)
+     e. adapter._verified_contact_binding_capability = validated_capability
+   except Exception:
+     store_ownership.close_after_failed_assembly()
+     raise
+5. store_ownership.transfer_to_returned_adapter()
+6. return adapter
 ```
 
 ```text
@@ -231,55 +294,81 @@ HTTP dispatch exists only on later `BoundedLiveNoteTransport.dispatch(...)` /
 objects and returns without calling adapter business methods or transport
 dispatch.
 
-### 4.2 Identity propagation preflight
+### 4.2 Identity and client ownership preflight
 
 ```text
+SOURCE_ADC_ROLE=
+  IMPERSONATION_SOURCE_ONLY
+
 TARGET_RUNTIME_SERVICE_ACCOUNT=
   mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
 
-IDENTITY_MECHANISM=
-  LOCAL_OPERATOR_ADC_PLUS_SHORT_LIVED_SERVICE_ACCOUNT_IMPERSONATION
+TARGET_RUNTIME_CREDENTIAL_OWNERSHIP=
+  COMPOSITION_ROOT
 
-PRODUCTION_ADC_IDENTITY_INJECTION_PATH_RESOLVED=YES
-C4_SECRET_MANAGER_CLIENT_USES_TARGET_RUNTIME_SA=YES
-B2_SECRET_MANAGER_CLIENT_USES_TARGET_RUNTIME_SA=YES
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS_MAX=1
+TARGET_RUNTIME_SERVICE_ACCOUNT_SEALED=YES
+TARGET_RUNTIME_SCOPES=
+  https://www.googleapis.com/auth/cloud-platform
+TARGET_RUNTIME_CREDENTIAL_LIFETIME_SECONDS=3600
+
+SECRET_MANAGER_CLIENT_OWNERSHIP=
+  COMPOSITION_ROOT
+SECRET_MANAGER_CLIENT_INSTANTIATIONS_MAX=1
+C4_AND_B2_USE_SAME_SECRET_MANAGER_CLIENT=YES
+
+C4_CLIENT_BINDING=
+  GoogleSecretManagerCommitmentKeyProvider(
+    client=<root_owned_shared_secret_manager_client>
+  )
+
+B2_CLIENT_BINDING=
+  GoogleSecretManagerLiveNoteSecretAccessor(
+    client=<same_root_owned_shared_secret_manager_client>
+  )
+
 DIRECT_USER_ADC_SECRET_ACCESS=NO
+CALLER_SUPPLIED_RUNTIME_PRINCIPAL=FORBIDDEN
+CALLER_SUPPLIED_SECRET_MANAGER_CLIENT=FORBIDDEN
+USER_MANAGED_SERVICE_ACCOUNT_KEY=FORBIDDEN
+PROCESS_ADC_OVERRIDE_REQUIRED=NO
+PROCESS_ADC_OVERRIDE_ALLOWED=NO
 SERVICE_ACCOUNT_KEY_REQUIRED=NO
-SOURCE_CODE_CHANGE_REQUIRED=NO
+ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_THIS_GRANT=NO
 ```
 
-Exact production client construction paths:
+Exact production ownership path (execution consumer, after merge):
+
+1. precreate the synthetic verified capability and complete pre-execution
+   filesystem checks;
+2. invoke `assemble_bound_live_note_runtime` once;
+3. allow the composition root itself to:
+   - resolve source ADC only as the impersonation source;
+   - construct exactly one short-lived target-runtime credential object for the
+     sealed target runtime SA, sealed scopes, and lifetime 3600;
+   - construct exactly one Secret Manager client with that credential object;
+   - bind C4 and B2 to that same shared client;
+4. forbid process-ADC override, installing impersonated credentials as process
+   ADC, direct user-ADC Secret Manager access, caller-supplied runtime principal,
+   caller-supplied Secret Manager client, user-managed service-account keys, and
+   any principal other than the exact target runtime SA.
+
+### 4.3 Historical / superseded process-ADC model
 
 ```text
-C4_CLIENT_FACTORY=
-  at1_commitment_key_provider._new_secret_manager_client()
-  -> google.cloud.secretmanager.SecretManagerServiceClient()
-  # no credentials= argument; process ADC only
-
-B2_CLIENT_FACTORY=
-  live_note_credential_provider._new_secret_manager_client()
-  -> google.cloud.secretmanager.SecretManagerServiceClient()
-  # no credentials= argument; process ADC only
+HISTORICAL_PROCESS_ADC_MODEL=SUPERSEDED_BY_PR_210
+HISTORICAL_C4_AND_B2_SEPARATE_DEFAULT_CLIENTS=SUPERSEDED_BY_PR_210
+HISTORICAL_PROCESS_ADC_INJECTION_AS_PRODUCTION_CONTRACT=SUPERSEDED
+CURRENT_PRODUCTION_CONTRACT=
+  ROOT_OWNED_TARGET_RUNTIME_CREDENTIAL_PLUS_SHARED_SECRET_MANAGER_CLIENT
 ```
 
-Resolved process-level injection path (execution consumer, after merge):
+Any earlier draft language asserting that impersonated credentials are installed
+as process ADC, that C4/B2 create separate default clients without
+`credentials=`, or that process ADC identity propagation is the production
+contract is historical evidence only and is not current execution authority.
 
-1. authenticate as the operator local user ADC source principal class only;
-2. perform exactly one short-lived impersonation of the exact target runtime SA;
-3. mint exactly one short-lived access token for that target SA;
-4. install that impersonated credential as process Application Default
-   Credentials **before** calling `assemble_bound_live_note_runtime`;
-5. allow both production Secret Manager clients constructed during assembly to
-   inherit the same process ADC and therefore authenticate only as the target
-   runtime SA;
-6. forbid direct user-ADC Secret Manager access, caller-supplied runtime
-   identity override, user-managed service-account keys, and any principal
-   other than the exact target runtime SA.
-
-Because both clients omit explicit credentials and resolve default ADC, one
-process-level impersonated ADC injection serves C4 and B2 without source change.
-
-### 4.3 Verified capability preflight
+### 4.4 Verified capability preflight
 
 ```text
 R2_VERIFIED_CAPABILITY_SOURCE_RESOLVED=YES
@@ -327,6 +416,9 @@ TARGET_RUNTIME_SERVICE_ACCOUNT=
 SOURCE_PRINCIPAL_CLASS=
   HUMAN_OPERATOR_USER_ADC
 
+SOURCE_ADC_ROLE=
+  IMPERSONATION_SOURCE_ONLY
+
 SOURCE_PRINCIPAL_PRIVATE_ATTESTATION_REF=
   NW008-ID-ATT-18bfa765-fdbe-4cf7-8b35-9f8518a4d0af
 
@@ -335,22 +427,27 @@ SOURCE_PRINCIPAL_PUBLICATION_ALLOWED=NO
 SOURCE_PRINCIPAL_PERSISTENCE_ALLOWED=NO
 
 IDENTITY_MECHANISM=
-  LOCAL_OPERATOR_ADC_PLUS_SHORT_LIVED_SERVICE_ACCOUNT_IMPERSONATION
+  COMPOSITION_ROOT_OWNED_SOURCE_ADC_PLUS_SHORT_LIVED_TARGET_RUNTIME_IMPERSONATION
 
 CALLER_SUPPLIED_RUNTIME_IDENTITY_OVERRIDE=FORBIDDEN
+CALLER_SUPPLIED_RUNTIME_PRINCIPAL=FORBIDDEN
+CALLER_SUPPLIED_SECRET_MANAGER_CLIENT=FORBIDDEN
 USER_MANAGED_SERVICE_ACCOUNT_KEY=FORBIDDEN
 DIRECT_USER_ADC_AS_SECRET_ACCESS_PRINCIPAL=FORBIDDEN
+PROCESS_ADC_OVERRIDE_REQUIRED=NO
+PROCESS_ADC_OVERRIDE_ALLOWED=NO
 ```
 
-The execution consumer must authenticate Secret Manager only as the exact
-target runtime service account, obtained solely through short-lived
-impersonation from the operator's local user ADC and injected as process ADC
-for both C4 and B2 clients. The consumer must not:
+The execution consumer must allow the composition root to authenticate Secret
+Manager only as the exact target runtime service account, obtained solely through
+one root-owned short-lived impersonated credential object constructed from the
+operator source ADC. The consumer must not:
 
 - publish or persist the operator principal identity;
 - use a user-managed service-account key;
 - use direct user ADC as the Secret Manager access principal;
-- accept a caller-supplied runtime identity override; or
+- install or override process ADC for identity propagation;
+- accept a caller-supplied runtime identity override or Secret Manager client; or
 - impersonate any principal other than the exact target runtime SA above.
 
 Proof may reference only the opaque attestation ref
@@ -362,6 +459,8 @@ class, not the human operator email or other identifying material.
 ```text
 SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS_MAX=1
 SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS_MAX=1
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS_MAX=1
+SECRET_MANAGER_CLIENT_INSTANTIATIONS_MAX=1
 
 IAM_MUTATIONS_MAX=0
 IAM_POLICY_WRITES_MAX=0
@@ -383,12 +482,17 @@ TOKEN_REUSE_AFTER_R2_COMPOSITION=FORBIDDEN
 TOKEN_LIFETIME=SHORT_LIVED_MINIMUM_NECESSARY
 ```
 
-Exactly one impersonation attempt and exactly one short-lived access-token mint
-are permitted for the exact target runtime SA. That single process ADC
-injection must cover both exact C4 and exact B2 Secret Manager reads performed
-during the one authorized assembly. After R2 composition validation ends
-(success or fail-closed stop), the token must not be reused, refreshed, logged,
-persisted, hashed for proof, or captured in fragments.
+Exactly one impersonation attempt, exactly one target-runtime credential object
+construction, and exactly one short-lived access-token mint are permitted for
+the exact target runtime SA. Credential-object construction is not equivalent to
+token mint; R2 proof must record the actual token-mint/refresh count separately
+from credential-object construction count.
+
+The single root-owned credential object and single shared Secret Manager client
+must cover both exact C4 and exact B2 Secret Manager reads performed during the
+one authorized assembly. After R2 composition validation ends (success or
+fail-closed stop), the token must not be reused, refreshed, logged, persisted,
+hashed for proof, or captured in fragments.
 
 ## 7. Exact secret resources and secret effect budget
 
@@ -568,6 +672,22 @@ IF_CAPABILITY_NOT_PRECREATABLE_OR_NOT_SYNTHETIC=
   STOP=YES
 ```
 
+### 9.4 Durable repair-gate check
+
+```text
+REQUIRE_BEFORE_IMPERSONATION=
+  COMPOSITION_ROOT_REPAIR_PR_210_MERGED_TO_MAIN=YES
+  COMPOSITION_ROOT_REPAIR_REVIEWED_HEAD_ANCESTOR_OF_ORIGIN_MAIN=YES
+  CREDENTIAL_OWNERSHIP_REPAIR_DURABLE=YES
+  STORE_LIFECYCLE_REPAIR_DURABLE=YES
+  IMPLEMENTATION_PROOF_PRESENT_ON_ORIGIN_MAIN=YES
+
+IF_REPAIR_GATE_NOT_SATISFIED=
+  AUTHORIZATION_CONSUMED=NO
+  STOP_CODE=COMPOSITION_ROOT_REPAIR_NOT_DURABLE
+  STOP=YES
+```
+
 ## 10. Composition and store effect budget
 
 ```text
@@ -605,26 +725,45 @@ assemble_bound_live_note_runtime(verified_capability=<precreated synthetic capab
 That assembly must open the already-present designated primary path only. It
 must not create the primary SQLite file.
 
-### 10.1 Connection-close lifecycle
+### 10.1 Connection-close lifecycle and ownership transfer
 
 ```text
-STORE_CONNECTION_CLOSE_EVENTS_REQUIRED=1
-FINAL_STORE_CONNECTION_CLOSE_REQUIRED=YES
-
 NEW_STORE_CLOSE_API_IMPLEMENTATION_AUTHORIZED=NO
 SOURCE_CODE_CHANGE_AUTHORIZED=NO
+SECOND_CLOSE_ALLOWED=NO
+TOTAL_STORE_CONNECTION_CLOSE_EVENTS_REQUIRED=1
 ```
 
-After successful assembly and composition validation, the R2 execution consumer
-must deterministically close the single store connection before the execution
-unit terminates, using the already existing connection lifecycle surface
-(`store._connection.close()` or equivalent existing surface reachable from the
-assembled object graph), without invoking adapter business methods.
+Ownership is case-split:
 
-Exactly one store connection-close event is required:
+```text
+FAILURE_BEFORE_STORE_CONSTRUCTION=
+  STORE_CLOSE_EVENTS_REQUIRED=0
+  NO_STORE_CLOSE_EXISTS_TO_PERFORM=YES
 
-1. close of the single existing-store construction connection before unit
-   termination.
+FAILURE_AFTER_STORE_CONSTRUCTION_BEFORE_ADAPTER_RETURN=
+  IF_AT1_EXECUTION_STORE_CONSTRUCTED=YES
+  AND_NOTE_PATH_ADAPTER_SUCCESSFULLY_RETURNED=NO
+  THEN_STORE_CLOSE_OWNER=COMPOSITION_ROOT
+  STORE_CLOSE_EVENTS_REQUIRED=1
+  CONSUMER_CLEANUP_MUTATION_REQUIRED=NO
+
+SUCCESSFUL_ASSEMBLY=
+  IF_NOTE_PATH_ADAPTER_SUCCESSFULLY_RETURNED=YES
+  THEN_STORE_OWNERSHIP_TRANSFERRED_TO_RETURNED_OBJECT_GRAPH=YES
+  R2_CONSUMER_FINAL_STORE_CLOSE_REQUIRED=YES
+  STORE_CLOSE_EVENTS_REQUIRED=1
+```
+
+On successful assembly and composition validation, the R2 execution consumer must
+deterministically close only the successfully transferred store connection before
+the execution unit terminates, using the already existing connection lifecycle
+surface (`store._connection.close()` or equivalent existing surface reachable
+from the assembled object graph), without invoking adapter business methods.
+
+On failure after store construction but before adapter return, the production
+composition root must close exactly once automatically. No consumer cleanup
+mutation is required after that root-owned failure close.
 
 Additional constructions, path changes, create/recreate loops, reopen loops, or
 second assemblies are forbidden.
@@ -697,6 +836,9 @@ PERMITTED_PROOF_FIELDS=
   authorization_artifact_identity|
   opaque_source_principal_attestation_reference|
   target_runtime_service_account_resource|
+  target_runtime_credential_object_construction_count|
+  secret_manager_client_instantiation_count|
+  c4_and_b2_shared_client_bound|
   impersonation_attempt_count|
   token_mint_count|
   exact_c4_resource_identifier|
@@ -717,14 +859,18 @@ PERMITTED_PROOF_FIELDS=
   execution_store_bound|
   live_credential_bound|
   bounded_transport_bound|
+  store_ownership_transferred|
   highlevel_http_client_instantiation_count|
   highlevel_transport_instantiation_count|
   note_path_adapter_assembly_count|
   http_request_dispatch_count|
   final_store_connection_close_result|
   store_connection_close_event_count|
+  store_close_owner|
   schema_version_validated|
   commitment_key_version_resource_validated|
+  composition_root_repair_pr|
+  composition_root_repair_merge_commit|
   second_durable_database_created|
   operator_created_sidecars|
   success_or_failure|
@@ -763,13 +909,15 @@ FAILURE_RESTORES_AUTHORITY=NO
 The grant is consumed when the future execution consumer begins the first
 service-account impersonation attempt, regardless of success or failure.
 Failure does not restore the grant. No other unit may consume or inherit it.
+This normalization unit does not consume the grant.
 
-Exception: if a pre-execution filesystem or capability check fails closed before
-any impersonation attempt with
+Exception: if a pre-execution filesystem, capability, or repair-gate check fails
+closed before any impersonation attempt with
 
 - `STOP_CODE=DESIGNATED_SQLITE_PARENT_NOT_READY`,
-- `STOP_CODE=DESIGNATED_SQLITE_MISSING_FOR_R2_COMPOSITION`, or
-- `STOP_CODE=R2_VERIFIED_CAPABILITY_UNRESOLVED`,
+- `STOP_CODE=DESIGNATED_SQLITE_MISSING_FOR_R2_COMPOSITION`,
+- `STOP_CODE=R2_VERIFIED_CAPABILITY_UNRESOLVED`, or
+- `STOP_CODE=COMPOSITION_ROOT_REPAIR_NOT_DURABLE`,
 
 the authorization remains unconsumed (`AUTHORIZATION_CONSUMED=NO`) and no R2
 composition execution effects may proceed under this artifact until governance
@@ -787,12 +935,22 @@ PRE_EXECUTION_REQUIRED=
   R1B_RESULT_PASS|
   R1B_GATE_COMPLETE_YES|
   R1B_AUTHORIZATION_CONSUMED_AND_NOT_REUSABLE|
+  COMPOSITION_ROOT_REPAIR_PR_210_MERGED_TO_MAIN|
+  COMPOSITION_ROOT_REPAIR_REVIEWED_HEAD_ANCESTOR_OF_ORIGIN_MAIN|
+  COMPOSITION_ROOT_REPAIR_AUTHORIZATION_209_CONSUMED_AND_NOT_REUSABLE|
+  CREDENTIAL_OWNERSHIP_REPAIR_DURABLE|
+  STORE_LIFECYCLE_REPAIR_DURABLE|
+  IMPLEMENTATION_PROOF_PRESENT_ON_ORIGIN_MAIN|
   PRODUCTION_RUNTIME_ENTRYPOINT_RESOLVED|
-  PRODUCTION_ADC_IDENTITY_INJECTION_PATH_RESOLVED|
-  C4_AND_B2_CLIENTS_USE_PROCESS_ADC|
+  ROOT_OWNED_TARGET_RUNTIME_CREDENTIAL_MODEL|
+  SHARED_SECRET_MANAGER_CLIENT_MODEL|
+  C4_AND_B2_USE_SAME_SECRET_MANAGER_CLIENT|
+  PROCESS_ADC_OVERRIDE_FORBIDDEN|
   R2_VERIFIED_CAPABILITY_SOURCE_RESOLVED|
   R2_VERIFIED_CAPABILITY_SYNTHETIC_OR_COMPETITION_SAFE|
   EXACT_TARGET_RUNTIME_PRINCIPAL_MATCH|
+  EXACT_TARGET_RUNTIME_SCOPES_MATCH|
+  EXACT_TARGET_RUNTIME_CREDENTIAL_LIFETIME_MATCH|
   EXACT_IDENTITY_MECHANISM_MATCH|
   EXACT_C4_RESOURCE_MATCH|
   EXACT_B2_RESOURCE_MATCH|
@@ -805,7 +963,7 @@ PRE_EXECUTION_REQUIRED=
   SYNTHETIC_CAPABILITY_PRECREATED_IN_PROCESS|
   IDENTITY_SECRET_STORE_AND_COMPOSITION_BUDGETS_ENFORCED|
   NETWORK_CRM_BUSINESS_ZERO_BUDGETS_ENFORCED|
-  STORE_CONNECTION_CLOSE_LIFECYCLE_ENFORCED|
+  STORE_OWNERSHIP_AND_CLOSE_LIFECYCLE_ENFORCED|
   ZERO_DB_CREATE_ENFORCED|
   PAYLOAD_AND_TOKEN_NON_DISCLOSURE_ENFORCED
 ```
@@ -818,6 +976,16 @@ within the fixed budgets and with zero forbidden effects or disclosures:
 ```text
 SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=1
 SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS=1
+
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS=1
+TARGET_RUNTIME_SERVICE_ACCOUNT_MATCH=YES
+TARGET_RUNTIME_SCOPES_MATCH=YES
+TARGET_RUNTIME_CREDENTIAL_LIFETIME_MATCH=YES
+
+SECRET_MANAGER_CLIENT_INSTANTIATIONS=1
+C4_PROVIDER_SHARED_CLIENT_BOUND=YES
+B2_ACCESSOR_SHARED_CLIENT_BOUND=YES
+C4_AND_B2_USE_SAME_SECRET_MANAGER_CLIENT=YES
 
 C4_READ_ATTEMPTS=1
 B2_READ_ATTEMPTS=1
@@ -839,8 +1007,10 @@ HIGHLEVEL_HTTP_CLIENT_INSTANTIATIONS=1
 HIGHLEVEL_TRANSPORT_INSTANTIATIONS=1
 NOTE_PATH_ADAPTER_ASSEMBLIES=1
 
+STORE_OWNERSHIP_TRANSFERRED=YES
 FINAL_STORE_CONNECTION_CLOSE=PASS
 STORE_CONNECTION_CLOSE_EVENTS=1
+R2_CONSUMER_FINAL_STORE_CLOSE=PASS
 
 SCHEMA_VERSION_VALIDATED=1
 
@@ -877,20 +1047,22 @@ R2_GATE_COMPLETE=YES
 ```
 
 An access result is PASS only when Secret Manager returns the payload for the
-exact requested numeric-version resource under the impersonated runtime
-principal, without resource or principal substitution. Production assembly is
-PASS only when `assemble_bound_live_note_runtime` returns a `NotePathAdapter`
-after the full composition sequence above, with existing-store construction at
-the exact designated primary path, without creating the primary file, without
-HTTP dispatch, and without CRM/business method invocation, followed by the
-required one connection-close event.
+exact requested numeric-version resource under the root-owned target-runtime
+credential and shared client, without resource or principal substitution.
+Production assembly is PASS only when `assemble_bound_live_note_runtime` returns
+a `NotePathAdapter` after the full composition sequence above, with existing-
+store construction at the exact designated primary path, without creating the
+primary file, without HTTP dispatch, and without CRM/business method invocation,
+followed by ownership transfer and the required one consumer connection-close
+event.
 
 ## 15. Fail-closed behavior
 
-If parent preflight, designated-DB preflight, capability precreation,
-impersonation, token mint, C4 read, B2 read, existing-store construction,
-metadata validation, production assembly, composition binding checks, or
-required connection close fails, the execution consumer must STOP.
+If parent preflight, designated-DB preflight, capability precreation, repair-gate
+preflight, impersonation, token mint, C4 read, B2 read, existing-store
+construction, metadata validation, production assembly, composition binding
+checks, ownership transfer, or required connection close fails, the execution
+consumer must STOP.
 
 ```text
 FAIL_CLOSED=YES
@@ -921,9 +1093,26 @@ CRM_MUTATION_ON_FAILURE=NO
 IMPLEMENT_NEW_STORE_CLOSE_API_ON_FAILURE=NO
 SOURCE_CODE_CHANGE_ON_FAILURE=NO
 FALL_BACK_TO_DIRECT_USER_ADC_SECRET_ACCESS_ON_FAILURE=NO
+FALL_BACK_TO_PROCESS_ADC_OVERRIDE_ON_FAILURE=NO
 FALL_BACK_TO_AT8W28_R1B_AUTHORIZATION_ON_FAILURE=NO
+FALL_BACK_TO_PR209_REPAIR_AUTHORIZATION_ON_FAILURE=NO
 ESCALATE_TO_R3_ON_FAILURE=NO
 ESCALATE_TO_R4_ON_FAILURE=NO
+```
+
+Normalized close ownership on failure:
+
+```text
+IF_FAILURE_BEFORE_STORE_CONSTRUCTION=
+  STORE_CLOSE_EVENTS=0
+
+IF_FAILURE_AFTER_STORE_CONSTRUCTION_BEFORE_ADAPTER_RETURN=
+  COMPOSITION_ROOT_CLOSES_STORE_EXACTLY_ONCE=YES
+  CONSUMER_CLOSE_REQUIRED=NO
+
+IF_FAILURE_AFTER_SUCCESSFUL_ADAPTER_RETURN=
+  R2_CONSUMER_OWNS_RETURNED_STORE=YES
+  R2_CONSUMER_MUST_CLOSE_EXACTLY_ONCE_BEFORE_EXIT=YES
 ```
 
 No retry. No second token. No second secret read. No second assembly. No store
@@ -942,9 +1131,9 @@ Safe failure categories may identify non-sensitive classes such as
 authentication unavailable, impersonation denied, permission denied, resource
 not found, disabled version, dependency unavailable, designated parent not
 ready, designated path missing for R2 composition, capability unresolved,
-schema/metadata mismatch, assembly failure, connection-close failure, or
-sanitized transport/store failure. They must not include payload, token,
-credential, header, or operator principal material.
+repair gate not durable, schema/metadata mismatch, assembly failure,
+connection-close failure, or sanitized transport/store failure. They must not
+include payload, token, credential, header, or operator principal material.
 
 ## 16. Non-escalation
 
@@ -977,8 +1166,9 @@ PREFLIGHT_BRANCH=
   auth/nw008-at8w29-r2-production-composition-validation-authorization-001
 PREFLIGHT_BRANCH_IS_MAIN=NO
 PREFLIGHT_BASE_SHA=
-  f5ec221a667db91e43684f3acad98913b6e00bfa
-PREFLIGHT_UNRELATED_WORKTREE_CHANGES=NO
+  e127b3d2723e58ff1a91e5ab3ff94bf170e6dfd3
+PREFLIGHT_UNRELATED_WORKTREE_CHANGES=
+  proof/nw008/at-10/** excluded and unstaged only
 
 R1B_PROOF_PR=207
 R1B_PROOF_MERGE_COMMIT=
@@ -988,23 +1178,33 @@ R1B_GATE_COMPLETE=YES
 R1B_AUTHORIZATION_STATE=CONSUMED
 R1B_AUTHORIZATION_REUSABLE=NO
 
+COMPOSITION_ROOT_REPAIR_PR=210
+COMPOSITION_ROOT_REPAIR_MERGE_COMMIT=
+  e127b3d2723e58ff1a91e5ab3ff94bf170e6dfd3
+COMPOSITION_ROOT_REPAIR_RECONCILIATION=PASS
+CREDENTIAL_OWNERSHIP_REPAIR_DURABLE=YES
+STORE_LIFECYCLE_REPAIR_DURABLE=YES
+COMPOSITION_ROOT_REPAIR_AUTHORIZATION_STATE=CONSUMED
+
 PRODUCTION_RUNTIME_ENTRYPOINT_RESOLVED=YES
-PRODUCTION_ADC_IDENTITY_INJECTION_PATH_RESOLVED=YES
-C4_SECRET_MANAGER_CLIENT_USES_TARGET_RUNTIME_SA=YES
-B2_SECRET_MANAGER_CLIENT_USES_TARGET_RUNTIME_SA=YES
+ROOT_OWNED_TARGET_RUNTIME_CREDENTIAL_MODEL=YES
+SHARED_SECRET_MANAGER_CLIENT_MODEL=YES
+C4_AND_B2_USE_SAME_SECRET_MANAGER_CLIENT=YES
+PROCESS_ADC_MODEL_REMOVED=YES
 DIRECT_USER_ADC_SECRET_ACCESS=NO
 R2_VERIFIED_CAPABILITY_SOURCE_RESOLVED=YES
 R2_VERIFIED_CAPABILITY_SYNTHETIC_OR_COMPETITION_SAFE=YES
 ASSEMBLY_HTTP_DISPATCH_BY_ITSELF=NO
 ASSEMBLY_CRM_MUTATION_BY_ITSELF=NO
 R2_AUTHORIZATION_DESIGNABLE=YES
-SOURCE_CODE_CHANGE_REQUIRED=NO
+ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_THIS_GRANT=NO
 
-ARTIFACTS_CREATED_IN_THIS_UNIT=1
+ARTIFACTS_CREATED_IN_THIS_UNIT=0
 REPOSITORY_PATHS_MODIFIED_IN_THIS_UNIT=1
 RUNTIME_SOURCE_CHANGES_IN_THIS_UNIT=0
 
 EXECUTION_PERFORMED=NO
+R2_EXECUTION_PERFORMED=NO
 SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
 SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS=0
 C4_SECRET_READ_ATTEMPTS=0
@@ -1023,10 +1223,9 @@ PRODUCTION_RUNTIME_STARTS=0
 ```
 
 Authoring performed source-only inspection of main-branch implementation files
-and existence-only observation that the designated DB path is expected present
-from R1B completion. That observation is not execution, does not open SQLite,
-does not read secrets, does not assemble runtime, and does not consume this
-authorization.
+and the durable PR #210 repair proof. That observation is not execution, does
+not open SQLite, does not read secrets, does not assemble runtime, and does not
+consume this authorization.
 
 ## 18. Review disposition
 
@@ -1039,6 +1238,8 @@ AUTONOMOUS_MERGE_AUTHORIZED=NO
 
 SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS_MAX=1
 SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS_MAX=1
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS_MAX=1
+SECRET_MANAGER_CLIENT_INSTANTIATIONS_MAX=1
 C4_SECRET_READ_ATTEMPTS_MAX=1
 B2_SECRET_READ_ATTEMPTS_MAX=1
 DESIGNATED_SQLITE_CREATE_MAX=0
@@ -1047,7 +1248,10 @@ PRODUCTION_RUNTIME_ASSEMBLY_MAX=1
 HIGHLEVEL_HTTP_CLIENT_INSTANTIATIONS_MAX=1
 HIGHLEVEL_TRANSPORT_INSTANTIATIONS_MAX=1
 NOTE_PATH_ADAPTER_ASSEMBLIES_MAX=1
-STORE_CONNECTION_CLOSE_EVENTS_REQUIRED=1
+STORE_FAILURE_CLOSE_OWNER=COMPOSITION_ROOT
+STORE_SUCCESS_OWNERSHIP_TRANSFER=YES
+R2_CONSUMER_FINAL_STORE_CLOSE_REQUIRED=YES
+TOTAL_STORE_CONNECTION_CLOSE_EVENTS_REQUIRED=1
 HIGHLEVEL_CALLS_MAX=0
 HTTP_REQUEST_DISPATCHES_MAX=0
 CRM_MUTATIONS_MAX=0
@@ -1057,17 +1261,25 @@ SQLITE_ENGINE_MANAGED_TRANSIENT_SIDECARS_ALLOWED=YES
 NEW_STORE_CLOSE_API_IMPLEMENTATION_AUTHORIZED=NO
 SOURCE_CODE_CHANGE_AUTHORIZED=NO
 
+PR210_REPAIR_BOUND=YES
+PR210_MERGE_COMMIT=
+  e127b3d2723e58ff1a91e5ab3ff94bf170e6dfd3
+PROCESS_ADC_MODEL_REMOVED=YES
+ROOT_OWNED_TARGET_CREDENTIAL_MODEL=YES
+SHARED_SECRET_MANAGER_CLIENT_MODEL=YES
+
 R2_SUCCESS_AUTHORIZES_R3=NO
 R2_SUCCESS_AUTHORIZES_R4=NO
 R2_SUCCESS_AUTHORIZES_HIGHLEVEL_DISPATCH=NO
 R2_SUCCESS_AUTHORIZES_CRM_MUTATION=NO
 
 EXECUTION_PERFORMED=NO
+R2_EXECUTION_PERFORMED=NO
 SQLITE_OPENED=NO
 SQLITE_CREATED=NO
 SECRET_PAYLOAD_READS=0
 PRODUCTION_RUNTIME_ASSEMBLY=0
 
 NEXT=
-  return authorization PR to ChatGPT for independent reviewer disposition
+  return normalized authorization PR to ChatGPT for independent reviewer disposition
 ```
