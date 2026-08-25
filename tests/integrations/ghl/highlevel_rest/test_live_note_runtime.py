@@ -183,10 +183,14 @@ def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
 ) -> None:
     db_path = tmp_path / "root-owned.sqlite3"
     constructed: dict[str, object] = {}
+    source_credentials = object()
+    target_runtime_credentials = object()
+    shared_secret_manager_client = object()
 
     class _FakeCommitmentKeyProvider:
-        def __init__(self) -> None:
+        def __init__(self, *, client: object) -> None:
             constructed["provider"] = self
+            constructed["provider_client"] = client
 
         def resolve(self):
             return SyntheticCommitmentKeyProvider(
@@ -194,9 +198,43 @@ def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
                 version_resource=DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE,
             ).resolve()
 
+    class _FakeLiveNoteSecretAccessor:
+        def __init__(self, *, client: object) -> None:
+            constructed["accessor"] = self
+            constructed["accessor_client"] = client
+
+        def read_secret_payload(self, *, resource_name: str) -> str:
+            raise AssertionError("credential acquisition is outside resolver assembly")
+
+    def _impersonate(source: object) -> object:
+        constructed["impersonation_source"] = source
+        return target_runtime_credentials
+
+    def _new_client(credentials: object) -> object:
+        constructed["client_credentials"] = credentials
+        return shared_secret_manager_client
+
     monkeypatch.setenv(runtime._ROOT_OWNED_DB_CONFIG_KEY, str(db_path))
     monkeypatch.setattr(
+        runtime,
+        "_resolve_source_application_credentials",
+        lambda: source_credentials,
+    )
+    monkeypatch.setattr(
+        runtime,
+        "_impersonate_target_runtime_credentials",
+        _impersonate,
+    )
+    monkeypatch.setattr(
+        runtime,
+        "_new_secret_manager_client",
+        _new_client,
+    )
+    monkeypatch.setattr(
         runtime, "GoogleSecretManagerCommitmentKeyProvider", _FakeCommitmentKeyProvider
+    )
+    monkeypatch.setattr(
+        runtime, "GoogleSecretManagerLiveNoteSecretAccessor", _FakeLiveNoteSecretAccessor
     )
 
     dependencies = runtime._resolve_root_owned_runtime_dependencies()
@@ -206,8 +244,166 @@ def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
     assert dependencies.credential_injection.build_provider().resource_name == (
         runtime._SEALED_LIVE_NOTE_REST_RESOURCE_NAME
     )
-    assert "provider" in constructed
+    assert constructed["impersonation_source"] is source_credentials
+    assert constructed["client_credentials"] is target_runtime_credentials
+    assert constructed["provider_client"] is shared_secret_manager_client
+    assert constructed["accessor_client"] is shared_secret_manager_client
     dependencies.execution_store._connection.close()
+
+
+class _CloseTrackingConnection:
+    def __init__(self) -> None:
+        self.close_events = 0
+
+    def close(self) -> None:
+        self.close_events += 1
+
+
+class _SyntheticLifecycleStore(At1ExecutionStore):
+    def __init__(self) -> None:
+        self._connection = _CloseTrackingConnection()
+        self.execution_claims_created = 0
+        self.attempt_records_created = 0
+        self.protocol_ledger_event_writes = 0
+        self.business_ledger_event_writes = 0
+
+
+class _LifecycleSecretAccessor:
+    def __init__(self, *, fails: bool) -> None:
+        self.fails = fails
+        self.read_count = 0
+
+    def read_secret_payload(self, *, resource_name: str) -> str:
+        self.read_count += 1
+        if self.fails:
+            raise RuntimeError("synthetic B2 acquisition failure")
+        return "synthetic-live-note-runtime-token"
+
+
+def _lifecycle_dependencies(
+    *, fails_during_b2_acquisition: bool
+) -> tuple[
+    runtime._RootOwnedLiveNoteRuntimeDependencies,
+    _SyntheticLifecycleStore,
+    _LifecycleSecretAccessor,
+]:
+    store = _SyntheticLifecycleStore()
+    accessor = _LifecycleSecretAccessor(fails=fails_during_b2_acquisition)
+    dependencies = runtime._RootOwnedLiveNoteRuntimeDependencies(
+        credential_injection=RootOwnedLiveNoteCredentialInjection(
+            accessor=accessor,
+            resource_name=runtime._SEALED_LIVE_NOTE_REST_RESOURCE_NAME,
+        ),
+        execution_store=store,
+    )
+    return dependencies, store, accessor
+
+
+@pytest.mark.parametrize(
+    "failure_stage",
+    (
+        "b2_secret_acquisition",
+        "http_client_construction",
+        "transport_construction",
+        "adapter_construction",
+    ),
+)
+def test_root_owned_store_closes_after_each_pre_return_failure(
+    monkeypatch: pytest.MonkeyPatch, failure_stage: str
+) -> None:
+    dependencies, store, accessor = _lifecycle_dependencies(
+        fails_during_b2_acquisition=failure_stage == "b2_secret_acquisition"
+    )
+    effects = {"http": 0, "transport": 0, "adapter": 0}
+
+    def _http_client() -> object:
+        effects["http"] += 1
+        if failure_stage == "http_client_construction":
+            raise RuntimeError("synthetic HTTP client construction failure")
+        return object()
+
+    def _transport(**kwargs: object) -> object:
+        effects["transport"] += 1
+        if failure_stage == "transport_construction":
+            raise RuntimeError("synthetic transport construction failure")
+        return object()
+
+    class _Adapter:
+        def __init__(self, **kwargs: object) -> None:
+            effects["adapter"] += 1
+            if failure_stage == "adapter_construction":
+                raise RuntimeError("synthetic adapter construction failure")
+            self.execution_store = kwargs["execution_store"]
+
+    monkeypatch.setattr(
+        runtime, "_resolve_root_owned_runtime_dependencies", lambda: dependencies
+    )
+    monkeypatch.setattr(runtime, "ConcreteLiveNoteHttpClient", _http_client)
+    monkeypatch.setattr(runtime, "BoundedLiveNoteTransport", _transport)
+    monkeypatch.setattr(runtime, "NotePathAdapter", _Adapter)
+
+    with pytest.raises(RuntimeError, match="synthetic"):
+        assemble_bound_live_note_runtime(
+            verified_capability=_root_owned_private_delivery_capability()
+        )
+
+    assert store._connection.close_events == 1
+    assert accessor.read_count == 1
+    assert effects["http"] == (
+        0 if failure_stage == "b2_secret_acquisition" else 1
+    )
+    assert effects["transport"] == (
+        0
+        if failure_stage in ("b2_secret_acquisition", "http_client_construction")
+        else 1
+    )
+    assert effects["adapter"] == (1 if failure_stage == "adapter_construction" else 0)
+    assert store.execution_claims_created == 0
+    assert store.attempt_records_created == 0
+    assert store.protocol_ledger_event_writes == 0
+    assert store.business_ledger_event_writes == 0
+
+
+def test_root_owned_store_transfers_only_after_successful_adapter_return(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dependencies, store, accessor = _lifecycle_dependencies(
+        fails_during_b2_acquisition=False
+    )
+    effects = {"http": 0, "transport": 0, "adapter": 0}
+
+    def _http_client() -> object:
+        effects["http"] += 1
+        return object()
+
+    def _transport(**kwargs: object) -> object:
+        effects["transport"] += 1
+        return object()
+
+    class _Adapter:
+        def __init__(self, **kwargs: object) -> None:
+            effects["adapter"] += 1
+            self.execution_store = kwargs["execution_store"]
+
+    monkeypatch.setattr(
+        runtime, "_resolve_root_owned_runtime_dependencies", lambda: dependencies
+    )
+    monkeypatch.setattr(runtime, "ConcreteLiveNoteHttpClient", _http_client)
+    monkeypatch.setattr(runtime, "BoundedLiveNoteTransport", _transport)
+    monkeypatch.setattr(runtime, "NotePathAdapter", _Adapter)
+
+    adapter = assemble_bound_live_note_runtime(
+        verified_capability=_root_owned_private_delivery_capability()
+    )
+
+    assert adapter.execution_store is store
+    assert store._connection.close_events == 0
+    assert accessor.read_count == 1
+    assert effects == {"http": 1, "transport": 1, "adapter": 1}
+    assert store.execution_claims_created == 0
+    assert store.attempt_records_created == 0
+    assert store.protocol_ledger_event_writes == 0
+    assert store.business_ledger_event_writes == 0
 
 
 def test_public_assembler_uses_only_root_owned_dependencies(

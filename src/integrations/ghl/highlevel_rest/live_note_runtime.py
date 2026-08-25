@@ -8,6 +8,8 @@ test seam is limited to deterministic synthetic inputs.
 from __future__ import annotations
 
 import importlib
+import sqlite3
+from typing import Any
 
 from integrations.ghl.at1_commitment_key_provider import (
     GoogleSecretManagerCommitmentKeyProvider,
@@ -29,10 +31,37 @@ _SEALED_LIVE_NOTE_REST_RESOURCE_NAME = (
     "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
 )
 _ROOT_OWNED_DB_CONFIG_KEY = "MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH"
+_TARGET_RUNTIME_SERVICE_ACCOUNT = (
+    "mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
+)
+_TARGET_RUNTIME_SCOPES = ("https://www.googleapis.com/auth/cloud-platform",)
+_TARGET_RUNTIME_CREDENTIAL_LIFETIME_SECONDS = 3600
 
 
 class LiveNoteRuntimeAssemblyError(RuntimeError):
     """Raised when assembly would exceed the authorized offline boundary."""
+
+
+class _StoreOwnershipGuard:
+    """Closes a root-owned store unless assembly transfers it to an adapter."""
+
+    def __init__(self, execution_store: At1ExecutionStore) -> None:
+        self._execution_store = execution_store
+        self._ownership_transferred = False
+        self._close_attempted = False
+
+    def transfer_to_returned_adapter(self) -> None:
+        self._ownership_transferred = True
+
+    def close_after_failed_assembly(self) -> None:
+        if self._ownership_transferred or self._close_attempted:
+            return
+        self._close_attempted = True
+        try:
+            self._execution_store._connection.close()
+        except sqlite3.Error:
+            # Cleanup must not replace the composition exception being unwound.
+            pass
 
 
 class _RootOwnedLiveNoteRuntimeDependencies:
@@ -58,6 +87,49 @@ class _RootOwnedLiveNoteRuntimeDependencies:
         self.execution_store = execution_store
 
 
+def _resolve_source_application_credentials() -> object:
+    """Resolve source ADC only when the production composition root is invoked."""
+    try:
+        google_auth_module = importlib.import_module("google.auth")
+    except ModuleNotFoundError as exc:  # pragma: no cover - optional offline dependency
+        raise LiveNoteRuntimeAssemblyError(
+            "google-auth is required for production runtime credential resolution"
+        ) from exc
+    credentials, _ = google_auth_module.default()
+    return credentials
+
+
+def _impersonate_target_runtime_credentials(source_credentials: object) -> object:
+    """Create the one target-runtime credential used by Secret Manager."""
+    try:
+        impersonated_credentials_module = importlib.import_module(
+            "google.auth.impersonated_credentials"
+        )
+    except ModuleNotFoundError as exc:  # pragma: no cover - optional offline dependency
+        raise LiveNoteRuntimeAssemblyError(
+            "google-auth impersonation support is required for production runtime assembly"
+        ) from exc
+    return impersonated_credentials_module.Credentials(
+        source_credentials=source_credentials,
+        target_principal=_TARGET_RUNTIME_SERVICE_ACCOUNT,
+        target_scopes=list(_TARGET_RUNTIME_SCOPES),
+        lifetime=_TARGET_RUNTIME_CREDENTIAL_LIFETIME_SECONDS,
+    )
+
+
+def _new_secret_manager_client(target_runtime_credentials: object) -> Any:
+    """Create the sole Secret Manager client bound to the target runtime identity."""
+    try:
+        secretmanager_module = importlib.import_module("google.cloud.secretmanager")
+    except ModuleNotFoundError as exc:  # pragma: no cover - optional offline dependency
+        raise LiveNoteRuntimeAssemblyError(
+            "google-cloud-secret-manager is required for production runtime assembly"
+        ) from exc
+    return secretmanager_module.SecretManagerServiceClient(
+        credentials=target_runtime_credentials
+    )
+
+
 def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDependencies:
     """Resolve the minimal production dependencies from the orchestrator-owned process environment."""
     db_path = importlib.import_module("os").environ.get(_ROOT_OWNED_DB_CONFIG_KEY)
@@ -66,12 +138,21 @@ def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDepen
             "production live-note runtime assembly requires root-owned dependencies"
         )
 
-    secret_accessor = GoogleSecretManagerLiveNoteSecretAccessor()
+    source_credentials = _resolve_source_application_credentials()
+    target_runtime_credentials = _impersonate_target_runtime_credentials(
+        source_credentials
+    )
+    secret_manager_client = _new_secret_manager_client(target_runtime_credentials)
+    secret_accessor = GoogleSecretManagerLiveNoteSecretAccessor(
+        client=secret_manager_client
+    )
     credential_injection = RootOwnedLiveNoteCredentialInjection(
         accessor=secret_accessor,
         resource_name=_SEALED_LIVE_NOTE_REST_RESOURCE_NAME,
     )
-    commitment_key_provider = GoogleSecretManagerCommitmentKeyProvider()
+    commitment_key_provider = GoogleSecretManagerCommitmentKeyProvider(
+        client=secret_manager_client
+    )
     try:
         commitment_material = commitment_key_provider.resolve()
         execution_store = At1ExecutionStore(
@@ -112,23 +193,29 @@ def assemble_bound_live_note_runtime(
     """Assemble only from validated capability and root-owned dependencies."""
     validated_capability = _validate_issued_capability(verified_capability)
     dependencies = _resolve_root_owned_runtime_dependencies()
-    credential = dependencies.credential_injection.build_provider().get_credential()
-    transport = BoundedLiveNoteTransport(
-        bound_contact_id=validated_capability.contact_id,
-        credential=credential,
-        http_client=ConcreteLiveNoteHttpClient(),
-    )
-    adapter = NotePathAdapter(
-        location_id=validated_capability.location_id,
-        contact_id=validated_capability.contact_id,
-        transport=transport,
-        consumer_authorization_identity=(
-            validated_capability.consumer_authorization_identity
-        ),
-        consumer_workflow_run_id=validated_capability.consumer_workflow_run_id,
-        execution_store=dependencies.execution_store,
-    )
-    adapter._verified_contact_binding_capability = validated_capability
+    store_ownership = _StoreOwnershipGuard(dependencies.execution_store)
+    try:
+        credential = dependencies.credential_injection.build_provider().get_credential()
+        transport = BoundedLiveNoteTransport(
+            bound_contact_id=validated_capability.contact_id,
+            credential=credential,
+            http_client=ConcreteLiveNoteHttpClient(),
+        )
+        adapter = NotePathAdapter(
+            location_id=validated_capability.location_id,
+            contact_id=validated_capability.contact_id,
+            transport=transport,
+            consumer_authorization_identity=(
+                validated_capability.consumer_authorization_identity
+            ),
+            consumer_workflow_run_id=validated_capability.consumer_workflow_run_id,
+            execution_store=dependencies.execution_store,
+        )
+        adapter._verified_contact_binding_capability = validated_capability
+    except Exception:
+        store_ownership.close_after_failed_assembly()
+        raise
+    store_ownership.transfer_to_returned_adapter()
     return adapter
 
 
