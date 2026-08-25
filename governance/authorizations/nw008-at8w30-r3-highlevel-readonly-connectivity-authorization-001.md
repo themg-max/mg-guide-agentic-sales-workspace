@@ -1,0 +1,903 @@
+# NW-008 AT8W30 R3 HighLevel Read-Only Connectivity Authorization 001
+
+## 1. Authorization identity and activation boundary
+
+```text
+UNIT=NW008_AT8W30_R3_HIGHLEVEL_READONLY_CONNECTIVITY_AUTHORIZATION_001
+CLASSIFICATION=authorization
+PR_CLASS=authorization
+MODE=AUTHORIZATION_ARTIFACT_ONLY
+OWNER=VS_CODE_ORCHESTRATOR+HUMAN_GOVERNANCE
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+AUTHORIZATION_ARTIFACT=
+  governance/authorizations/nw008-at8w30-r3-highlevel-readonly-connectivity-authorization-001.md
+AUTHORIZATION_BRANCH=
+  auth/nw008-at8w30-r3-highlevel-readonly-connectivity-authorization-001
+
+BASE_REF=origin/main
+BASE_SHA=
+  bac5b9d01b999ed29ac8142e9dda667055349dca
+
+STATUS_AT_AUTHORING=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
+AUTHORIZATION_STATE_AT_AUTHORING=PROPOSED_NOT_EFFECTIVE
+GRANT_ACTIVATION=
+  HUMAN_MERGE_TO_MAIN_PLUS_DURABLE_RECONCILED_EXACT_BOUND_CONTACT_GET_CAPABILITY
+AUTHORIZATION_EFFECTIVENESS_SOURCE=REPO_STATE_NOT_MUTABLE_FIELD
+SELF_ACTIVATION=FORBIDDEN
+
+PRIOR_REVIEWED_HEAD=
+  f765f43c3668c513d4cb16c3a5e9818d8b9eeff6
+PRIOR_REVIEW_DISPOSITION=CHANGE_REQUEST
+PRIOR_REVIEW_REASON=
+  AUTHORIZED_R3_GET_CONTACT_ROUTE_NOT_SUPPORTED_BY_CURRENT_PRODUCTION_TRANSPORT
+```
+
+This artifact is planning-only. Creating, reviewing, or merging it does not
+impersonate a service account, mint or refresh a token, read a Secret Manager
+payload, open or create SQLite, construct At1ExecutionStore, assemble production
+runtime, instantiate or dispatch HighLevel HTTP, call HighLevel, mutate CRM or
+IAM, deploy, or execute R3.
+
+The bounded grant becomes usable only after human review and merge places this
+exact artifact on `main`, a separate human-merged exact bound-contact GET
+production transport capability is durable and independently reconciled, and
+the sole authorized execution consumer verifies both prerequisites.
+
+```text
+THIS_ARTIFACT_EXECUTES_R3=NO
+THIS_ARTIFACT_PERFORMS_NETWORK_CALLS=NO
+THIS_ARTIFACT_MUTATES_CRM=NO
+EXECUTION_PERFORMED_IN_THIS_UNIT=NO
+R3_EXECUTION_PERFORMED=NO
+SERVICE_ACCOUNT_IMPERSONATION_IN_THIS_UNIT=0
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS_IN_THIS_UNIT=0
+SECRET_MANAGER_ACCESS_PERFORMED_IN_THIS_UNIT=NO
+SECRET_PAYLOAD_READS_IN_THIS_UNIT=0
+C4_SECRET_READ_ATTEMPTS_IN_THIS_UNIT=0
+B2_SECRET_READ_ATTEMPTS_IN_THIS_UNIT=0
+HIGHLEVEL_CALLS_IN_THIS_UNIT=0
+HTTP_REQUEST_DISPATCHES_IN_THIS_UNIT=0
+CRM_MUTATIONS_IN_THIS_UNIT=0
+SQLITE_CREATION_IN_THIS_UNIT=0
+SQLITE_OPEN_IN_THIS_UNIT=0
+AT1_EXECUTION_STORE_CONSTRUCTIONS_IN_THIS_UNIT=0
+PRODUCTION_RUNTIME_ASSEMBLY_IN_THIS_UNIT=0
+IAM_MUTATIONS_IN_THIS_UNIT=0
+DEPLOYMENTS_IN_THIS_UNIT=0
+PRODUCTION_RUNTIME_STARTS_IN_THIS_UNIT=0
+AUTHORIZATION_CONSUMED_IN_THIS_UNIT=NO
+```
+
+## 2. Purpose and explicit non-authority
+
+This artifact completes the design for a conditional authorization of exactly
+one later bounded R3 execution to validate read-only HighLevel connectivity and
+exact-ID readback through the already validated R2 production composition path.
+R3 is not executable under this artifact until the transport activation
+prerequisite in section 6 is separately authorized, implemented, reviewed,
+human-merged, and reconciled.
+
+The future execution consumer may establish only whether:
+
+1. the repaired production root can assemble once via
+   `assemble_bound_live_note_runtime` using the durable PR #210 / PR #211
+   composition contract;
+2. the assembled `NotePathAdapter` can perform exactly one authorized
+   `get-contact` against the already governed private-allowlist synthetic
+   contact;
+3. the returned contact id equals the exact authorized private-allowlist
+   contact id;
+4. the bound location identity is consistent with the authorized private
+   allowlist location; and
+5. no mutation, search, list, pagination, retry, note write, stage transition,
+   or unpublished CRM payload persistence occurs.
+
+```text
+PURPOSE=
+  ONE_BOUNDED_READONLY_HIGHLEVEL_CONNECTIVITY_AND_EXACT_CONTACT_READBACK
+
+HIGHLEVEL_READONLY_GET_CONTACT_AUTHORIZED=YES_ONCE_ONLY
+HIGHLEVEL_READONLY_GET_CONTACT_AUTHORITY_CONDITIONAL=YES
+HIGHLEVEL_GET_OPPORTUNITY_AUTHORIZED=NO
+HIGHLEVEL_SEARCH_AUTHORIZED=NO
+HIGHLEVEL_LIST_AUTHORIZED=NO
+HIGHLEVEL_PAGINATION_AUTHORIZED=NO
+HIGHLEVEL_RAW_REST_AUTHORIZED=NO
+NOTE_WRITE_AUTHORIZED=NO
+STAGE_TRANSITION_AUTHORIZED=NO
+CRM_MUTATION_AUTHORIZED=NO
+BUSINESS_EXECUTION_AUTHORIZED=NO
+EXECUTION_CLAIM_AUTHORIZED=NO
+ATTEMPT_RECORD_AUTHORIZED=NO
+PROTOCOL_LEDGER_WRITE_AUTHORIZED=NO
+BUSINESS_LEDGER_WRITE_AUTHORIZED=NO
+IAM_MUTATION_AUTHORIZED=NO
+SERVICE_ACCOUNT_KEY_CREATE_AUTHORIZED=NO
+DEPLOYMENT_AUTHORIZED=NO
+STANDING_TOKEN_AUTHORITY=NO
+DB_CREATE_AUTHORIZED=NO
+DB_DELETE_AUTHORIZED=NO
+DB_RECREATE_AUTHORIZED=NO
+DB_REPAIR_AUTHORIZED=NO
+PRODUCTION_RUNTIME_START_AUTHORIZED=NO
+R4_AUTHORIZED=NO
+
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
+```
+
+A successful R3 read-only connectivity validation proves only that the already
+validated production composition path can perform one exact synthetic-contact
+GET and receive a matching minimized readback. It does not authorize note
+write, stage transition, CRM mutation, business execution, R4, deployment, IAM
+mutation, standing tokens, or any later gate.
+
+This grant does **not** revive, transfer, reuse, or extend:
+
+- the consumed AT8W29 R2 authorization (PR #208); or
+- the consumed R2 execution proof unit (PR #211).
+
+```text
+R2_SUCCESS_AUTHORIZES_R3=NO
+R2_SUCCESS_AUTHORIZES_R4=NO
+R2_RETRY_AUTHORIZED=NO
+THIS_GRANT_REVIVES_PR208=NO
+THIS_GRANT_REVIVES_PR211=NO
+```
+
+## 3. Durable R2 prerequisites
+
+Verified on `origin/main` before this artifact was authored:
+
+```text
+PR211_STATE=MERGED
+PR211_MERGED=YES
+PR211_MERGE_COMMIT=
+  bac5b9d01b999ed29ac8142e9dda667055349dca
+PR211_REVIEWED_HEAD=
+  3bf325cd965a00e63c487fa13b1584ee2d81fe89
+PR211_REVIEWED_HEAD_ANCESTRY=PASS
+
+R2_EXECUTION_PROOF=
+  proof/nw008/at-8w29/nw008-at8w29-r2-production-composition-validation-execution-proof-001.md
+R2_EXECUTION_PROOF_ON_MAIN=YES
+R2_EXECUTION_PROOF_BLOB=
+  ce45dda13bc26cd9c58e1b0cbbee1f9ba3bb5987
+R2_EXECUTION_PROOF_BLOB_MATCH=YES
+
+R2_RESULT=PASS
+R2_GATE_COMPLETE=YES
+R2_EXECUTION_DURABLE=YES
+R2_EXECUTION_REUSABLE=NO
+
+AUTHORIZATION_PR=208
+AUTHORIZATION_PR208_STATE=CONSUMED
+AUTHORIZATION_PR208_REUSABLE=NO
+AUTHORIZATION_PR208_TRANSFERABLE=NO
+
+R2_RETRY_AUTHORIZED=NO
+R3_AUTHORIZED_BY_R2=NO
+R4_AUTHORIZED_BY_R2=NO
+
+PR210_REPAIR_BOUND=YES
+COMPOSITION_ROOT_REPAIR_PR=210
+COMPOSITION_ROOT_REPAIR_REVIEWED_HEAD=
+  f31e490ca55499264a368d4efbc5ea75e37bce6d
+COMPOSITION_ROOT_REPAIR_MERGE_COMMIT=
+  e127b3d2723e58ff1a91e5ab3ff94bf170e6dfd3
+R2_COMPOSITION_VALIDATION_BOUND=YES
+```
+
+If any of the above durable R2 facts is later found not to hold on `origin/main`,
+this grant is not usable.
+
+```text
+R2_PR211_DURABLE=YES
+R2_GATE_COMPLETE=YES
+```
+
+## 4. Target data boundary and exact-ID resolution
+
+```text
+PRIVATE_PRODUCTION_CUSTOMER_DATA_ALLOWED=NO
+SYNTHETIC_OR_EXPLICITLY_AUTHORIZED_RECORD_REQUIRED=YES
+EXACT_ID_TARGETING_REQUIRED=YES
+ALTERNATE_TARGET_SEARCH_AUTHORIZED=NO
+ALTERNATE_TARGET_RESOLUTION=NO
+CALLER_SUPPLIED_CONTACT_ID=FORBIDDEN
+CALLER_SUPPLIED_LOCATION_ID=FORBIDDEN
+CALLER_SUPPLIED_OPPORTUNITY_ID=FORBIDDEN
+AGENT_SUPPLIED_TARGET_OVERRIDE=FORBIDDEN
+```
+
+Exact live HighLevel identifiers are not published in this public repository.
+Standing governed evidence binds one exact synthetic contact and one exact
+canonical location in the private allowlist. Those private exact values are the
+only authorized R3 targets.
+
+```text
+R3_LOCATION_ID=
+  PRIVATE_ALLOWLIST_EXACT_CANONICAL_LOCATION
+R3_CONTACT_ID=
+  PRIVATE_ALLOWLIST_EXACT_SYNTHETIC_CONTACT
+R3_OPPORTUNITY_ID=NOT_INCLUDED
+
+R3_LOCATION_ID_RESOLVED=YES
+R3_CONTACT_ID_RESOLVED=YES
+R3_OPPORTUNITY_ID_RESOLVED=NOT_INCLUDED
+
+PRIVATE_BINDING_PUBLICATION=NO
+PRIVATE_BINDING_VALUES_IN_THIS_ARTIFACT=FORBIDDEN
+PRIVATE_BINDING_VALUES_IN_PUBLIC_PROOF=FORBIDDEN
+PRIVATE_IDENTIFIER_HASH_OR_TRANSFORM_PUBLICATION=NO
+PUBLIC_DISCLOSURE_OF_EXACT_IDS=NO
+```
+
+Governed evidence used to resolve the exact private targets, without copying
+the identifier values into this public artifact:
+
+```text
+CANONICAL_SYNTHETIC_READ_GRANT=
+  governance/authorizations/MG_GUIDE_GHL_CANONICAL_LOCATION_SYNTHETIC_READ_PROOF_V1.yaml
+CANONICAL_SYNTHETIC_READ_BINDING=
+  proof/canonical-synthetic-read-binding-v1/synthetic-record-binding.yaml
+SYNTHETIC_CONTACT_BOUND=YES
+SYNTHETIC_OPPORTUNITY_BOUND=YES
+RELATIONSHIP_VERIFIED=YES
+PRIVATE_ALLOWLIST_COMPLETE=YES
+PRIVATE_EXACT_IDS_PUBLICATION=NO
+
+ACTIVE_CRM_NORMALIZATION=
+  docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md
+CRM_ENVIRONMENT_CLASS=ACTIVE_CANONICAL_BUSINESS_CRM
+ISOLATED_HACKATHON_TEST_LOCATION=NO
+LIVE_LOCATION_SYNTHETIC_ONLY_EXCEPTION=YES
+
+PRIOR_EXACT_CONTACT_LIVE_READ_PROOF=
+  proof/nw008/nw-008-at8-ghl-rest-exact-synthetic-contact-live-read-execution-002.md
+PRIOR_EXACT_CONTACT_GET_EXECUTED=YES
+PRIOR_CONTACT_ID_MATCH=YES
+PRIOR_LOCATION_ID_MATCH=YES
+PRIOR_PRIVATE_BINDING_PUBLISHED=NO
+
+PRIOR_PRIVATE_BINDING_DELIVERY_PROOF=
+  proof/nw008/at-8w10/nw008-at8w10-ghl-one-shot-live-note-execution-proof-001.md
+A0_PRIVATE_BINDING_SOURCE_READINESS=PASS
+A1_PRIVATE_BINDING_DELIVERY=PASS
+PRIVATE_CONTACT_ID_PUBLISHED=NO
+PRIVATE_LOCATION_ID_PUBLISHED=NO
+```
+
+Opportunity readback is **not** included. The canonical binding records a
+synthetic opportunity, but this R3 unit is contact-only connectivity/readback
+through the NOTE_PATH production composition. Stage-path opportunity GET is
+outside this grant.
+
+```text
+GET_OPPORTUNITY_INCLUDED=NO
+GET_OPPORTUNITY_ATTEMPTS_MAX=0
+STAGE_PATH_AUTHORIZED=NO
+```
+
+R2 in-process `synthetic-` prefixed test capability values are **not** live
+HighLevel identifiers and are forbidden as R3 HTTP targets.
+
+```text
+R2_SYNTHETIC_PREFIX_TEST_CAPABILITY_AUTHORIZED_AS_R3_HTTP_TARGET=NO
+R3_VERIFIED_CAPABILITY_SOURCE=
+  ROOT_OWNED_PRIVATE_ALLOWLIST_BINDING_DELIVERY
+R3_HTTP_TARGET_CLASS=
+  PRIVATE_ALLOWLIST_EXACT_SYNTHETIC_CONTACT_AND_CANONICAL_LOCATION
+```
+
+The execution consumer must load the exact private allowlist location id and
+contact id through the existing root-owned private-binding delivery surface.
+It must fail closed if that binding is missing, incomplete, not synthetic, not
+allowlisted, or cannot be loaded without publishing values into the public tree.
+
+## 5. Frozen transport boundaries
+
+```text
+NO_SEARCH=YES
+NO_LIST=YES
+NO_PAGINATION=YES
+NO_RETRY=YES
+NO_RAW_REST=YES
+NO_ALTERNATE_OPERATION=YES
+NO_AUTOMATIC_CLEANUP=YES
+NO_COMPENSATING_MUTATION=YES
+
+SEARCH_CALLS_MAX=0
+LIST_CALLS_MAX=0
+PAGINATION_CALLS_MAX=0
+RETRY_MAX=0
+```
+
+Forbidden operations include, without limitation:
+
+```text
+FORBIDDEN_OPERATIONS=
+  search-contacts-advanced|
+  search-opportunity|
+  search-opportunities-advanced|
+  get-opportunity|
+  get-pipelines|
+  get-note|
+  create-note|
+  update-opportunity|
+  update-opportunity-status|
+  any list or pagination call|
+  any raw REST path other than the one authorized GET|
+  any retry of the authorized GET|
+  any second HighLevel operation after the first dispatch attempt
+```
+
+## 6. Proposed allowed operations
+
+```text
+ALLOWED_OPERATIONS=
+  get-contact
+
+ALLOWED_OPERATION_1=get-contact
+GET_CONTACT_ATTEMPTS_MAX=1
+GET_OPPORTUNITY_ATTEMPTS_MAX=0
+```
+
+Exact authorized provider operation:
+
+```text
+OPERATION_ID=get-contact
+METHOD=GET
+PATH=/contacts/{private_binding.contact_id}
+CONTRACT=
+  contracts/highlevel_rest_adapter_v1.yaml#get_contact
+PURPOSE=verify_bound_contact
+MUTATION=NO
+QUERY_ALLOWED=NO
+IMPLEMENTATION_SLICE=NOTE_PATH
+
+EXISTING_SEMANTIC_SURFACE=
+  note_path.get_bound_contact
+DISPATCH_SHAPE=
+  adapter._transport.dispatch("GET", "/contacts/{adapter._contact_id}")
+CONSUME_ONLY=
+  contact.id|
+  contact.locationId
+FULL_RESPONSE_LOG_OR_PERSIST=FORBIDDEN
+```
+
+No other provider operation is permitted.
+
+Current assembled production transport evidence, recorded so the consumer cannot
+reinterpret this grant as source-change authority:
+
+```text
+R3_REQUIRED_TRANSPORT_CAPABILITY=
+  EXACT_BOUND_CONTACT_GET
+R3_REQUIRED_TRANSPORT_ROUTE=
+  GET /contacts/{bound_contact_id}
+
+PRODUCTION_BOUNDED_TRANSPORT_CURRENTLY_PERMITS=
+  POST /contacts/{bound_contact_id}/notes|
+  GET /contacts/{bound_contact_id}/notes/{same_run_note_id}
+
+PRODUCTION_BOUNDED_TRANSPORT_CURRENTLY_PERMITS_GET_CONTACT=NO
+CURRENT_PRODUCTION_BOUNDED_TRANSPORT_GET_CONTACT_READY=NO
+NOTE_PATH_PUBLIC_GET_CONTACT_METHOD_PRESENT=NO
+GET_BOUND_CONTACT_EXISTING_INTERNAL_SURFACE=YES
+CURRENT_PRODUCTION_NOTE_PATH_GET_BOUND_CONTACT_SEMANTIC_PRESENT=YES
+CURRENT_GET_BOUND_CONTACT_SUCCESS_PATH_REACHABLE=NO
+ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_THIS_GRANT=NO
+ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_PR212=NO
+
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
+
+R3_ACTIVATION_PREREQUISITE=
+  SEPARATELY_AUTHORIZED_IMPLEMENTED_REVIEWED_MERGED_AND_RECONCILED
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY
+```
+
+The existing `get_bound_contact` semantic attempts the required exact GET, but
+the assembled `BoundedLiveNoteTransport` rejects that route. Therefore the
+success path is not currently reachable and R3 execution is not authorizable
+now. PR #212 does not authorize adding a route, widening the transport, creating
+a public adapter method, or otherwise modifying runtime code.
+
+R3 must remain blocked until a separate implementation lane establishes the
+exact capability durably and an independent reconciliation confirms it on
+`main`. Merge of this authorization artifact by itself does not satisfy that
+activation prerequisite.
+
+### 6.1 Required follow-on transport-capability lane
+
+PR #212 records this future lane only and does not implement it:
+
+```text
+NEXT_REQUIRED_UNIT=
+  NW008_AT8W30_R3_EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_AUTHORIZATION_001
+
+NEXT_REQUIRED_UNIT_PURPOSE=
+  AUTHORIZE_MINIMUM_REPO_LOCAL_IMPLEMENTATION_FOR_EXISTING_GET_BOUND_CONTACT
+  SEMANTIC_TO_DISPATCH_EXACT_GET_THROUGH_BOUNDED_PRODUCTION_TRANSPORT
+
+FUTURE_EXACT_ROUTE=
+  GET /contacts/{bound_contact_id}
+
+IMPLEMENT_IN_PR212=NO
+LIVE_HIGHLEVEL_EXECUTION_IN_FUTURE_IMPLEMENTATION_LANE=NO
+```
+
+The separately governed implementation must preserve:
+
+```text
+FUTURE_IMPLEMENTATION_BOUNDARIES=
+  BOUND_CONTACT_ONLY|
+  GET_ONLY|
+  ZERO_MUTATION|
+  NO_SEARCH|
+  NO_LIST|
+  NO_PAGINATION|
+  NO_ARBITRARY_OR_RAW_REST|
+  NO_CALLER_ROUTE_OVERRIDE|
+  NO_ALTERNATE_CONTACT|
+  DETERMINISTIC_RESPONSE_MINIMIZATION_TO_ID_AND_LOCATION_ID|
+  EXISTING_NOTE_ROUTES_UNCHANGED|
+  OFFLINE_DETERMINISTIC_TESTS_BEFORE_LIVE_R3|
+  NO_LIVE_HIGHLEVEL_EXECUTION_IN_IMPLEMENTATION_LANE
+```
+
+## 7. Runtime dependencies — reuse the validated R2 path
+
+```text
+USE_VALIDATED_R2_PRODUCTION_COMPOSITION_PATH=YES
+REDESIGN_RUNTIME_IDENTITY=NO
+REDESIGN_C4_PROVIDER=NO
+REDESIGN_B2_CREDENTIAL_PROVIDER=NO
+REDESIGN_SECRET_MANAGER_CLIENT_OWNERSHIP=NO
+REDESIGN_EXECUTION_STORE_CONFIGURATION=NO
+REDESIGN_COMPOSITION_ROOT_OWNERSHIP=NO
+REDESIGN_STORE_LIFECYCLE=NO
+
+PR210_REPAIR_BOUND=YES
+R2_COMPOSITION_VALIDATION_BOUND=YES
+ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_THIS_GRANT=NO
+```
+
+Required production assembly, once only, before the authorized GET:
+
+```text
+PRODUCTION_RUNTIME_ENTRYPOINT=
+  assemble_bound_live_note_runtime
+PRODUCTION_RUNTIME_ENTRYPOINT_MODULE=
+  src/integrations/ghl/highlevel_rest/live_note_runtime.py
+ASSEMBLE_BOUND_LIVE_NOTE_RUNTIME_CALLS_MAX=1
+SECOND_ASSEMBLY_ALLOWED=NO
+PRODUCTION_RUNTIME_ASSEMBLY_MAX=1
+NOTE_PATH_ADAPTER_ASSEMBLIES_MAX=1
+HIGHLEVEL_HTTP_CLIENT_INSTANTIATIONS_MAX=1
+HIGHLEVEL_TRANSPORT_INSTANTIATIONS_MAX=1
+```
+
+Identity, secret, and store targets remain the sealed R2 values:
+
+```text
+TARGET_RUNTIME_SERVICE_ACCOUNT=
+  mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+SOURCE_ADC_ROLE=
+  IMPERSONATION_SOURCE_ONLY
+IDENTITY_MECHANISM=
+  COMPOSITION_ROOT_OWNED_SOURCE_ADC_PLUS_SHORT_LIVED_TARGET_RUNTIME_IMPERSONATION
+
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS_MAX=1
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS_MAX=1
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS_MAX=1
+SECRET_MANAGER_CLIENT_INSTANTIATIONS_MAX=1
+C4_AND_B2_USE_SAME_SECRET_MANAGER_CLIENT=YES
+
+EXACT_C4_RESOURCE=
+  projects/ai-rolodex-to-crm/secrets/MG_GUIDE_NW008_COMMITMENT_KEY/versions/1
+EXACT_B2_RESOURCE=
+  projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1
+C4_SECRET_READ_ATTEMPTS_MAX=1
+B2_SECRET_READ_ATTEMPTS_MAX=1
+OTHER_SECRET_READ_ATTEMPTS_MAX=0
+
+EXACT_DB_PATH=
+  /Users/achandler/Library/Application Support/mg-guide/nw008/at1-execution-store.sqlite3
+ROOT_OWNED_DB_ENV_KEY=
+  MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH
+EXPECTED_DESIGNATED_DB_STATE=PRESENT
+DESIGNATED_SQLITE_CREATE_MAX=0
+AT1_EXECUTION_STORE_CONSTRUCTIONS_MAX=1
+AT1_EXECUTION_STORE_EXISTING_OPEN_MAX=1
+EXPECTED_SCHEMA_VERSION=1
+
+STANDING_CREDENTIAL_OR_TOKEN_PERSISTENCE=FORBIDDEN
+TOKEN_REUSE_AFTER_R3=FORBIDDEN
+SECOND_TOKEN_MINT_OR_REFRESH=FORBIDDEN
+```
+
+Store close ownership remains the durable R2 model:
+
+```text
+FAILURE_BEFORE_STORE_CONSTRUCTION=
+  STORE_CLOSE_EVENTS_REQUIRED=0
+FAILURE_AFTER_STORE_CONSTRUCTION_BEFORE_ADAPTER_RETURN=
+  STORE_CLOSE_OWNER=COMPOSITION_ROOT
+  STORE_CLOSE_EVENTS_REQUIRED=1
+SUCCESSFUL_ASSEMBLY=
+  STORE_OWNERSHIP_TRANSFERRED_TO_RETURNED_OBJECT_GRAPH=YES
+  R3_CONSUMER_FINAL_STORE_CLOSE_REQUIRED=YES
+  STORE_CLOSE_EVENTS_REQUIRED=1
+TOTAL_STORE_CONNECTION_CLOSE_EVENTS_REQUIRED=1
+NEW_STORE_CLOSE_API_IMPLEMENTATION_AUTHORIZED=NO
+```
+
+Preflight/assembly failure before any HighLevel request does **not** consume
+R3 network authority. It also does not authorize a second assembly, retry, or
+source change under this grant.
+
+```text
+PRE_NETWORK_ASSEMBLY_FAILURE_CONSUMES_R3_NETWORK_AUTHORITY=NO
+PRE_NETWORK_ASSEMBLY_FAILURE_PERMITS_RETRY=NO
+PRE_NETWORK_ASSEMBLY_FAILURE_PERMITS_SECOND_ASSEMBLY=NO
+```
+
+## 8. Network budget
+
+```text
+HIGHLEVEL_TOTAL_CALLS_MAX=1
+HTTP_REQUEST_DISPATCHES_MAX=1
+GET_CONTACT_ATTEMPTS_MAX=1
+GET_OPPORTUNITY_ATTEMPTS_MAX=0
+SEARCH_CALLS_MAX=0
+LIST_CALLS_MAX=0
+PAGINATION_CALLS_MAX=0
+RETRY_MAX=0
+NOTE_WRITE_ATTEMPTS_MAX=0
+STAGE_WRITE_ATTEMPTS_MAX=0
+CRM_MUTATIONS_MAX=0
+NOTE_WRITES_MAX=0
+STAGE_TRANSITIONS_MAX=0
+EXECUTION_CLAIMS_MAX=0
+ATTEMPT_RECORDS_MAX=0
+PROTOCOL_LEDGER_EVENT_WRITES_MAX=0
+BUSINESS_LEDGER_EVENT_WRITES_MAX=0
+```
+
+The single authorized HighLevel/HTTP increment occurs at the first
+`GET /contacts/{private_binding.contact_id}` dispatch attempt, whether that
+attempt is accepted by the transport or rejected before the socket is used.
+Assembly construction of the HTTP client and bounded transport does not count
+as a HighLevel call.
+
+Forbidden business methods include, without limitation:
+
+```text
+FORBIDDEN_METHOD_EXAMPLES=
+  adapter.create_meeting_note|
+  adapter.verify_meeting_note|
+  transport.dispatch POST /contacts/{id}/notes|
+  transport.dispatch GET /contacts/{id}/notes/{noteId}|
+  acquire_claim|
+  record_attempt|
+  mark_dispatched|
+  capture_response|
+  append_protocol_call
+```
+
+## 9. Authorization semantics and consumption trigger
+
+```text
+AUTHORIZED_CONSUMER_UNIT=
+  NW008_AT8W30_R3_HIGHLEVEL_READONLY_CONNECTIVITY_EXECUTION_001
+AUTHORIZED_CONSUMER_CLASS=execution_proof
+
+ONE_SHOT=YES
+REUSABLE=NO
+TRANSFERABLE=NO
+FAILURE_RESTORES_AUTHORITY=NO
+AUTHORIZATION_CONSUMPTION_MODE=ONE_SHOT
+AUTHORIZATION_CONSUMPTION_RECORD_REQUIRED=YES
+AUTHORIZATION_ARTIFACT_MUTABLE_BY_CONSUMER=NO
+
+AUTHORIZATION_STATE_BEFORE_EXECUTION=
+  AVAILABLE_IF_MERGED_AND_VERIFIED
+
+AUTHORIZATION_CONSUMPTION_TRIGGER=
+  FIRST_AUTHORIZED_HIGHLEVEL_HTTP_REQUEST_DISPATCH_ATTEMPT
+
+AUTHORIZATION_STATE_ON_FIRST_AUTHORIZED_HIGHLEVEL_HTTP_REQUEST_DISPATCH_ATTEMPT=
+  CONSUMED
+AUTHORIZATION_STATE_AFTER_FIRST_AUTHORIZED_HIGHLEVEL_HTTP_REQUEST_DISPATCH_ATTEMPT=
+  CONSUMED
+```
+
+The R3 network grant is consumed when the future execution consumer begins the
+first authorized HighLevel HTTP request dispatch attempt
+(`GET /contacts/{private_binding.contact_id}`), regardless of success or
+failure, including transport rejection before a socket is opened.
+
+Preflight or assembly failure before any HighLevel request dispatch attempt
+does not consume R3 network authority.
+
+```text
+IF_FAILURE_BEFORE_FIRST_HIGHLEVEL_DISPATCH_ATTEMPT=
+  AUTHORIZATION_CONSUMED=NO
+  R3_NETWORK_AUTHORITY_REMAINS_UNCONSUMED=YES
+  RETRY_UNDER_THIS_GRANT=NO
+  SECOND_ASSEMBLY_UNDER_THIS_GRANT=NO
+
+IF_FIRST_HIGHLEVEL_DISPATCH_ATTEMPT_BEGINS=
+  AUTHORIZATION_STATE=CONSUMED
+  FAILURE_RESTORES_AUTHORITY=NO
+  RETRY=FORBIDDEN
+```
+
+No retry. No second GET. No alternate operation after a failed GET.
+
+Before the first HighLevel dispatch attempt, the execution consumer must
+independently verify:
+
+```text
+PRE_EXECUTION_REQUIRED=
+  EXACT_AUTHORIZATION_001_ARTIFACT_MERGED_TO_MAIN|
+  EXACT_AUTHORIZATION_001_HEAD_ANCESTOR_OF_ORIGIN_MAIN|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_SEPARATELY_AUTHORIZED|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_IMPLEMENTED_AND_REVIEWED|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_HUMAN_MERGED_TO_MAIN|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_INDEPENDENTLY_RECONCILED|
+  PR211_MERGED_AND_REVIEWED_HEAD_ANCESTOR_OF_ORIGIN_MAIN|
+  R2_EXECUTION_PROOF_PRESENT_ON_ORIGIN_MAIN|
+  R2_EXECUTION_PROOF_BLOB_MATCH|
+  R2_RESULT_PASS|
+  R2_GATE_COMPLETE_YES|
+  AUTHORIZATION_PR208_CONSUMED_AND_NOT_REUSABLE|
+  PR210_REPAIR_BOUND|
+  PRIVATE_ALLOWLIST_EXACT_LOCATION_AND_CONTACT_LOADABLE_WITHOUT_PUBLICATION|
+  DESIGNATED_SQLITE_PRESENT|
+  NO_SOURCE_CHANGE_UNDER_THIS_GRANT
+```
+
+## 10. Required readback validation
+
+For the one authorized `get-contact`:
+
+```text
+GET_CONTACT_RESPONSE_RECEIVED_SUCCESSFULLY_REQUIRED=YES
+RETURNED_CONTACT_ID_EQUALS_AUTHORIZED_R3_CONTACT_ID_REQUIRED=YES
+BOUND_LOCATION_IDENTITY_CONSISTENT_WITH_AUTHORIZED_TARGET_REQUIRED=YES
+UNRELATED_OR_PRIVATE_CONTACT_PAYLOAD_PERSISTED_IN_PROOF=FORBIDDEN
+FULL_CRM_PAYLOAD_PUBLISHED=FORBIDDEN
+```
+
+Permitted proof fields from the contact response are only:
+
+```text
+PERMITTED_CONTACT_READBACK_PROOF_FIELDS=
+  GET_CONTACT_ATTEMPTED|
+  GET_CONTACT_TRANSPORT_ACCEPTED_OR_REJECTED|
+  HTTP_STATUS_CLASS_IF_A_RESPONSE_WAS_RECEIVED|
+  CONTACT_ID_MATCH|
+  LOCATION_ID_MATCH|
+  PAYLOAD_MINIMIZED_TO_ID_AND_LOCATION_ID|
+  FULL_PAYLOAD_PUBLISHED=NO
+```
+
+The raw contact id and location id values must not appear in public proof.
+Proof may record match booleans only.
+
+`get-opportunity` is not included. No opportunity payload, stage identifier, or
+contact-opportunity relationship field may be fetched or published under this
+grant.
+
+## 11. Fail-closed behavior
+
+Any unexpected operation, retry requirement, search/list requirement,
+identifier mismatch, authorization failure, payload mismatch, HTTP failure,
+transport rejection, or composition/runtime defect must stop the run.
+
+```text
+FAIL_CLOSED=YES
+RETRY_ON_FAILURE=NO
+SECOND_ASSEMBLY_ON_FAILURE=NO
+SECOND_HIGHLEVEL_CALL_ON_FAILURE=NO
+SWITCH_API_OPERATION_ON_FAILURE=NO
+SEARCH_ON_FAILURE=NO
+LIST_ON_FAILURE=NO
+PAGINATE_ON_FAILURE=NO
+MUTATE_ON_FAILURE=NO
+CREATE_NOTE_ON_FAILURE=NO
+UPDATE_OPPORTUNITY_STAGE_ON_FAILURE=NO
+REPAIR_IAM_ON_FAILURE=NO
+ROTATE_SECRETS_ON_FAILURE=NO
+MODIFY_RUNTIME_CODE_UNDER_CONSUMED_R3_GRANT=NO
+SOURCE_CODE_CHANGE_ON_FAILURE=NO
+WIDEN_BOUNDED_TRANSPORT_ON_FAILURE=NO
+FALL_BACK_TO_R2_SYNTHETIC_PREFIX_CAPABILITY_ON_FAILURE=NO
+FALL_BACK_TO_PR208_ON_FAILURE=NO
+ESCALATE_TO_R4_ON_FAILURE=NO
+```
+
+Do not:
+
+- retry;
+- switch API operation;
+- search;
+- list;
+- paginate;
+- mutate;
+- create notes;
+- update opportunity stage;
+- repair IAM;
+- rotate secrets;
+- modify runtime code under the consumed R3 grant.
+
+## 12. R3 does not authorize R4 or mutation
+
+```text
+R3_SUCCESS_AUTHORIZES_R4=NO
+R3_SUCCESS_AUTHORIZES_NOTE_WRITE=NO
+R3_SUCCESS_AUTHORIZES_STAGE_TRANSITION=NO
+R3_SUCCESS_AUTHORIZES_CRM_MUTATION=NO
+R3_SUCCESS_AUTHORIZES_BUSINESS_EXECUTION=NO
+R3_SUCCESS_AUTHORIZES_DEPLOYMENT=NO
+R3_SUCCESS_AUTHORIZES_EXECUTION_CLAIMS=NO
+R3_SUCCESS_AUTHORIZES_ATTEMPT_RECORDS=NO
+R3_SUCCESS_AUTHORIZES_PRODUCTION_RUNTIME_START=NO
+R3_SUCCESS_AUTHORIZES_IAM_MUTATION=NO
+R3_SUCCESS_AUTHORIZES_STANDING_TOKEN=NO
+R3_SUCCESS_AUTHORIZES_SECOND_HIGHLEVEL_CALL=NO
+```
+
+Every later mutation or business-execution gate requires a separate, explicit
+human-governed authorization.
+
+## 13. Payload, token, and identity privacy
+
+```text
+PAYLOAD_PROCESS_MEMORY_ONLY=YES
+PAYLOAD_MINIMUM_LIFETIME_REQUIRED=YES
+PAYLOAD_PUBLISHED_ALLOWED=NO
+PAYLOAD_PERSISTED_ALLOWED=NO
+PAYLOAD_HASHING_FOR_PROOF_ALLOWED=NO
+TOKEN_LOGGING_ALLOWED=NO
+TOKEN_PERSISTENCE_ALLOWED=NO
+TOKEN_FRAGMENT_CAPTURE_ALLOWED=NO
+SOURCE_PRINCIPAL_PUBLICATION_ALLOWED=NO
+EXACT_RECORD_ID_PUBLICATION_ALLOWED=NO
+```
+
+Proof may reference the opaque source-principal attestation ref
+`NW008-ID-ATT-18bfa765-fdbe-4cf7-8b35-9f8518a4d0af` and must not publish the
+operator email, PIT/token material, or exact CRM identifiers.
+
+## 14. PR scope
+
+This authorization PR may change only:
+
+```text
+AUTHORIZATION_PR_WRITABLE_PATHS=
+  governance/authorizations/nw008-at8w30-r3-highlevel-readonly-connectivity-authorization-001.md
+```
+
+Do not modify:
+
+```text
+FORBIDDEN_PR_PATHS=
+  src/**|
+  tests/**|
+  contracts/**|
+  proof/**|
+  .github/workflows/**|
+  deploy/**|
+  infra/**|
+  existing authorizations
+```
+
+Do not execute R3 while preparing, reviewing, or merging this PR.
+
+## 15. Authoring pre-flight and zero-effect attestation
+
+```text
+PREFLIGHT_PWD=
+  /Users/achandler/Google_DevPost/mg-guide-agentic-sales-workspace
+PREFLIGHT_BRANCH=
+  auth/nw008-at8w30-r3-highlevel-readonly-connectivity-authorization-001
+PREFLIGHT_BRANCH_IS_MAIN=NO
+PREFLIGHT_BASE_SHA=
+  bac5b9d01b999ed29ac8142e9dda667055349dca
+PREFLIGHT_UNRELATED_WORKTREE_CHANGES=
+  proof/nw008/at-10/** excluded and unstaged only
+
+R2_PR211_DURABLE=YES
+R2_GATE_COMPLETE=YES
+R2_RESULT=PASS
+AUTHORIZATION_PR208_STATE=CONSUMED
+AUTHORIZATION_PR208_REUSABLE=NO
+
+R3_LOCATION_ID_RESOLVED=YES
+R3_CONTACT_ID_RESOLVED=YES
+R3_OPPORTUNITY_ID_RESOLVED=NOT_INCLUDED
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+CURRENT_GET_BOUND_CONTACT_SUCCESS_PATH_REACHABLE=NO
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_AUTHORIZATION_READY=NO
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
+
+ARTIFACTS_CREATED_IN_THIS_UNIT=1
+REPOSITORY_PATHS_MODIFIED_IN_THIS_UNIT=1
+RUNTIME_SOURCE_CHANGES_IN_THIS_UNIT=0
+
+EXECUTION_PERFORMED=NO
+R3_EXECUTION_PERFORMED=NO
+HIGHLEVEL_CALLS=0
+HTTP_REQUEST_DISPATCHES=0
+CRM_MUTATIONS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS=0
+SECRET_PAYLOAD_READS=0
+SQLITE_OPENED=NO
+SQLITE_CREATED=NO
+PRODUCTION_RUNTIME_ASSEMBLY=0
+IAM_MUTATIONS=0
+DEPLOYMENTS=0
+PRODUCTION_RUNTIME_STARTS=0
+```
+
+Authoring performed source-only inspection of main-branch authorization, proof,
+contract, and implementation files. That observation is not execution, does not
+open SQLite, does not read secrets, does not assemble runtime, does not call
+HighLevel, and does not consume this authorization.
+
+## 16. Review disposition
+
+```text
+R3_HIGHLEVEL_READONLY_CONNECTIVITY_DESIGNABLE=YES
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+CURRENT_GET_BOUND_CONTACT_SUCCESS_PATH_REACHABLE=NO
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_AUTHORIZATION_READY=NO
+HUMAN_REVIEW_REQUIRED=YES
+HUMAN_MERGE_REQUIRED=YES
+AUTONOMOUS_MERGE_AUTHORIZED=NO
+R3_EXECUTION_PERFORMED=NO
+
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
+R3_ACTIVATION_PREREQUISITE=
+  SEPARATELY_AUTHORIZED_IMPLEMENTED_REVIEWED_MERGED_AND_RECONCILED
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY
+
+NEXT_REQUIRED_UNIT=
+  NW008_AT8W30_R3_EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_AUTHORIZATION_001
+
+ALLOWED_OPERATIONS=get-contact
+HIGHLEVEL_TOTAL_CALLS_MAX=1
+CRM_MUTATIONS_MAX=0
+
+AUTHORIZATION_CONSUMPTION_TRIGGER=
+  FIRST_AUTHORIZED_HIGHLEVEL_HTTP_REQUEST_DISPATCH_ATTEMPT
+
+ONE_SHOT=YES
+REUSABLE=NO
+TRANSFERABLE=NO
+FAILURE_RESTORES_AUTHORITY=NO
+
+R3_SUCCESS_AUTHORIZES_R4=NO
+R3_SUCCESS_AUTHORIZES_NOTE_WRITE=NO
+R3_SUCCESS_AUTHORIZES_STAGE_TRANSITION=NO
+R3_SUCCESS_AUTHORIZES_CRM_MUTATION=NO
+R3_SUCCESS_AUTHORIZES_BUSINESS_EXECUTION=NO
+R3_SUCCESS_AUTHORIZES_DEPLOYMENT=NO
+
+NEXT=
+  Return amended PR212 exact head to ChatGPT for fresh governance review.
+```
