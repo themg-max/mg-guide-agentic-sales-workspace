@@ -21,9 +21,16 @@ BASE_SHA=
 
 STATUS_AT_AUTHORING=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
 AUTHORIZATION_STATE_AT_AUTHORING=PROPOSED_NOT_EFFECTIVE
-GRANT_ACTIVATION=HUMAN_MERGE_TO_MAIN
+GRANT_ACTIVATION=
+  HUMAN_MERGE_TO_MAIN_PLUS_DURABLE_RECONCILED_EXACT_BOUND_CONTACT_GET_CAPABILITY
 AUTHORIZATION_EFFECTIVENESS_SOURCE=REPO_STATE_NOT_MUTABLE_FIELD
 SELF_ACTIVATION=FORBIDDEN
+
+CURRENT_REVIEWED_HEAD=
+  f765f43c3668c513d4cb16c3a5e9818d8b9eeff6
+CURRENT_REVIEW_DISPOSITION=CHANGE_REQUEST
+CURRENT_REVIEW_REASON=
+  AUTHORIZED_R3_GET_CONTACT_ROUTE_NOT_SUPPORTED_BY_CURRENT_PRODUCTION_TRANSPORT
 ```
 
 This artifact is planning-only. Creating, reviewing, or merging it does not
@@ -33,8 +40,9 @@ runtime, instantiate or dispatch HighLevel HTTP, call HighLevel, mutate CRM or
 IAM, deploy, or execute R3.
 
 The bounded grant becomes usable only after human review and merge places this
-exact artifact on `main`, followed by independent verification by the sole
-authorized execution consumer.
+exact artifact on `main`, a separate human-merged exact bound-contact GET
+production transport capability is durable and independently reconciled, and
+the sole authorized execution consumer verifies both prerequisites.
 
 ```text
 THIS_ARTIFACT_EXECUTES_R3=NO
@@ -63,9 +71,12 @@ AUTHORIZATION_CONSUMED_IN_THIS_UNIT=NO
 
 ## 2. Purpose and explicit non-authority
 
-This artifact conditionally authorizes exactly one later bounded R3 execution to
-validate read-only HighLevel connectivity and exact-ID readback through the
-already validated R2 production composition path.
+This artifact completes the design for a conditional authorization of exactly
+one later bounded R3 execution to validate read-only HighLevel connectivity and
+exact-ID readback through the already validated R2 production composition path.
+R3 is not executable under this artifact until the transport activation
+prerequisite in section 6 is separately authorized, implemented, reviewed,
+human-merged, and reconciled.
 
 The future execution consumer may establish only whether:
 
@@ -87,6 +98,7 @@ PURPOSE=
   ONE_BOUNDED_READONLY_HIGHLEVEL_CONNECTIVITY_AND_EXACT_CONTACT_READBACK
 
 HIGHLEVEL_READONLY_GET_CONTACT_AUTHORIZED=YES_ONCE_ONLY
+HIGHLEVEL_READONLY_GET_CONTACT_AUTHORITY_CONDITIONAL=YES
 HIGHLEVEL_GET_OPPORTUNITY_AUTHORIZED=NO
 HIGHLEVEL_SEARCH_AUTHORIZED=NO
 HIGHLEVEL_LIST_AUTHORIZED=NO
@@ -110,6 +122,11 @@ DB_RECREATE_AUTHORIZED=NO
 DB_REPAIR_AUTHORIZED=NO
 PRODUCTION_RUNTIME_START_AUTHORIZED=NO
 R4_AUTHORIZED=NO
+
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
 ```
 
 A successful R3 read-only connectivity validation proves only that the already
@@ -358,22 +375,82 @@ Current assembled production transport evidence, recorded so the consumer cannot
 reinterpret this grant as source-change authority:
 
 ```text
+R3_REQUIRED_TRANSPORT_CAPABILITY=
+  EXACT_BOUND_CONTACT_GET
+R3_REQUIRED_TRANSPORT_ROUTE=
+  GET /contacts/{bound_contact_id}
+
 PRODUCTION_BOUNDED_TRANSPORT_CURRENTLY_PERMITS=
   POST /contacts/{bound_contact_id}/notes|
   GET /contacts/{bound_contact_id}/notes/{same_run_note_id}
 
 PRODUCTION_BOUNDED_TRANSPORT_CURRENTLY_PERMITS_GET_CONTACT=NO
+CURRENT_PRODUCTION_BOUNDED_TRANSPORT_GET_CONTACT_READY=NO
 NOTE_PATH_PUBLIC_GET_CONTACT_METHOD_PRESENT=NO
 GET_BOUND_CONTACT_EXISTING_INTERNAL_SURFACE=YES
+CURRENT_PRODUCTION_NOTE_PATH_GET_BOUND_CONTACT_SEMANTIC_PRESENT=YES
+CURRENT_GET_BOUND_CONTACT_SUCCESS_PATH_REACHABLE=NO
 ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_THIS_GRANT=NO
+ADDITIONAL_SOURCE_CHANGE_AUTHORIZED_BY_PR212=NO
+
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
+
+R3_ACTIVATION_PREREQUISITE=
+  SEPARATELY_AUTHORIZED_IMPLEMENTED_REVIEWED_MERGED_AND_RECONCILED
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY
 ```
 
-The consumer may use only an already-existing get-contact dispatch surface
-reachable from the assembled production object graph. If the assembled
-`BoundedLiveNoteTransport` rejects `GET /contacts/{contact_id}`, the run must
-fail closed. This grant does not authorize adding a route, widening the
-transport, creating a public adapter method, or otherwise modifying runtime
-code.
+The existing `get_bound_contact` semantic attempts the required exact GET, but
+the assembled `BoundedLiveNoteTransport` rejects that route. Therefore the
+success path is not currently reachable and R3 execution is not authorizable
+now. PR #212 does not authorize adding a route, widening the transport, creating
+a public adapter method, or otherwise modifying runtime code.
+
+R3 must remain blocked until a separate implementation lane establishes the
+exact capability durably and an independent reconciliation confirms it on
+`main`. Merge of this authorization artifact by itself does not satisfy that
+activation prerequisite.
+
+### 6.1 Required follow-on transport-capability lane
+
+PR #212 records this future lane only and does not implement it:
+
+```text
+NEXT_REQUIRED_UNIT=
+  NW008_AT8W30_R3_EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_AUTHORIZATION_001
+
+NEXT_REQUIRED_UNIT_PURPOSE=
+  AUTHORIZE_MINIMUM_REPO_LOCAL_IMPLEMENTATION_FOR_EXISTING_GET_BOUND_CONTACT
+  SEMANTIC_TO_DISPATCH_EXACT_GET_THROUGH_BOUNDED_PRODUCTION_TRANSPORT
+
+FUTURE_EXACT_ROUTE=
+  GET /contacts/{bound_contact_id}
+
+IMPLEMENT_IN_PR212=NO
+LIVE_HIGHLEVEL_EXECUTION_IN_FUTURE_IMPLEMENTATION_LANE=NO
+```
+
+The separately governed implementation must preserve:
+
+```text
+FUTURE_IMPLEMENTATION_BOUNDARIES=
+  BOUND_CONTACT_ONLY|
+  GET_ONLY|
+  ZERO_MUTATION|
+  NO_SEARCH|
+  NO_LIST|
+  NO_PAGINATION|
+  NO_ARBITRARY_OR_RAW_REST|
+  NO_CALLER_ROUTE_OVERRIDE|
+  NO_ALTERNATE_CONTACT|
+  DETERMINISTIC_RESPONSE_MINIMIZATION_TO_ID_AND_LOCATION_ID|
+  EXISTING_NOTE_ROUTES_UNCHANGED|
+  OFFLINE_DETERMINISTIC_TESTS_BEFORE_LIVE_R3|
+  NO_LIVE_HIGHLEVEL_EXECUTION_IN_IMPLEMENTATION_LANE
+```
 
 ## 7. Runtime dependencies — reuse the validated R2 path
 
@@ -572,6 +649,10 @@ independently verify:
 PRE_EXECUTION_REQUIRED=
   EXACT_AUTHORIZATION_001_ARTIFACT_MERGED_TO_MAIN|
   EXACT_AUTHORIZATION_001_HEAD_ANCESTOR_OF_ORIGIN_MAIN|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_SEPARATELY_AUTHORIZED|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_IMPLEMENTED_AND_REVIEWED|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_HUMAN_MERGED_TO_MAIN|
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY_INDEPENDENTLY_RECONCILED|
   PR211_MERGED_AND_REVIEWED_HEAD_ANCESTOR_OF_ORIGIN_MAIN|
   R2_EXECUTION_PROOF_PRESENT_ON_ORIGIN_MAIN|
   R2_EXECUTION_PROOF_BLOB_MATCH|
@@ -744,7 +825,12 @@ AUTHORIZATION_PR208_REUSABLE=NO
 R3_LOCATION_ID_RESOLVED=YES
 R3_CONTACT_ID_RESOLVED=YES
 R3_OPPORTUNITY_ID_RESOLVED=NOT_INCLUDED
-R3_AUTHORIZATION_READY=YES
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+CURRENT_GET_BOUND_CONTACT_SUCCESS_PATH_REACHABLE=NO
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_AUTHORIZATION_READY=NO
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
 
 ARTIFACTS_CREATED_IN_THIS_UNIT=1
 REPOSITORY_PATHS_MODIFIED_IN_THIS_UNIT=1
@@ -775,11 +861,23 @@ HighLevel, and does not consume this authorization.
 
 ```text
 R3_HIGHLEVEL_READONLY_CONNECTIVITY_DESIGNABLE=YES
-R3_AUTHORIZATION_READY=YES
+R3_AUTHORIZATION_DESIGN_COMPLETE=YES
+CURRENT_GET_BOUND_CONTACT_SUCCESS_PATH_REACHABLE=NO
+R3_EXECUTION_AUTHORIZABLE_NOW=NO
+R3_AUTHORIZATION_READY=NO
 HUMAN_REVIEW_REQUIRED=YES
 HUMAN_MERGE_REQUIRED=YES
 AUTONOMOUS_MERGE_AUTHORIZED=NO
 R3_EXECUTION_PERFORMED=NO
+
+R3_EXECUTION_BLOCKED_ON=
+  EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_NOT_DURABLE
+R3_ACTIVATION_PREREQUISITE=
+  SEPARATELY_AUTHORIZED_IMPLEMENTED_REVIEWED_MERGED_AND_RECONCILED
+  EXACT_BOUND_CONTACT_GET_TRANSPORT_CAPABILITY
+
+NEXT_REQUIRED_UNIT=
+  NW008_AT8W30_R3_EXACT_GET_CONTACT_TRANSPORT_CAPABILITY_AUTHORIZATION_001
 
 ALLOWED_OPERATIONS=get-contact
 HIGHLEVEL_TOTAL_CALLS_MAX=1
@@ -801,6 +899,5 @@ R3_SUCCESS_AUTHORIZES_BUSINESS_EXECUTION=NO
 R3_SUCCESS_AUTHORIZES_DEPLOYMENT=NO
 
 NEXT=
-  Return authorization PR and exact head to ChatGPT for independent
-  governance review.
+  Return amended PR212 exact head to ChatGPT for fresh governance review.
 ```
