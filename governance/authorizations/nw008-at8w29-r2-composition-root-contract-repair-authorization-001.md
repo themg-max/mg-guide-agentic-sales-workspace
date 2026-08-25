@@ -285,17 +285,24 @@ does not permit the implementer to expand scope unilaterally.
 Only these exact existing test files may be modified:
 
 ```text
-tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py
-tests/integrations/ghl/highlevel_rest/test_live_note_credential_provider.py
-tests/integrations/ghl/test_at1_commitment_key_provider.py
-tests/integrations/ghl/highlevel_rest/test_note_path_at1_execution_store.py
+AUTHORIZED_WRITABLE_TEST_PATHS=
+  tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py
+  tests/integrations/ghl/highlevel_rest/test_live_note_credential_provider.py
+  tests/integrations/ghl/test_at1_commitment_key_provider.py
+  tests/integrations/ghl/highlevel_rest/test_note_path_at1_execution_store.py
+
+NEW_TEST_FILE_CREATION_AUTHORIZED=NO
+TEST_PATH_SCOPE_EXPANSION_BY_CONSUMER=FORBIDDEN
+IF_EXISTING_AUTHORIZED_TEST_PATHS_ARE_INSUFFICIENT=
+  STOP_AND_RETURN_FOR_HUMAN_AUTHORIZATION_AMENDMENT
 ```
 
-No blanket `tests/**` authority is granted. A narrowly named new test file is
-permitted only if the existing runtime test file cannot express a required
-contract without materially unrelated coupling. Before creating it, the future
-implementation proof must record the exact reason and path. New test helpers
-must be synthetic and offline.
+No blanket `tests/**` authority is granted. The implementation consumer may not
+create any new test file, rename test authority onto an unspecified path, or
+expand test-path scope. If the exact authorized test paths above are
+insufficient to express a required contract, the consumer must stop and return
+for human authorization amendment. Synthetic offline helpers, if required, may
+exist only inside the exact authorized test paths above.
 
 ### 7.3 Future proof artifact
 
@@ -501,7 +508,58 @@ After the authorization PR is opened and canonical CI is observed, work stops.
 The PR must be returned for independent reviewer disposition. No repair may be
 implemented in this unit.
 
-## 13. Final authority statement
+## 13. One-shot authorization consumption semantics
+
+After human merge activates this grant, consumption is one-shot and irreversible
+for the named consumer only.
+
+```text
+AUTHORIZATION_CONSUMPTION_TRIGGER=
+  FIRST_AUTHORIZED_REPOSITORY_MUTATION_BY_AUTHORIZED_CONSUMER
+
+AUTHORIZATION_STATE_BEFORE_FIRST_AUTHORIZED_MUTATION=AVAILABLE
+AUTHORIZATION_STATE_ON_FIRST_AUTHORIZED_MUTATION=CONSUMED
+AUTHORIZATION_STATE_AFTER_FIRST_AUTHORIZED_MUTATION=CONSUMED
+
+FAILURE_RESTORES_AUTHORITY=NO
+RETRY_DOES_NOT_REACTIVATE_AUTHORITY=YES
+
+AUTHORIZED_CONSUMER_UNIT=
+  NW008_AT8W29_R2_COMPOSITION_ROOT_CONTRACT_REPAIR_IMPLEMENTATION_001
+```
+
+`FIRST_AUTHORIZED_REPOSITORY_MUTATION` means the first create/edit/write
+operation by
+`NW008_AT8W29_R2_COMPOSITION_ROOT_CONTRACT_REPAIR_IMPLEMENTATION_001` against an
+exact human-authorized source, test, or proof path under this grant.
+
+The following actions do not consume the grant:
+
+```text
+PRECONSUMPTION_READ_ONLY_ACTIONS_EXCLUDED_FROM_CONSUMPTION=
+  git fetch
+  git status
+  branch/worktree inspection
+  read-only source inspection
+  read-only diff inspection
+  authorization verification
+  CI inspection
+  filesystem existence/type inspection
+```
+
+If preflight fails before the first authorized mutation:
+
+```text
+AUTHORIZATION_STATE=AVAILABLE
+AUTHORIZATION_CONSUMED=NO
+STOP=YES
+```
+
+A failed implementation attempt after the first authorized mutation does not
+restore authority. Retry does not reactivate a consumed grant. A new or amended
+human-merged authorization is required for any further authorized mutation.
+
+## 14. Final authority statement
 
 This one-shot, non-reusable, non-transferable grant authorizes only the named
 future consumer, only after human merge to `main`, to make the exact bounded
