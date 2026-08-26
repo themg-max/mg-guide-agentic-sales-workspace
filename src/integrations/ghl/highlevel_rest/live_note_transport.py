@@ -1,4 +1,4 @@
-"""Bounded HighLevel v3 live note transport for the two frozen NOTE routes.
+"""Bounded HighLevel v3 transport for exact contact and frozen NOTE routes.
 
 This module is injectable into NotePathAdapter through the existing
 ``dispatch(method, path, body=None)`` seam. It does not alter NOTE_PATH,
@@ -27,6 +27,7 @@ POST_SUCCESSES_MAX = 1
 READBACK_GET_ATTEMPTS_MAX = 1
 TOTAL_NETWORK_CALLS_MAX = 2
 TOTAL_MUTATION_CALLS_MAX = 1
+CONTACT_GET_ATTEMPTS_MAX = 1
 REQUEST_TIMEOUT_SECONDS = 10.0
 
 AUTOMATIC_RETRY = False
@@ -52,6 +53,7 @@ AMBIGUITY_TRUTH = "UNKNOWN"
 _ALLOWED_METHODS = frozenset({"POST", "GET"})
 _NOTE_RESPONSE_FIELDS = ("id", "body", "contactId")
 _REDACTED = "<redacted>"
+_REDACTED_CONTACT_GET_PATH = "/contacts/<redacted>"
 _REDACTED_POST_PATH = "/contacts/<redacted>/notes"
 _REDACTED_GET_PATH = "/contacts/<redacted>/notes/<redacted>"
 
@@ -118,7 +120,7 @@ class InjectedLiveNoteCredential:
 
 
 class BoundedLiveNoteTransport:
-    """Exactly one POST and one same-run GET against the bound contact notes routes."""
+    """Bounded contact preflight plus one POST and one same-run NOTE GET."""
 
     def __init__(
         self,
@@ -143,6 +145,7 @@ class BoundedLiveNoteTransport:
         self._post_attempts = 0
         self._post_successes = 0
         self._get_attempts = 0
+        self._contact_get_attempts = 0
         self._total_network_calls = 0
         self._total_mutation_calls = 0
         self._same_run_note_id: str | None = None
@@ -159,6 +162,10 @@ class BoundedLiveNoteTransport:
     @property
     def get_attempts(self) -> int:
         return self._get_attempts
+
+    @property
+    def contact_get_attempts(self) -> int:
+        return self._contact_get_attempts
 
     @property
     def total_network_calls(self) -> int:
@@ -180,13 +187,15 @@ class BoundedLiveNoteTransport:
     def dispatch(
         self, method: str, path: str, body: Mapping[str, Any] | None = None
     ) -> LiveNoteResponse:
-        """Dispatch one frozen note route. Automatic retry and fallback are forbidden."""
+        """Dispatch one exact bound-contact or frozen NOTE route."""
         if not isinstance(method, str) or method.upper() not in _ALLOWED_METHODS:
-            raise LiveNoteTransportError("only POST and GET note routes are allowed")
+            raise LiveNoteTransportError("only POST and GET routes are allowed")
         normalized_method = method.upper()
         self._reject_unsafe_path(path)
         if normalized_method == "POST":
             return self._dispatch_post(path, body)
+        if path == f"/contacts/{self._bound_contact_id}":
+            return self._dispatch_contact_get(path, body)
         return self._dispatch_get(path, body)
 
     def _dispatch_post(
@@ -210,6 +219,27 @@ class BoundedLiveNoteTransport:
         if result is None:
             return LiveNoteResponse("ambiguous", {})
         return self._normalize_post_http_result(result)
+
+    def _dispatch_contact_get(
+        self, path: str, body: Mapping[str, Any] | None
+    ) -> LiveNoteResponse:
+        if body is not None:
+            raise LiveNoteTransportError("bound-contact GET does not accept a body")
+        expected_path = f"/contacts/{self._bound_contact_id}"
+        if path != expected_path:
+            raise LiveNoteTransportError("GET path is not the bound-contact route")
+        self._require_contact_get_budget()
+        self._contact_get_attempts += 1
+        self._call_history.append(("GET", _REDACTED_CONTACT_GET_PATH))
+        result = self._attempt_http(
+            method="GET",
+            path=path,
+            payload=None,
+            mutation=False,
+        )
+        if result is None:
+            return LiveNoteResponse("error", {})
+        return self._normalize_contact_get_http_result(result)
 
     def _dispatch_get(
         self, path: str, body: Mapping[str, Any] | None
@@ -278,7 +308,7 @@ class BoundedLiveNoteTransport:
             if mutation:
                 return None
             raise LiveNoteTransportError(
-                "GET transport failed without a proven note body"
+                "GET transport failed without a proven response"
             ) from None
 
     def _normalize_post_http_result(self, result: LiveNoteHttpResult) -> LiveNoteResponse:
@@ -307,6 +337,28 @@ class BoundedLiveNoteTransport:
             return LiveNoteResponse("error", {})
         return LiveNoteResponse("ok", {"note": self._published_note(note)})
 
+    def _normalize_contact_get_http_result(
+        self, result: LiveNoteHttpResult
+    ) -> LiveNoteResponse:
+        if not 200 <= result.status_code < 300:
+            return LiveNoteResponse("error", {})
+        contact = self._extract_contact_envelope(result.body)
+        if contact is None:
+            return LiveNoteResponse("error", {})
+        contact_id = contact.get("id")
+        location_id = contact.get("locationId")
+        if (
+            not isinstance(contact_id, str)
+            or not contact_id.strip()
+            or not isinstance(location_id, str)
+            or not location_id.strip()
+        ):
+            return LiveNoteResponse("error", {})
+        return LiveNoteResponse(
+            "ok",
+            {"contact": {"id": contact_id, "locationId": location_id}},
+        )
+
     def _require_post_budget(self) -> None:
         if self._post_attempts >= POST_ATTEMPTS_MAX:
             raise LiveNoteTransportError("POST attempts max is 1")
@@ -322,6 +374,10 @@ class BoundedLiveNoteTransport:
             raise LiveNoteTransportError("GET attempts max is 1")
         if self._total_network_calls >= TOTAL_NETWORK_CALLS_MAX:
             raise LiveNoteTransportError("total network calls max is 2")
+
+    def _require_contact_get_budget(self) -> None:
+        if self._contact_get_attempts >= CONTACT_GET_ATTEMPTS_MAX:
+            raise LiveNoteTransportError("bound-contact GET attempts max is 1")
 
     @staticmethod
     def _validate_post_body(body: Mapping[str, Any] | None) -> dict[str, str]:
@@ -358,6 +414,19 @@ class BoundedLiveNoteTransport:
         if not isinstance(note, Mapping):
             return None
         return note
+
+    @staticmethod
+    def _extract_contact_envelope(raw_body: bytes) -> Mapping[str, Any] | None:
+        try:
+            decoded = json.loads(raw_body.decode("utf-8"))
+        except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+            return None
+        if not isinstance(decoded, Mapping):
+            return None
+        contact = decoded.get("contact")
+        if not isinstance(contact, Mapping):
+            return None
+        return contact
 
     @staticmethod
     def _published_note(note: Mapping[str, Any]) -> dict[str, Any]:

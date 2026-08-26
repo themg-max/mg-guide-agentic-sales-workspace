@@ -19,6 +19,7 @@ from integrations.ghl.highlevel_rest.live_note_transport import (
     AUTOMATIC_RETRY,
     BASE_URL,
     BoundedLiveNoteTransport,
+    CONTACT_GET_ATTEMPTS_MAX,
     GENERIC_EXECUTE,
     InjectedLiveNoteCredential,
     LIVE_EXECUTION_AUTHORIZED,
@@ -52,8 +53,10 @@ DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY = (
     "NW008_AT8H_GHL_REST_BOUNDED_LIVE_NOTE_TRANSPORT_IMPLEMENTATION_001"
 )
 POST_PATH = f"/contacts/{SYNTHETIC_CONTACT_ID}/notes"
+CONTACT_GET_PATH = f"/contacts/{SYNTHETIC_CONTACT_ID}"
 GET_PATH = f"/contacts/{SYNTHETIC_CONTACT_ID}/notes/{SYNTHETIC_NOTE_ID}"
 POST_URL = f"{BASE_URL}{POST_PATH}"
+CONTACT_GET_URL = f"{BASE_URL}{CONTACT_GET_PATH}"
 GET_URL = f"{BASE_URL}{GET_PATH}"
 
 
@@ -130,6 +133,8 @@ class EchoNoteHttpClient:
                 allow_redirects=allow_redirects,
             )
         )
+        if url == CONTACT_GET_URL:
+            return _contact_ok()
         if method == "POST":
             sent = json.loads((body or b"{}").decode("utf-8"))
             return _http_ok(
@@ -137,7 +142,10 @@ class EchoNoteHttpClient:
                 body=sent["body"],
                 extra={"dateAdded": "not-published", "locationId": "hidden"},
             )
-        sent_body = json.loads((self.calls[0].body or b"{}").decode("utf-8"))["body"]
+        post_call = next(
+            call for call in reversed(self.calls[:-1]) if call.method == "POST"
+        )
+        sent_body = json.loads((post_call.body or b"{}").decode("utf-8"))["body"]
         return _http_ok(note_id=self.note_id, body=sent_body)
 
 
@@ -154,6 +162,21 @@ def _http_ok(
         note.update(dict(extra))
     return LiveNoteHttpResult(
         status_code, json.dumps({"note": note}).encode("utf-8")
+    )
+
+
+def _contact_ok(
+    *,
+    contact_id: str = SYNTHETIC_CONTACT_ID,
+    location_id: str = "synthetic-location-001",
+    extra: Mapping[str, Any] | None = None,
+    status_code: int = 200,
+) -> LiveNoteHttpResult:
+    contact = {"id": contact_id, "locationId": location_id}
+    if extra:
+        contact.update(dict(extra))
+    return LiveNoteHttpResult(
+        status_code, json.dumps({"contact": contact}).encode("utf-8")
     )
 
 
@@ -224,6 +247,138 @@ def test_exact_get_route() -> None:
     assert client.calls[1].url == GET_URL
     assert client.calls[1].body is None
     assert client.calls[1].allow_redirects is False
+
+
+def test_exact_bound_contact_get_route() -> None:
+    client = ScriptedHttpClient([_contact_ok()])
+    transport = _transport(client)
+
+    response = transport.dispatch("GET", CONTACT_GET_PATH)
+
+    assert response.status == "ok"
+    assert response.payload == {
+        "contact": {
+            "id": SYNTHETIC_CONTACT_ID,
+            "locationId": "synthetic-location-001",
+        }
+    }
+    assert client.calls[0].method == "GET"
+    assert client.calls[0].url == CONTACT_GET_URL
+    assert client.calls[0].body is None
+    assert client.calls[0].allow_redirects is False
+    assert transport.contact_get_attempts == 1
+    assert transport.total_network_calls == 0
+    assert transport.total_mutation_calls == 0
+
+
+def test_bound_contact_get_minimizes_provider_response() -> None:
+    client = ScriptedHttpClient(
+        [
+            _contact_ok(
+                extra={
+                    "email": "not-published@example.test",
+                    "phone": "not-published",
+                    "customFields": [{"id": "not-published"}],
+                }
+            )
+        ]
+    )
+
+    response = _transport(client).dispatch("GET", CONTACT_GET_PATH)
+
+    assert response.status == "ok"
+    assert response.payload == {
+        "contact": {
+            "id": SYNTHETIC_CONTACT_ID,
+            "locationId": "synthetic-location-001",
+        }
+    }
+    assert "email" not in response.payload["contact"]
+    assert "phone" not in response.payload["contact"]
+    assert "customFields" not in response.payload["contact"]
+
+
+def test_bound_contact_get_rejects_body_alternate_query_and_fragment() -> None:
+    client = ScriptedHttpClient([])
+    transport = _transport(client)
+
+    with pytest.raises(LiveNoteTransportError, match="does not accept a body"):
+        transport.dispatch("GET", CONTACT_GET_PATH, {"body": "forbidden"})
+    for path in (
+        "/contacts/synthetic-contact-other",
+        f"{CONTACT_GET_PATH}?limit=1",
+        f"{CONTACT_GET_PATH}#fragment",
+    ):
+        with pytest.raises(LiveNoteTransportError):
+            transport.dispatch("GET", path)
+
+    assert client.calls == []
+    assert transport.contact_get_attempts == 0
+    assert transport.total_mutation_calls == 0
+
+
+def test_bound_contact_get_max_one_and_second_attempt_is_rejected() -> None:
+    client = ScriptedHttpClient([_contact_ok(), _contact_ok()])
+    transport = _transport(client)
+    transport.dispatch("GET", CONTACT_GET_PATH)
+
+    with pytest.raises(
+        LiveNoteTransportError, match="bound-contact GET attempts max is 1"
+    ):
+        transport.dispatch("GET", CONTACT_GET_PATH)
+
+    assert transport.contact_get_attempts == CONTACT_GET_ATTEMPTS_MAX
+    assert len(client.calls) == 1
+    assert transport.total_mutation_calls == 0
+
+
+@pytest.mark.parametrize(
+    "result",
+    [
+        LiveNoteHttpResult(503, b"unavailable"),
+        LiveNoteHttpResult(200, b"not-json"),
+        LiveNoteHttpResult(200, b'{"contact":{"id":"synthetic-contact-001"}}'),
+        LiveNoteHttpResult(200, b'{"contact":{"locationId":"synthetic-location-001"}}'),
+    ],
+)
+def test_bound_contact_get_malformed_or_unsuccessful_response_fails_closed(
+    result: LiveNoteHttpResult,
+) -> None:
+    response = _transport(ScriptedHttpClient([result])).dispatch(
+        "GET", CONTACT_GET_PATH
+    )
+
+    assert response.status == "error"
+    assert response.payload == {}
+
+
+def test_bound_contact_get_network_uncertainty_fails_closed() -> None:
+    transport = _transport(
+        ScriptedHttpClient([LiveNoteHttpUncertainty("synthetic timeout")])
+    )
+
+    response = transport.dispatch("GET", CONTACT_GET_PATH)
+
+    assert response.status == "error"
+    assert response.payload == {}
+    assert transport.contact_get_attempts == 1
+    assert transport.total_network_calls == 0
+    assert transport.total_mutation_calls == 0
+
+
+def test_contact_preflight_preserves_frozen_note_route_budget() -> None:
+    client = EchoNoteHttpClient()
+    transport = _transport(client)
+
+    transport.dispatch("GET", CONTACT_GET_PATH)
+    _post(transport)
+    response = transport.dispatch("GET", GET_PATH)
+
+    assert response.status == "ok"
+    assert transport.contact_get_attempts == CONTACT_GET_ATTEMPTS_MAX
+    assert transport.total_network_calls == TOTAL_NETWORK_CALLS_MAX
+    assert transport.total_mutation_calls == TOTAL_MUTATION_CALLS_MAX
+    assert [call.url for call in client.calls] == [CONTACT_GET_URL, POST_URL, GET_URL]
 
 
 def test_bound_contact_only() -> None:
@@ -625,6 +780,46 @@ def test_pr107_trust_boundary_unchanged() -> None:
     assert "_trust_marker" not in transport_source
     assert "VerifiedContactBindingCapability" not in transport_source
     assert "_issue_capability" not in transport_source
+
+
+def test_injectable_bound_contact_preflight_uses_minimized_contact_response() -> None:
+    client = EchoNoteHttpClient()
+    transport = _transport(client)
+    adapter = NotePathAdapter(
+        location_id="synthetic-location-001",
+        contact_id=SYNTHETIC_CONTACT_ID,
+        transport=transport,
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-at8w30-contact-001",
+    )
+
+    contact = adapter.get_bound_contact()
+
+    assert contact == {
+        "id": SYNTHETIC_CONTACT_ID,
+        "locationId": "synthetic-location-001",
+    }
+    assert adapter.CONTACT_PREFLIGHT_VERIFIED == "YES"
+    assert transport.contact_get_attempts == CONTACT_GET_ATTEMPTS_MAX
+    assert transport.total_network_calls == 0
+    assert transport.total_mutation_calls == 0
+    assert [call.url for call in client.calls] == [CONTACT_GET_URL]
+
+
+def test_bound_contact_preflight_rejects_identifier_mismatch() -> None:
+    client = ScriptedHttpClient([_contact_ok(contact_id="synthetic-contact-other")])
+    adapter = NotePathAdapter(
+        location_id="synthetic-location-001",
+        contact_id=SYNTHETIC_CONTACT_ID,
+        transport=_transport(client),
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-at8w30-contact-mismatch-001",
+    )
+
+    with pytest.raises(note_path_module.BindingError, match="does not match"):
+        adapter.get_bound_contact()
+
+    assert len(client.calls) == 1
 
 
 def test_injectable_into_note_path_adapter() -> None:
