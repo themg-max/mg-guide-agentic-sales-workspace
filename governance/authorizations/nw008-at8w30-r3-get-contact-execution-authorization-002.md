@@ -2,9 +2,11 @@
 
 **Authorization ID:** `nw008-at8w30-r3-get-contact-execution-authorization-002`
 
-**Date Issued:** 2026-08-26T13:29:59Z
+**Date Issued (original draft, local time):** 2026-08-26T13:29:59-04:00 (UTC equivalent: 2026-08-26T17:29:59Z)
 
-**Authority Status:** FRESH ONE-SHOT AUTHORIZATION (NOT YET REVIEWED)
+**Authorization Reissued At (UTC):** 2026-08-26T17:50:12Z
+
+**Authority Status:** REISSUED — `PROPOSED_NOT_EFFECTIVE` (activation pending human merge to main; see Section 1.1 and Section 5)
 
 ---
 
@@ -42,6 +44,25 @@ The following artifacts from PR217 are present on `origin/main`:
 - ✓ `tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py`
 - ✓ `proof/nw008/at-8w30/nw008-at8w30-r3-private-binding-provenance-trust-repair-proof-001.md`
 - ✓ `proof/nw008/at-8w30/nw008-at8w30-r3-private-owner-lease-ingress-repair-consumption-001.md`
+
+---
+
+## 1.1 Temporal Provenance & Reissue Record
+
+The original top-level `Date Issued` line used a local wall-clock time with a
+misleading `Z` (UTC) suffix. This section corrects that treatment and
+reconciles it against the true PR217 merge time and the true reissue time,
+without deleting the original historical timing evidence.
+
+| Field | Value |
+|-------|-------|
+| `ORIGINAL_DRAFT_LOCAL_TIME` | `2026-08-26T13:29:59-04:00` |
+| `ORIGINAL_DRAFT_UTC_EQUIVALENT` | `2026-08-26T17:29:59Z` |
+| `EXECUTION_BUDGET_ADDENDUM_LOCAL_TIME` | `2026-08-26T13:39:08-04:00` |
+| `EXECUTION_BUDGET_ADDENDUM_UTC_EQUIVALENT` | `2026-08-26T17:39:08Z` |
+| `PR217_MERGED_AT` | `2026-08-26T17:27:19Z` |
+| `AUTHORIZATION_REISSUED_AT` | `2026-08-26T17:50:12Z` |
+| `AUTHORIZATION_REISSUED_AFTER_PR217_MERGE` | `YES` |
 
 ---
 
@@ -108,6 +129,18 @@ This authorization permits consumption of **ONLY** the following response fields
 
 ## 5. Authority Lifecycle
 
+### Activation Contract
+
+| Field | Value |
+|-------|-------|
+| `AUTHORIZATION_STATE_AT_AUTHORING` | `PROPOSED_NOT_EFFECTIVE` |
+| `GRANT_ACTIVATION` | `HUMAN_MERGE_TO_MAIN_PLUS_DURABLE_MAIN_RECONCILIATION` |
+| `R3_EXECUTION_AUTHORIZED_BEFORE_HUMAN_MERGE` | `NO` |
+| `R3_EXECUTION_AUTHORIZED_AFTER_HUMAN_MERGE_AND_MAIN_RECONCILIATION` | `YES` |
+| `R3_EXECUTION_ATTEMPTS_MAX` | `1` |
+| `R3_SECOND_EXECUTION_AUTHORIZED` | `NO` |
+| `R3_RETRY_AUTHORIZED` | `NO` |
+
 ### One-Shot Constraints
 
 | Attribute | Value | Implication |
@@ -117,6 +150,21 @@ This authorization permits consumption of **ONLY** the following response fields
 | `TRANSFERABLE` | NO | Cannot be transferred |
 | `FAILURE_RESTORES_AUTHORITY` | NO | Failed execution does not restore authorization |
 | `R4_AUTHORIZED` | NO | No escalation to R4 permitted |
+
+### Consumption Boundary
+
+| Field | Value |
+|-------|-------|
+| `AUTHORIZATION_CONSUMPTION_TRIGGER` | `FIRST_TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTION_ATTEMPT_FOR_R3` |
+| `AUTHORIZATION_STATE_BEFORE_EXECUTION` | `AVAILABLE` |
+| `AUTHORIZATION_STATE_ON_TRIGGER` | `CONSUMED` |
+| `AUTHORIZATION_STATE_AFTER_EXECUTION` | `CONSUMED` |
+| `ONE_SHOT` | `YES` |
+| `REUSABLE` | `NO` |
+| `TRANSFERABLE` | `NO` |
+| `FAILURE_RESTORES_AUTHORITY` | `NO` |
+| `FAILURE_BEFORE_HTTP_DISPATCH_RESTORES_AUTHORITY` | `NO` |
+| `FAILURE_AFTER_HTTP_DISPATCH_RESTORES_AUTHORITY` | `NO` |
 
 ### Runtime Prohibitions
 
@@ -155,6 +203,7 @@ The R3 GET-contact operation may be executed with these constraints and budgets.
 | Artifacts Verification | COMPLETE | All required files on main |
 | Authorization Scope | SEALED | Ready for independent review |
 | Execution Status | PENDING HUMAN REVIEW | Awaiting approval |
+| Authorization Reissued | 2026-08-26T17:50:12Z | Temporal provenance corrected; activation contract and consumption boundary added; PR217 merge state reconfirmed |
 
 ---
 
@@ -170,7 +219,7 @@ The R3 GET-contact operation may be executed with these constraints and budgets.
 
 ## 9. Addendum: R3 Execution Effect Budget (received pre-merge)
 
-**Added:** 2026-08-26T13:39:08Z
+**Added (local time):** 2026-08-26T13:39:08-04:00 (UTC equivalent: 2026-08-26T17:39:08Z)
 **Status of PR at time of receipt:** OPEN, `mergedAt=null`, no review decision.
 
 This addendum records a proposed fine-grained execution-effect budget submitted
