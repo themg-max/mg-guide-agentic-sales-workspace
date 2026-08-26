@@ -903,9 +903,11 @@ def test_authentic_synthetic_lease_materializes_as_opaque_reference() -> None:
         assert not hasattr(reference, attribute_name)
 
 
-def test_public_caller_cannot_create_or_reconstruct_authentic_lease() -> None:
+def test_public_production_lease_materialization_attempt_fails_closed() -> None:
     workflow_run_id = "synthetic-workflow-run-lease-forgery-001"
     caller_built_reference = note_path_module._OpaqueSafePrivateBindingReference()
+
+    assert not hasattr(note_path_module, "_materialize_private_at8_binding_lease")
 
     assert (
         note_path_module._private_at8_binding_lease_state(caller_built_reference)
@@ -918,55 +920,17 @@ def test_public_caller_cannot_create_or_reconstruct_authentic_lease() -> None:
             consumer_workflow_run_id=workflow_run_id,
         )
 
-    with pytest.raises(BindingError, match="trusted binding source is invalid"):
-        note_path_module._materialize_private_at8_binding_lease(
-            trusted_binding_source=_UntrustedStructuralBindingSource().get_trusted_binding_source(),
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id=workflow_run_id,
-        )
-
-    with pytest.raises(BindingError, match="trusted binding source is invalid"):
-        note_path_module._materialize_private_at8_binding_lease(
-            trusted_binding_source=_synthetic_binding(),
+    with pytest.raises(BindingError, match="must be synthetic"):
+        NotePathAdapter._build_private_at8_binding_lease_for_tests(
+            location_id="real-location-001",
+            contact_id="synthetic-contact-001",
             consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
             consumer_workflow_run_id=workflow_run_id,
         )
 
 
-def test_lease_materialization_rejects_non_private_at8_origins() -> None:
+def test_private_owner_rejects_provenance_mismatch_during_materialization() -> None:
     workflow_run_id = "synthetic-workflow-run-lease-origin-001"
-    synthetic_capability = _issue_synthetic_capability(
-        consumer_workflow_run_id=workflow_run_id
-    )
-
-    with pytest.raises(BindingError, match="trusted binding source is invalid"):
-        note_path_module._materialize_private_at8_binding_lease(
-            trusted_binding_source=synthetic_capability.trusted_binding_source,
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id=workflow_run_id,
-        )
-
-    adapter, _ = _adapter(
-        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-        consumer_workflow_run_id=workflow_run_id,
-    )
-    adapter.get_bound_contact()
-    bound_capability = adapter._require_trusted_verified_capability()
-
-    with pytest.raises(BindingError, match="trusted binding source is invalid"):
-        note_path_module._materialize_private_at8_binding_lease(
-            trusted_binding_source=bound_capability.trusted_binding_source,
-            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
-            consumer_workflow_run_id=workflow_run_id,
-        )
-
-
-def test_lease_provenance_mismatch_blocks_materialization() -> None:
-    workflow_run_id = "synthetic-workflow-run-lease-provenance-001"
-    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-    )
 
     for provenance_override in (
         {"workflow_id": "other_workflow_v1"},
@@ -974,8 +938,9 @@ def test_lease_provenance_mismatch_blocks_materialization() -> None:
         {"source_proof_merge_sha": "f" * 40},
     ):
         with pytest.raises(BindingError):
-            note_path_module._materialize_private_at8_binding_lease(
-                trusted_binding_source=trusted_binding_source,
+            NotePathAdapter._build_private_at8_binding_lease_for_tests(
+                location_id="synthetic-location-001",
+                contact_id="synthetic-contact-001",
                 consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
                 consumer_workflow_run_id=workflow_run_id,
                 **provenance_override,

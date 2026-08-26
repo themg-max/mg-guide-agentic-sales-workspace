@@ -66,12 +66,14 @@ def _private_binding_lease(
     contact_id: str = "synthetic-contact-001",
     consumer_authorization_identity: str = CONSUMER_IDENTITY,
     consumer_workflow_run_id: str = "synthetic-workflow-run-root-owned-runtime-001",
+    test_only_fail_capability_issuance: bool = False,
 ):
     return NotePathAdapter._build_private_at8_binding_lease_for_tests(
         location_id=location_id,
         contact_id=contact_id,
         consumer_authorization_identity=consumer_authorization_identity,
         consumer_workflow_run_id=consumer_workflow_run_id,
+        test_only_fail_capability_issuance=test_only_fail_capability_issuance,
     )
 
 
@@ -345,6 +347,29 @@ def test_capability_issued_only_after_successful_lease_consumption(
     )
 
     assert observed == ["consume", "validate"]
+
+
+def test_capability_issuance_failure_does_not_restore_consumed_reference() -> None:
+    workflow_run_id = "synthetic-workflow-run-issuance-failure-001"
+    reference = _private_binding_lease(
+        consumer_workflow_run_id=workflow_run_id,
+        test_only_fail_capability_issuance=True,
+    )
+
+    with pytest.raises(BindingError, match="capability issuance failed"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
+    with pytest.raises(BindingError, match="already consumed"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
 
 
 def test_validator_expectations_are_explicitly_bound_not_self_derived(

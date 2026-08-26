@@ -235,6 +235,7 @@ class _PrivateBindingLeaseRecord:
     trusted_binding_source: _TrustedPrivateBindingSource
     consumer_authorization_identity: str
     consumer_workflow_run_id: str
+    test_only_fail_capability_issuance: bool
     trust_marker: object
 
 
@@ -652,6 +653,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         workflow_id: str = _WORKFLOW_ID,
         source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
         source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+        test_only_fail_capability_issuance: bool = False,
     ) -> _OpaqueSafePrivateBindingReference:
         """Materialize the private one-shot lease before any public consumption.
 
@@ -659,6 +661,9 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         authorization identity and workflow run. A public string presented later
         can only match or fail; it can never create or retarget authority.
         """
+        test_only_fail_capability_issuance = _require_boolean(
+            "test_only_fail_capability_issuance", test_only_fail_capability_issuance
+        )
         _require_at8_provenance(
             workflow_id=workflow_id,
             source_execution_unit=source_execution_unit,
@@ -673,11 +678,41 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             consumer_workflow_run_id=_require_identifier(
                 "consumer_workflow_run_id", consumer_workflow_run_id
             ),
+            test_only_fail_capability_issuance=test_only_fail_capability_issuance,
             trust_marker=lease_marker,
         )
         reference = _OpaqueSafePrivateBindingReference()
         private_binding_leases.register(reference, record)
         return reference
+
+    def issue_private_at8_binding_reference_for_synthetic_tests(
+        *,
+        location_id: str,
+        contact_id: str,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+        test_only_fail_capability_issuance: bool = False,
+    ) -> _OpaqueSafePrivateBindingReference:
+        """Issue synthetic test references through the private owner only."""
+        trusted_binding_source = issue_private_at8_handoff_source_for_synthetic_tests(
+            location_id=location_id,
+            contact_id=contact_id,
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        return materialize_private_at8_binding_lease(
+            trusted_binding_source=trusted_binding_source,
+            consumer_authorization_identity=consumer_authorization_identity,
+            consumer_workflow_run_id=consumer_workflow_run_id,
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+            test_only_fail_capability_issuance=test_only_fail_capability_issuance,
+        )
 
     def consume_private_at8_binding_lease(
         private_binding_reference: object,
@@ -713,6 +748,10 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         registered_source = _require_private_at8_handoff_source(
             record.trusted_binding_source
         )
+        if record.test_only_fail_capability_issuance:
+            raise BindingError(
+                "synthetic private binding capability issuance failed"
+            )
         return _issue_capability(
             trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
             location_id=registered_source.location_id,
@@ -835,7 +874,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         issue_synthetic_test_capability,
         issue_private_at8_handoff_source_for_synthetic_tests,
         handoff_private_at8_capability_from_registered_source,
-        materialize_private_at8_binding_lease,
+        issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
         private_at8_binding_lease_state,
         build_bound_contact_get,
@@ -848,7 +887,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _issue_synthetic_test_capability,
     _issue_private_at8_handoff_source_for_synthetic_tests,
     _handoff_private_at8_capability_from_registered_source,
-    _materialize_private_at8_binding_lease,
+    _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,
@@ -1338,17 +1377,12 @@ class NotePathAdapter:
         workflow_id: str = _WORKFLOW_ID,
         source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
         source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+        test_only_fail_capability_issuance: bool = False,
     ) -> _OpaqueSafePrivateBindingReference:
         """Model the owner-issued private lease using synthetic inputs only."""
-        trusted_binding_source = cls._build_private_at8_verified_binding_source(
-            location_id=location_id,
-            contact_id=contact_id,
-            workflow_id=workflow_id,
-            source_execution_unit=source_execution_unit,
-            source_proof_merge_sha=source_proof_merge_sha,
-        )
-        return _materialize_private_at8_binding_lease(
-            trusted_binding_source=trusted_binding_source,
+        return _issue_private_at8_binding_reference_for_synthetic_tests(
+            location_id=cls._require_synthetic_identifier("location_id", location_id),
+            contact_id=cls._require_synthetic_identifier("contact_id", contact_id),
             consumer_authorization_identity=cls._require_identifier(
                 "consumer_authorization_identity", consumer_authorization_identity
             ),
@@ -1358,6 +1392,7 @@ class NotePathAdapter:
             workflow_id=workflow_id,
             source_execution_unit=source_execution_unit,
             source_proof_merge_sha=source_proof_merge_sha,
+            test_only_fail_capability_issuance=test_only_fail_capability_issuance,
         )
 
     def _require_trusted_verified_capability(self) -> _VerifiedContactBindingCapability:
