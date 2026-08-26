@@ -356,3 +356,324 @@ target. Neither is authorized by this artifact.
 ```text
 NEXT_ACTION_AUTHORIZED_BY_THIS_ARTIFACT=NONE
 ```
+
+---
+
+# Correction and reconciliation — corrected pre-consumption readiness
+
+Sections 1-10 above are the historical record of the initial readiness failure
+and are preserved unaltered. This section reconciles that record against the
+frozen public/private boundary interpretation and re-evaluates readiness for the
+SAME, still-unconsumed one-shot execution unit.
+
+```text
+CONTINUATION_CLASS=PRECONSUMPTION_CONTINUATION
+PRECONSUMPTION_CONTINUATION=YES
+R3_RETRY_PERFORMED=NO
+NEW_R3_AUTHORIZATION_CREATED=NO
+
+CONSUMER_AUTHORIZATION_IDENTITY=
+  nw008-at8w30-r3-get-contact-execution-authorization-002
+
+CONSUMER_WORKFLOW_RUN_ID=
+  nw008-at8w30-r3-get-contact-execution-run-002
+
+CONSUMER_AUTHORIZATION_IDENTITY_CHANGED=NO
+CONSUMER_WORKFLOW_RUN_ID_CHANGED=NO
+```
+
+---
+
+## 11. Preflight revalidation
+
+```text
+PR223_REVIEWED_HEAD=
+  d734d49e7eae50ded23aabe6945284a000d7dd0f
+
+PR223_MERGE_COMMIT=
+  f12879a1694c1bfa676db211ac1d8512934ec060
+
+REVIEWED_HEAD_MATCHES_REQUIRED=YES
+MERGE_COMMIT_MATCHES_REQUIRED=YES
+MERGE_COMMIT_IS_ANCESTOR_OF_EXECUTION_HEAD=YES
+
+BRANCH_IS_MAIN=NO
+WORKTREE_CLEAN_AT_START=YES
+UNRELATED_WORKTREES_MUTATED=NO
+BROAD_STAGING_USED=NO
+
+AUTHORIZATION_CONSUMED_AT_PREFLIGHT=NO
+R3_EXECUTION_ATTEMPTS_USED_AT_PREFLIGHT=0
+```
+
+---
+
+## 12. Frozen public-boundary interpretation
+
+Taken as fixed from merged governance for this continuation. Nothing in this
+section was inferred from the public runtime source.
+
+```text
+PRIVATE_OWNER_REMAINS_AUTHORITY_SOURCE=YES
+PUBLIC_NOTE_PATH_IS_AUTHORITY_SOURCE=NO
+PUBLIC_RUNTIME_IS_AUTHORITY_SOURCE=NO
+
+PRIVATE_OWNER_MATERIALIZES_OPAQUE_REFERENCE=YES
+PUBLIC_CONSUMER_ACCEPTS_PREEXISTING_REFERENCE=YES
+
+PUBLIC_PRODUCTION_LEASE_MATERIALIZATION=FORBIDDEN
+
+OPAQUE_PROVIDER_IDS_AFTER_VERIFIED_PRIVATE_PROVENANCE=YES
+TEST_SYNTHETIC_PREFIX_GUARD_UNCHANGED=YES
+
+PUBLIC_MODULE_LEVEL_LIVE_REFERENCE_PRODUCER_REQUIRED=NO
+PUBLIC_SYNTHETIC_PREFIX_GATE_IS_STRUCTURAL_BLOCKER=NO
+```
+
+Consequently the absence of a public, module-level, non-synthetic opaque
+reference producer is not a defect and is not a blocker. It is the contracted
+shape of the public consumer.
+
+```text
+NOTE_PATH_MODIFIED=NO
+LIVE_NOTE_RUNTIME_MODIFIED=NO
+SYNTHETIC_TEST_GATE_WEAKENED=NO
+PUBLIC_RUNTIME_MODIFIED=NO
+PUBLIC_PRODUCTION_MATERIALIZER_CREATED=NO
+```
+
+---
+
+## 13. Disposition of the initial readiness diagnosis
+
+### 13.1 Initial failure A — Python dependency availability
+
+```text
+INITIAL_FINDING=REQUIRED_PYTHON_DEPENDENCIES_IMPORTABLE=NO
+DISPOSITION=RESOLVED
+```
+
+Resolved by provisioning an isolated local runtime environment derived from the
+exact frozen dependency manifest. No committed dependency manifest was edited.
+
+```text
+REQUIREMENTS_TXT_MODIFIED=NO
+PYPROJECT_TOML_MODIFIED=NO
+DOCKERFILE_MODIFIED=NO
+
+ISOLATED_ENVIRONMENT_USED=YES
+ISOLATED_ENVIRONMENT_INSIDE_COMMITTED_PATHS=NO
+ISOLATED_ENVIRONMENT_COMMITTED=NO
+FROZEN_REQUIREMENTS_INSTALLED_EXACTLY=YES
+DEPENDENCY_PINS_ALTERED=NO
+
+INTERPRETER_SERIES_DECLARED_MINIMUM=3.9
+INTERPRETER_SERIES_USED=3.12
+INTERPRETER_SERIES_SATISFIES_DECLARED_MINIMUM=YES
+```
+
+Import probe result (imports only; no credential resolution, no token mint, no
+Secret Manager instantiation, no secret read, no SQLite, no assembly, no
+HighLevel call):
+
+```text
+REQUIRED_PYTHON_DEPENDENCIES_IMPORTABLE=YES
+```
+
+### 13.2 Initial failure B — public producer / synthetic-prefix gate
+
+```text
+INITIAL_FINDING=
+  PUBLIC_MODULE_LEVEL_OPAQUE_REFERENCE_PRODUCERS_ALL_SYNTHETIC_PREFIX_GATED
+INITIAL_CLASSIFICATION=DECISIVE_STRUCTURAL_BLOCKER
+
+INITIAL_PUBLIC_PRODUCER_DIAGNOSIS=SUPERSEDED
+INITIAL_STRUCTURAL_DIAGNOSIS_DISPOSITION=SUPERSEDED
+
+PUBLIC_PRODUCTION_MATERIALIZER_ABSENCE=EXPECTED_BY_CONTRACT
+```
+
+The initial diagnosis treated the public runtime as the authority source and
+therefore read the absence of a public non-synthetic producer as a structural
+blocker. Under the frozen boundary in Section 12 the public runtime is not the
+authority source, so that finding is superseded and is not the operative gate.
+
+---
+
+## 14. Corrected private-owner readiness gate
+
+Readiness was re-evaluated against the designated private owner rather than
+against public module-level reference producers. Resolution was attempted only
+through the fixed governed designation.
+
+```text
+PUBLIC_PRODUCERS_USED_AS_AUTHORITY_SOURCE=NO
+ENVIRONMENT_SELECTED_OWNER_ATTEMPTED=NO
+CALLER_SELECTED_OWNER_ATTEMPTED=NO
+PLUGIN_OR_REGISTRY_LOOKUP_ATTEMPTED=NO
+FIXED_GOVERNED_DESIGNATION_ONLY=YES
+```
+
+Public-consumer-side observations (recorded for completeness; not the gate):
+
+```text
+MERGED_PUBLIC_RUNTIME_IMPORTABLE=YES
+ASSEMBLY_ENTRY_POINT_PRESENT=YES
+ASSEMBLY_ENTRY_POINT_CALLABLE=YES
+PUBLIC_PRIVATE_OWNER_LEASE_INGRESS_PRESENT=YES
+PUBLIC_PRODUCTION_MATERIALIZER_EXPORTED=NO
+```
+
+Designated private-owner gate results:
+
+```text
+PRIVATE_OWNER_DESIGNATION_RECORD_CLASS=PRIVATE_GOVERNANCE
+PRIVATE_OWNER_DESIGNATION_STATE=APPROVED
+PRIVATE_OWNER_SANITIZED_ATTESTATION_PRESENT=YES
+
+PRIVATE_OWNER_SOURCE_LOCALLY_RESOLVABLE=NO
+PRIVATE_OWNER_IMPLEMENTATION_LOADABLE=NO
+PRIVATE_OWNER_DESIGNATION_MATCH=NOT_EVALUATED
+PRIVATE_OWNER_ENTRYPOINT_CALLABLE=NO
+PRIVATE_OWNER_RUNS_IN_SAME_PROCESS_AS_PUBLIC_CONSUMER=NOT_EVALUATED
+
+PRIVATE_OWNER_CAN_ESTABLISH_VERIFIED_PRIVATE_PROVENANCE=NOT_EVALUATED
+PRIVATE_OWNER_CAN_ACCEPT_OPAQUE_PROVIDER_IDS_AFTER_VERIFIED_PROVENANCE=NOT_EVALUATED
+PRIVATE_OWNER_CAN_MATERIALIZE_OPAQUE_REFERENCE=NOT_EVALUATED
+
+PUBLIC_SYNTHETIC_TEST_REFERENCE_FACTORY_USED=NO
+PUBLIC_PRODUCTION_REFERENCE_FACTORY_REQUIRED=NO
+PRIVATE_OWNER_LOCATOR_PUBLISHED=NO
+```
+
+The approved designation is a private-governance record. Only its sanitized,
+non-locating properties are available in public artifacts, and merged governance
+records that the concrete private locator has never been surfaced to an
+orchestrator session. No designated private-owner implementation surface was
+therefore reachable from this execution process, so no owner entrypoint could be
+loaded or called, and no verified private provenance could be established.
+
+```text
+STOP_CODE=R3_PRIVATE_OWNER_IMPLEMENTATION_SURFACE_UNAVAILABLE
+PUBLIC_RUNTIME_PATCH_ATTEMPTED=NO
+IMPROVISED_OWNER_SUBSTITUTE_ATTEMPTED=NO
+INGRESS_GATE_BYPASS_ATTEMPTED=NO
+```
+
+---
+
+## 15. Corrected readiness disposition
+
+```text
+INITIAL_READINESS_FAILURE_RECONCILED=YES
+
+REQUIRED_PYTHON_DEPENDENCIES_IMPORTABLE=YES
+PRIVATE_OWNER_EXECUTION_SURFACE_READY=NO
+
+CORRECTED_PRECONSUMPTION_READINESS=FAIL
+
+AUTHORIZATION_CONSUMED=NO
+AUTHORIZATION_STATE_AFTER_CONTINUATION=AVAILABLE
+R3_EXECUTION_ATTEMPTS_USED=0
+```
+
+Because Section 4 of the continuation instruction did not pass, Sections 6 and 7
+of that instruction (private provenance validation, opaque reference
+materialization, binding, production assembly, and the single GET) were not
+entered. The declared consumption trigger was never approached.
+
+---
+
+## 16. Actual effect counters for this continuation
+
+```text
+PRIVATE_OWNER_REFERENCE_MATERIALIZED=NO
+PRIVATE_REFERENCE_SERIALIZED=NO
+PRIVATE_REFERENCE_COPIED=NO
+
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS=0
+APPLICATION_DEFAULT_CREDENTIAL_RESOLUTIONS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS=0
+
+SECRET_MANAGER_CLIENT_INSTANTIATIONS=0
+SECRET_PAYLOAD_READS=0
+SQLITE_CREATES=0
+SQLITE_EXISTING_OPENS=0
+PRODUCTION_RUNTIME_ASSEMBLIES=0
+
+HIGHLEVEL_CALLS=0
+HTTP_REQUEST_DISPATCHES=0
+GET_CONTACT_ATTEMPTS=0
+GET_OPPORTUNITY_ATTEMPTS=0
+SEARCH_CALLS=0
+LIST_CALLS=0
+PAGINATION_CALLS=0
+RETRY_COUNT=0
+
+NOTE_WRITES=0
+STAGE_TRANSITIONS=0
+CRM_MUTATIONS=0
+IAM_MUTATIONS=0
+DEPLOYMENTS=0
+```
+
+Readback booleans:
+
+```text
+GET_CONTACT_RESPONSE_RECEIVED=NO
+CONTACT_ID_MATCH=NOT_EVALUATED
+LOCATION_ID_MATCH=NOT_EVALUATED
+PAYLOAD_MINIMIZED_TO_ID_AND_LOCATION_ID=NOT_EVALUATED
+```
+
+---
+
+## 17. Privacy and non-publication assertions for this continuation
+
+```text
+PRIVATE_MODULE_PATH_PUBLICATION=NO
+PRIVATE_OWNER_LOCATOR_PUBLICATION=NO
+PRIVATE_IDENTIFIER_PUBLICATION=NO
+PRIVATE_CONTACT_ID_PUBLICATION=NO
+PRIVATE_LOCATION_ID_PUBLICATION=NO
+SOURCE_PRINCIPAL_PUBLICATION=NO
+SECRET_PAYLOAD_PUBLICATION=NO
+TOKEN_PUBLICATION=NO
+OPAQUE_REFERENCE_INTERNALS_PUBLICATION=NO
+RAW_PROVIDER_RESPONSE_PUBLICATION=NO
+
+PRIVATE_VALUES_HASHED_OR_TRANSFORMED_INTO_THIS_ARTIFACT=NO
+PRIVATE_VALUES_COMMITTED=NO
+ISOLATED_ENVIRONMENT_ARTIFACTS_COMMITTED=NO
+```
+
+---
+
+## 18. Corrected final result
+
+```text
+RESULT=FAIL_CLOSED_PRE_CONSUMPTION
+STOP_CODE=R3_PRIVATE_OWNER_IMPLEMENTATION_SURFACE_UNAVAILABLE
+
+CORRECTED_PRECONSUMPTION_READINESS=FAIL
+R3_GATE_COMPLETE=NO
+
+AUTHORIZATION_CONSUMED=NO
+AUTHORIZATION_STATE_AFTER_EXECUTION=AVAILABLE
+R3_EXECUTION_ATTEMPTS_USED=0
+
+R3_RETRY_AUTHORIZED=NO
+R3_SECOND_EXECUTION_AUTHORIZED=NO
+R4_AUTHORIZED=NO
+```
+
+The one-shot R3 grant remains unconsumed and available. The operative blocker is
+no longer the public runtime shape; it is the unavailability of a loadable,
+callable designated private-owner implementation surface in the execution
+process. Closing that gap requires private-side provisioning of the designated
+owner implementation to the execution host, which is outside this authorization.
+
+```text
+NEXT_ACTION_AUTHORIZED_BY_THIS_ARTIFACT=NONE
+```
