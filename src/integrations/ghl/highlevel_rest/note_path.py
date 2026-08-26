@@ -7,6 +7,7 @@ from hashlib import sha256
 from hmac import compare_digest
 import json
 import threading
+from types import ModuleType
 from typing import Any, Mapping, Protocol
 from unicodedata import normalize
 import weakref
@@ -49,6 +50,18 @@ _REDACTED_RESPONSE_STATUS_CLASSES = frozenset({"ok", "ambiguous", "error"})
 _TRUSTED_SOURCE_BOUND_CONTACT = "fake_transport_bound_contact_verification"
 _TRUSTED_SOURCE_AT8_SHAPED_TEST = "at8_shaped_test_capability"
 _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF = "private_at8_verified_binding_handoff"
+_TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS = (
+    "designated_private_owner_verified_binding_ingress"
+)
+_DESIGNATED_PRIVATE_OWNER_ID = (
+    "NW008_AT8W30_R3_PRIVATE_OWNER_LEASE_INGRESS_DESIGNATION_001"
+)
+_DESIGNATED_PRIVATE_OWNER_CONSUMER_AUTHORIZATION_ID = (
+    "nw008-at8w30-r3-get-contact-execution-authorization-002"
+)
+_DESIGNATED_PRIVATE_OWNER_CONSUMER_WORKFLOW_RUN_ID = (
+    "nw008-at8w30-r3-get-contact-execution-run-002"
+)
 _REQUIRED_FIELDS = (
     "SYNTHETIC_MARKER",
     "meeting_id",
@@ -334,11 +347,13 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         _TRUSTED_SOURCE_BOUND_CONTACT: object(),
         _TRUSTED_SOURCE_AT8_SHAPED_TEST: object(),
         _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF: object(),
+        _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS: object(),
     }
     capability_markers = {
         _TRUSTED_SOURCE_BOUND_CONTACT: object(),
         _TRUSTED_SOURCE_AT8_SHAPED_TEST: object(),
         _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF: object(),
+        _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS: object(),
     }
     issued_sources = _IdentityRegistry()
     issued_capabilities = _IdentityRegistry()
@@ -761,6 +776,86 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=registered_source,
         )
 
+    def consume_designated_private_owner_binding_reference(
+        *,
+        private_owner_resolver: object,
+        private_binding_reference: object,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+    ) -> _VerifiedContactBindingCapability:
+        """Consume a designated owner's sealed reference after exact run binding.
+
+        The resolver is a process-local capability from the designated private
+        owner. It releases only already-verified binding data; public code never
+        accepts raw binding data or materializes a production lease.
+        """
+        expected_authorization_identity = _require_identifier(
+            "consumer_authorization_identity", consumer_authorization_identity
+        )
+        expected_workflow_run_id = _require_identifier(
+            "consumer_workflow_run_id", consumer_workflow_run_id
+        )
+        if (
+            expected_authorization_identity
+            != _DESIGNATED_PRIVATE_OWNER_CONSUMER_AUTHORIZATION_ID
+        ):
+            raise BindingError("designated private owner authorization binding is invalid")
+        if (
+            expected_workflow_run_id
+            != _DESIGNATED_PRIVATE_OWNER_CONSUMER_WORKFLOW_RUN_ID
+        ):
+            raise BindingError("designated private owner workflow run binding is invalid")
+        if (
+            not isinstance(private_owner_resolver, ModuleType)
+            or getattr(private_owner_resolver, "DESIGNATION_ID", None)
+            != _DESIGNATED_PRIVATE_OWNER_ID
+        ):
+            raise BindingError("designated private owner resolver is invalid")
+
+        reference_type = getattr(
+            private_owner_resolver, "OpaqueSafePrivateBindingReference", None
+        )
+        material_type = getattr(private_owner_resolver, "PrivateBindingMaterial", None)
+        release = getattr(private_owner_resolver, "release_to_public_consumer", None)
+        if (
+            not isinstance(reference_type, type)
+            or not isinstance(material_type, type)
+            or not callable(release)
+            or not isinstance(private_binding_reference, reference_type)
+        ):
+            raise BindingError("designated private owner reference is invalid")
+
+        material = release(private_binding_reference)
+        if (
+            not isinstance(material, material_type)
+            or getattr(material, "designation_id", None) != _DESIGNATED_PRIVATE_OWNER_ID
+        ):
+            raise BindingError("designated private owner binding material is invalid")
+        provider_ids = getattr(material, "provider_ids", None)
+        if (
+            not isinstance(provider_ids, tuple)
+            or len(provider_ids) != 2
+            or not all(isinstance(value, str) and value.strip() for value in provider_ids)
+        ):
+            raise BindingError("designated private owner binding material is invalid")
+        location_id, contact_id = provider_ids
+        source = _issue_source(
+            trusted_origin=_TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS,
+            location_id=location_id,
+            contact_id=contact_id,
+            synthetic_contact_bound=False,
+            private_allowlist_complete=True,
+            relationship_verified=True,
+        )
+        return _issue_capability(
+            trusted_origin=_TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS,
+            location_id=location_id,
+            contact_id=contact_id,
+            consumer_authorization_identity=expected_authorization_identity,
+            consumer_workflow_run_id=expected_workflow_run_id,
+            trusted_binding_source=source,
+        )
+
     def private_at8_binding_lease_state(private_binding_reference: object) -> str:
         """Report lease lifecycle state without granting or spending authority."""
         if not isinstance(private_binding_reference, _OpaqueSafePrivateBindingReference):
@@ -876,6 +971,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
+        consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
         build_bound_contact_get,
         require_issued_verified_capability,
@@ -889,6 +985,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
+    _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,
     _require_issued_verified_capability,

@@ -194,6 +194,7 @@ def _consume_root_owned_private_binding_reference(
     private_binding_reference: object,
     consumer_authorization_identity: str,
     consumer_workflow_run_id: str,
+    private_owner_resolver: object | None = None,
 ) -> note_path._VerifiedContactBindingCapability:
     """Consume a pre-existing opaque private binding reference.
 
@@ -212,11 +213,21 @@ def _consume_root_owned_private_binding_reference(
     expected_consumer_workflow_run_id = note_path._require_identifier(
         "consumer_workflow_run_id", consumer_workflow_run_id
     )
-    verified_capability = note_path._consume_private_at8_binding_lease(
-        private_binding_reference,
-        consumer_authorization_identity=expected_consumer_authorization_identity,
-        consumer_workflow_run_id=expected_consumer_workflow_run_id,
-    )
+    if private_owner_resolver is None:
+        verified_capability = note_path._consume_private_at8_binding_lease(
+            private_binding_reference,
+            consumer_authorization_identity=expected_consumer_authorization_identity,
+            consumer_workflow_run_id=expected_consumer_workflow_run_id,
+        )
+    else:
+        verified_capability = (
+            note_path._consume_designated_private_owner_binding_reference(
+                private_owner_resolver=private_owner_resolver,
+                private_binding_reference=private_binding_reference,
+                consumer_authorization_identity=expected_consumer_authorization_identity,
+                consumer_workflow_run_id=expected_consumer_workflow_run_id,
+            )
+        )
     return _validate_issued_capability(
         verified_capability,
         consumer_authorization_identity=expected_consumer_authorization_identity,
@@ -229,12 +240,14 @@ def assemble_bound_live_note_runtime(
     private_binding_reference: object,
     consumer_authorization_identity: str,
     consumer_workflow_run_id: str,
+    private_owner_resolver: object | None = None,
 ) -> NotePathAdapter:
-    """Assemble only from a consumed private lease and root-owned dependencies."""
+    """Assemble only from a consumed private reference and root-owned dependencies."""
     validated_capability = _consume_root_owned_private_binding_reference(
         private_binding_reference=private_binding_reference,
         consumer_authorization_identity=consumer_authorization_identity,
         consumer_workflow_run_id=consumer_workflow_run_id,
+        private_owner_resolver=private_owner_resolver,
     )
     dependencies = _resolve_root_owned_runtime_dependencies()
     store_ownership = _StoreOwnershipGuard(dependencies.execution_store)
