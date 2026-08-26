@@ -1,0 +1,358 @@
+# NW-008 AT8W30 R3 GET-Contact Execution Proof 002
+
+```text
+UNIT=NW008_AT8W30_R3_GET_CONTACT_EXECUTION_002
+PR_CLASS=execution_proof
+ACTION=ONE_SHOT_GOVERNED_EXECUTION
+
+RESULT=FAIL_CLOSED_PRE_CONSUMPTION
+STOP_CODE=R3_PRECONSUMPTION_READINESS_FAILED
+R3_GATE_COMPLETE=NO
+
+AUTHORIZATION_CONSUMED=NO
+HIGHLEVEL_CALLS=0
+```
+
+---
+
+## 1. Authorization identity
+
+```text
+AUTHORIZATION_ID=
+  nw008-at8w30-r3-get-contact-execution-authorization-002
+
+CONSUMER_AUTHORIZATION_IDENTITY=
+  nw008-at8w30-r3-get-contact-execution-authorization-002
+
+AUTHORIZATION_PR=223
+
+CONSUMER_WORKFLOW_RUN_ID=
+  nw008-at8w30-r3-get-contact-execution-run-002
+
+CONSUMER_WORKFLOW_RUN_ID_STATE=RESERVED_UNUSED
+CONSUMER_WORKFLOW_RUN_ID_CHANGED_DURING_UNIT=NO
+```
+
+The run identity was fixed before any materialization attempt and was never
+changed. It was never bound to a private reference, because no authorized
+private reference was materialized.
+
+---
+
+## 2. PR223 merge reconciliation
+
+```text
+PR223_STATE=MERGED
+
+PR223_REVIEWED_HEAD=
+  d734d49e7eae50ded23aabe6945284a000d7dd0f
+
+PR223_MERGE_COMMIT=
+  f12879a1694c1bfa676db211ac1d8512934ec060
+
+PR223_MERGED_AT=2026-08-26T18:11:46Z
+
+REVIEWED_HEAD_MATCHES_REQUIRED=YES
+MERGE_COMMIT_MATCHES_REQUIRED=YES
+MERGED_AT_MATCHES_REQUIRED=YES
+
+REVIEWED_HEAD_IS_ANCESTOR_OF_MERGE_COMMIT=YES
+MERGE_COMMIT_IS_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+AUTHORIZATION_ARTIFACT_PRESENT_ON_ORIGIN_MAIN=YES
+
+PR223_MERGE_RECONCILIATION=PASS
+```
+
+The authorization activation contract in the merged authorization
+(`GRANT_ACTIVATION=HUMAN_MERGE_TO_MAIN_PLUS_DURABLE_MAIN_RECONCILIATION`) was
+therefore satisfied. The grant was live and available at the start of this unit.
+
+---
+
+## 3. Frozen execution base
+
+```text
+EXECUTION_BASE_SHA=
+  f12879a1694c1bfa676db211ac1d8512934ec060
+
+EXECUTION_BRANCH=
+  exec/nw008-at8w30-r3-get-contact-execution-002
+
+BRANCH_IS_MAIN=NO
+WORKTREE_CLEAN_AT_START=YES
+HEAD_EQUALS_EXECUTION_BASE_SHA=YES
+BRANCHED_FROM_LATER_MAIN_TIP=NO
+
+UNRELATED_WORKTREES_MUTATED=NO
+RESET_CLEAN_STASH_RESTORE_PERFORMED=NO
+```
+
+---
+
+## 4. Non-consuming readiness outcome
+
+All checks below were performed without reading a secret payload, minting a
+token, opening SQLite, assembling the production runtime, calling HighLevel, or
+materializing the authorized private reference.
+
+```text
+MERGED_PUBLIC_RUNTIME_IMPORTABLE=YES
+ASSEMBLY_ENTRY_POINT_PRESENT=YES
+BOUND_GET_CONTACT_ENTRY_POINT_PRESENT=YES
+PRIVATE_OWNER_LEASE_INGRESS_PRESENT=YES
+
+ROOT_OWNED_EXECUTION_STORE_CONFIGURATION_PRESENT=YES
+CONFIGURED_EXISTING_STORE_TARGET_EXISTS=YES
+SQLITE_CREATE_REQUIRED=NO
+
+APPROVED_PRIVATE_OWNER_SOURCE_LOCALLY_RESOLVABLE=YES
+
+REQUIRED_PYTHON_DEPENDENCIES_IMPORTABLE=NO
+SAME_PROCESS_OWNER_TO_PUBLIC_RUNTIME_EXECUTION_POSSIBLE=NO
+CROSS_PROCESS_SERIALIZATION_REQUIRED=NOT_EVALUATED
+
+READINESS_RESULT=FAIL
+```
+
+### 4.1 Readiness failure A — runtime credential dependencies absent
+
+```text
+FAILED_CHECK=REQUIRED_PYTHON_DEPENDENCIES_IMPORTABLE
+FAILURE_CLASS=MODULE_NOT_FOUND
+AFFECTED_CAPABILITY=TARGET_RUNTIME_CREDENTIAL_RESOLUTION_AND_SECRET_ACCESS
+DEPENDENCY_INSTALL_ATTEMPTED=NO
+IMPROVISED_REMEDIATION_ATTEMPTED=NO
+```
+
+The interpreter available to the composition root cannot import the credential
+and secret-access dependencies the merged production composition root requires.
+No dependency installation was attempted, because Section D of the execution
+instruction forbids improvisation after a readiness failure.
+
+### 4.2 Readiness failure B — approved live target cannot cross the merged private-owner ingress
+
+This is the decisive, structural blocker.
+
+```text
+FAILED_CHECK=SAME_PROCESS_OWNER_TO_PUBLIC_RUNTIME_EXECUTION_POSSIBLE
+FAILURE_CLASS=MERGED_INGRESS_TARGET_SHAPE_GATE
+
+ASSEMBLY_BOUNDARY_ACCEPTED_OBJECT=OPAQUE_PRIVATE_BINDING_REFERENCE_ONLY
+FINISHED_CAPABILITY_ACCEPTED_AS_BOUNDARY_SUBSTITUTE=NO
+
+MODULE_LEVEL_OPAQUE_REFERENCE_PRODUCERS_IN_MERGED_RUNTIME=1
+ALL_MERGED_OPAQUE_REFERENCE_PRODUCERS_SYNTHETIC_PREFIX_GATED=YES
+
+APPROVED_TARGET_SATISFIES_MERGED_INGRESS_SHAPE_GATE=NO
+
+NON_GATED_ALTERNATE_INGRESS_AVAILABLE_IN_MERGED_RUNTIME=NO
+NEW_RUNNER_CREATED=NO
+NEW_RUNTIME_IMPLEMENTATION_CREATED=NO
+MERGED_RUNTIME_MODIFIED=NO
+INGRESS_GATE_BYPASS_ATTEMPTED=NO
+PUBLIC_RAW_ID_AUTHORITY_MINTING_ATTEMPTED=NO
+```
+
+The merged public runtime accepts only an opaque private binding reference at
+the production assembly boundary and explicitly rejects a finished capability as
+a boundary substitute. Within the merged runtime there is exactly one
+module-level producer of such a reference, and every producer path routes
+through a private-owner handoff source issuer that enforces a fixed target-shape
+gate. The approved live target does not satisfy that gate.
+
+Consequently the approved private owner cannot materialize an opaque private
+binding reference for the approved live target using only the already-merged
+public runtime. Closing this gap would require a new or modified runtime
+implementation, which Section G of the execution instruction forbids, and which
+is outside the scope of this authorization.
+
+### 4.3 Readiness probe disclosure
+
+```text
+READINESS_PROBE_USED_PRIVATE_VALUES=NO
+READINESS_PROBE_USED_NON_PRIVATE_DUMMY_VALUES_ONLY=YES
+READINESS_PROBE_PROCESS_TERMINATED=YES
+
+AUTHORIZED_PRIVATE_REFERENCE_MATERIALIZED=NO
+PROBE_REFERENCE_BOUND_TO_CONSUMER_AUTHORIZATION_IDENTITY=NO
+PROBE_REFERENCE_BOUND_TO_CONSUMER_WORKFLOW_RUN_ID=NO
+PROBE_REFERENCE_PASSED_TO_PRODUCTION_ASSEMBLY=NO
+
+PROBE_SECRET_READS=0
+PROBE_TOKEN_MINTS=0
+PROBE_SQLITE_OPENS=0
+PROBE_NETWORK_CALLS=0
+```
+
+An ingress shape probe was executed in a throwaway process using non-private
+dummy identifiers only, to establish the ingress gate result empirically rather
+than by code reading alone. It touched no private value, no credential, no
+store, and no network, and it did not approach the authorization consumption
+trigger.
+
+---
+
+## 5. Authorization lifecycle
+
+```text
+AUTHORIZATION_CONSUMPTION_TRIGGER=
+  FIRST_TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTION_ATTEMPT_FOR_R3
+
+AUTHORIZATION_STATE_BEFORE_EXECUTION=AVAILABLE
+CONSUMPTION_TRIGGER_REACHED=NO
+AUTHORIZATION_CONSUMED=NO
+AUTHORIZATION_STATE_AFTER_EXECUTION=AVAILABLE
+
+STOP_OCCURRED_BEFORE_CONSUMPTION_TRIGGER=YES
+ONE_SHOT=YES
+REUSABLE=NO
+TRANSFERABLE=NO
+
+R3_EXECUTION_PERFORMED=NO
+R3_EXECUTION_ATTEMPTS_USED=0
+R3_RETRY_AUTHORIZED=NO
+R3_SECOND_EXECUTION_AUTHORIZED=NO
+```
+
+The unit stopped strictly before the declared consumption trigger. No target
+runtime credential object was constructed, so the one-shot grant was not spent.
+
+---
+
+## 6. Actual effect counters
+
+```text
+PRIVATE_OWNER_REFERENCE_MATERIALIZED=NO
+PRIVATE_REFERENCE_SERIALIZED=NO
+PRIVATE_VALUES_PUBLISHED=NO
+
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS=0
+SERVICE_ACCOUNT_KEY_CREATES=0
+
+SECRET_MANAGER_CLIENT_INSTANTIATIONS=0
+C4_SECRET_READ_ATTEMPTS=0
+B2_SECRET_READ_ATTEMPTS=0
+OTHER_SECRET_READ_ATTEMPTS=0
+SECRET_PAYLOAD_READS=0
+SECRET_LIST_CALLS=0
+SECRET_VERSION_LIST_CALLS=0
+
+SQLITE_CREATES=0
+SQLITE_EXISTING_OPENS=0
+AT1_EXECUTION_STORE_CONSTRUCTIONS=0
+PRODUCTION_RUNTIME_ASSEMBLIES=0
+PRODUCTION_RUNTIME_STARTS=0
+
+HIGHLEVEL_HTTP_CLIENT_INSTANTIATIONS=0
+HIGHLEVEL_TRANSPORT_INSTANTIATIONS=0
+NOTE_PATH_ADAPTER_ASSEMBLIES=0
+
+HIGHLEVEL_CALLS=0
+HTTP_REQUEST_DISPATCHES=0
+GET_CONTACT_ATTEMPTS=0
+
+GET_OPPORTUNITY_ATTEMPTS=0
+SEARCH_CALLS=0
+LIST_CALLS=0
+PAGINATION_CALLS=0
+RETRY_COUNT=0
+
+NOTE_WRITES=0
+STAGE_TRANSITIONS=0
+CRM_MUTATIONS=0
+EXECUTION_CLAIMS=0
+ATTEMPT_RECORDS=0
+PROTOCOL_LEDGER_EVENT_WRITES=0
+BUSINESS_LEDGER_EVENT_WRITES=0
+IAM_MUTATIONS=0
+DEPLOYMENTS=0
+
+FINAL_STORE_CLOSE_EVENTS=0
+STORE_OWNERSHIP_TRANSFERRED=NO
+COMPENSATING_CRM_OPERATIONS=0
+```
+
+Every budgeted ceiling in the merged authorization was respected. No ceiling was
+approached, because the unit stopped during non-consuming readiness.
+
+---
+
+## 7. Readback booleans
+
+```text
+GET_CONTACT_RESPONSE_RECEIVED=NO
+CONTACT_ID_MATCH=NOT_EVALUATED
+LOCATION_ID_MATCH=NOT_EVALUATED
+PAYLOAD_MINIMIZED_TO_ID_AND_LOCATION_ID=NOT_EVALUATED
+```
+
+No response was received, so no readback comparison was possible.
+
+---
+
+## 8. Privacy and non-publication assertions
+
+```text
+PRIVATE_IDENTIFIER_PUBLICATION=NO
+PRIVATE_CONTACT_ID_PUBLICATION=NO
+PRIVATE_LOCATION_ID_PUBLICATION=NO
+PRIVATE_OWNER_LOCATOR_PUBLICATION=NO
+PRIVATE_OWNER_IMPLEMENTATION_PATH_PUBLICATION=NO
+SOURCE_PRINCIPAL_PUBLICATION=NO
+SECRET_RESOURCE_PAYLOAD_PUBLICATION=NO
+SECRET_PAYLOAD_PUBLICATION=NO
+TOKEN_PUBLICATION=NO
+OPAQUE_REFERENCE_INTERNALS_PUBLICATION=NO
+RAW_PROVIDER_RESPONSE_PUBLICATION=NO
+FULL_PAYLOAD_PUBLISHED=NO
+
+PRIVATE_VALUES_HASHED_OR_TRANSFORMED_INTO_THIS_ARTIFACT=NO
+PRIVATE_VALUES_COMMITTED=NO
+```
+
+---
+
+## 9. Final result
+
+```text
+RESULT=FAIL_CLOSED_PRE_CONSUMPTION
+STOP_CODE=R3_PRECONSUMPTION_READINESS_FAILED
+R3_GATE_COMPLETE=NO
+
+AUTHORIZATION_CONSUMED=NO
+AUTHORIZATION_STATE_AFTER_EXECUTION=AVAILABLE
+
+R3_RETRY_AUTHORIZED=NO
+R3_SECOND_EXECUTION_AUTHORIZED=NO
+R4_AUTHORIZED=NO
+R3_SUCCESS_AUTHORIZES_R4=NO
+R3_SUCCESS_AUTHORIZES_NOTE_WRITE=NO
+R3_SUCCESS_AUTHORIZES_STAGE_TRANSITION=NO
+```
+
+No further execution attempt was made after the readiness failure. No alternate
+binding, alternate target, alternate operation, alternate runtime path, source
+change, repair, second preflight, or retry was attempted.
+
+---
+
+## 10. Disposition for independent review
+
+The PR223 merge reconciliation passed and the grant was genuinely live. The unit
+nonetheless could not perform the authorized GET-contact using only the merged
+public runtime and the approved private owner mechanism, because the merged
+private-owner ingress admits only a fixed target shape that the approved live
+target does not satisfy, and no unmerged runtime change is permitted under this
+authorization.
+
+The one-shot R3 grant remains unconsumed and available. Reviewers should decide
+whether to (a) authorize a scoped implementation lane that provides a merged
+private-owner ingress path for the approved live target, or (b) re-scope the R3
+target. Neither is authorized by this artifact.
+
+```text
+NEXT_ACTION_AUTHORIZED_BY_THIS_ARTIFACT=NONE
+```
