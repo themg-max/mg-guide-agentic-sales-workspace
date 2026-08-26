@@ -31,6 +31,15 @@ _SEALED_LIVE_NOTE_REST_RESOURCE_NAME = (
     "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
 )
 _ROOT_OWNED_DB_CONFIG_KEY = "MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH"
+_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_MODULE_KEY = (
+    "MG_GUIDE_NW008_PRIVATE_AUTHORITY_CONSUMER_MODULE"
+)
+_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_CALLABLE_KEY = (
+    "MG_GUIDE_NW008_PRIVATE_AUTHORITY_CONSUMER_CALLABLE"
+)
+_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_IDENTITY = (
+    "NW008_AT8W30_R3_PRIVATE_AUTHORITY_CONSUMER_AND_PR217_CORRECTION_IMPLEMENTATION_001"
+)
 _TARGET_RUNTIME_SERVICE_ACCOUNT = (
     "mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
 )
@@ -171,27 +180,87 @@ def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDepen
 
 def _validate_issued_capability(
     verified_capability: object,
+    *,
+    consumer_authorization_identity: str | None = None,
+    consumer_workflow_run_id: str | None = None,
 ) -> note_path._VerifiedContactBindingCapability:
     """Validate only the submitted capability before any adapter construction."""
+    expected_consumer_authorization_identity = (
+        getattr(verified_capability, "consumer_authorization_identity", None)
+        if consumer_authorization_identity is None
+        else consumer_authorization_identity
+    )
+    expected_consumer_workflow_run_id = (
+        getattr(verified_capability, "consumer_workflow_run_id", None)
+        if consumer_workflow_run_id is None
+        else consumer_workflow_run_id
+    )
     return note_path._require_issued_verified_capability(
         verified_capability,
         location_id=getattr(verified_capability, "location_id", None),
         contact_id=getattr(verified_capability, "contact_id", None),
-        consumer_authorization_identity=getattr(
-            verified_capability, "consumer_authorization_identity", None
-        ),
-        consumer_workflow_run_id=getattr(
-            verified_capability, "consumer_workflow_run_id", None
-        ),
+        consumer_authorization_identity=expected_consumer_authorization_identity,
+        consumer_workflow_run_id=expected_consumer_workflow_run_id,
+    )
+
+
+def _resolve_root_owned_private_authority_consumer() -> Any:
+    """Resolve the root-owned same-process authority consumer entrypoint."""
+    os_module = importlib.import_module("os")
+    module_name = os_module.environ.get(_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_MODULE_KEY)
+    callable_name = os_module.environ.get(
+        _ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_CALLABLE_KEY
+    )
+    if (
+        not isinstance(module_name, str)
+        or not module_name.strip()
+        or not isinstance(callable_name, str)
+        or not callable_name.strip()
+    ):
+        raise LiveNoteRuntimeAssemblyError(
+            "production live-note runtime assembly requires root-owned private authority consumer"
+        )
+    try:
+        consumer_module = importlib.import_module(module_name)
+    except ModuleNotFoundError as exc:  # pragma: no cover - optional offline dependency
+        raise LiveNoteRuntimeAssemblyError(
+            "production live-note runtime assembly requires root-owned private authority consumer"
+        ) from exc
+    consumer = getattr(consumer_module, callable_name, None)
+    if not callable(consumer):
+        raise LiveNoteRuntimeAssemblyError(
+            "production live-note runtime assembly requires root-owned private authority consumer"
+        )
+    return consumer
+
+
+def _resolve_root_owned_verified_capability(
+    *, consumer_workflow_run_id: str
+) -> note_path._VerifiedContactBindingCapability:
+    """Issue and validate capability only through the root-owned authority consumer."""
+    validated_consumer_workflow_run_id = note_path._require_identifier(
+        "consumer_workflow_run_id", consumer_workflow_run_id
+    )
+    consumer = _resolve_root_owned_private_authority_consumer()
+    verified_capability = consumer(
+        consumer_authorization_identity=_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_IDENTITY,
+        consumer_workflow_run_id=validated_consumer_workflow_run_id,
+    )
+    return _validate_issued_capability(
+        verified_capability,
+        consumer_authorization_identity=_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_IDENTITY,
+        consumer_workflow_run_id=validated_consumer_workflow_run_id,
     )
 
 
 def assemble_bound_live_note_runtime(
     *,
-    verified_capability: object,
+    consumer_workflow_run_id: str,
 ) -> NotePathAdapter:
     """Assemble only from validated capability and root-owned dependencies."""
-    validated_capability = _validate_issued_capability(verified_capability)
+    validated_capability = _resolve_root_owned_verified_capability(
+        consumer_workflow_run_id=consumer_workflow_run_id
+    )
     dependencies = _resolve_root_owned_runtime_dependencies()
     store_ownership = _StoreOwnershipGuard(dependencies.execution_store)
     try:

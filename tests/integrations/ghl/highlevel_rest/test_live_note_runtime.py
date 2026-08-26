@@ -23,9 +23,7 @@ from integrations.ghl.highlevel_rest.note_path import BindingError
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SOURCE_ROOT = REPO_ROOT / "src" / "integrations" / "ghl" / "highlevel_rest"
-CONSUMER_IDENTITY = (
-    "NW008_AT8L_GHL_REST_LIVE_NOTE_RUNTIME_CONSTRUCTION_PATH_IMPLEMENTATION_001"
-)
+CONSUMER_IDENTITY = runtime._ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_IDENTITY
 _VERSION_RESOURCE = "projects/synthetic-project/secrets/at1-commitment-key/versions/1"
 
 
@@ -60,21 +58,35 @@ def _issued_capability(
     )
 
 
-def _root_owned_private_delivery_capability(
+def _root_owned_runtime_capability(
     *,
     consumer_workflow_run_id: str = "synthetic-workflow-run-root-owned-runtime-001",
 ):
-    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-    )
-    reference = note_path_module._register_root_owned_private_binding_delivery_reference(
-        trusted_binding_source=trusted_binding_source
-    )
-    return note_path_module._issue_root_owned_private_binding_delivery_capability(
-        safe_private_delivery_reference=reference,
+    return _issued_capability(
         consumer_authorization_identity=CONSUMER_IDENTITY,
         consumer_workflow_run_id=consumer_workflow_run_id,
+    )
+
+
+def _install_root_owned_private_authority_consumer(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    capability: object,
+    calls: list[tuple[str, str]] | None = None,
+) -> None:
+    def _consumer(
+        *, consumer_authorization_identity: str, consumer_workflow_run_id: str
+    ) -> object:
+        if calls is not None:
+            calls.append(
+                (consumer_authorization_identity, consumer_workflow_run_id)
+            )
+        return capability
+
+    monkeypatch.setattr(
+        runtime,
+        "_resolve_root_owned_private_authority_consumer",
+        lambda: _consumer,
     )
 
 
@@ -91,11 +103,11 @@ def _synthetic_accessor() -> SyntheticLiveNoteSecretAccessor:
 def test_public_assembler_accepts_only_verified_capability() -> None:
     signature = inspect.signature(assemble_bound_live_note_runtime)
 
-    assert tuple(signature.parameters) == ("verified_capability",)
-    assert signature.parameters["verified_capability"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert tuple(signature.parameters) == ("consumer_workflow_run_id",)
+    assert signature.parameters["consumer_workflow_run_id"].kind is inspect.Parameter.KEYWORD_ONLY
 
-    capability = _issued_capability()
     for forbidden_name in (
+        "verified_capability",
         "contact_id",
         "location_id",
         "resource_name",
@@ -113,25 +125,46 @@ def test_public_assembler_accepts_only_verified_capability() -> None:
     ):
         with pytest.raises(TypeError):
             assemble_bound_live_note_runtime(
-                verified_capability=capability,
+                consumer_workflow_run_id="synthetic-workflow-run-public-signature-001",
                 **{forbidden_name: "caller-override"},
             )
 
 
 def test_public_assembler_requires_process_issued_capability() -> None:
-    with pytest.raises(BindingError):
-        assemble_bound_live_note_runtime(verified_capability=None)
+    with pytest.raises(
+        runtime.LiveNoteRuntimeAssemblyError, match="root-owned private authority consumer"
+    ):
+        assemble_bound_live_note_runtime(
+            consumer_workflow_run_id="synthetic-workflow-run-missing-consumer-001"
+        )
 
-    forged_capability = _issued_capability()
+    forged_capability = _root_owned_runtime_capability(
+        consumer_workflow_run_id="synthetic-workflow-run-forged-consumer-001"
+    )
     object.__setattr__(forged_capability, "contact_id", "forged-contact-001")
+    monkeypatch = pytest.MonkeyPatch()
+    _install_root_owned_private_authority_consumer(
+        monkeypatch,
+        capability=forged_capability,
+    )
     with pytest.raises(BindingError):
-        assemble_bound_live_note_runtime(verified_capability=forged_capability)
+        assemble_bound_live_note_runtime(
+            consumer_workflow_run_id="synthetic-workflow-run-forged-consumer-001"
+        )
+    monkeypatch.undo()
 
 
 def test_public_assembler_uses_existing_validator_before_fail_closed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capability = _issued_capability()
+    workflow_run_id = "synthetic-workflow-run-runtime-validator-001"
+    capability = _root_owned_runtime_capability(consumer_workflow_run_id=workflow_run_id)
+    consumer_calls: list[tuple[str, str]] = []
+    _install_root_owned_private_authority_consumer(
+        monkeypatch,
+        capability=capability,
+        calls=consumer_calls,
+    )
     validator_calls: list[tuple[object, dict[str, object]]] = []
 
     def _validator(submitted: object, **kwargs: object) -> object:
@@ -143,7 +176,9 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
     with pytest.raises(
         runtime.LiveNoteRuntimeAssemblyError, match="root-owned dependencies"
     ):
-        assemble_bound_live_note_runtime(verified_capability=capability)
+        assemble_bound_live_note_runtime(consumer_workflow_run_id=workflow_run_id)
+
+    assert consumer_calls == [(CONSUMER_IDENTITY, workflow_run_id)]
 
     assert validator_calls == [
         (
@@ -151,10 +186,8 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
             {
                 "location_id": capability.location_id,
                 "contact_id": capability.contact_id,
-                "consumer_authorization_identity": (
-                    capability.consumer_authorization_identity
-                ),
-                "consumer_workflow_run_id": capability.consumer_workflow_run_id,
+                "consumer_authorization_identity": CONSUMER_IDENTITY,
+                "consumer_workflow_run_id": workflow_run_id,
             },
         )
     ]
@@ -163,7 +196,12 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
 def test_missing_root_owned_config_fails_closed_before_runtime_construction(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capability = _issued_capability()
+    _install_root_owned_private_authority_consumer(
+        monkeypatch,
+        capability=_root_owned_runtime_capability(
+            consumer_workflow_run_id="synthetic-workflow-run-missing-config-001"
+        ),
+    )
 
     def _unexpected_construction(*args: object, **kwargs: object) -> None:
         raise AssertionError("missing root-owned configuration must stop assembly")
@@ -176,7 +214,36 @@ def test_missing_root_owned_config_fails_closed_before_runtime_construction(
     with pytest.raises(
         runtime.LiveNoteRuntimeAssemblyError, match="root-owned dependencies"
     ):
-        assemble_bound_live_note_runtime(verified_capability=capability)
+        assemble_bound_live_note_runtime(
+            consumer_workflow_run_id="synthetic-workflow-run-missing-config-001"
+        )
+
+
+def test_root_owned_private_authority_consumer_resolves_from_process_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def consumer(**kwargs: object) -> object:
+        return kwargs
+
+    fake_module = types.SimpleNamespace(private_consumer=consumer)
+    real_import_module = runtime.importlib.import_module
+
+    def _import_module(name: str, package: str | None = None) -> object:
+        if name == "synthetic.root_owned.consumer":
+            return fake_module
+        return real_import_module(name, package)
+
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_MODULE_KEY,
+        "synthetic.root_owned.consumer",
+    )
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_CALLABLE_KEY,
+        "private_consumer",
+    )
+    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
+
+    assert runtime._resolve_root_owned_private_authority_consumer() is consumer
 
 
 def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
@@ -409,10 +476,16 @@ def test_root_owned_store_closes_after_each_pre_return_failure(
     monkeypatch.setattr(runtime, "ConcreteLiveNoteHttpClient", _http_client)
     monkeypatch.setattr(runtime, "BoundedLiveNoteTransport", _transport)
     monkeypatch.setattr(runtime, "NotePathAdapter", _Adapter)
+    _install_root_owned_private_authority_consumer(
+        monkeypatch,
+        capability=_root_owned_runtime_capability(
+            consumer_workflow_run_id="synthetic-workflow-run-store-close-001"
+        ),
+    )
 
     with pytest.raises(RuntimeError, match="synthetic"):
         assemble_bound_live_note_runtime(
-            verified_capability=_root_owned_private_delivery_capability()
+            consumer_workflow_run_id="synthetic-workflow-run-store-close-001"
         )
 
     assert store._connection.close_events == 1
@@ -459,9 +532,15 @@ def test_root_owned_store_transfers_only_after_successful_adapter_return(
     monkeypatch.setattr(runtime, "ConcreteLiveNoteHttpClient", _http_client)
     monkeypatch.setattr(runtime, "BoundedLiveNoteTransport", _transport)
     monkeypatch.setattr(runtime, "NotePathAdapter", _Adapter)
+    _install_root_owned_private_authority_consumer(
+        monkeypatch,
+        capability=_root_owned_runtime_capability(
+            consumer_workflow_run_id="synthetic-workflow-run-store-success-001"
+        ),
+    )
 
     adapter = assemble_bound_live_note_runtime(
-        verified_capability=_root_owned_private_delivery_capability()
+        consumer_workflow_run_id="synthetic-workflow-run-store-success-001"
     )
 
     assert adapter.execution_store is store
@@ -491,9 +570,15 @@ def test_public_assembler_uses_only_root_owned_dependencies(
         "_resolve_root_owned_runtime_dependencies",
         lambda: dependencies,
     )
+    _install_root_owned_private_authority_consumer(
+        monkeypatch,
+        capability=_root_owned_runtime_capability(
+            consumer_workflow_run_id="synthetic-workflow-run-root-owned-deps-001"
+        ),
+    )
 
     adapter = assemble_bound_live_note_runtime(
-        verified_capability=_root_owned_private_delivery_capability()
+        consumer_workflow_run_id="synthetic-workflow-run-root-owned-deps-001"
     )
     transport = adapter._transport
 
@@ -659,8 +744,11 @@ def test_runtime_never_remints_capabilities_or_accepts_caller_overrides() -> Non
     assert "_issue_bound_contact_capability" not in source
     assert "_issue_synthetic_test_capability" not in source
     assert "_handoff_private_at8_verified_binding_capability" not in source
+    assert "_resolve_root_owned_private_authority_consumer" in source
     assert "At1ExecutionStore(" not in public_source
     assert "_resolve_root_owned_runtime_dependencies" in public_source
+    assert "_resolve_root_owned_verified_capability" in public_source
+    assert "verified_capability:" not in public_source
 
 
 def test_frozen_blocked_module_boundaries_remain_intact() -> None:

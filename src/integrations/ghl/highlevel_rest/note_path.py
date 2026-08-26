@@ -164,34 +164,6 @@ class _VerifiedContactBindingCapability:
 
 
 @dataclass(frozen=True)
-class _RootOwnedPrivateBindingDeliveryReference:
-    """Opaque process-local handle for an already-registered private source."""
-
-    _trust_marker: object
-
-
-@dataclass(frozen=True)
-class _RootOwnedPrivateProvenanceAttestation:
-    """Opaque process-local handle for pre-existing root-owned private provenance."""
-
-    _trust_marker: object
-
-
-@dataclass(frozen=True)
-class _RootOwnedPrivateProvenanceSnapshot:
-    """Immutable root-owned private provenance assertions bound to opaque IDs."""
-
-    workflow_id: str
-    source_execution_unit: str
-    source_proof_merge_sha: str
-    location_id: str
-    contact_id: str
-    synthetic_contact_bound: bool
-    private_allowlist_complete: bool
-    relationship_verified: bool
-
-
-@dataclass(frozen=True)
 class _SourceIssuanceSnapshot:
     workflow_id: str
     source_execution_unit: str
@@ -280,11 +252,6 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     issued_sources = _IdentityRegistry()
     issued_capabilities = _IdentityRegistry()
     verified_bound_contact_gets = _IdentityRegistry()
-    root_owned_delivery_references = _IdentityRegistry()
-    root_owned_delivery_marker = object()
-    root_owned_private_provenance_attestations = _IdentityRegistry()
-    root_owned_private_provenance_marker = object()
-
     def _issue_source(
         *,
         trusted_origin: str,
@@ -503,92 +470,6 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             relationship_verified=True,
         )
 
-    def seal_root_owned_private_provenance_attestation(
-        *,
-        location_id: str,
-        contact_id: str,
-        workflow_id: str = _WORKFLOW_ID,
-        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
-        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
-    ) -> _RootOwnedPrivateProvenanceAttestation:
-        """Seal pre-existing root-owned private provenance for opaque IDs.
-
-        This is not a trusted-source issuer. Ordinary callers cannot mint trust
-        from raw IDs alone; they must later present this unforgeable handle.
-        Provenance assertions are root-owned and not caller-supplied.
-        """
-        _require_at8_provenance(
-            workflow_id=workflow_id,
-            source_execution_unit=source_execution_unit,
-            source_proof_merge_sha=source_proof_merge_sha,
-        )
-        attestation = _RootOwnedPrivateProvenanceAttestation(
-            _trust_marker=root_owned_private_provenance_marker
-        )
-        root_owned_private_provenance_attestations.add(
-            attestation,
-            _RootOwnedPrivateProvenanceSnapshot(
-                workflow_id=_WORKFLOW_ID,
-                source_execution_unit=_AT8_SOURCE_EXECUTION_UNIT,
-                source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
-                location_id=_require_identifier("location_id", location_id),
-                contact_id=_require_identifier("contact_id", contact_id),
-                synthetic_contact_bound=True,
-                private_allowlist_complete=True,
-                relationship_verified=True,
-            ),
-        )
-        return attestation
-
-    def issue_private_at8_handoff_source_from_root_owned_private_provenance(
-        *,
-        root_owned_private_provenance_attestation: object,
-    ) -> _TrustedPrivateBindingSource:
-        """Issue only from a pre-existing root-owned unforgeable provenance handle.
-
-        Raw opaque IDs, known AT8 constants, caller booleans, plain dicts, and
-        dataclass construction cannot mint trust through this seam.
-        """
-        if (
-            not isinstance(
-                root_owned_private_provenance_attestation,
-                _RootOwnedPrivateProvenanceAttestation,
-            )
-            or root_owned_private_provenance_attestation._trust_marker
-            is not root_owned_private_provenance_marker
-        ):
-            raise BindingError(
-                "verified-contact capability trusted binding source is invalid"
-            )
-        snapshot = root_owned_private_provenance_attestations.get(
-            root_owned_private_provenance_attestation
-        )
-        if not isinstance(snapshot, _RootOwnedPrivateProvenanceSnapshot):
-            raise BindingError(
-                "verified-contact capability trusted binding source is invalid"
-            )
-        _require_at8_provenance(
-            workflow_id=snapshot.workflow_id,
-            source_execution_unit=snapshot.source_execution_unit,
-            source_proof_merge_sha=snapshot.source_proof_merge_sha,
-        )
-        if (
-            not snapshot.synthetic_contact_bound
-            or not snapshot.private_allowlist_complete
-            or not snapshot.relationship_verified
-        ):
-            raise BindingError(
-                "verified-contact capability trusted binding source is invalid"
-            )
-        return _issue_source(
-            trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
-            location_id=snapshot.location_id,
-            contact_id=snapshot.contact_id,
-            synthetic_contact_bound=snapshot.synthetic_contact_bound,
-            private_allowlist_complete=snapshot.private_allowlist_complete,
-            relationship_verified=snapshot.relationship_verified,
-        )
-
     def _require_private_at8_handoff_source(
         trusted_binding_source: object,
     ) -> _TrustedPrivateBindingSource:
@@ -669,47 +550,6 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
                 "consumer_workflow_run_id", consumer_workflow_run_id
             ),
             trusted_binding_source=trusted_binding_source,
-        )
-
-    def register_root_owned_private_binding_delivery_reference(
-        *,
-        trusted_binding_source: object,
-    ) -> _RootOwnedPrivateBindingDeliveryReference:
-        """Seal an already-registered private handoff source into an opaque handle."""
-        trusted_binding_source = _require_private_at8_handoff_source(
-            trusted_binding_source
-        )
-        reference = _RootOwnedPrivateBindingDeliveryReference(
-            _trust_marker=root_owned_delivery_marker
-        )
-        root_owned_delivery_references.add(reference, trusted_binding_source)
-        return reference
-
-    def issue_root_owned_private_binding_delivery_capability(
-        *,
-        safe_private_delivery_reference: object,
-        consumer_authorization_identity: str,
-        consumer_workflow_run_id: str,
-    ) -> _VerifiedContactBindingCapability:
-        """Issue only from an opaque reference registered by the root-owned seam."""
-        if (
-            not isinstance(
-                safe_private_delivery_reference,
-                _RootOwnedPrivateBindingDeliveryReference,
-            )
-            or safe_private_delivery_reference._trust_marker
-            is not root_owned_delivery_marker
-        ):
-            raise BindingError("root-owned private binding delivery is unavailable")
-        trusted_binding_source = root_owned_delivery_references.get(
-            safe_private_delivery_reference
-        )
-        if not isinstance(trusted_binding_source, _TrustedPrivateBindingSource):
-            raise BindingError("root-owned private binding delivery is unavailable")
-        return handoff_private_at8_capability_from_registered_source(
-            trusted_binding_source=trusted_binding_source,
-            consumer_authorization_identity=consumer_authorization_identity,
-            consumer_workflow_run_id=consumer_workflow_run_id,
         )
 
     def require_issued_verified_capability(
@@ -818,11 +658,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         issue_bound_contact_capability,
         issue_synthetic_test_capability,
         issue_private_at8_handoff_source_for_synthetic_tests,
-        seal_root_owned_private_provenance_attestation,
-        issue_private_at8_handoff_source_from_root_owned_private_provenance,
         handoff_private_at8_capability_from_registered_source,
-        register_root_owned_private_binding_delivery_reference,
-        issue_root_owned_private_binding_delivery_capability,
         build_bound_contact_get,
         require_issued_verified_capability,
     )
@@ -832,11 +668,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _issue_bound_contact_capability,
     _issue_synthetic_test_capability,
     _issue_private_at8_handoff_source_for_synthetic_tests,
-    _seal_root_owned_private_provenance_attestation,
-    _issue_private_at8_handoff_source_from_root_owned_private_provenance,
     _handoff_private_at8_capability_from_registered_source,
-    _register_root_owned_private_binding_delivery_reference,
-    _issue_root_owned_private_binding_delivery_capability,
     _build_bound_contact_get,
     _require_issued_verified_capability,
 ) = _build_internal_trust_issuer()
