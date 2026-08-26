@@ -100,6 +100,21 @@ def _root_owned_private_delivery_reference() -> object:
     )
 
 
+def _root_owned_private_provenance_source(
+    *,
+    location_id: str = "opaque-fixture-location-001",
+    contact_id: str = "opaque-fixture-contact-001",
+    source_execution_unit: str = AT8_SOURCE_EXECUTION_UNIT,
+    source_proof_merge_sha: str = AT8_SOURCE_PROOF_MERGE_SHA,
+) -> note_path_module._TrustedPrivateBindingSource:
+    return note_path_module._issue_private_at8_handoff_source_from_root_owned_private_provenance(
+        location_id=location_id,
+        contact_id=contact_id,
+        source_execution_unit=source_execution_unit,
+        source_proof_merge_sha=source_proof_merge_sha,
+    )
+
+
 class _UntrustedStructuralBindingSource:
     def get_trusted_binding_source(self) -> note_path_module._TrustedPrivateBindingSource:
         return note_path_module._TrustedPrivateBindingSource(
@@ -108,6 +123,9 @@ class _UntrustedStructuralBindingSource:
             source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
+            synthetic_contact_bound=True,
+            private_allowlist_complete=True,
+            relationship_verified=True,
             trusted_origin="private_at8_verified_binding_handoff",
             _trust_marker=object(),
         )
@@ -207,6 +225,116 @@ def test_root_owned_private_delivery_reference_issues_capability() -> None:
         "private_at8_verified_binding_handoff"
     )
     assert transport.calls == []
+
+
+def test_opaque_ids_without_trusted_provenance_fail_closed() -> None:
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._handoff_private_at8_verified_binding_capability(
+            trusted_binding_source=note_path_module._TrustedPrivateBindingSource(
+                workflow_id="meeting_follow_up_v1",
+                source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+                source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+                location_id="opaque-fixture-location-without-provenance-001",
+                contact_id="opaque-fixture-contact-without-provenance-001",
+                synthetic_contact_bound=True,
+                private_allowlist_complete=True,
+                relationship_verified=True,
+                trusted_origin="private_at8_verified_binding_handoff",
+                _trust_marker=object(),
+            ),
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-opaque-untrusted-001",
+            workflow_id="meeting_follow_up_v1",
+        )
+
+
+def test_opaque_ids_with_valid_root_owned_private_provenance_pass() -> None:
+    workflow_run_id = "synthetic-workflow-run-opaque-root-owned-001"
+    trusted_binding_source = _root_owned_private_provenance_source()
+    reference = note_path_module._register_root_owned_private_binding_delivery_reference(
+        trusted_binding_source=trusted_binding_source
+    )
+    capability = note_path_module._issue_root_owned_private_binding_delivery_capability(
+        safe_private_delivery_reference=reference,
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+    transport = DeterministicFakeTransport(deepcopy(FIXTURE), "note_create_success")
+    adapter = NotePathAdapter(
+        location_id="opaque-fixture-location-001",
+        contact_id="opaque-fixture-contact-001",
+        transport=transport,
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+    adapter._verified_contact_binding_capability = capability
+
+    assert capability.location_id == "opaque-fixture-location-001"
+    assert capability.contact_id == "opaque-fixture-contact-001"
+    assert capability.trusted_binding_source.synthetic_contact_bound is True
+    assert capability.trusted_binding_source.private_allowlist_complete is True
+    assert capability.trusted_binding_source.relationship_verified is True
+    assert adapter._require_trusted_verified_capability() is capability
+    assert transport.calls == []
+
+
+def test_opaque_ids_with_synthetic_false_fail_closed() -> None:
+    trusted_binding_source = _root_owned_private_provenance_source(
+        location_id="opaque-fixture-location-synthetic-false-001",
+        contact_id="opaque-fixture-contact-synthetic-false-001",
+    )
+    object.__setattr__(trusted_binding_source, "synthetic_contact_bound", False)
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._register_root_owned_private_binding_delivery_reference(
+            trusted_binding_source=trusted_binding_source
+        )
+
+
+def test_opaque_ids_with_allowlist_complete_false_fail_closed() -> None:
+    trusted_binding_source = _root_owned_private_provenance_source(
+        location_id="opaque-fixture-location-allowlist-false-001",
+        contact_id="opaque-fixture-contact-allowlist-false-001",
+    )
+    object.__setattr__(trusted_binding_source, "private_allowlist_complete", False)
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._register_root_owned_private_binding_delivery_reference(
+            trusted_binding_source=trusted_binding_source
+        )
+
+
+def test_opaque_ids_with_relationship_verified_false_fail_closed() -> None:
+    trusted_binding_source = _root_owned_private_provenance_source(
+        location_id="opaque-fixture-location-relationship-false-001",
+        contact_id="opaque-fixture-contact-relationship-false-001",
+    )
+    object.__setattr__(trusted_binding_source, "relationship_verified", False)
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._register_root_owned_private_binding_delivery_reference(
+            trusted_binding_source=trusted_binding_source
+        )
+
+
+def test_opaque_private_provenance_wrong_source_execution_unit_fails_closed() -> None:
+    with pytest.raises(BindingError, match="source execution unit is invalid"):
+        _root_owned_private_provenance_source(
+            location_id="opaque-fixture-location-wrong-unit-001",
+            contact_id="opaque-fixture-contact-wrong-unit-001",
+            source_execution_unit="NW008_WRONG_EXECUTION_UNIT",
+        )
+
+
+def test_opaque_private_provenance_wrong_source_proof_fails_closed() -> None:
+    with pytest.raises(BindingError, match="source proof is invalid"):
+        _root_owned_private_provenance_source(
+            location_id="opaque-fixture-location-wrong-proof-001",
+            contact_id="opaque-fixture-contact-wrong-proof-001",
+            source_proof_merge_sha="0" * 40,
+        )
 
 
 @pytest.mark.parametrize(
@@ -309,6 +437,9 @@ def test_known_at8_strings_alone_cannot_mint() -> None:
             source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
+            synthetic_contact_bound=True,
+            private_allowlist_complete=True,
+            relationship_verified=True,
             trusted_origin="private_at8_verified_binding_handoff",
             _trust_marker=object(),
         ),
@@ -533,6 +664,9 @@ def test_caller_forged_capability_blocks() -> None:
             source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
             location_id="synthetic-location-001",
             contact_id="synthetic-contact-001",
+            synthetic_contact_bound=True,
+            private_allowlist_complete=True,
+            relationship_verified=True,
             trusted_origin="private_at8_verified_binding_handoff",
             _trust_marker=object(),
         ),

@@ -87,6 +87,12 @@ def _require_identifier(name: str, value: object) -> str:
     return value
 
 
+def _require_boolean(name: str, value: object) -> bool:
+    if not isinstance(value, bool):
+        raise BindingError(f"{name} must be a boolean")
+    return value
+
+
 class _FixtureTransport(Protocol):
     def dispatch(
         self, method: str, path: str, body: Mapping[str, Any] | None = None
@@ -139,6 +145,9 @@ class _TrustedPrivateBindingSource:
     contact_id: str
     trusted_origin: str
     _trust_marker: object
+    synthetic_contact_bound: bool = True
+    private_allowlist_complete: bool = True
+    relationship_verified: bool = True
 
 
 @dataclass(frozen=True)
@@ -168,6 +177,9 @@ class _SourceIssuanceSnapshot:
     source_proof_merge_sha: str
     location_id: str
     contact_id: str
+    synthetic_contact_bound: bool
+    private_allowlist_complete: bool
+    relationship_verified: bool
     trusted_origin: str
     trust_marker: object
 
@@ -231,7 +243,7 @@ def _require_at8_provenance(
         raise BindingError("verified-contact capability source proof is invalid")
 
 
-def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
+def _build_internal_trust_issuer() -> tuple[Any, ...]:
     """Create origin-isolated issuers that own non-exported trust markers."""
 
     source_markers = {
@@ -255,6 +267,9 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
         trusted_origin: str,
         location_id: str,
         contact_id: str,
+        synthetic_contact_bound: bool,
+        private_allowlist_complete: bool,
+        relationship_verified: bool,
     ) -> _TrustedPrivateBindingSource:
         source = _TrustedPrivateBindingSource(
             workflow_id=_WORKFLOW_ID,
@@ -262,6 +277,15 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             source_proof_merge_sha=_AT8_SOURCE_PROOF_MERGE_SHA,
             location_id=_require_identifier("location_id", location_id),
             contact_id=_require_identifier("contact_id", contact_id),
+            synthetic_contact_bound=_require_boolean(
+                "synthetic_contact_bound", synthetic_contact_bound
+            ),
+            private_allowlist_complete=_require_boolean(
+                "private_allowlist_complete", private_allowlist_complete
+            ),
+            relationship_verified=_require_boolean(
+                "relationship_verified", relationship_verified
+            ),
             trusted_origin=trusted_origin,
             _trust_marker=source_markers[trusted_origin],
         )
@@ -273,6 +297,9 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
                 source_proof_merge_sha=source.source_proof_merge_sha,
                 location_id=source.location_id,
                 contact_id=source.contact_id,
+                synthetic_contact_bound=source.synthetic_contact_bound,
+                private_allowlist_complete=source.private_allowlist_complete,
+                relationship_verified=source.relationship_verified,
                 trusted_origin=source.trusted_origin,
                 trust_marker=source._trust_marker,
             ),
@@ -344,6 +371,9 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             trusted_origin=_TRUSTED_SOURCE_BOUND_CONTACT,
             location_id=verification_snapshot.location_id,
             contact_id=verification_snapshot.contact_id,
+            synthetic_contact_bound=True,
+            private_allowlist_complete=True,
+            relationship_verified=True,
         )
         return _issue_capability(
             trusted_origin=_TRUSTED_SOURCE_BOUND_CONTACT,
@@ -409,6 +439,9 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             trusted_origin=_TRUSTED_SOURCE_AT8_SHAPED_TEST,
             location_id=location_id,
             contact_id=contact_id,
+            synthetic_contact_bound=True,
+            private_allowlist_complete=True,
+            relationship_verified=True,
         )
         return _issue_capability(
             trusted_origin=_TRUSTED_SOURCE_AT8_SHAPED_TEST,
@@ -442,6 +475,32 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
             location_id=location_id,
             contact_id=contact_id,
+            synthetic_contact_bound=True,
+            private_allowlist_complete=True,
+            relationship_verified=True,
+        )
+
+    def issue_private_at8_handoff_source_from_root_owned_private_provenance(
+        *,
+        location_id: str,
+        contact_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _TrustedPrivateBindingSource:
+        """Issue a private handoff source from root-owned verified provenance."""
+        _require_at8_provenance(
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        return _issue_source(
+            trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
+            location_id=_require_identifier("location_id", location_id),
+            contact_id=_require_identifier("contact_id", contact_id),
+            synthetic_contact_bound=True,
+            private_allowlist_complete=True,
+            relationship_verified=True,
         )
 
     def _require_private_at8_handoff_source(
@@ -465,6 +524,9 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
                 source_proof_merge_sha=source_snapshot.source_proof_merge_sha,
                 location_id=source_snapshot.location_id,
                 contact_id=source_snapshot.contact_id,
+                synthetic_contact_bound=source_snapshot.synthetic_contact_bound,
+                private_allowlist_complete=source_snapshot.private_allowlist_complete,
+                relationship_verified=source_snapshot.relationship_verified,
                 trusted_origin=source_snapshot.trusted_origin,
                 _trust_marker=source_snapshot.trust_marker,
             )
@@ -486,8 +548,9 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
         if trusted_binding_source.source_proof_merge_sha != _AT8_SOURCE_PROOF_MERGE_SHA:
             raise BindingError("verified-contact capability trusted binding source proof is invalid")
         if (
-            not trusted_binding_source.location_id.startswith("synthetic-")
-            or not trusted_binding_source.contact_id.startswith("synthetic-")
+            not trusted_binding_source.synthetic_contact_bound
+            or not trusted_binding_source.private_allowlist_complete
+            or not trusted_binding_source.relationship_verified
         ):
             raise BindingError("verified-contact capability trusted binding source is invalid")
         return trusted_binding_source
@@ -594,6 +657,9 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
             source_proof_merge_sha=source_snapshot.source_proof_merge_sha,
             location_id=source_snapshot.location_id,
             contact_id=source_snapshot.contact_id,
+            synthetic_contact_bound=source_snapshot.synthetic_contact_bound,
+            private_allowlist_complete=source_snapshot.private_allowlist_complete,
+            relationship_verified=source_snapshot.relationship_verified,
             trusted_origin=source_snapshot.trusted_origin,
             _trust_marker=source_snapshot.trust_marker,
         ):
@@ -666,6 +732,7 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
         issue_bound_contact_capability,
         issue_synthetic_test_capability,
         issue_private_at8_handoff_source_for_synthetic_tests,
+        issue_private_at8_handoff_source_from_root_owned_private_provenance,
         handoff_private_at8_capability_from_registered_source,
         register_root_owned_private_binding_delivery_reference,
         issue_root_owned_private_binding_delivery_capability,
@@ -678,6 +745,7 @@ def _build_internal_trust_issuer() -> tuple[Any, Any, Any, Any, Any]:
     _issue_bound_contact_capability,
     _issue_synthetic_test_capability,
     _issue_private_at8_handoff_source_for_synthetic_tests,
+    _issue_private_at8_handoff_source_from_root_owned_private_provenance,
     _handoff_private_at8_capability_from_registered_source,
     _register_root_owned_private_binding_delivery_reference,
     _issue_root_owned_private_binding_delivery_capability,
