@@ -199,6 +199,96 @@ class _BoundContactGetVerificationSnapshot:
     consumer_workflow_run_id: str
 
 
+class _OpaqueSafePrivateBindingReference:
+    """Opaque, process-local, one-shot handle to a private binding lease.
+
+    The reference carries no binding data, no provenance strings, and no
+    capability. It is only recognizable by identity inside the issuing process,
+    so it cannot be serialized, copied, or reconstructed by a public caller.
+    """
+
+    __slots__ = ("__weakref__",)
+
+    def __repr__(self) -> str:
+        return "<opaque-safe-private-binding-reference>"
+
+    def __reduce__(self) -> Any:
+        raise BindingError("private binding lease reference is not serializable")
+
+    def __reduce_ex__(self, protocol: int) -> Any:
+        raise BindingError("private binding lease reference is not serializable")
+
+    def __getstate__(self) -> Any:
+        raise BindingError("private binding lease reference is not serializable")
+
+    def __copy__(self) -> Any:
+        raise BindingError("private binding lease reference is not copyable")
+
+    def __deepcopy__(self, memo: Any) -> Any:
+        raise BindingError("private binding lease reference is not copyable")
+
+
+@dataclass(frozen=True)
+class _PrivateBindingLeaseRecord:
+    """Private-side lease content that never crosses the boundary."""
+
+    trusted_binding_source: _TrustedPrivateBindingSource
+    consumer_authorization_identity: str
+    consumer_workflow_run_id: str
+    trust_marker: object
+
+
+class _OneShotPrivateBindingLeaseRegistry:
+    """Process-local leases consumed atomically before any capability issuance."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._records: dict[
+            int, tuple[weakref.ref[object], _PrivateBindingLeaseRecord, str]
+        ] = {}
+
+    def register(
+        self,
+        reference: _OpaqueSafePrivateBindingReference,
+        record: _PrivateBindingLeaseRecord,
+    ) -> None:
+        reference_id = id(reference)
+
+        def _cleanup(ref: weakref.ref[object], *, key: int = reference_id) -> None:
+            with self._lock:
+                entry = self._records.get(key)
+                if entry is not None and entry[0] is ref:
+                    self._records.pop(key, None)
+
+        with self._lock:
+            self._records[reference_id] = (
+                weakref.ref(reference, _cleanup),
+                record,
+                "AVAILABLE",
+            )
+
+    def consume(
+        self, reference: _OpaqueSafePrivateBindingReference
+    ) -> _PrivateBindingLeaseRecord:
+        """Atomically spend the lease, or fail without spending valid authority."""
+        with self._lock:
+            entry = self._records.get(id(reference))
+            if entry is None or entry[0]() is not reference:
+                raise BindingError("private binding lease reference is not recognized")
+            weak_reference, record, state = entry
+            if state != "AVAILABLE":
+                raise BindingError("private binding lease is already consumed")
+            self._records[id(reference)] = (weak_reference, record, "CONSUMED")
+            return record
+
+    def state(self, reference: object) -> str:
+        with self._lock:
+            entry = self._records.get(id(reference))
+            if entry is None or entry[0]() is not reference:
+                return "UNRECOGNIZED"
+            return entry[2]
+
+
 class _IdentityRegistry:
     """Process-local object identities paired with immutable issuance records."""
 
@@ -252,6 +342,8 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     issued_sources = _IdentityRegistry()
     issued_capabilities = _IdentityRegistry()
     verified_bound_contact_gets = _IdentityRegistry()
+    private_binding_leases = _OneShotPrivateBindingLeaseRegistry()
+    lease_marker = object()
     def _issue_source(
         *,
         trusted_origin: str,
@@ -552,6 +644,90 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=trusted_binding_source,
         )
 
+    def materialize_private_at8_binding_lease(
+        *,
+        trusted_binding_source: object,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _OpaqueSafePrivateBindingReference:
+        """Materialize the private one-shot lease before any public consumption.
+
+        The lease is bound at materialization time to the exact consumer
+        authorization identity and workflow run. A public string presented later
+        can only match or fail; it can never create or retarget authority.
+        """
+        _require_at8_provenance(
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        registered_source = _require_private_at8_handoff_source(trusted_binding_source)
+        record = _PrivateBindingLeaseRecord(
+            trusted_binding_source=registered_source,
+            consumer_authorization_identity=_require_identifier(
+                "consumer_authorization_identity", consumer_authorization_identity
+            ),
+            consumer_workflow_run_id=_require_identifier(
+                "consumer_workflow_run_id", consumer_workflow_run_id
+            ),
+            trust_marker=lease_marker,
+        )
+        reference = _OpaqueSafePrivateBindingReference()
+        private_binding_leases.register(reference, record)
+        return reference
+
+    def consume_private_at8_binding_lease(
+        private_binding_reference: object,
+        *,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+    ) -> _VerifiedContactBindingCapability:
+        """Consume the lease atomically, then issue the capability it authorizes.
+
+        Unrecognized, forged, serialized, or copied references fail closed
+        without spending valid authority. A recognized reference is spent before
+        any binding comparison, so identity or workflow-run mismatch fails closed
+        and leaves the authority consumed.
+        """
+        if not isinstance(private_binding_reference, _OpaqueSafePrivateBindingReference):
+            raise BindingError("private binding lease reference is not recognized")
+        record = private_binding_leases.consume(private_binding_reference)
+        if (
+            not isinstance(record, _PrivateBindingLeaseRecord)
+            or record.trust_marker is not lease_marker
+        ):
+            raise BindingError("private binding lease reference is not recognized")
+        expected_authorization_identity = _require_identifier(
+            "consumer_authorization_identity", consumer_authorization_identity
+        )
+        expected_workflow_run_id = _require_identifier(
+            "consumer_workflow_run_id", consumer_workflow_run_id
+        )
+        if record.consumer_authorization_identity != expected_authorization_identity:
+            raise BindingError("private binding lease authorization binding is invalid")
+        if record.consumer_workflow_run_id != expected_workflow_run_id:
+            raise BindingError("private binding lease workflow run binding is invalid")
+        registered_source = _require_private_at8_handoff_source(
+            record.trusted_binding_source
+        )
+        return _issue_capability(
+            trusted_origin=_TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF,
+            location_id=registered_source.location_id,
+            contact_id=registered_source.contact_id,
+            consumer_authorization_identity=expected_authorization_identity,
+            consumer_workflow_run_id=expected_workflow_run_id,
+            trusted_binding_source=registered_source,
+        )
+
+    def private_at8_binding_lease_state(private_binding_reference: object) -> str:
+        """Report lease lifecycle state without granting or spending authority."""
+        if not isinstance(private_binding_reference, _OpaqueSafePrivateBindingReference):
+            return "UNRECOGNIZED"
+        return private_binding_leases.state(private_binding_reference)
+
     def require_issued_verified_capability(
         capability: _VerifiedContactBindingCapability | None,
         *,
@@ -659,6 +835,9 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         issue_synthetic_test_capability,
         issue_private_at8_handoff_source_for_synthetic_tests,
         handoff_private_at8_capability_from_registered_source,
+        materialize_private_at8_binding_lease,
+        consume_private_at8_binding_lease,
+        private_at8_binding_lease_state,
         build_bound_contact_get,
         require_issued_verified_capability,
     )
@@ -669,6 +848,9 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _issue_synthetic_test_capability,
     _issue_private_at8_handoff_source_for_synthetic_tests,
     _handoff_private_at8_capability_from_registered_source,
+    _materialize_private_at8_binding_lease,
+    _consume_private_at8_binding_lease,
+    _private_at8_binding_lease_state,
     _build_bound_contact_get,
     _require_issued_verified_capability,
 ) = _build_internal_trust_issuer()
@@ -1143,6 +1325,39 @@ class NotePathAdapter:
             ),
             location_id=cls._require_synthetic_identifier("location_id", location_id),
             contact_id=cls._require_synthetic_identifier("contact_id", contact_id),
+        )
+
+    @classmethod
+    def _build_private_at8_binding_lease_for_tests(
+        cls,
+        *,
+        location_id: str,
+        contact_id: str,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+        workflow_id: str = _WORKFLOW_ID,
+        source_execution_unit: str = _AT8_SOURCE_EXECUTION_UNIT,
+        source_proof_merge_sha: str = _AT8_SOURCE_PROOF_MERGE_SHA,
+    ) -> _OpaqueSafePrivateBindingReference:
+        """Model the owner-issued private lease using synthetic inputs only."""
+        trusted_binding_source = cls._build_private_at8_verified_binding_source(
+            location_id=location_id,
+            contact_id=contact_id,
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
+        )
+        return _materialize_private_at8_binding_lease(
+            trusted_binding_source=trusted_binding_source,
+            consumer_authorization_identity=cls._require_identifier(
+                "consumer_authorization_identity", consumer_authorization_identity
+            ),
+            consumer_workflow_run_id=cls._require_identifier(
+                "consumer_workflow_run_id", consumer_workflow_run_id
+            ),
+            workflow_id=workflow_id,
+            source_execution_unit=source_execution_unit,
+            source_proof_merge_sha=source_proof_merge_sha,
         )
 
     def _require_trusted_verified_capability(self) -> _VerifiedContactBindingCapability:

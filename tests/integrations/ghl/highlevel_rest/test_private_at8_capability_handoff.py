@@ -855,3 +855,184 @@ def test_no_provider_get_and_zero_network_effects() -> None:
     assert "secretmanager" not in source.lower()
     assert "Secret Manager" not in source
     assert "at1_live_transport_adapter" not in source
+
+
+def _materialized_lease(
+    *,
+    location_id: str = "synthetic-location-001",
+    contact_id: str = "synthetic-contact-001",
+    consumer_authorization_identity: str = DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+    consumer_workflow_run_id: str,
+):
+    return NotePathAdapter._build_private_at8_binding_lease_for_tests(
+        location_id=location_id,
+        contact_id=contact_id,
+        consumer_authorization_identity=consumer_authorization_identity,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+    )
+
+
+def test_authentic_synthetic_lease_materializes_as_opaque_reference() -> None:
+    reference = _materialized_lease(
+        consumer_workflow_run_id="synthetic-workflow-run-lease-opaque-001"
+    )
+
+    assert isinstance(reference, note_path_module._OpaqueSafePrivateBindingReference)
+    assert not isinstance(reference, note_path_module._VerifiedContactBindingCapability)
+    assert not isinstance(reference, note_path_module._TrustedPrivateBindingSource)
+    assert note_path_module._private_at8_binding_lease_state(reference) == "AVAILABLE"
+
+    rendered = repr(reference)
+    for leaked_value in (
+        "synthetic-location-001",
+        "synthetic-contact-001",
+        DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        "synthetic-workflow-run-lease-opaque-001",
+        AT8_SOURCE_PROOF_MERGE_SHA,
+    ):
+        assert leaked_value not in rendered
+
+    assert not hasattr(reference, "__dict__")
+    for attribute_name in (
+        "location_id",
+        "contact_id",
+        "trusted_binding_source",
+        "consumer_authorization_identity",
+        "consumer_workflow_run_id",
+    ):
+        assert not hasattr(reference, attribute_name)
+
+
+def test_public_caller_cannot_create_or_reconstruct_authentic_lease() -> None:
+    workflow_run_id = "synthetic-workflow-run-lease-forgery-001"
+    caller_built_reference = note_path_module._OpaqueSafePrivateBindingReference()
+
+    assert (
+        note_path_module._private_at8_binding_lease_state(caller_built_reference)
+        == "UNRECOGNIZED"
+    )
+    with pytest.raises(BindingError, match="not recognized"):
+        note_path_module._consume_private_at8_binding_lease(
+            caller_built_reference,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._materialize_private_at8_binding_lease(
+            trusted_binding_source=_UntrustedStructuralBindingSource().get_trusted_binding_source(),
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._materialize_private_at8_binding_lease(
+            trusted_binding_source=_synthetic_binding(),
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+
+def test_lease_materialization_rejects_non_private_at8_origins() -> None:
+    workflow_run_id = "synthetic-workflow-run-lease-origin-001"
+    synthetic_capability = _issue_synthetic_capability(
+        consumer_workflow_run_id=workflow_run_id
+    )
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._materialize_private_at8_binding_lease(
+            trusted_binding_source=synthetic_capability.trusted_binding_source,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    adapter, _ = _adapter(
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+    adapter.get_bound_contact()
+    bound_capability = adapter._require_trusted_verified_capability()
+
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._materialize_private_at8_binding_lease(
+            trusted_binding_source=bound_capability.trusted_binding_source,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+
+def test_lease_provenance_mismatch_blocks_materialization() -> None:
+    workflow_run_id = "synthetic-workflow-run-lease-provenance-001"
+    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
+        location_id="synthetic-location-001",
+        contact_id="synthetic-contact-001",
+    )
+
+    for provenance_override in (
+        {"workflow_id": "other_workflow_v1"},
+        {"source_execution_unit": "NW008_UNRELATED_EXECUTION_UNIT_001"},
+        {"source_proof_merge_sha": "f" * 40},
+    ):
+        with pytest.raises(BindingError):
+            note_path_module._materialize_private_at8_binding_lease(
+                trusted_binding_source=trusted_binding_source,
+                consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+                consumer_workflow_run_id=workflow_run_id,
+                **provenance_override,
+            )
+
+
+def test_lease_serialization_and_copy_do_not_transfer_authority() -> None:
+    workflow_run_id = "synthetic-workflow-run-lease-serialize-001"
+    reference = _materialized_lease(consumer_workflow_run_id=workflow_run_id)
+
+    with pytest.raises(BindingError, match="not serializable"):
+        pickle.dumps(reference)
+    with pytest.raises(BindingError, match="not copyable"):
+        deepcopy(reference)
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "AVAILABLE"
+
+    capability = note_path_module._consume_private_at8_binding_lease(
+        reference,
+        consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+
+    assert capability.trusted_binding_source.trusted_origin == (
+        "private_at8_verified_binding_handoff"
+    )
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
+
+
+def test_unconsumed_lease_does_not_survive_reference_loss() -> None:
+    workflow_run_id = "synthetic-workflow-run-lease-lifetime-001"
+    reference = _materialized_lease(consumer_workflow_run_id=workflow_run_id)
+    registry = note_path_module._OneShotPrivateBindingLeaseRegistry
+
+    assert isinstance(registry, type)
+    assert note_path_module._private_at8_binding_lease_state(reference) == "AVAILABLE"
+
+    replacement = note_path_module._OpaqueSafePrivateBindingReference()
+    del reference
+
+    assert (
+        note_path_module._private_at8_binding_lease_state(replacement) == "UNRECOGNIZED"
+    )
+
+
+def test_lease_surface_is_not_publicly_exported() -> None:
+    public_names = tuple(
+        name for name in dir(note_path_module) if not name.startswith("_")
+    )
+
+    for private_name in (
+        "materialize_private_at8_binding_lease",
+        "consume_private_at8_binding_lease",
+        "private_at8_binding_lease_state",
+        "OpaqueSafePrivateBindingReference",
+    ):
+        assert private_name not in public_names
+
+    assert not hasattr(note_path_module, "_register_root_owned_private_binding_delivery_reference")
+    assert not hasattr(note_path_module, "_issue_root_owned_private_binding_delivery_capability")
