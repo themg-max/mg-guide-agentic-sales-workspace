@@ -100,6 +100,21 @@ def _root_owned_private_delivery_reference() -> object:
     )
 
 
+def _root_owned_private_provenance_attestation(
+    *,
+    location_id: str = "opaque-fixture-location-001",
+    contact_id: str = "opaque-fixture-contact-001",
+    source_execution_unit: str = AT8_SOURCE_EXECUTION_UNIT,
+    source_proof_merge_sha: str = AT8_SOURCE_PROOF_MERGE_SHA,
+) -> object:
+    return note_path_module._seal_root_owned_private_provenance_attestation(
+        location_id=location_id,
+        contact_id=contact_id,
+        source_execution_unit=source_execution_unit,
+        source_proof_merge_sha=source_proof_merge_sha,
+    )
+
+
 def _root_owned_private_provenance_source(
     *,
     location_id: str = "opaque-fixture-location-001",
@@ -107,11 +122,14 @@ def _root_owned_private_provenance_source(
     source_execution_unit: str = AT8_SOURCE_EXECUTION_UNIT,
     source_proof_merge_sha: str = AT8_SOURCE_PROOF_MERGE_SHA,
 ) -> note_path_module._TrustedPrivateBindingSource:
-    return note_path_module._issue_private_at8_handoff_source_from_root_owned_private_provenance(
+    attestation = _root_owned_private_provenance_attestation(
         location_id=location_id,
         contact_id=contact_id,
         source_execution_unit=source_execution_unit,
         source_proof_merge_sha=source_proof_merge_sha,
+    )
+    return note_path_module._issue_private_at8_handoff_source_from_root_owned_private_provenance(
+        root_owned_private_provenance_attestation=attestation,
     )
 
 
@@ -252,7 +270,21 @@ def test_opaque_ids_without_trusted_provenance_fail_closed() -> None:
 
 def test_opaque_ids_with_valid_root_owned_private_provenance_pass() -> None:
     workflow_run_id = "synthetic-workflow-run-opaque-root-owned-001"
-    trusted_binding_source = _root_owned_private_provenance_source()
+    attestation = _root_owned_private_provenance_attestation()
+    issuer = note_path_module._issue_private_at8_handoff_source_from_root_owned_private_provenance
+    signature = inspect.signature(issuer)
+    assert tuple(signature.parameters) == ("root_owned_private_provenance_attestation",)
+    assert "location_id" not in signature.parameters
+    assert "contact_id" not in signature.parameters
+    assert "synthetic_contact_bound" not in signature.parameters
+    assert "private_allowlist_complete" not in signature.parameters
+    assert "relationship_verified" not in signature.parameters
+    assert "source_execution_unit" not in signature.parameters
+    assert "source_proof_merge_sha" not in signature.parameters
+
+    trusted_binding_source = issuer(
+        root_owned_private_provenance_attestation=attestation,
+    )
     reference = note_path_module._register_root_owned_private_binding_delivery_reference(
         trusted_binding_source=trusted_binding_source
     )
@@ -278,6 +310,47 @@ def test_opaque_ids_with_valid_root_owned_private_provenance_pass() -> None:
     assert capability.trusted_binding_source.relationship_verified is True
     assert adapter._require_trusted_verified_capability() is capability
     assert transport.calls == []
+
+
+def test_raw_opaque_ids_plus_known_at8_constants_cannot_mint_trust() -> None:
+    issuer = note_path_module._issue_private_at8_handoff_source_from_root_owned_private_provenance
+    with pytest.raises(TypeError):
+        issuer(
+            location_id="opaque-fixture-location-raw-mint-001",
+            contact_id="opaque-fixture-contact-raw-mint-001",
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+        )
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        issuer(
+            root_owned_private_provenance_attestation=object(),
+        )
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        issuer(
+            root_owned_private_provenance_attestation=(
+                note_path_module._RootOwnedPrivateProvenanceAttestation(object())
+            ),
+        )
+    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+        note_path_module._handoff_private_at8_verified_binding_capability(
+            trusted_binding_source=note_path_module._TrustedPrivateBindingSource(
+                workflow_id="meeting_follow_up_v1",
+                source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+                source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+                location_id="opaque-fixture-location-raw-mint-002",
+                contact_id="opaque-fixture-contact-raw-mint-002",
+                synthetic_contact_bound=True,
+                private_allowlist_complete=True,
+                relationship_verified=True,
+                trusted_origin="private_at8_verified_binding_handoff",
+                _trust_marker=object(),
+            ),
+            source_execution_unit=AT8_SOURCE_EXECUTION_UNIT,
+            source_proof_merge_sha=AT8_SOURCE_PROOF_MERGE_SHA,
+            consumer_authorization_identity=DEFAULT_CONSUMER_AUTHORIZATION_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-opaque-raw-mint-001",
+            workflow_id="meeting_follow_up_v1",
+        )
 
 
 def test_opaque_ids_with_synthetic_false_fail_closed() -> None:
@@ -321,7 +394,7 @@ def test_opaque_ids_with_relationship_verified_false_fail_closed() -> None:
 
 def test_opaque_private_provenance_wrong_source_execution_unit_fails_closed() -> None:
     with pytest.raises(BindingError, match="source execution unit is invalid"):
-        _root_owned_private_provenance_source(
+        _root_owned_private_provenance_attestation(
             location_id="opaque-fixture-location-wrong-unit-001",
             contact_id="opaque-fixture-contact-wrong-unit-001",
             source_execution_unit="NW008_WRONG_EXECUTION_UNIT",
@@ -330,7 +403,7 @@ def test_opaque_private_provenance_wrong_source_execution_unit_fails_closed() ->
 
 def test_opaque_private_provenance_wrong_source_proof_fails_closed() -> None:
     with pytest.raises(BindingError, match="source proof is invalid"):
-        _root_owned_private_provenance_source(
+        _root_owned_private_provenance_attestation(
             location_id="opaque-fixture-location-wrong-proof-001",
             contact_id="opaque-fixture-contact-wrong-proof-001",
             source_proof_merge_sha="0" * 40,
