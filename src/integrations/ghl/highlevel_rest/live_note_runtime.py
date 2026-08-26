@@ -171,27 +171,71 @@ def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDepen
 
 def _validate_issued_capability(
     verified_capability: object,
+    *,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
 ) -> note_path._VerifiedContactBindingCapability:
-    """Validate only the submitted capability before any adapter construction."""
+    """Validate the submitted capability against explicitly bound expectations.
+
+    Expectations are never self-derived from the submitted capability, so a
+    capability cannot vouch for its own authorization identity or workflow run.
+    """
     return note_path._require_issued_verified_capability(
         verified_capability,
         location_id=getattr(verified_capability, "location_id", None),
         contact_id=getattr(verified_capability, "contact_id", None),
-        consumer_authorization_identity=getattr(
-            verified_capability, "consumer_authorization_identity", None
-        ),
-        consumer_workflow_run_id=getattr(
-            verified_capability, "consumer_workflow_run_id", None
-        ),
+        consumer_authorization_identity=consumer_authorization_identity,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+    )
+
+
+def _consume_root_owned_private_binding_reference(
+    *,
+    private_binding_reference: object,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
+) -> note_path._VerifiedContactBindingCapability:
+    """Consume a pre-existing opaque private binding reference.
+
+    This composition root never mints private authority and never resolves an
+    authority provider. It accepts only an opaque reference materialized earlier
+    by the private control plane, and a finished capability is explicitly not an
+    accepted boundary substitute.
+    """
+    if isinstance(private_binding_reference, note_path._VerifiedContactBindingCapability):
+        raise LiveNoteRuntimeAssemblyError(
+            "production live-note runtime assembly requires an opaque private binding reference"
+        )
+    expected_consumer_authorization_identity = note_path._require_identifier(
+        "consumer_authorization_identity", consumer_authorization_identity
+    )
+    expected_consumer_workflow_run_id = note_path._require_identifier(
+        "consumer_workflow_run_id", consumer_workflow_run_id
+    )
+    verified_capability = note_path._consume_private_at8_binding_lease(
+        private_binding_reference,
+        consumer_authorization_identity=expected_consumer_authorization_identity,
+        consumer_workflow_run_id=expected_consumer_workflow_run_id,
+    )
+    return _validate_issued_capability(
+        verified_capability,
+        consumer_authorization_identity=expected_consumer_authorization_identity,
+        consumer_workflow_run_id=expected_consumer_workflow_run_id,
     )
 
 
 def assemble_bound_live_note_runtime(
     *,
-    verified_capability: object,
+    private_binding_reference: object,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
 ) -> NotePathAdapter:
-    """Assemble only from validated capability and root-owned dependencies."""
-    validated_capability = _validate_issued_capability(verified_capability)
+    """Assemble only from a consumed private lease and root-owned dependencies."""
+    validated_capability = _consume_root_owned_private_binding_reference(
+        private_binding_reference=private_binding_reference,
+        consumer_authorization_identity=consumer_authorization_identity,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+    )
     dependencies = _resolve_root_owned_runtime_dependencies()
     store_ownership = _StoreOwnershipGuard(dependencies.execution_store)
     try:
@@ -222,11 +266,17 @@ def assemble_bound_live_note_runtime(
 def _assemble_bound_live_note_runtime_for_tests(
     *,
     verified_capability: object,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
     synthetic_secret_accessor: SyntheticLiveNoteSecretAccessor,
     execution_store: At1ExecutionStore,
 ) -> NotePathAdapter:
     """Assemble the deterministic test runtime from validated capability identity."""
-    validated_capability = _validate_issued_capability(verified_capability)
+    validated_capability = _validate_issued_capability(
+        verified_capability,
+        consumer_authorization_identity=consumer_authorization_identity,
+        consumer_workflow_run_id=consumer_workflow_run_id,
+    )
 
     if not isinstance(synthetic_secret_accessor, SyntheticLiveNoteSecretAccessor):
         raise LiveNoteRuntimeAssemblyError(

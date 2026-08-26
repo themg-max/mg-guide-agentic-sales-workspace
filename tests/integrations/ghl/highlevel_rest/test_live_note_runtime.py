@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import copy
 import inspect
+import pickle
 import types
 from pathlib import Path
 
@@ -23,9 +25,7 @@ from integrations.ghl.highlevel_rest.note_path import BindingError
 
 REPO_ROOT = Path(__file__).resolve().parents[4]
 SOURCE_ROOT = REPO_ROOT / "src" / "integrations" / "ghl" / "highlevel_rest"
-CONSUMER_IDENTITY = (
-    "NW008_AT8L_GHL_REST_LIVE_NOTE_RUNTIME_CONSTRUCTION_PATH_IMPLEMENTATION_001"
-)
+CONSUMER_IDENTITY = "NW008_AT8W30_R3_SYNTHETIC_LEASE_CONSUMER_IDENTITY_001"
 _VERSION_RESOURCE = "projects/synthetic-project/secrets/at1-commitment-key/versions/1"
 
 
@@ -60,21 +60,20 @@ def _issued_capability(
     )
 
 
-def _root_owned_private_delivery_capability(
+def _private_binding_lease(
     *,
+    location_id: str = "synthetic-location-001",
+    contact_id: str = "synthetic-contact-001",
+    consumer_authorization_identity: str = CONSUMER_IDENTITY,
     consumer_workflow_run_id: str = "synthetic-workflow-run-root-owned-runtime-001",
+    test_only_fail_capability_issuance: bool = False,
 ):
-    trusted_binding_source = NotePathAdapter._build_private_at8_verified_binding_source(
-        location_id="synthetic-location-001",
-        contact_id="synthetic-contact-001",
-    )
-    reference = note_path_module._register_root_owned_private_binding_delivery_reference(
-        trusted_binding_source=trusted_binding_source
-    )
-    return note_path_module._issue_root_owned_private_binding_delivery_capability(
-        safe_private_delivery_reference=reference,
-        consumer_authorization_identity=CONSUMER_IDENTITY,
+    return NotePathAdapter._build_private_at8_binding_lease_for_tests(
+        location_id=location_id,
+        contact_id=contact_id,
+        consumer_authorization_identity=consumer_authorization_identity,
         consumer_workflow_run_id=consumer_workflow_run_id,
+        test_only_fail_capability_issuance=test_only_fail_capability_issuance,
     )
 
 
@@ -88,14 +87,22 @@ def _synthetic_accessor() -> SyntheticLiveNoteSecretAccessor:
     )
 
 
-def test_public_assembler_accepts_only_verified_capability() -> None:
+def test_public_assembler_accepts_only_preexisting_opaque_reference() -> None:
     signature = inspect.signature(assemble_bound_live_note_runtime)
 
-    assert tuple(signature.parameters) == ("verified_capability",)
-    assert signature.parameters["verified_capability"].kind is inspect.Parameter.KEYWORD_ONLY
+    assert tuple(signature.parameters) == (
+        "private_binding_reference",
+        "consumer_authorization_identity",
+        "consumer_workflow_run_id",
+    )
+    for parameter in signature.parameters.values():
+        assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+        assert parameter.default is inspect.Parameter.empty
 
-    capability = _issued_capability()
     for forbidden_name in (
+        "verified_capability",
+        "capability",
+        "trusted_binding_source",
         "contact_id",
         "location_id",
         "resource_name",
@@ -113,25 +120,271 @@ def test_public_assembler_accepts_only_verified_capability() -> None:
     ):
         with pytest.raises(TypeError):
             assemble_bound_live_note_runtime(
-                verified_capability=capability,
+                private_binding_reference=_private_binding_lease(),
+                consumer_authorization_identity=CONSUMER_IDENTITY,
+                consumer_workflow_run_id="synthetic-workflow-run-public-signature-001",
                 **{forbidden_name: "caller-override"},
             )
 
 
-def test_public_assembler_requires_process_issued_capability() -> None:
-    with pytest.raises(BindingError):
-        assemble_bound_live_note_runtime(verified_capability=None)
+def test_environment_selected_authority_provider_is_absent() -> None:
+    source = (SOURCE_ROOT / "live_note_runtime.py").read_text(encoding="utf-8")
 
-    forged_capability = _issued_capability()
-    object.__setattr__(forged_capability, "contact_id", "forged-contact-001")
-    with pytest.raises(BindingError):
-        assemble_bound_live_note_runtime(verified_capability=forged_capability)
+    assert not hasattr(runtime, "_resolve_root_owned_private_authority_consumer")
+    assert not hasattr(runtime, "_resolve_root_owned_verified_capability")
+    assert not hasattr(runtime, "_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_MODULE_KEY")
+    assert not hasattr(runtime, "_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_CALLABLE_KEY")
+    assert not hasattr(runtime, "_ROOT_OWNED_PRIVATE_AUTHORITY_CONSUMER_IDENTITY")
+
+    assert "MG_GUIDE_NW008_PRIVATE_AUTHORITY_CONSUMER_MODULE" not in source
+    assert "MG_GUIDE_NW008_PRIVATE_AUTHORITY_CONSUMER_CALLABLE" not in source
+    assert "PRIVATE_AUTHORITY_CONSUMER_AND_PR217_CORRECTION_IMPLEMENTATION" not in source
 
 
-def test_public_assembler_uses_existing_validator_before_fail_closed(
+def test_first_authentic_lease_consumption_transitions_available_to_consumed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capability = _issued_capability()
+    workflow_run_id = "synthetic-workflow-run-first-consumption-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "AVAILABLE"
+
+    capability = runtime._consume_root_owned_private_binding_reference(
+        private_binding_reference=reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+
+    assert capability.location_id == "synthetic-location-001"
+    assert capability.contact_id == "synthetic-contact-001"
+    assert capability.consumer_authorization_identity == CONSUMER_IDENTITY
+    assert capability.consumer_workflow_run_id == workflow_run_id
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
+
+
+def test_second_consumption_and_replay_fail_closed() -> None:
+    workflow_run_id = "synthetic-workflow-run-replay-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
+
+    runtime._consume_root_owned_private_binding_reference(
+        private_binding_reference=reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+
+    for _ in range(2):
+        with pytest.raises(BindingError, match="already consumed"):
+            runtime._consume_root_owned_private_binding_reference(
+                private_binding_reference=reference,
+                consumer_authorization_identity=CONSUMER_IDENTITY,
+                consumer_workflow_run_id=workflow_run_id,
+            )
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
+
+
+def test_forged_reference_fails_closed_without_consuming_valid_authority() -> None:
+    workflow_run_id = "synthetic-workflow-run-forged-001"
+    valid_reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
+    forged_reference = note_path_module._OpaqueSafePrivateBindingReference()
+
+    with pytest.raises(BindingError, match="not recognized"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=forged_reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    assert note_path_module._private_at8_binding_lease_state(valid_reference) == "AVAILABLE"
+    assert runtime._consume_root_owned_private_binding_reference(
+        private_binding_reference=valid_reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    ).contact_id == "synthetic-contact-001"
+
+
+def test_serialized_or_copied_reference_fails_closed() -> None:
+    workflow_run_id = "synthetic-workflow-run-serialized-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
+
+    with pytest.raises(BindingError, match="not serializable"):
+        pickle.dumps(reference)
+    with pytest.raises(BindingError, match="not copyable"):
+        copy.copy(reference)
+    with pytest.raises(BindingError, match="not copyable"):
+        copy.deepcopy(reference)
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "AVAILABLE"
+
+    for structural_copy in (
+        types.SimpleNamespace(),
+        object(),
+        repr(reference),
+    ):
+        with pytest.raises(BindingError, match="not recognized"):
+            runtime._consume_root_owned_private_binding_reference(
+                private_binding_reference=structural_copy,
+                consumer_authorization_identity=CONSUMER_IDENTITY,
+                consumer_workflow_run_id=workflow_run_id,
+            )
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "AVAILABLE"
+
+
+def test_authorization_identity_mismatch_fails_closed_and_consumes() -> None:
+    workflow_run_id = "synthetic-workflow-run-identity-mismatch-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
+
+    with pytest.raises(BindingError, match="authorization binding is invalid"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity="NW008_UNRELATED_CONSUMER_IDENTITY_001",
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
+
+    with pytest.raises(BindingError, match="already consumed"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+
+def test_workflow_run_mismatch_fails_closed_and_consumes() -> None:
+    workflow_run_id = "synthetic-workflow-run-run-mismatch-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
+
+    with pytest.raises(BindingError, match="workflow run binding is invalid"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-other-001",
+        )
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
+
+    with pytest.raises(BindingError, match="already consumed"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+
+def test_preissued_capability_as_public_boundary_input_is_rejected() -> None:
+    capability = _issued_capability(
+        consumer_workflow_run_id="synthetic-workflow-run-preissued-001"
+    )
+
+    with pytest.raises(
+        runtime.LiveNoteRuntimeAssemblyError, match="opaque private binding reference"
+    ):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=capability,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-preissued-001",
+        )
+
+    with pytest.raises(
+        runtime.LiveNoteRuntimeAssemblyError, match="opaque private binding reference"
+    ):
+        assemble_bound_live_note_runtime(
+            private_binding_reference=capability,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-preissued-001",
+        )
+
+
+def test_raw_ids_cannot_mint_lease_or_capability() -> None:
+    for raw_location_id, raw_contact_id in (
+        ("real-location-001", "synthetic-contact-001"),
+        ("synthetic-location-001", "real-contact-001"),
+    ):
+        with pytest.raises(BindingError, match="must be synthetic"):
+            _private_binding_lease(
+                location_id=raw_location_id,
+                contact_id=raw_contact_id,
+            )
+
+    for raw_reference in ("real-location-001", ("real-location-001", "real-contact-001")):
+        with pytest.raises(BindingError, match="not recognized"):
+            runtime._consume_root_owned_private_binding_reference(
+                private_binding_reference=raw_reference,
+                consumer_authorization_identity=CONSUMER_IDENTITY,
+                consumer_workflow_run_id="synthetic-workflow-run-raw-ids-001",
+            )
+
+
+def test_capability_issued_only_after_successful_lease_consumption(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    workflow_run_id = "synthetic-workflow-run-order-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
+    observed: list[str] = []
+    real_consume = note_path_module._consume_private_at8_binding_lease
+
+    def _tracking_consume(submitted: object, **kwargs: object) -> object:
+        observed.append("consume")
+        return real_consume(submitted, **kwargs)
+
+    real_validate = runtime._validate_issued_capability
+
+    def _tracking_validate(submitted: object, **kwargs: object) -> object:
+        observed.append("validate")
+        return real_validate(submitted, **kwargs)
+
+    monkeypatch.setattr(
+        note_path_module, "_consume_private_at8_binding_lease", _tracking_consume
+    )
+    monkeypatch.setattr(runtime, "_validate_issued_capability", _tracking_validate)
+
+    runtime._consume_root_owned_private_binding_reference(
+        private_binding_reference=reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
+
+    assert observed == ["consume", "validate"]
+
+
+def test_capability_issuance_failure_does_not_restore_consumed_reference() -> None:
+    workflow_run_id = "synthetic-workflow-run-issuance-failure-001"
+    reference = _private_binding_lease(
+        consumer_workflow_run_id=workflow_run_id,
+        test_only_fail_capability_issuance=True,
+    )
+
+    with pytest.raises(BindingError, match="capability issuance failed"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
+    with pytest.raises(BindingError, match="already consumed"):
+        runtime._consume_root_owned_private_binding_reference(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+
+def test_validator_expectations_are_explicitly_bound_not_self_derived(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    signature = inspect.signature(runtime._validate_issued_capability)
+
+    for required_name in (
+        "consumer_authorization_identity",
+        "consumer_workflow_run_id",
+    ):
+        assert signature.parameters[required_name].default is inspect.Parameter.empty
+
+    workflow_run_id = "synthetic-workflow-run-validator-binding-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
     validator_calls: list[tuple[object, dict[str, object]]] = []
 
     def _validator(submitted: object, **kwargs: object) -> object:
@@ -140,10 +393,11 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
 
     monkeypatch.setattr(note_path_module, "_require_issued_verified_capability", _validator)
 
-    with pytest.raises(
-        runtime.LiveNoteRuntimeAssemblyError, match="root-owned dependencies"
-    ):
-        assemble_bound_live_note_runtime(verified_capability=capability)
+    capability = runtime._consume_root_owned_private_binding_reference(
+        private_binding_reference=reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id=workflow_run_id,
+    )
 
     assert validator_calls == [
         (
@@ -151,10 +405,8 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
             {
                 "location_id": capability.location_id,
                 "contact_id": capability.contact_id,
-                "consumer_authorization_identity": (
-                    capability.consumer_authorization_identity
-                ),
-                "consumer_workflow_run_id": capability.consumer_workflow_run_id,
+                "consumer_authorization_identity": CONSUMER_IDENTITY,
+                "consumer_workflow_run_id": workflow_run_id,
             },
         )
     ]
@@ -163,7 +415,8 @@ def test_public_assembler_uses_existing_validator_before_fail_closed(
 def test_missing_root_owned_config_fails_closed_before_runtime_construction(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    capability = _issued_capability()
+    workflow_run_id = "synthetic-workflow-run-missing-config-001"
+    reference = _private_binding_lease(consumer_workflow_run_id=workflow_run_id)
 
     def _unexpected_construction(*args: object, **kwargs: object) -> None:
         raise AssertionError("missing root-owned configuration must stop assembly")
@@ -172,11 +425,18 @@ def test_missing_root_owned_config_fails_closed_before_runtime_construction(
     monkeypatch.setattr(runtime, "LiveNoteCredentialProvider", _unexpected_construction)
     monkeypatch.setattr(runtime, "BoundedLiveNoteTransport", _unexpected_construction)
     monkeypatch.setattr(runtime, "NotePathAdapter", _unexpected_construction)
+    monkeypatch.delenv(runtime._ROOT_OWNED_DB_CONFIG_KEY, raising=False)
 
     with pytest.raises(
         runtime.LiveNoteRuntimeAssemblyError, match="root-owned dependencies"
     ):
-        assemble_bound_live_note_runtime(verified_capability=capability)
+        assemble_bound_live_note_runtime(
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
 
 
 def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
@@ -409,10 +669,15 @@ def test_root_owned_store_closes_after_each_pre_return_failure(
     monkeypatch.setattr(runtime, "ConcreteLiveNoteHttpClient", _http_client)
     monkeypatch.setattr(runtime, "BoundedLiveNoteTransport", _transport)
     monkeypatch.setattr(runtime, "NotePathAdapter", _Adapter)
+    reference = _private_binding_lease(
+        consumer_workflow_run_id="synthetic-workflow-run-store-close-001"
+    )
 
     with pytest.raises(RuntimeError, match="synthetic"):
         assemble_bound_live_note_runtime(
-            verified_capability=_root_owned_private_delivery_capability()
+            private_binding_reference=reference,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-store-close-001",
         )
 
     assert store._connection.close_events == 1
@@ -459,9 +724,14 @@ def test_root_owned_store_transfers_only_after_successful_adapter_return(
     monkeypatch.setattr(runtime, "ConcreteLiveNoteHttpClient", _http_client)
     monkeypatch.setattr(runtime, "BoundedLiveNoteTransport", _transport)
     monkeypatch.setattr(runtime, "NotePathAdapter", _Adapter)
+    reference = _private_binding_lease(
+        consumer_workflow_run_id="synthetic-workflow-run-store-success-001"
+    )
 
     adapter = assemble_bound_live_note_runtime(
-        verified_capability=_root_owned_private_delivery_capability()
+        private_binding_reference=reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-store-success-001",
     )
 
     assert adapter.execution_store is store
@@ -491,9 +761,14 @@ def test_public_assembler_uses_only_root_owned_dependencies(
         "_resolve_root_owned_runtime_dependencies",
         lambda: dependencies,
     )
+    reference = _private_binding_lease(
+        consumer_workflow_run_id="synthetic-workflow-run-root-owned-deps-001"
+    )
 
     adapter = assemble_bound_live_note_runtime(
-        verified_capability=_root_owned_private_delivery_capability()
+        private_binding_reference=reference,
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-root-owned-deps-001",
     )
     transport = adapter._transport
 
@@ -532,6 +807,8 @@ def test_private_test_seam_has_only_synthetic_accessor_and_store_args() -> None:
 
     assert tuple(signature.parameters) == (
         "verified_capability",
+        "consumer_authorization_identity",
+        "consumer_workflow_run_id",
         "synthetic_secret_accessor",
         "execution_store",
     )
@@ -549,12 +826,16 @@ def test_private_test_seam_rejects_non_synthetic_accessor_and_store(
     with pytest.raises(runtime.LiveNoteRuntimeAssemblyError, match="synthetic_secret_accessor"):
         runtime._assemble_bound_live_note_runtime_for_tests(
             verified_capability=capability,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-at8l-001",
             synthetic_secret_accessor=object(),
             execution_store=execution_store,
         )
     with pytest.raises(runtime.LiveNoteRuntimeAssemblyError, match="execution_store"):
         runtime._assemble_bound_live_note_runtime_for_tests(
             verified_capability=capability,
+            consumer_authorization_identity=CONSUMER_IDENTITY,
+            consumer_workflow_run_id="synthetic-workflow-run-at8l-001",
             synthetic_secret_accessor=_synthetic_accessor(),
             execution_store=object(),
         )
@@ -582,6 +863,8 @@ def test_private_test_seam_rejects_target_credential_and_http_overrides(
         with pytest.raises(TypeError):
             runtime._assemble_bound_live_note_runtime_for_tests(
                 verified_capability=capability,
+                consumer_authorization_identity=CONSUMER_IDENTITY,
+                consumer_workflow_run_id="synthetic-workflow-run-at8l-001",
                 synthetic_secret_accessor=_synthetic_accessor(),
                 execution_store=execution_store,
                 **{forbidden_name: "caller-override"},
@@ -612,6 +895,8 @@ def test_private_test_seam_binds_exact_validated_capability_and_identity(
     )
     adapter = runtime._assemble_bound_live_note_runtime_for_tests(
         verified_capability=submitted_capability,
+        consumer_authorization_identity="synthetic-submitted-consumer-001",
+        consumer_workflow_run_id="synthetic-submitted-run-001",
         synthetic_secret_accessor=_synthetic_accessor(),
         execution_store=execution_store,
     )
@@ -633,6 +918,8 @@ def test_private_test_seam_returns_adapter_without_network_or_real_secret_reads(
     accessor = _synthetic_accessor()
     adapter = runtime._assemble_bound_live_note_runtime_for_tests(
         verified_capability=_issued_capability(),
+        consumer_authorization_identity=CONSUMER_IDENTITY,
+        consumer_workflow_run_id="synthetic-workflow-run-at8l-001",
         synthetic_secret_accessor=accessor,
         execution_store=execution_store,
     )
@@ -659,8 +946,12 @@ def test_runtime_never_remints_capabilities_or_accepts_caller_overrides() -> Non
     assert "_issue_bound_contact_capability" not in source
     assert "_issue_synthetic_test_capability" not in source
     assert "_handoff_private_at8_verified_binding_capability" not in source
+    assert "_materialize_private_at8_binding_lease" not in source
+    assert "_resolve_root_owned_private_authority_consumer" not in source
     assert "At1ExecutionStore(" not in public_source
     assert "_resolve_root_owned_runtime_dependencies" in public_source
+    assert "_consume_root_owned_private_binding_reference" in public_source
+    assert "verified_capability:" not in public_source
 
 
 def test_frozen_blocked_module_boundaries_remain_intact() -> None:
