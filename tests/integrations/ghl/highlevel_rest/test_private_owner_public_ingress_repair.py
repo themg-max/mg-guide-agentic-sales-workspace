@@ -10,6 +10,11 @@ import integrations.ghl.highlevel_rest.live_note_runtime as runtime
 import integrations.ghl.highlevel_rest.note_path as note_path
 from integrations.ghl.highlevel_rest.note_path import BindingError, NotePathAdapter
 
+from _simulated_private_control_plane import (
+    install_as_root_designated_private_origin,
+    provision_simulated_private_owner,
+)
+
 
 # The exact consumer authorization/run binding is installed at owner
 # provisioning time by the private control plane. These offline values model
@@ -19,15 +24,29 @@ WORKFLOW_RUN_ID = "nw008-at8w30-r3-ingress-repair-test-consumer-run-001"
 DESIGNATION_ID = note_path._DESIGNATED_PRIVATE_OWNER_ID
 
 
+@pytest.fixture(autouse=True)
+def _root_designates_private_origin(monkeypatch):
+    """The PROCESS ROOT designates the private-origin module, never a caller.
+
+    Without this root-owned designation note_path trusts no origin at all, so
+    every anchor is refused. Tests make the designation explicit rather than
+    letting production code fall back to a caller-supplied origin.
+    """
+    install_as_root_designated_private_origin(monkeypatch)
+
+
 def _designated_private_owner(
     *,
     location_id: str = "approved-live-location-placeholder",
     contact_id: str = "approved-live-contact-placeholder",
 ) -> tuple[ModuleType, object, object, dict[str, str]]:
-    # The owner/anchor pair is taken already provisioned from the offline pool
-    # that note_path built during import. The test never provisions an owner:
-    # the origin latch is spent before any test code can run.
-    owner, anchor = note_path._take_offline_provisioned_private_owner()
+    # The owner/anchor pair is modelled test-side as an artifact the private
+    # control plane already provisioned. note_path originates nothing: it only
+    # verifies an artifact from the root-designated private-origin module.
+    owner, anchor = provision_simulated_private_owner(
+        authorization_identity=AUTHORIZATION_ID,
+        workflow_run_id=WORKFLOW_RUN_ID,
+    )
     state = {"reference": "AVAILABLE"}
     registry: set[int] = set()
 
@@ -213,9 +232,9 @@ def test_anchor_transplant_to_foreign_resolver_rejects() -> None:
 def test_owner_anchor_provisioning_requires_private_authority() -> None:
     """T08: an owner the private plane never provisioned can never be used.
 
-    The provisioning origin is spent at import, so there is no reachable
-    provisioner to call at all. The surviving guarantee is the one that
-    matters: a caller-created owner has no anchor and is refused.
+    note_path contains no provisioner at all, so there is nothing to call. The
+    surviving guarantee is the one that matters: a caller-created owner has no
+    private-origin anchor and is refused.
     """
     owner = ModuleType("offline_unprovisioned_private_owner")
     owner.DESIGNATION_ID = DESIGNATION_ID
@@ -224,15 +243,17 @@ def test_owner_anchor_provisioning_requires_private_authority() -> None:
     with pytest.raises(BindingError, match="authenticity anchor is invalid"):
         _consume(owner=owner, anchor=object(), reference=reference)
 
-    # The only reachable owner accessor hands back seam-created resolvers; it
-    # can never bind an anchor to this caller-created owner.
-    for _ in range(4):
-        pooled_owner, pooled_anchor = (
-            note_path._take_offline_provisioned_private_owner()
+    # An anchor provisioned for a different resolver cannot be transplanted
+    # onto this caller-created owner.
+    for index in range(4):
+        other_owner, other_anchor = provision_simulated_private_owner(
+            authorization_identity=AUTHORIZATION_ID,
+            workflow_run_id=WORKFLOW_RUN_ID,
+            module_name=f"offline_other_private_owner_{index:03d}",
         )
-        assert pooled_owner is not owner
+        assert other_owner is not owner
         with pytest.raises(BindingError, match="authenticity anchor is invalid"):
-            _consume(owner=owner, anchor=pooled_anchor, reference=reference)
+            _consume(owner=owner, anchor=other_anchor, reference=reference)
 
 
 def test_wrong_authorization_identity_rejects_before_private_consumption() -> None:
@@ -370,64 +391,57 @@ def test_ordinary_importer_cannot_self_issue_or_provision_owner() -> None:
     """T14: an ordinary importer cannot self-issue authority or self-provision.
 
     This test acts as a hostile ordinary consumer of note_path with full
-    knowledge of every underscore name. It sweeps every reachable callable on
-    the module, invokes each issuer/provisioning-shaped surface with every
-    argument shape it can construct, and proves that none of them yields a
-    registry-recognized owner-provisioning authority or an authenticity
-    anchor bound to a caller-controlled resolver.
+    knowledge of every underscore name. It sweeps every reachable callable,
+    invokes every zero-argument surface, walks closures, and proves that
+    nothing yields an anchor the production consumer will accept for a
+    caller-controlled resolver.
 
-    Underscore naming and `__all__` are explicitly NOT treated as boundaries.
-    The real boundary is the one-shot import-time origin latch: the
-    originating closures are never returned from the trust-issuer factory, so
-    after import there is no name -- public or private -- that reaches them.
+    Underscore naming and ``__all__`` are explicitly NOT treated as
+    boundaries. The boundary is structural: note_path holds no anchor
+    registry and no provisioning callable, so there is nothing to reach.
     """
-    import gc
     import inspect
-    import weakref
+    import sys
 
     import integrations.ghl.highlevel_rest.live_note_runtime as runtime
+    import _simulated_private_control_plane as simulated_plane
 
     # 1. The production composition root never references an origin surface.
     runtime_source = inspect.getsource(runtime)
     assert "issue_private_owner_provisioning_authority" not in runtime_source
     assert "provision_designated_private_owner_resolver" not in runtime_source
 
-    # 2. No origin-shaped callable survives on the module under ANY name,
-    #    including the previously exported underscore/_for_tests names.
-    assert not hasattr(note_path, "_issue_private_owner_provisioning_authority")
-    assert not hasattr(
-        note_path, "_issue_private_owner_provisioning_authority_for_tests"
-    )
-    assert not hasattr(note_path, "_provision_designated_private_owner_resolver")
-    assert not hasattr(
-        note_path, "_provision_designated_private_owner_resolver_for_tests"
-    )
+    # 2. No origin-shaped callable or type survives on the module under ANY
+    #    name, including every previously exported name.
+    for removed in (
+        "_issue_private_owner_provisioning_authority",
+        "_issue_private_owner_provisioning_authority_for_tests",
+        "_provision_designated_private_owner_resolver",
+        "_provision_designated_private_owner_resolver_for_tests",
+        "_take_offline_provisioned_private_owner",
+        "_PrivateOwnerProvisioningAuthority",
+        "_PrivateOwnerAuthenticityAnchor",
+    ):
+        assert not hasattr(note_path, removed), removed
 
-    # 3. Sweep every reachable callable. Nothing named like an owner issuer or
-    #    provisioner may remain, regardless of underscore prefix.
-    reachable = {
-        name: getattr(note_path, name, None) for name in dir(note_path)
-    }
-    for name, value in reachable.items():
-        # Classes are type declarations, not origin callables; step 5 proves
-        # that constructing them directly confers nothing.
-        if not callable(value) or isinstance(value, type):
-            continue
+    # 3. Sweep every reachable name. Nothing owner-issuing/provisioning-shaped
+    #    may remain, regardless of underscore prefix or callable/type kind.
+    for name in dir(note_path):
         lowered = name.lower()
         if "owner" in lowered and (
             "issue" in lowered or "provision" in lowered or "mint" in lowered
         ):
-            # The only permitted owner-shaped accessor is the consumer-side
-            # handout of artifacts provisioned before any caller ran.
-            assert name == "_take_offline_provisioned_private_owner", (
-                f"note_path exposes an owner origin callable: {name}"
+            raise AssertionError(
+                f"note_path exposes an owner origin surface: {name}"
             )
 
-    # 4. Every reachable zero-argument callable is invoked; none of them may
-    #    return a registry-recognized owner-provisioning authority.
-    authority_type = note_path._PrivateOwnerProvisioningAuthority
-    anchor_type = note_path._PrivateOwnerAuthenticityAnchor
-    for name, value in reachable.items():
+    # 4. Invoke every reachable zero-argument callable. None may return
+    #    anything the production consumer will accept as an anchor.
+    caller_owner = ModuleType("t14_caller_controlled_resolver")
+    caller_owner.DESIGNATION_ID = DESIGNATION_ID
+    harvested: list[object] = []
+    for name in dir(note_path):
+        value = getattr(note_path, name, None)
         if not callable(value) or isinstance(value, type):
             continue
         try:
@@ -446,143 +460,194 @@ def test_ordinary_importer_cannot_self_issue_or_provision_owner() -> None:
         ):
             continue
         try:
-            produced = value()
+            harvested.append(value())
         except Exception:
             continue
-        assert not isinstance(produced, authority_type), (
-            f"note_path.{name}() self-issued an owner-provisioning authority"
-        )
-        assert not isinstance(produced, anchor_type), (
-            f"note_path.{name}() self-issued an owner authenticity anchor"
-        )
 
-    # 5. A caller-controlled resolver can never be provisioned. Even a fully
-    #    shape-reproducing forged owner, and even genuine registered objects
-    #    borrowed from a different origin, are refused as anchors.
-    forged, forged_reference, forged_state = _forged_private_owner()
-    synthetic_source = note_path._issue_private_at8_handoff_source_for_synthetic_tests(
-        location_id="synthetic-owner-provisioning-authority-location-001",
-        contact_id="synthetic-owner-provisioning-authority-contact-001",
-    )
-    genuine_owner, genuine_anchor, _genuine_reference, genuine_state = (
-        _designated_private_owner()
-    )
-
-    candidate_anchors = (
-        object(),
-        synthetic_source,
-        ModuleType("offline_forged_owner_provisioning_authority"),
-        forged,
-        # A genuine anchor, transplanted onto a caller-controlled resolver.
-        genuine_anchor,
-        # A bare instance of the real anchor class, constructed directly.
-        anchor_type(),
-        authority_type(),
-    )
-    for candidate_anchor in candidate_anchors:
-        with pytest.raises(BindingError, match="authenticity anchor is invalid"):
-            _consume(owner=forged, anchor=candidate_anchor, reference=forged_reference)
-
-    # 6. The origin closures are not merely unexported: they are unreachable
-    #    by name, unreachable through the __closure__ cells of every exported
-    #    function, and collected out of the process entirely.
-    assert not [name for name in dir(note_path) if "origin_only" in name]
-
-    live_origins = [
-        obj
-        for obj in gc.get_objects()
-        if inspect.isfunction(obj) and obj.__name__.startswith("_origin_only_")
-    ]
-    assert live_origins == [], (
-        f"owner-provisioning origin closures survived import: {live_origins}"
-    )
-
-    for name, value in reachable.items():
-        if not inspect.isfunction(value) or not value.__closure__:
-            continue
-        for cell in value.__closure__:
+    # 5. Direct construction of any reachable class confers nothing either.
+    for name in dir(note_path):
+        value = getattr(note_path, name, None)
+        if isinstance(value, type):
             try:
-                contents = cell.cell_contents
-            except ValueError:
-                continue
-            assert not (
-                inspect.isfunction(contents)
-                and contents.__name__.startswith("_origin_only_")
-            ), f"note_path.{name} leaks an origin closure via __closure__"
-            # The one-shot latch must not be reachable/flippable either.
-            assert not (
-                isinstance(contents, dict) and "spent" in contents
-            ), f"note_path.{name} leaks the origin latch via __closure__"
-
-    # 7. Exhaustively attempt to self-register a forged anchor for a
-    #    caller-controlled resolver using every registry and marker object
-    #    reachable from exported closures.
-    registries, markers = [], []
-    for value in reachable.values():
-        if not inspect.isfunction(value) or not value.__closure__:
-            continue
-        for cell in value.__closure__:
-            try:
-                contents = cell.cell_contents
-            except ValueError:
-                continue
-            if type(contents).__name__ == "_IdentityRegistry":
-                registries.append(contents)
-            if type(contents) is object:
-                markers.append(contents)
-
-    attacker_resolver = ModuleType("attacker_controlled_resolver")
-    attacker_resolver.DESIGNATION_ID = DESIGNATION_ID
-    attacker_resolver.OpaqueSafePrivateBindingReference = type("R", (), {})
-    attacker_resolver.PrivateBindingMaterial = type("M", (), {})
-    attacker_resolver.release_to_public_consumer = lambda submitted: None
-    attacker_reference = attacker_resolver.OpaqueSafePrivateBindingReference()
-    snapshot_type = note_path._PrivateOwnerAnchorSnapshot
-
-    for registry in registries:
-        for marker in markers + [object()]:
-            forged_anchor = anchor_type()
-            try:
-                registry.add(
-                    forged_anchor,
-                    snapshot_type(
-                        resolver_ref=weakref.ref(attacker_resolver),
-                        consumer_authorization_identity=AUTHORIZATION_ID,
-                        consumer_workflow_run_id=WORKFLOW_RUN_ID,
-                        trust_marker=marker,
-                    ),
-                )
+                harvested.append(value())
             except Exception:
                 continue
+
+    # 6. Walk the closure cells of every exported function, harvesting every
+    #    reachable object as a candidate forged anchor.
+    for name in dir(note_path):
+        value = getattr(note_path, name, None)
+        closure = getattr(value, "__closure__", None) or ()
+        for cell in closure:
+            try:
+                harvested.append(cell.cell_contents)
+            except ValueError:
+                continue
+
+    # 7. Nothing harvested may be accepted as an anchor for a resolver the
+    #    caller controls.
+    reference = object()
+    for candidate in harvested:
+        with pytest.raises(BindingError):
+            _consume(owner=caller_owner, anchor=candidate, reference=reference)
+
+    # 8. Self-certifying anchors are refused. A caller can always write an
+    #    object -- or a whole module -- that *claims* private origin, so none
+    #    of these may be accepted. Each of these was a real breach during
+    #    development, so they are regression-guarded here.
+    forged, forged_reference, forged_state = _forged_private_owner()
+
+    class SelfAttestingAnchor:
+        """Answers an attestation challenge for a caller-controlled resolver."""
+
+        def attest_private_origin_provisioning(self, challenge: object):
+            return (DESIGNATION_ID, forged, AUTHORIZATION_ID, WORKFLOW_RUN_ID)
+
+    class DuckTypedAnchor:
+        designation_id = DESIGNATION_ID
+        provisioned_resolver = forged
+        consumer_authorization_identity = AUTHORIZATION_ID
+        consumer_workflow_run_id = WORKFLOW_RUN_ID
+
+    # A caller-authored module asserting it is the private control plane,
+    # including an unconstructable artifact type and a self-recognising
+    # membership check.
+    caller_plane = ModuleType("t14_caller_authored_private_plane")
+    caller_token = object()
+
+    class CallerPlaneAnchor:
+        designation_id = DESIGNATION_ID
+        provisioned_resolver = forged
+        consumer_authorization_identity = AUTHORIZATION_ID
+        consumer_workflow_run_id = WORKFLOW_RUN_ID
+
+        def __init__(self, token: object = None) -> None:
+            if token is not caller_token:
+                raise RuntimeError("unconstructable")
+
+    CallerPlaneAnchor.__module__ = caller_plane.__name__
+    caller_plane.ProvisionedPrivateOwnerResolver = CallerPlaneAnchor
+    caller_plane.is_genuinely_provisioned = lambda artifact: True
+    sys.modules[caller_plane.__name__] = caller_plane
+    try:
+        # An instance of the GENUINE artifact type, reconstructed through
+        # __new__ to bypass the private construction token.
+        token_bypassed = simulated_plane.ProvisionedPrivateOwnerResolver.__new__(
+            simulated_plane.ProvisionedPrivateOwnerResolver
+        )
+        for attribute, value in (
+            ("designation_id", DESIGNATION_ID),
+            ("provisioned_resolver", forged),
+            ("consumer_authorization_identity", AUTHORIZATION_ID),
+            ("consumer_workflow_run_id", WORKFLOW_RUN_ID),
+        ):
+            object.__setattr__(token_bypassed, attribute, value)
+
+        for label, candidate in (
+            ("self-attesting", SelfAttestingAnchor()),
+            ("duck-typed", DuckTypedAnchor()),
+            ("caller-authored private plane", CallerPlaneAnchor(caller_token)),
+            ("__new__ token bypass", token_bypassed),
+        ):
             with pytest.raises(BindingError):
-                runtime._consume_root_owned_private_binding_reference(
-                    private_binding_reference=attacker_reference,
-                    private_owner_resolver=attacker_resolver,
-                    private_owner_anchor=forged_anchor,
-                    consumer_authorization_identity=AUTHORIZATION_ID,
-                    consumer_workflow_run_id=WORKFLOW_RUN_ID,
+                _consume(
+                    owner=forged,
+                    anchor=candidate,
+                    reference=forged_reference,
                 )
+            assert forged_state["release_calls"] == 0, label
+    finally:
+        sys.modules.pop(caller_plane.__name__, None)
 
-    assert forged_state["release_calls"] == 0
-    assert genuine_state["reference"] == "AVAILABLE"
+    # 9. The legitimate private-origin consumer handoff still works.
+    owner, anchor, genuine_reference, state = _designated_private_owner()
+    capability = _consume(owner=owner, anchor=anchor, reference=genuine_reference)
+    assert capability.contact_id == "approved-live-contact-placeholder"
+    assert state["reference"] == "CONSUMED"
+    assert note_path.NETWORK_CALLS == 0
+    assert note_path.HIGHLEVEL_NETWORK_CALLS == 0
 
-    # 8. Genuine, private-plane-provisioned artifacts still work, so the
-    #    boundary refuses forgery without disabling legitimate consumption.
-    #    This runs before the pool sweep below, which recycles shared owners.
-    capability = _consume(
-        owner=genuine_owner, anchor=genuine_anchor, reference=_genuine_reference
+
+def test_public_module_performs_no_authority_origin_at_import() -> None:
+    """T15: importing note_path performs no authority origin at all.
+
+    Proves the public module is a verifier/consumer only: importing it creates
+    no owner-provisioning authority and no private-owner authenticity anchor,
+    and production ``src/`` contains no bootstrap that could register either.
+    """
+    import gc
+    import importlib
+    import inspect
+    import pathlib
+    import sys
+
+    import integrations.ghl.highlevel_rest.live_note_runtime as runtime
+
+    # 1/2. A fresh import of note_path creates no authority and no anchor.
+    #      Re-import the module from source and diff the live object graph for
+    #      anything origin-shaped, rather than trusting names.
+    def _origin_shaped_live_objects() -> list[str]:
+        found = []
+        for obj in gc.get_objects():
+            try:
+                type_name = type(obj).__name__
+            except Exception:
+                continue
+            if type_name in (
+                "_PrivateOwnerProvisioningAuthority",
+                "_PrivateOwnerAuthenticityAnchor",
+            ):
+                found.append(type_name)
+        return found
+
+    module_name = "integrations.ghl.highlevel_rest.note_path"
+    saved = sys.modules.pop(module_name)
+    try:
+        reimported = importlib.import_module(module_name)
+        assert _origin_shaped_live_objects() == []
+        # The reimported module exposes no owner origin surface either.
+        for name in dir(reimported):
+            lowered = name.lower()
+            assert not (
+                "owner" in lowered
+                and ("issue" in lowered or "provision" in lowered or "mint" in lowered)
+            ), name
+    finally:
+        sys.modules[module_name] = saved
+
+    # 3. Production src/ contains no bootstrap that registers either artifact.
+    src_root = pathlib.Path(inspect.getsourcefile(note_path)).resolve().parents[3]
+    assert src_root.name == "src", src_root
+    banned = (
+        "_PrivateOwnerProvisioningAuthority",
+        "_PrivateOwnerAuthenticityAnchor",
+        "owner_provisioning_authorities",
+        "designated_owner_anchors",
+        "_bootstrap_offline_provisioned_owner_pool",
+        "origin_latch",
     )
-    assert capability.consumer_authorization_identity == AUTHORIZATION_ID
-    assert genuine_state["reference"] == "CONSUMED"
+    for source_file in src_root.rglob("*.py"):
+        text = source_file.read_text()
+        for token in banned:
+            assert token not in text, f"{source_file}: {token}"
 
-    # 9. The pool is fixed: calling the accessor can never grow the set of
-    #    provisioned owners or bind one to a caller-controlled resolver.
-    pooled = {
-        id(note_path._take_offline_provisioned_private_owner()[0])
-        for _ in range(note_path._OFFLINE_PROVISIONED_OWNER_POOL_SIZE * 3)
-    }
-    assert len(pooled) <= note_path._OFFLINE_PROVISIONED_OWNER_POOL_SIZE
-    assert id(attacker_resolver) not in pooled
+    # 4. No production callable can bind a caller-controlled resolver. The
+    #    only anchor-accepting production entry point refuses one.
+    caller_owner = ModuleType("t15_caller_controlled_resolver")
+    caller_owner.DESIGNATION_ID = DESIGNATION_ID
+    with pytest.raises(BindingError, match="authenticity anchor is invalid"):
+        _consume(owner=caller_owner, anchor=object(), reference=object())
 
+    # 5. Legitimate root-owned/private-origin consumer handoff still passes.
+    owner, anchor, reference, state = _designated_private_owner()
+    capability = runtime._consume_root_owned_private_binding_reference(
+        private_binding_reference=reference,
+        private_owner_resolver=owner,
+        private_owner_anchor=anchor,
+        consumer_authorization_identity=AUTHORIZATION_ID,
+        consumer_workflow_run_id=WORKFLOW_RUN_ID,
+    )
+    assert capability.contact_id == "approved-live-contact-placeholder"
+    assert state["reference"] == "CONSUMED"
     assert note_path.NETWORK_CALLS == 0
     assert note_path.HIGHLEVEL_NETWORK_CALLS == 0

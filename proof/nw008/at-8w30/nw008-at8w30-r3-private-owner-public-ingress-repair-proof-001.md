@@ -71,6 +71,7 @@ CHANGED_PATHS=
   src/integrations/ghl/highlevel_rest/live_note_runtime.py|
   tests/integrations/ghl/highlevel_rest/test_live_note_runtime.py|
   tests/integrations/ghl/highlevel_rest/test_private_owner_public_ingress_repair.py|
+  tests/integrations/ghl/highlevel_rest/_simulated_private_control_plane.py|
   proof/nw008/at-8w30/nw008-at8w30-r3-private-owner-public-ingress-repair-consumption-001.md|
   proof/nw008/at-8w30/nw008-at8w30-r3-private-owner-public-ingress-repair-proof-001.md
 
@@ -93,10 +94,15 @@ T10_NON_SYNTHETIC_APPROVED_TARGET_TRAVERSES_AFTER_VERIFIED_PROVENANCE=PASS
 T11_FORGED_OWNER_WITH_CORRECT_DESIGNATION_REJECTS=PASS
 T12_VALID_OWNER_REMAINS_AVAILABLE_AFTER_FORGED_OWNER_REJECTION=PASS
 T13_PUBLIC_SYNTHETIC_HANDOFF_SOURCE_CANNOT_PROVISION_DESIGNATED_OWNER=PASS
+T14_ORDINARY_IMPORTER_CANNOT_SELF_ISSUE_OR_PROVISION_OWNER=PASS
+T15_PUBLIC_MODULE_PERFORMS_AUTHORITY_ORIGIN_AT_IMPORT=PASS
 
 TEST_COMMAND=
-  PYTHONPATH=src python -m pytest -q tests/integrations/ghl/highlevel_rest
-TEST_RESULT=252_PASSED
+  PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl/highlevel_rest
+TEST_RESULT=254_PASSED
+REPO_TEST_COMMAND=
+  PYTHONPATH=src python3.9 -m pytest -q tests
+REPO_TEST_RESULT=739_PASSED
 
 NETWORK_CALLS=0
 HIGHLEVEL_CALLS=0
@@ -153,6 +159,11 @@ PROVISIONING_AUTHORITY_GATE=PRIVATE_CONTROL_PLANE_OWNER_PROVISIONING_AUTHORITY
 PUBLIC_SYNTHETIC_AT8_HANDOFF_SATISFIES_PROVISIONING=NO
 ```
 
+The anchor *registry* described above was itself held inside the public module,
+which is why public code still counted as an authority origin. Section 6.5
+supersedes this mechanism: the registry and both artifact types were removed
+from `src/` entirely, and recognition is delegated to the private origin.
+
 The public runtime verifies the anchor by identity and resolver binding before
 `release_to_public_consumer(...)` is ever called. A caller-created module that
 reproduces the entire public resolver shape — exact `DESIGNATION_ID`, exported
@@ -199,7 +210,9 @@ T01-T10=PASS
 T11_FORGED_OWNER_WITH_CORRECT_DESIGNATION_REJECTS=PASS
 T12_VALID_OWNER_REMAINS_AVAILABLE_AFTER_FORGED_OWNER_REJECTION=PASS
 T13_PUBLIC_SYNTHETIC_HANDOFF_SOURCE_CANNOT_PROVISION_DESIGNATED_OWNER=PASS
-TEST_RESULT=252_PASSED
+T14_ORDINARY_IMPORTER_CANNOT_SELF_ISSUE_OR_PROVISION_OWNER=PASS
+T15_PUBLIC_MODULE_PERFORMS_AUTHORITY_ORIGIN_AT_IMPORT=PASS
+TEST_RESULT=254_PASSED
 
 NETWORK_CALLS=0
 HIGHLEVEL_CALLS=0
@@ -221,10 +234,73 @@ PUBLIC_SYNTHETIC_SOURCE_CAN_PROVISION_OWNER=NO
 RESOLVER_BINDING_BY_OBJECT_IDENTITY=WEAKREF_IS_CHECK
 ```
 
-`provision_designated_private_owner_resolver` no longer accepts a
-`_TrustedPrivateBindingSource`. It requires a distinct
-`_PrivateOwnerProvisioningAuthority` issued only by
-`issue_private_owner_provisioning_authority` inside the private control-plane
-trust issuer. `_issue_private_at8_handoff_source_for_synthetic_tests` remains
-the public synthetic lease-handoff path and cannot provision a designated
-owner.
+SUPERSEDED. That remediation kept the owner-provisioning issuer inside the
+public module, so public code -- not the private control plane -- remained an
+authority origin. A public-local issuer is NOT equivalent to private-origin
+authority, and neither underscore naming, a `_for_tests` suffix, nor a spent
+one-shot import latch converts one into the other. See section 6.5 for the
+superseding repair.
+
+### 6.5 Authority origin removed from public production code (third change request)
+
+```text
+REMEDIATION_OF=PUBLIC_MODULE_PERFORMS_AUTHORITY_ORIGIN_DURING_IMPORT
+PRIVATE_CONTROL_PLANE_IS_AUTHORITY_SOURCE=YES
+PUBLIC_MODULE_CAN_ISSUE_OWNER_PROVISIONING_AUTHORITY=NO
+PUBLIC_MODULE_CAN_PROVISION_OWNER=NO
+PUBLIC_MODULE_PERFORMS_AUTHORITY_ORIGIN_AT_IMPORT=NO
+PUBLIC_RUNTIME_IS_VERIFIER_CONSUMER_ONLY=YES
+PRIVATE_OWNER_REMAINS_SOLE_AUTHORITY_SOURCE=YES
+```
+
+Production `src/**` no longer contains an owner-provisioning authority type,
+an authenticity-anchor type, an anchor registry, a provisioning callable, or
+an import-time bootstrap. Importing `note_path` originates nothing.
+
+The designated-owner anchor is an artifact of the private control plane. The
+public runtime only reads and verifies one, and it accepts an anchor only when
+every one of the following holds:
+
+```text
+ANCHOR_ORIGIN_MODULE_DESIGNATED_BY=ROOT_OWNED_PROCESS_CONFIGURATION
+ANCHOR_TYPE_IDENTITY_REQUIRED=YES
+ANCHOR_TYPE_MUST_REFUSE_PUBLIC_CONSTRUCTION=YES_VERIFIED_BEHAVIOURALLY
+ANCHOR_RECOGNITION_DELEGATED_TO_PRIVATE_ORIGIN=YES
+ANCHOR_BOUND_TO_EXACT_RESOLVER_OBJECT=YES
+DUCK_TYPED_ANCHOR_ACCEPTED=NO
+SELF_DECLARED_ORIGIN_CONTRACT_ACCEPTED=NO
+```
+
+The trust root is root-owned process configuration
+(`MG_GUIDE_NW008_PRIVATE_OWNER_ORIGIN_MODULE`), consistent with every other
+root-owned dependency this runtime consumes. A public caller cannot designate
+an authority origin, and the runtime never imports a module on a caller's
+behalf. With no root designation present, every anchor is refused.
+
+Offline modelling of an already-provisioned private artifact now lives on the
+test-fixture side, outside `src/`, so it cannot register a
+production-recognized authority.
+
+```text
+TEST_SIDE_PRIVATE_ORIGIN_MODEL=
+  tests/integrations/ghl/highlevel_rest/_simulated_private_control_plane.py
+PRODUCTION_SRC_CONTAINS_ORIGIN=NO
+```
+
+Adversarial vectors proven refused (each was an observed breach during
+development and is now regression-guarded by T14):
+
+```text
+DUCK_TYPED_ATTESTATION_ANCHOR=REFUSED
+DUCK_TYPED_ATTRIBUTE_ANCHOR=REFUSED
+CALLER_AUTHORED_FAKE_PRIVATE_PLANE_MODULE=REFUSED
+GENUINE_TYPE_VIA_NEW_TOKEN_BYPASS=REFUSED
+GENUINE_ANCHOR_TRANSPLANTED_TO_CALLER_RESOLVER=REFUSED
+```
+
+Mutation evidence that T14/T15 are load-bearing:
+
+```text
+MUTATION_REINTRODUCE_IMPORT_TIME_ORIGIN=T14_FAIL_AND_T15_FAIL
+MUTATION_REEXPORT_ISSUER=T14_FAIL
+```

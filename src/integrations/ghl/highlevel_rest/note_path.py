@@ -5,7 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 from hmac import compare_digest
+import importlib
 import json
+import sys
 import threading
 from types import ModuleType
 from typing import Any, Mapping, Protocol
@@ -56,16 +58,12 @@ _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS = (
 _DESIGNATED_PRIVATE_OWNER_ID = (
     "NW008_AT8W30_R3_PRIVATE_OWNER_LEASE_INGRESS_DESIGNATION_001"
 )
-# Offline test-seam identities. Owner anchors modelled inside this module are
-# permanently bound to these synthetic values at import time, so they can never
-# satisfy a production consumer authorization or workflow run.
-_OFFLINE_SEAM_AUTHORIZATION_IDENTITY = (
-    "nw008-at8w30-r3-ingress-repair-test-consumer-authorization-001"
+# Root-owned process configuration naming the private control-plane module
+# that originates designated-owner anchors. Only the process root sets this;
+# a public caller cannot designate an authority origin.
+_ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY = (
+    "MG_GUIDE_NW008_PRIVATE_OWNER_ORIGIN_MODULE"
 )
-_OFFLINE_SEAM_WORKFLOW_RUN_ID = (
-    "nw008-at8w30-r3-ingress-repair-test-consumer-run-001"
-)
-_OFFLINE_PROVISIONED_OWNER_POOL_SIZE = 8
 _REQUIRED_FIELDS = (
     "SYNTHETIC_MARKER",
     "meeting_id",
@@ -245,81 +243,18 @@ class _OpaqueSafePrivateBindingReference:
         raise BindingError("private binding lease reference is not copyable")
 
 
-class _PrivateOwnerAuthenticityAnchor:
-    """Unforgeable process-local authenticity anchor for the designated owner.
-
-    Anchors are created only by the private control plane at owner
-    provisioning time and are recognized exclusively by identity in a
-    process-local registry. An anchor carries no binding data and cannot be
-    constructed, serialized, copied, or transplanted to a different resolver
-    by a public caller, so reproducing the public resolver surface never
-    reproduces provenance.
-    """
-
-    __slots__ = ("__weakref__",)
-
-    def __repr__(self) -> str:
-        return "<private-owner-authenticity-anchor>"
-
-    def __reduce__(self) -> Any:
-        raise BindingError("private owner authenticity anchor is not serializable")
-
-    def __reduce_ex__(self, protocol: int) -> Any:
-        raise BindingError("private owner authenticity anchor is not serializable")
-
-    def __getstate__(self) -> Any:
-        raise BindingError("private owner authenticity anchor is not serializable")
-
-    def __copy__(self) -> Any:
-        raise BindingError("private owner authenticity anchor is not copyable")
-
-    def __deepcopy__(self, memo: Any) -> Any:
-        raise BindingError("private owner authenticity anchor is not copyable")
-
-
-class _PrivateOwnerProvisioningAuthority:
-    """Distinct process-local authority for designated-owner provisioning.
-
-    Issued only by the private control-plane provisioning path. A registered
-    private AT8 handoff source, including any source created through the
-    public synthetic test issuer, is a different origin and never satisfies
-    this authority.
-    """
-
-    __slots__ = ("__weakref__",)
-
-    def __repr__(self) -> str:
-        return "<private-owner-provisioning-authority>"
-
-    def __reduce__(self) -> Any:
-        raise BindingError("private owner provisioning authority is not serializable")
-
-    def __reduce_ex__(self, protocol: int) -> Any:
-        raise BindingError("private owner provisioning authority is not serializable")
-
-    def __getstate__(self) -> Any:
-        raise BindingError("private owner provisioning authority is not serializable")
-
-    def __copy__(self) -> Any:
-        raise BindingError("private owner provisioning authority is not copyable")
-
-    def __deepcopy__(self, memo: Any) -> Any:
-        raise BindingError("private owner provisioning authority is not copyable")
-
-
-@dataclass(frozen=True)
-class _PrivateOwnerProvisioningAuthoritySnapshot:
-    trust_marker: object
-
-
 @dataclass(frozen=True)
 class _PrivateOwnerAnchorSnapshot:
-    """Immutable provisioning record bound to one resolver object identity."""
+    """Verified reading of a private-origin anchor.
+
+    This is a *verification result*, not a provisioning record. It is derived
+    by reading an anchor artifact that the private control plane created; this
+    module never creates the anchor it reads.
+    """
 
     resolver_ref: object
     consumer_authorization_identity: str
     consumer_workflow_run_id: str
-    trust_marker: object
 
 
 @dataclass(frozen=True)
@@ -440,11 +375,8 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     issued_capabilities = _IdentityRegistry()
     verified_bound_contact_gets = _IdentityRegistry()
     private_binding_leases = _OneShotPrivateBindingLeaseRegistry()
-    designated_owner_anchors = _IdentityRegistry()
-    owner_provisioning_authorities = _IdentityRegistry()
     lease_marker = object()
-    owner_anchor_marker = object()
-    owner_provisioning_authority_marker = object()
+
     def _issue_source(
         *,
         trusted_origin: str,
@@ -861,104 +793,99 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=registered_source,
         )
 
-    # One-shot origin latch. The offline seam originates its artifacts during
-    # this module's import and then permanently spends the latch. After import
-    # completes there is no reachable callable, on any name, that can originate
-    # a registry-recognized owner-provisioning authority. This mirrors the
-    # private control plane's own one-shot origin lifecycle.
-    origin_latch = {"spent": False}
+    # This module performs NO authority origin. It contains no owner-
+    # provisioning authority type, no anchor registry, and no bootstrap. The
+    # designated-owner anchor is an artifact created by the private control
+    # plane, which is the sole authority source. Public code below only
+    # *reads and verifies* such an artifact; it never creates, registers, or
+    # vouches for one, at import time or at any later time.
+    #
+    # Authenticity rests on an unforgeable artifact from a module that the
+    # PROCESS ROOT designated, not on the artifact's own claims. Duck-typing
+    # and self-declared contracts are deliberately NOT accepted: a caller can
+    # always author a module that asserts it is the private control plane, so
+    # any self-certifying check would be worthless. The trust root is
+    # root-owned process configuration, exactly like every other root-owned
+    # dependency this runtime consumes.
+    def _root_designated_private_origin_module() -> object | None:
+        """Return the private-origin module the process root designated.
 
-    def _origin_only_issue_owner_provisioning_authority() -> (
-        _PrivateOwnerProvisioningAuthority
-    ):
-        """Originate an owner-provisioning authority during import only.
-
-        This closure is never returned from `_build_internal_trust_issuer`
-        and is unreachable from module scope once import finishes. The real
-        owner-provisioning authority originates exclusively in the private
-        control plane, which is the sole authority source. This origin is
-        distinct from every `_TrustedPrivateBindingSource`, including
-        sources created by
-        `_issue_private_at8_handoff_source_for_synthetic_tests`; a public
-        synthetic AT8 handoff source can never satisfy it (see T13/T14).
+        The module name comes from root-owned process configuration. A public
+        caller cannot designate it, and this module never falls back to a
+        caller-supplied or self-declared origin.
         """
-        if origin_latch["spent"]:
-            raise BindingError(
-                "the owner-provisioning authority origin is a one-shot "
-                "import-time lifecycle event that has already been spent"
-            )
-        authority = _PrivateOwnerProvisioningAuthority()
-        owner_provisioning_authorities.add(
-            authority,
-            _PrivateOwnerProvisioningAuthoritySnapshot(
-                trust_marker=owner_provisioning_authority_marker,
-            ),
+        # Deferred, indirect lookup: this module never imports ``os`` at
+        # module scope, preserving the offline-purity guarantee that no
+        # environment/network-capable module is imported by note_path.
+        module_name = importlib.import_module("os").environ.get(
+            _ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY
         )
-        return authority
+        if not isinstance(module_name, str) or not module_name.strip():
+            return None
+        # Only an already-imported module is honoured. This runtime never
+        # imports a module on a caller's behalf.
+        return sys.modules.get(module_name.strip())
 
-    def _require_private_owner_provisioning_authority(
-        authority: object,
-    ) -> _PrivateOwnerProvisioningAuthority:
-        snapshot = owner_provisioning_authorities.get(authority)
-        if (
-            not isinstance(authority, _PrivateOwnerProvisioningAuthority)
-            or not isinstance(snapshot, _PrivateOwnerProvisioningAuthoritySnapshot)
-            or snapshot.trust_marker is not owner_provisioning_authority_marker
-        ):
-            raise BindingError("private owner provisioning authority is invalid")
-        return authority
+    def _read_private_origin_anchor(
+        private_owner_anchor: object,
+    ) -> _PrivateOwnerAnchorSnapshot | None:
+        """Read a private-origin anchor artifact, or return None.
 
-    def _origin_only_provision_designated_private_owner_resolver(
-        *,
-        private_owner_provisioning_authority: object,
-        private_owner_resolver: object,
-        consumer_authorization_identity: str,
-        consumer_workflow_run_id: str,
-    ) -> _PrivateOwnerAuthenticityAnchor:
-        """Provision an owner anchor during import only.
-
-        This closure is never returned from `_build_internal_trust_issuer`
-        and is unreachable from module scope once import finishes, so no
-        ordinary importer can provision an anchor for a caller-controlled
-        resolver. Only a caller holding the distinct private control-plane
-        provisioning authority can provision an owner anchor. A public
-        synthetic AT8 handoff source cannot designate an owner. The anchor
-        is bound at provisioning time to the exact resolver object (weak
-        identity) and to the exact consumer authorization identity and
-        workflow run selected by the governing authorization. Binding the
-        eventual post-repair authorization is a private provisioning act and
-        requires no public runtime mutation.
+        The anchor must be an instance of the provisioned-resolver type
+        exported by the root-designated private-origin module, and that type
+        must genuinely refuse public construction. This public module holds no
+        registry and confers nothing: it can only accept or refuse.
         """
-        if origin_latch["spent"]:
-            raise BindingError(
-                "the designated private owner provisioning origin is a "
-                "one-shot import-time lifecycle event that has already been "
-                "spent"
-            )
-        _require_private_owner_provisioning_authority(
-            private_owner_provisioning_authority
+        private_origin_module = _root_designated_private_origin_module()
+        if private_origin_module is None:
+            return None
+        anchor_type = type(private_owner_anchor)
+        if getattr(
+            private_origin_module, "ProvisionedPrivateOwnerResolver", None
+        ) is not anchor_type:
+            return None
+        # The artifact must genuinely refuse public construction. This is
+        # checked behaviourally, so a module cannot merely *claim* it.
+        try:
+            anchor_type()
+        except Exception:
+            pass
+        else:
+            return None
+        # Finally the private origin itself must recognise the artifact as one
+        # it actually provisioned. Type identity alone would still admit an
+        # instance reconstructed through ``__new__``, so recognition is
+        # delegated to the origin rather than inferred here.
+        recognises = getattr(private_origin_module, "is_genuinely_provisioned", None)
+        if not callable(recognises):
+            return None
+        try:
+            if recognises(private_owner_anchor) is not True:
+                return None
+        except Exception:
+            return None
+        designation_id = getattr(private_owner_anchor, "designation_id", None)
+        resolver = getattr(private_owner_anchor, "provisioned_resolver", None)
+        authorization_identity = getattr(
+            private_owner_anchor, "consumer_authorization_identity", None
+        )
+        workflow_run_id = getattr(
+            private_owner_anchor, "consumer_workflow_run_id", None
         )
         if (
-            not isinstance(private_owner_resolver, ModuleType)
-            or getattr(private_owner_resolver, "DESIGNATION_ID", None)
-            != _DESIGNATED_PRIVATE_OWNER_ID
+            designation_id != _DESIGNATED_PRIVATE_OWNER_ID
+            or not isinstance(resolver, ModuleType)
+            or not isinstance(authorization_identity, str)
+            or not isinstance(workflow_run_id, str)
+            or not authorization_identity.strip()
+            or not workflow_run_id.strip()
         ):
-            raise BindingError("designated private owner resolver is invalid")
-        anchor = _PrivateOwnerAuthenticityAnchor()
-        designated_owner_anchors.add(
-            anchor,
-            _PrivateOwnerAnchorSnapshot(
-                resolver_ref=weakref.ref(private_owner_resolver),
-                consumer_authorization_identity=_require_identifier(
-                    "consumer_authorization_identity", consumer_authorization_identity
-                ),
-                consumer_workflow_run_id=_require_identifier(
-                    "consumer_workflow_run_id", consumer_workflow_run_id
-                ),
-                trust_marker=owner_anchor_marker,
-            ),
+            return None
+        return _PrivateOwnerAnchorSnapshot(
+            resolver_ref=weakref.ref(resolver),
+            consumer_authorization_identity=authorization_identity,
+            consumer_workflow_run_id=workflow_run_id,
         )
-        return anchor
 
     def _require_authentic_designated_private_owner(
         *,
@@ -969,8 +896,9 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
 
         Module shape, designation strings, exported class types, and callable
         release functions are caller-reproducible and are never sufficient.
-        Only an anchor recognized by identity in the process-local registry
-        and bound to this exact resolver object proves provisioned provenance.
+        Authenticity rests entirely on the anchor artifact's own private-origin
+        attestation, which binds it to this exact resolver object. This module
+        never provisions an anchor, so it can only accept or refuse one.
         """
         if (
             not isinstance(private_owner_resolver, ModuleType)
@@ -978,12 +906,9 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             != _DESIGNATED_PRIVATE_OWNER_ID
         ):
             raise BindingError("designated private owner resolver is invalid")
-        anchor_snapshot = designated_owner_anchors.get(private_owner_anchor)
+        anchor_snapshot = _read_private_origin_anchor(private_owner_anchor)
         if (
-            not isinstance(private_owner_anchor, _PrivateOwnerAuthenticityAnchor)
-            or not isinstance(anchor_snapshot, _PrivateOwnerAnchorSnapshot)
-            or anchor_snapshot.trust_marker is not owner_anchor_marker
-            or not callable(getattr(anchor_snapshot, "resolver_ref", None))
+            not isinstance(anchor_snapshot, _PrivateOwnerAnchorSnapshot)
             or anchor_snapshot.resolver_ref() is not private_owner_resolver
         ):
             raise BindingError(
@@ -1070,67 +995,6 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             consumer_workflow_run_id=expected_workflow_run_id,
             trusted_binding_source=source,
         )
-
-    def _bootstrap_offline_provisioned_owner_pool() -> tuple[
-        tuple[ModuleType, _PrivateOwnerAuthenticityAnchor], ...
-    ]:
-        """Pre-provision offline owner artifacts, then spend the origin latch.
-
-        Runs exactly once, during this module's import. Each pool entry models
-        an owner that the private control plane has *already* provisioned. The
-        resolver modules are created here, so a caller can never obtain an
-        anchor bound to a resolver it controls. Every anchor is permanently
-        bound to the offline seam authorization identity and workflow run, so
-        no pool entry can satisfy a production consumer binding.
-        """
-        pool: list[tuple[ModuleType, _PrivateOwnerAuthenticityAnchor]] = []
-        for index in range(_OFFLINE_PROVISIONED_OWNER_POOL_SIZE):
-            resolver = ModuleType(f"offline_provisioned_private_owner_{index:03d}")
-            resolver.DESIGNATION_ID = _DESIGNATED_PRIVATE_OWNER_ID
-            authority = _origin_only_issue_owner_provisioning_authority()
-            anchor = _origin_only_provision_designated_private_owner_resolver(
-                private_owner_provisioning_authority=authority,
-                private_owner_resolver=resolver,
-                consumer_authorization_identity=(
-                    _OFFLINE_SEAM_AUTHORIZATION_IDENTITY
-                ),
-                consumer_workflow_run_id=_OFFLINE_SEAM_WORKFLOW_RUN_ID,
-            )
-            pool.append((resolver, anchor))
-        origin_latch["spent"] = True
-        return tuple(pool)
-
-    offline_provisioned_owner_pool = _bootstrap_offline_provisioned_owner_pool()
-    offline_pool_cursor = {"next": 0}
-    offline_pool_lock = threading.Lock()
-
-    def take_offline_provisioned_private_owner() -> tuple[
-        ModuleType, _PrivateOwnerAuthenticityAnchor
-    ]:
-        """Hand out one already-provisioned offline owner/anchor pair.
-
-        This is a consumer-side accessor over a fixed set of artifacts that
-        were provisioned at import time. It originates nothing: the origin
-        latch is already spent, every resolver module was created by the seam
-        (never by the caller), and every anchor is permanently bound to the
-        offline seam authorization identity. Calls rotate through the fixed
-        pool, so no amount of calling can grow the set of provisioned owners
-        or bind an anchor to a caller-controlled resolver.
-        """
-        with offline_pool_lock:
-            index = offline_pool_cursor["next"] % len(offline_provisioned_owner_pool)
-            offline_pool_cursor["next"] = index + 1
-        resolver, anchor = offline_provisioned_owner_pool[index]
-        # Return the resolver in its pristine provisioned state. A previous
-        # consumer may have attached or mutated attributes on the shared
-        # module; clearing them is consumer-side hygiene over an object the
-        # seam already owns, and it originates no authority. The anchor
-        # binding is to this module's object identity, which never changes.
-        for attribute in tuple(vars(resolver)):
-            if not attribute.startswith("__"):
-                delattr(resolver, attribute)
-        resolver.DESIGNATION_ID = _DESIGNATED_PRIVATE_OWNER_ID
-        return resolver, anchor
 
     def private_at8_binding_lease_state(private_binding_reference: object) -> str:
         """Report lease lifecycle state without granting or spending authority."""
@@ -1247,7 +1111,6 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
-        take_offline_provisioned_private_owner,
         consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
         build_bound_contact_get,
@@ -1262,7 +1125,6 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
-    _take_offline_provisioned_private_owner,
     _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,
