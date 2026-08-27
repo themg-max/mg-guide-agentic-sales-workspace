@@ -195,13 +195,16 @@ def _consume_root_owned_private_binding_reference(
     consumer_authorization_identity: str,
     consumer_workflow_run_id: str,
     private_owner_resolver: object | None = None,
+    private_owner_anchor: object | None = None,
 ) -> note_path._VerifiedContactBindingCapability:
     """Consume a pre-existing opaque private binding reference.
 
     This composition root never mints private authority and never resolves an
     authority provider. It accepts only an opaque reference materialized earlier
     by the private control plane, and a finished capability is explicitly not an
-    accepted boundary substitute.
+    accepted boundary substitute. The designated-owner ingress additionally
+    requires the owner's provisioned authenticity anchor; shape alone is never
+    sufficient.
     """
     if isinstance(private_binding_reference, note_path._VerifiedContactBindingCapability):
         raise LiveNoteRuntimeAssemblyError(
@@ -214,6 +217,10 @@ def _consume_root_owned_private_binding_reference(
         "consumer_workflow_run_id", consumer_workflow_run_id
     )
     if private_owner_resolver is None:
+        if private_owner_anchor is not None:
+            raise LiveNoteRuntimeAssemblyError(
+                "a private owner authenticity anchor requires the designated private owner resolver"
+            )
         verified_capability = note_path._consume_private_at8_binding_lease(
             private_binding_reference,
             consumer_authorization_identity=expected_consumer_authorization_identity,
@@ -224,6 +231,7 @@ def _consume_root_owned_private_binding_reference(
             note_path._consume_designated_private_owner_binding_reference(
                 private_owner_resolver=private_owner_resolver,
                 private_binding_reference=private_binding_reference,
+                private_owner_anchor=private_owner_anchor,
                 consumer_authorization_identity=expected_consumer_authorization_identity,
                 consumer_workflow_run_id=expected_consumer_workflow_run_id,
             )
@@ -241,6 +249,7 @@ def assemble_bound_live_note_runtime(
     consumer_authorization_identity: str,
     consumer_workflow_run_id: str,
     private_owner_resolver: object | None = None,
+    private_owner_anchor: object | None = None,
 ) -> NotePathAdapter:
     """Assemble only from a consumed private reference and root-owned dependencies."""
     validated_capability = _consume_root_owned_private_binding_reference(
@@ -248,6 +257,7 @@ def assemble_bound_live_note_runtime(
         consumer_authorization_identity=consumer_authorization_identity,
         consumer_workflow_run_id=consumer_workflow_run_id,
         private_owner_resolver=private_owner_resolver,
+        private_owner_anchor=private_owner_anchor,
     )
     dependencies = _resolve_root_owned_runtime_dependencies()
     store_ownership = _StoreOwnershipGuard(dependencies.execution_store)

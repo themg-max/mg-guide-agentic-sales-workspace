@@ -95,10 +95,11 @@ def test_public_assembler_accepts_only_preexisting_opaque_reference() -> None:
         "consumer_authorization_identity",
         "consumer_workflow_run_id",
         "private_owner_resolver",
+        "private_owner_anchor",
     )
     for name, parameter in signature.parameters.items():
         assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
-        if name == "private_owner_resolver":
+        if name in ("private_owner_resolver", "private_owner_anchor"):
             assert parameter.default is None
         else:
             assert parameter.default is inspect.Parameter.empty

@@ -56,12 +56,6 @@ _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS = (
 _DESIGNATED_PRIVATE_OWNER_ID = (
     "NW008_AT8W30_R3_PRIVATE_OWNER_LEASE_INGRESS_DESIGNATION_001"
 )
-_DESIGNATED_PRIVATE_OWNER_CONSUMER_AUTHORIZATION_ID = (
-    "nw008-at8w30-r3-get-contact-execution-authorization-002"
-)
-_DESIGNATED_PRIVATE_OWNER_CONSUMER_WORKFLOW_RUN_ID = (
-    "nw008-at8w30-r3-get-contact-execution-run-002"
-)
 _REQUIRED_FIELDS = (
     "SYNTHETIC_MARKER",
     "meeting_id",
@@ -241,6 +235,48 @@ class _OpaqueSafePrivateBindingReference:
         raise BindingError("private binding lease reference is not copyable")
 
 
+class _PrivateOwnerAuthenticityAnchor:
+    """Unforgeable process-local authenticity anchor for the designated owner.
+
+    Anchors are created only by the private control plane at owner
+    provisioning time and are recognized exclusively by identity in a
+    process-local registry. An anchor carries no binding data and cannot be
+    constructed, serialized, copied, or transplanted to a different resolver
+    by a public caller, so reproducing the public resolver surface never
+    reproduces provenance.
+    """
+
+    __slots__ = ("__weakref__",)
+
+    def __repr__(self) -> str:
+        return "<private-owner-authenticity-anchor>"
+
+    def __reduce__(self) -> Any:
+        raise BindingError("private owner authenticity anchor is not serializable")
+
+    def __reduce_ex__(self, protocol: int) -> Any:
+        raise BindingError("private owner authenticity anchor is not serializable")
+
+    def __getstate__(self) -> Any:
+        raise BindingError("private owner authenticity anchor is not serializable")
+
+    def __copy__(self) -> Any:
+        raise BindingError("private owner authenticity anchor is not copyable")
+
+    def __deepcopy__(self, memo: Any) -> Any:
+        raise BindingError("private owner authenticity anchor is not copyable")
+
+
+@dataclass(frozen=True)
+class _PrivateOwnerAnchorSnapshot:
+    """Immutable provisioning record bound to one resolver object identity."""
+
+    resolver_identity: int
+    consumer_authorization_identity: str
+    consumer_workflow_run_id: str
+    trust_marker: object
+
+
 @dataclass(frozen=True)
 class _PrivateBindingLeaseRecord:
     """Private-side lease content that never crosses the boundary."""
@@ -359,7 +395,9 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     issued_capabilities = _IdentityRegistry()
     verified_bound_contact_gets = _IdentityRegistry()
     private_binding_leases = _OneShotPrivateBindingLeaseRegistry()
+    designated_owner_anchors = _IdentityRegistry()
     lease_marker = object()
+    owner_anchor_marker = object()
     def _issue_source(
         *,
         trusted_origin: str,
@@ -776,41 +814,111 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=registered_source,
         )
 
-    def consume_designated_private_owner_binding_reference(
+    def provision_designated_private_owner_resolver(
         *,
+        trusted_binding_source: object,
         private_owner_resolver: object,
-        private_binding_reference: object,
         consumer_authorization_identity: str,
         consumer_workflow_run_id: str,
-    ) -> _VerifiedContactBindingCapability:
-        """Consume a designated owner's sealed reference after exact run binding.
+    ) -> _PrivateOwnerAuthenticityAnchor:
+        """Provision the designated private owner with an authenticity anchor.
 
-        The resolver is a process-local capability from the designated private
-        owner. It releases only already-verified binding data; public code never
-        accepts raw binding data or materializes a production lease.
+        Only a caller holding registered private AT8 handoff authority can
+        provision an owner anchor, so a public caller cannot designate itself.
+        The anchor is bound at provisioning time to the exact resolver object
+        identity and to the exact consumer authorization identity and workflow
+        run selected by the governing authorization. Binding the eventual
+        post-repair authorization is a private provisioning act and requires
+        no public runtime mutation.
         """
-        expected_authorization_identity = _require_identifier(
-            "consumer_authorization_identity", consumer_authorization_identity
-        )
-        expected_workflow_run_id = _require_identifier(
-            "consumer_workflow_run_id", consumer_workflow_run_id
-        )
-        if (
-            expected_authorization_identity
-            != _DESIGNATED_PRIVATE_OWNER_CONSUMER_AUTHORIZATION_ID
-        ):
-            raise BindingError("designated private owner authorization binding is invalid")
-        if (
-            expected_workflow_run_id
-            != _DESIGNATED_PRIVATE_OWNER_CONSUMER_WORKFLOW_RUN_ID
-        ):
-            raise BindingError("designated private owner workflow run binding is invalid")
+        _require_private_at8_handoff_source(trusted_binding_source)
         if (
             not isinstance(private_owner_resolver, ModuleType)
             or getattr(private_owner_resolver, "DESIGNATION_ID", None)
             != _DESIGNATED_PRIVATE_OWNER_ID
         ):
             raise BindingError("designated private owner resolver is invalid")
+        anchor = _PrivateOwnerAuthenticityAnchor()
+        designated_owner_anchors.add(
+            anchor,
+            _PrivateOwnerAnchorSnapshot(
+                resolver_identity=id(private_owner_resolver),
+                consumer_authorization_identity=_require_identifier(
+                    "consumer_authorization_identity", consumer_authorization_identity
+                ),
+                consumer_workflow_run_id=_require_identifier(
+                    "consumer_workflow_run_id", consumer_workflow_run_id
+                ),
+                trust_marker=owner_anchor_marker,
+            ),
+        )
+        return anchor
+
+    def _require_authentic_designated_private_owner(
+        *,
+        private_owner_resolver: object,
+        private_owner_anchor: object,
+    ) -> _PrivateOwnerAnchorSnapshot:
+        """Verify genuine private-owner provenance before any private release.
+
+        Module shape, designation strings, exported class types, and callable
+        release functions are caller-reproducible and are never sufficient.
+        Only an anchor recognized by identity in the process-local registry
+        and bound to this exact resolver object proves provisioned provenance.
+        """
+        if (
+            not isinstance(private_owner_resolver, ModuleType)
+            or getattr(private_owner_resolver, "DESIGNATION_ID", None)
+            != _DESIGNATED_PRIVATE_OWNER_ID
+        ):
+            raise BindingError("designated private owner resolver is invalid")
+        anchor_snapshot = designated_owner_anchors.get(private_owner_anchor)
+        if (
+            not isinstance(private_owner_anchor, _PrivateOwnerAuthenticityAnchor)
+            or not isinstance(anchor_snapshot, _PrivateOwnerAnchorSnapshot)
+            or anchor_snapshot.trust_marker is not owner_anchor_marker
+            or anchor_snapshot.resolver_identity != id(private_owner_resolver)
+        ):
+            raise BindingError(
+                "designated private owner authenticity anchor is invalid"
+            )
+        return anchor_snapshot
+
+    def consume_designated_private_owner_binding_reference(
+        *,
+        private_owner_resolver: object,
+        private_binding_reference: object,
+        private_owner_anchor: object,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+    ) -> _VerifiedContactBindingCapability:
+        """Consume a designated owner's sealed reference after exact run binding.
+
+        The resolver is a process-local capability from the designated private
+        owner, and the anchor is the unforgeable process-local proof that this
+        exact resolver was provisioned by the private control plane. Both are
+        verified before the private owner is invoked. The resolver releases
+        only already-verified binding data; public code never accepts raw
+        binding data or materializes a production lease.
+        """
+        presented_authorization_identity = _require_identifier(
+            "consumer_authorization_identity", consumer_authorization_identity
+        )
+        presented_workflow_run_id = _require_identifier(
+            "consumer_workflow_run_id", consumer_workflow_run_id
+        )
+        anchor_snapshot = _require_authentic_designated_private_owner(
+            private_owner_resolver=private_owner_resolver,
+            private_owner_anchor=private_owner_anchor,
+        )
+        expected_authorization_identity = (
+            anchor_snapshot.consumer_authorization_identity
+        )
+        expected_workflow_run_id = anchor_snapshot.consumer_workflow_run_id
+        if presented_authorization_identity != expected_authorization_identity:
+            raise BindingError("designated private owner authorization binding is invalid")
+        if presented_workflow_run_id != expected_workflow_run_id:
+            raise BindingError("designated private owner workflow run binding is invalid")
 
         reference_type = getattr(
             private_owner_resolver, "OpaqueSafePrivateBindingReference", None
@@ -971,6 +1079,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
+        provision_designated_private_owner_resolver,
         consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
         build_bound_contact_get,
@@ -985,6 +1094,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
+    _provision_designated_private_owner_resolver,
     _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,
