@@ -56,6 +56,16 @@ _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS = (
 _DESIGNATED_PRIVATE_OWNER_ID = (
     "NW008_AT8W30_R3_PRIVATE_OWNER_LEASE_INGRESS_DESIGNATION_001"
 )
+# Offline test-seam identities. Owner anchors modelled inside this module are
+# permanently bound to these synthetic values at import time, so they can never
+# satisfy a production consumer authorization or workflow run.
+_OFFLINE_SEAM_AUTHORIZATION_IDENTITY = (
+    "nw008-at8w30-r3-ingress-repair-test-consumer-authorization-001"
+)
+_OFFLINE_SEAM_WORKFLOW_RUN_ID = (
+    "nw008-at8w30-r3-ingress-repair-test-consumer-run-001"
+)
+_OFFLINE_PROVISIONED_OWNER_POOL_SIZE = 8
 _REQUIRED_FIELDS = (
     "SYNTHETIC_MARKER",
     "meeting_id",
@@ -851,24 +861,32 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=registered_source,
         )
 
-    def issue_private_owner_provisioning_authority_for_tests() -> (
+    # One-shot origin latch. The offline seam originates its artifacts during
+    # this module's import and then permanently spends the latch. After import
+    # completes there is no reachable callable, on any name, that can originate
+    # a registry-recognized owner-provisioning authority. This mirrors the
+    # private control plane's own one-shot origin lifecycle.
+    origin_latch = {"spent": False}
+
+    def _origin_only_issue_owner_provisioning_authority() -> (
         _PrivateOwnerProvisioningAuthority
     ):
-        """Model an already-provisioned private owner-provisioning authority.
+        """Originate an owner-provisioning authority during import only.
 
-        This is an offline test-seam constructor only. It is not a public
-        owner-provisioning issuer and is never invoked by the production
-        composition root (`live_note_runtime.assemble_bound_live_note_runtime`
-        never calls this function or the paired
-        `_provision_designated_private_owner_resolver_for_tests`). The real
+        This closure is never returned from `_build_internal_trust_issuer`
+        and is unreachable from module scope once import finishes. The real
         owner-provisioning authority originates exclusively in the private
-        control plane, which is the sole authority source; this public
-        module never mints that authority for production use. This origin
-        is distinct from every `_TrustedPrivateBindingSource`, including
+        control plane, which is the sole authority source. This origin is
+        distinct from every `_TrustedPrivateBindingSource`, including
         sources created by
         `_issue_private_at8_handoff_source_for_synthetic_tests`; a public
         synthetic AT8 handoff source can never satisfy it (see T13/T14).
         """
+        if origin_latch["spent"]:
+            raise BindingError(
+                "the owner-provisioning authority origin is a one-shot "
+                "import-time lifecycle event that has already been spent"
+            )
         authority = _PrivateOwnerProvisioningAuthority()
         owner_provisioning_authorities.add(
             authority,
@@ -890,27 +908,33 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             raise BindingError("private owner provisioning authority is invalid")
         return authority
 
-    def provision_designated_private_owner_resolver_for_tests(
+    def _origin_only_provision_designated_private_owner_resolver(
         *,
         private_owner_provisioning_authority: object,
         private_owner_resolver: object,
         consumer_authorization_identity: str,
         consumer_workflow_run_id: str,
     ) -> _PrivateOwnerAuthenticityAnchor:
-        """Model the private control plane provisioning an owner anchor.
+        """Provision an owner anchor during import only.
 
-        This is an offline test-seam constructor only, paired with
-        `issue_private_owner_provisioning_authority_for_tests`, and is never
-        invoked by the production composition root. Only a caller holding
-        the distinct private control-plane provisioning authority can
-        provision an owner anchor. A public synthetic AT8 handoff source
-        cannot designate an owner. The anchor is bound at provisioning time
-        to the exact resolver object (weak identity) and to the exact
-        consumer authorization identity and workflow run selected by the
-        governing authorization. Binding the eventual post-repair
-        authorization is a private provisioning act and requires no public
-        runtime mutation.
+        This closure is never returned from `_build_internal_trust_issuer`
+        and is unreachable from module scope once import finishes, so no
+        ordinary importer can provision an anchor for a caller-controlled
+        resolver. Only a caller holding the distinct private control-plane
+        provisioning authority can provision an owner anchor. A public
+        synthetic AT8 handoff source cannot designate an owner. The anchor
+        is bound at provisioning time to the exact resolver object (weak
+        identity) and to the exact consumer authorization identity and
+        workflow run selected by the governing authorization. Binding the
+        eventual post-repair authorization is a private provisioning act and
+        requires no public runtime mutation.
         """
+        if origin_latch["spent"]:
+            raise BindingError(
+                "the designated private owner provisioning origin is a "
+                "one-shot import-time lifecycle event that has already been "
+                "spent"
+            )
         _require_private_owner_provisioning_authority(
             private_owner_provisioning_authority
         )
@@ -1047,6 +1071,67 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=source,
         )
 
+    def _bootstrap_offline_provisioned_owner_pool() -> tuple[
+        tuple[ModuleType, _PrivateOwnerAuthenticityAnchor], ...
+    ]:
+        """Pre-provision offline owner artifacts, then spend the origin latch.
+
+        Runs exactly once, during this module's import. Each pool entry models
+        an owner that the private control plane has *already* provisioned. The
+        resolver modules are created here, so a caller can never obtain an
+        anchor bound to a resolver it controls. Every anchor is permanently
+        bound to the offline seam authorization identity and workflow run, so
+        no pool entry can satisfy a production consumer binding.
+        """
+        pool: list[tuple[ModuleType, _PrivateOwnerAuthenticityAnchor]] = []
+        for index in range(_OFFLINE_PROVISIONED_OWNER_POOL_SIZE):
+            resolver = ModuleType(f"offline_provisioned_private_owner_{index:03d}")
+            resolver.DESIGNATION_ID = _DESIGNATED_PRIVATE_OWNER_ID
+            authority = _origin_only_issue_owner_provisioning_authority()
+            anchor = _origin_only_provision_designated_private_owner_resolver(
+                private_owner_provisioning_authority=authority,
+                private_owner_resolver=resolver,
+                consumer_authorization_identity=(
+                    _OFFLINE_SEAM_AUTHORIZATION_IDENTITY
+                ),
+                consumer_workflow_run_id=_OFFLINE_SEAM_WORKFLOW_RUN_ID,
+            )
+            pool.append((resolver, anchor))
+        origin_latch["spent"] = True
+        return tuple(pool)
+
+    offline_provisioned_owner_pool = _bootstrap_offline_provisioned_owner_pool()
+    offline_pool_cursor = {"next": 0}
+    offline_pool_lock = threading.Lock()
+
+    def take_offline_provisioned_private_owner() -> tuple[
+        ModuleType, _PrivateOwnerAuthenticityAnchor
+    ]:
+        """Hand out one already-provisioned offline owner/anchor pair.
+
+        This is a consumer-side accessor over a fixed set of artifacts that
+        were provisioned at import time. It originates nothing: the origin
+        latch is already spent, every resolver module was created by the seam
+        (never by the caller), and every anchor is permanently bound to the
+        offline seam authorization identity. Calls rotate through the fixed
+        pool, so no amount of calling can grow the set of provisioned owners
+        or bind an anchor to a caller-controlled resolver.
+        """
+        with offline_pool_lock:
+            index = offline_pool_cursor["next"] % len(offline_provisioned_owner_pool)
+            offline_pool_cursor["next"] = index + 1
+        resolver, anchor = offline_provisioned_owner_pool[index]
+        # Return the resolver in its pristine provisioned state. A previous
+        # consumer may have attached or mutated attributes on the shared
+        # module; clearing them is consumer-side hygiene over an object the
+        # seam already owns, and it originates no authority. The anchor
+        # binding is to this module's object identity, which never changes.
+        for attribute in tuple(vars(resolver)):
+            if not attribute.startswith("__"):
+                delattr(resolver, attribute)
+        resolver.DESIGNATION_ID = _DESIGNATED_PRIVATE_OWNER_ID
+        return resolver, anchor
+
     def private_at8_binding_lease_state(private_binding_reference: object) -> str:
         """Report lease lifecycle state without granting or spending authority."""
         if not isinstance(private_binding_reference, _OpaqueSafePrivateBindingReference):
@@ -1162,8 +1247,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
-        issue_private_owner_provisioning_authority_for_tests,
-        provision_designated_private_owner_resolver_for_tests,
+        take_offline_provisioned_private_owner,
         consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
         build_bound_contact_get,
@@ -1178,8 +1262,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
-    _issue_private_owner_provisioning_authority_for_tests,
-    _provision_designated_private_owner_resolver_for_tests,
+    _take_offline_provisioned_private_owner,
     _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,
