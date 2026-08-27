@@ -92,10 +92,11 @@ T09_REPLAY_OR_SECOND_CONSUME_REJECTS=PASS
 T10_NON_SYNTHETIC_APPROVED_TARGET_TRAVERSES_AFTER_VERIFIED_PROVENANCE=PASS
 T11_FORGED_OWNER_WITH_CORRECT_DESIGNATION_REJECTS=PASS
 T12_VALID_OWNER_REMAINS_AVAILABLE_AFTER_FORGED_OWNER_REJECTION=PASS
+T13_PUBLIC_SYNTHETIC_HANDOFF_SOURCE_CANNOT_PROVISION_DESIGNATED_OWNER=PASS
 
 TEST_COMMAND=
   PYTHONPATH=src python -m pytest -q tests/integrations/ghl/highlevel_rest
-TEST_RESULT=251_PASSED
+TEST_RESULT=252_PASSED
 
 NETWORK_CALLS=0
 HIGHLEVEL_CALLS=0
@@ -147,8 +148,9 @@ ANCHOR_CONSTRUCTIBLE_BY_PUBLIC_CALLER=NO
 ANCHOR_SERIALIZABLE=NO
 ANCHOR_COPYABLE=NO
 ANCHOR_RECOGNITION=PROCESS_LOCAL_IDENTITY_REGISTRY_ONLY
-ANCHOR_BOUND_TO=EXACT_RESOLVER_OBJECT_IDENTITY
-PROVISIONING_AUTHORITY_GATE=REGISTERED_PRIVATE_AT8_HANDOFF_SOURCE
+ANCHOR_BOUND_TO=EXACT_RESOLVER_OBJECT_WEAKREF_IDENTITY
+PROVISIONING_AUTHORITY_GATE=PRIVATE_CONTROL_PLANE_OWNER_PROVISIONING_AUTHORITY
+PUBLIC_SYNTHETIC_AT8_HANDOFF_SATISFIES_PROVISIONING=NO
 ```
 
 The public runtime verifies the anchor by identity and resolver binding before
@@ -157,8 +159,12 @@ reproduces the entire public resolver shape — exact `DESIGNATION_ID`, exported
 reference/material classes, a callable release function, and plausible
 non-synthetic provider IDs — fails closed, whether it presents a fabricated
 anchor object or a genuine anchor transplanted from the provisioned owner.
-Provisioning itself requires registered private AT8 handoff authority, so a
-public caller cannot designate itself.
+Provisioning itself requires a distinct process-local
+`_PrivateOwnerProvisioningAuthority` issued only by the private control-plane
+provisioning path. A source created through
+`_issue_private_at8_handoff_source_for_synthetic_tests` cannot designate an
+owner. Anchor snapshots bind the resolver with `resolver_ref() is
+private_owner_resolver`, not integer `id()` equality alone.
 
 ```text
 PRIVATE_OWNER_AUTHENTICITY_ANCHOR=
@@ -192,7 +198,8 @@ POST_REPAIR_BINDING_REQUIRES_IMPLEMENTATION_MUTATION=NO
 T01-T10=PASS
 T11_FORGED_OWNER_WITH_CORRECT_DESIGNATION_REJECTS=PASS
 T12_VALID_OWNER_REMAINS_AVAILABLE_AFTER_FORGED_OWNER_REJECTION=PASS
-TEST_RESULT=251_PASSED
+T13_PUBLIC_SYNTHETIC_HANDOFF_SOURCE_CANNOT_PROVISION_DESIGNATED_OWNER=PASS
+TEST_RESULT=252_PASSED
 
 NETWORK_CALLS=0
 HIGHLEVEL_CALLS=0
@@ -203,3 +210,21 @@ R3_EXECUTION_ATTEMPTS_USED=0
 R3_EXECUTION_PERFORMED=NO
 R4_PERFORMED=NO
 ```
+
+### 6.4 Owner-provisioning authority origin (second change request)
+
+```text
+REMEDIATION_OF=DESIGNATED_PRIVATE_OWNER_ANCHOR_PROVISIONING_IS_REACHABLE_FROM_PUBLIC_SYNTHETIC_HANDOFF_SOURCE
+OWNER_PROVISIONING_AUTHORITY_ORIGIN=
+  PROCESS_LOCAL_PRIVATE_CONTROL_PLANE_PROVISIONING_AUTHORITY_TOKEN
+PUBLIC_SYNTHETIC_SOURCE_CAN_PROVISION_OWNER=NO
+RESOLVER_BINDING_BY_OBJECT_IDENTITY=WEAKREF_IS_CHECK
+```
+
+`provision_designated_private_owner_resolver` no longer accepts a
+`_TrustedPrivateBindingSource`. It requires a distinct
+`_PrivateOwnerProvisioningAuthority` issued only by
+`issue_private_owner_provisioning_authority` inside the private control-plane
+trust issuer. `_issue_private_at8_handoff_source_for_synthetic_tests` remains
+the public synthetic lease-handoff path and cannot provision a designated
+owner.

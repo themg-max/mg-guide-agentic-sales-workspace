@@ -267,11 +267,46 @@ class _PrivateOwnerAuthenticityAnchor:
         raise BindingError("private owner authenticity anchor is not copyable")
 
 
+class _PrivateOwnerProvisioningAuthority:
+    """Distinct process-local authority for designated-owner provisioning.
+
+    Issued only by the private control-plane provisioning path. A registered
+    private AT8 handoff source, including any source created through the
+    public synthetic test issuer, is a different origin and never satisfies
+    this authority.
+    """
+
+    __slots__ = ("__weakref__",)
+
+    def __repr__(self) -> str:
+        return "<private-owner-provisioning-authority>"
+
+    def __reduce__(self) -> Any:
+        raise BindingError("private owner provisioning authority is not serializable")
+
+    def __reduce_ex__(self, protocol: int) -> Any:
+        raise BindingError("private owner provisioning authority is not serializable")
+
+    def __getstate__(self) -> Any:
+        raise BindingError("private owner provisioning authority is not serializable")
+
+    def __copy__(self) -> Any:
+        raise BindingError("private owner provisioning authority is not copyable")
+
+    def __deepcopy__(self, memo: Any) -> Any:
+        raise BindingError("private owner provisioning authority is not copyable")
+
+
+@dataclass(frozen=True)
+class _PrivateOwnerProvisioningAuthoritySnapshot:
+    trust_marker: object
+
+
 @dataclass(frozen=True)
 class _PrivateOwnerAnchorSnapshot:
     """Immutable provisioning record bound to one resolver object identity."""
 
-    resolver_identity: int
+    resolver_ref: object
     consumer_authorization_identity: str
     consumer_workflow_run_id: str
     trust_marker: object
@@ -396,8 +431,10 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     verified_bound_contact_gets = _IdentityRegistry()
     private_binding_leases = _OneShotPrivateBindingLeaseRegistry()
     designated_owner_anchors = _IdentityRegistry()
+    owner_provisioning_authorities = _IdentityRegistry()
     lease_marker = object()
     owner_anchor_marker = object()
+    owner_provisioning_authority_marker = object()
     def _issue_source(
         *,
         trusted_origin: str,
@@ -814,24 +851,57 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=registered_source,
         )
 
+    def issue_private_owner_provisioning_authority() -> (
+        _PrivateOwnerProvisioningAuthority
+    ):
+        """Issue the private control-plane owner-provisioning authority token.
+
+        This origin is distinct from every `_TrustedPrivateBindingSource`,
+        including sources created by
+        `_issue_private_at8_handoff_source_for_synthetic_tests`.
+        """
+        authority = _PrivateOwnerProvisioningAuthority()
+        owner_provisioning_authorities.add(
+            authority,
+            _PrivateOwnerProvisioningAuthoritySnapshot(
+                trust_marker=owner_provisioning_authority_marker,
+            ),
+        )
+        return authority
+
+    def _require_private_owner_provisioning_authority(
+        authority: object,
+    ) -> _PrivateOwnerProvisioningAuthority:
+        snapshot = owner_provisioning_authorities.get(authority)
+        if (
+            not isinstance(authority, _PrivateOwnerProvisioningAuthority)
+            or not isinstance(snapshot, _PrivateOwnerProvisioningAuthoritySnapshot)
+            or snapshot.trust_marker is not owner_provisioning_authority_marker
+        ):
+            raise BindingError("private owner provisioning authority is invalid")
+        return authority
+
     def provision_designated_private_owner_resolver(
         *,
-        trusted_binding_source: object,
+        private_owner_provisioning_authority: object,
         private_owner_resolver: object,
         consumer_authorization_identity: str,
         consumer_workflow_run_id: str,
     ) -> _PrivateOwnerAuthenticityAnchor:
         """Provision the designated private owner with an authenticity anchor.
 
-        Only a caller holding registered private AT8 handoff authority can
-        provision an owner anchor, so a public caller cannot designate itself.
-        The anchor is bound at provisioning time to the exact resolver object
-        identity and to the exact consumer authorization identity and workflow
-        run selected by the governing authorization. Binding the eventual
+        Only a caller holding the distinct private control-plane provisioning
+        authority can provision an owner anchor. A public synthetic AT8
+        handoff source cannot designate an owner. The anchor is bound at
+        provisioning time to the exact resolver object (weak identity) and
+        to the exact consumer authorization identity and workflow run
+        selected by the governing authorization. Binding the eventual
         post-repair authorization is a private provisioning act and requires
         no public runtime mutation.
         """
-        _require_private_at8_handoff_source(trusted_binding_source)
+        _require_private_owner_provisioning_authority(
+            private_owner_provisioning_authority
+        )
         if (
             not isinstance(private_owner_resolver, ModuleType)
             or getattr(private_owner_resolver, "DESIGNATION_ID", None)
@@ -842,7 +912,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         designated_owner_anchors.add(
             anchor,
             _PrivateOwnerAnchorSnapshot(
-                resolver_identity=id(private_owner_resolver),
+                resolver_ref=weakref.ref(private_owner_resolver),
                 consumer_authorization_identity=_require_identifier(
                     "consumer_authorization_identity", consumer_authorization_identity
                 ),
@@ -877,7 +947,8 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             not isinstance(private_owner_anchor, _PrivateOwnerAuthenticityAnchor)
             or not isinstance(anchor_snapshot, _PrivateOwnerAnchorSnapshot)
             or anchor_snapshot.trust_marker is not owner_anchor_marker
-            or anchor_snapshot.resolver_identity != id(private_owner_resolver)
+            or not callable(getattr(anchor_snapshot, "resolver_ref", None))
+            or anchor_snapshot.resolver_ref() is not private_owner_resolver
         ):
             raise BindingError(
                 "designated private owner authenticity anchor is invalid"
@@ -1079,6 +1150,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
+        issue_private_owner_provisioning_authority,
         provision_designated_private_owner_resolver,
         consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
@@ -1094,6 +1166,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
+    _issue_private_owner_provisioning_authority,
     _provision_designated_private_owner_resolver,
     _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,

@@ -25,12 +25,9 @@ def _provision_owner(
     authorization_id: str = AUTHORIZATION_ID,
     workflow_run_id: str = WORKFLOW_RUN_ID,
 ) -> object:
-    handoff_source = note_path._issue_private_at8_handoff_source_for_synthetic_tests(
-        location_id="synthetic-owner-provisioning-location-001",
-        contact_id="synthetic-owner-provisioning-contact-001",
-    )
+    authority = note_path._issue_private_owner_provisioning_authority()
     return note_path._provision_designated_private_owner_resolver(
-        trusted_binding_source=handoff_source,
+        private_owner_provisioning_authority=authority,
         private_owner_resolver=owner,
         consumer_authorization_identity=authorization_id,
         consumer_workflow_run_id=workflow_run_id,
@@ -226,9 +223,9 @@ def test_owner_anchor_provisioning_requires_private_authority() -> None:
     owner = ModuleType("offline_unprovisioned_private_owner")
     owner.DESIGNATION_ID = DESIGNATION_ID
 
-    with pytest.raises(BindingError, match="trusted binding source is invalid"):
+    with pytest.raises(BindingError, match="provisioning authority is invalid"):
         note_path._provision_designated_private_owner_resolver(
-            trusted_binding_source=object(),
+            private_owner_provisioning_authority=object(),
             private_owner_resolver=owner,
             consumer_authorization_identity=AUTHORIZATION_ID,
             consumer_workflow_run_id=WORKFLOW_RUN_ID,
@@ -333,3 +330,31 @@ def test_valid_owner_remains_available_after_forged_owner_rejection() -> None:
     assert capability.consumer_authorization_identity == AUTHORIZATION_ID
     assert capability.consumer_workflow_run_id == WORKFLOW_RUN_ID
     assert state["reference"] == "CONSUMED"
+
+
+def test_public_synthetic_handoff_source_cannot_provision_designated_owner() -> None:
+    """T13: public synthetic AT8 handoff cannot provision a designated owner."""
+    _genuine_owner, _genuine_anchor, _genuine_reference, genuine_state = (
+        _designated_private_owner()
+    )
+    forged, forged_reference, forged_state = _forged_private_owner()
+    synthetic_source = note_path._issue_private_at8_handoff_source_for_synthetic_tests(
+        location_id="synthetic-owner-provisioning-location-001",
+        contact_id="synthetic-owner-provisioning-contact-001",
+    )
+
+    with pytest.raises(BindingError, match="provisioning authority is invalid"):
+        note_path._provision_designated_private_owner_resolver(
+            private_owner_provisioning_authority=synthetic_source,
+            private_owner_resolver=forged,
+            consumer_authorization_identity=AUTHORIZATION_ID,
+            consumer_workflow_run_id=WORKFLOW_RUN_ID,
+        )
+
+    with pytest.raises(BindingError, match="authenticity anchor is invalid"):
+        _consume(owner=forged, anchor=object(), reference=forged_reference)
+
+    assert forged_state["release_calls"] == 0
+    assert genuine_state["reference"] == "AVAILABLE"
+    assert note_path.NETWORK_CALLS == 0
+    assert note_path.HIGHLEVEL_NETWORK_CALLS == 0
