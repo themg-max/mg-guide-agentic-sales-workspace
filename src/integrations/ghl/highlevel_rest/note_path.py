@@ -7,6 +7,7 @@ from hashlib import sha256
 from hmac import compare_digest
 import json
 import threading
+from types import ModuleType
 from typing import Any, Mapping, Protocol
 from unicodedata import normalize
 import weakref
@@ -49,6 +50,12 @@ _REDACTED_RESPONSE_STATUS_CLASSES = frozenset({"ok", "ambiguous", "error"})
 _TRUSTED_SOURCE_BOUND_CONTACT = "fake_transport_bound_contact_verification"
 _TRUSTED_SOURCE_AT8_SHAPED_TEST = "at8_shaped_test_capability"
 _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF = "private_at8_verified_binding_handoff"
+_TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS = (
+    "designated_private_owner_verified_binding_ingress"
+)
+_DESIGNATED_PRIVATE_OWNER_ID = (
+    "NW008_AT8W30_R3_PRIVATE_OWNER_LEASE_INGRESS_DESIGNATION_001"
+)
 _REQUIRED_FIELDS = (
     "SYNTHETIC_MARKER",
     "meeting_id",
@@ -229,6 +236,20 @@ class _OpaqueSafePrivateBindingReference:
 
 
 @dataclass(frozen=True)
+class _PrivateOwnerAnchorSnapshot:
+    """Verified reading of a private-origin anchor.
+
+    This is a *verification result*, not a provisioning record. It is derived
+    by reading an anchor artifact that the private control plane created; this
+    module never creates the anchor it reads.
+    """
+
+    resolver_ref: object
+    consumer_authorization_identity: str
+    consumer_workflow_run_id: str
+
+
+@dataclass(frozen=True)
 class _PrivateBindingLeaseRecord:
     """Private-side lease content that never crosses the boundary."""
 
@@ -334,17 +355,20 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         _TRUSTED_SOURCE_BOUND_CONTACT: object(),
         _TRUSTED_SOURCE_AT8_SHAPED_TEST: object(),
         _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF: object(),
+        _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS: object(),
     }
     capability_markers = {
         _TRUSTED_SOURCE_BOUND_CONTACT: object(),
         _TRUSTED_SOURCE_AT8_SHAPED_TEST: object(),
         _TRUSTED_SOURCE_PRIVATE_AT8_HANDOFF: object(),
+        _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS: object(),
     }
     issued_sources = _IdentityRegistry()
     issued_capabilities = _IdentityRegistry()
     verified_bound_contact_gets = _IdentityRegistry()
     private_binding_leases = _OneShotPrivateBindingLeaseRegistry()
     lease_marker = object()
+
     def _issue_source(
         *,
         trusted_origin: str,
@@ -761,6 +785,219 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=registered_source,
         )
 
+    # This module performs NO authority origin. It contains no owner-
+    # provisioning authority type, no anchor registry, and no bootstrap. The
+    # designated-owner anchor is an artifact created by the private control
+    # plane, which is the sole authority source. Public code below only
+    # *reads and verifies* such an artifact; it never creates, registers, or
+    # vouches for one, at import time or at any later time.
+    #
+    # Authenticity rests on an unforgeable artifact from the private origin
+    # that the PROCESS ROOT bound, not on the artifact's own claims, and not
+    # on anything an ordinary caller can change. Duck-typing and self-declared
+    # contracts are deliberately NOT accepted: a caller can always author a
+    # module that asserts it is the private control plane.
+    #
+    # Selection happens exactly once, at the root-owned composition boundary,
+    # and is then latched to an exact object identity. This module performs no
+    # verification-time environment read and no verification-time sys.modules
+    # lookup, so mutating os.environ or sys.modules after composition has no
+    # effect on the already-bound origin.
+    private_origin_binding = {"bound": False, "module": None}
+
+    def bind_root_composed_private_origin(private_origin_module: object) -> None:
+        """Bind the private origin resolved by the root composition boundary.
+
+        Called once by the composition root before ordinary consumer code
+        runs. The binding is one-shot: a later caller cannot rebind, replace,
+        or clear it, so authority cannot be redirected after composition. This
+        confers no authority -- it only records which already-existing private
+        origin this process was composed against.
+        """
+        if private_origin_binding["bound"]:
+            raise BindingError(
+                "the private origin is bound once by the composition root and "
+                "cannot be rebound"
+            )
+        if not isinstance(private_origin_module, ModuleType):
+            raise BindingError("root-composed private origin is invalid")
+        private_origin_binding["module"] = private_origin_module
+        private_origin_binding["bound"] = True
+
+    def _root_composed_private_origin_module() -> object | None:
+        """Return the exact private origin bound at root composition time."""
+        return private_origin_binding["module"]
+
+    def _read_private_origin_anchor(
+        private_owner_anchor: object,
+    ) -> _PrivateOwnerAnchorSnapshot | None:
+        """Read a private-origin anchor artifact, or return None.
+
+        The anchor must be an instance of the provisioned-resolver type
+        exported by the root-designated private-origin module, and that type
+        must genuinely refuse public construction. This public module holds no
+        registry and confers nothing: it can only accept or refuse.
+        """
+        private_origin_module = _root_composed_private_origin_module()
+        if private_origin_module is None:
+            return None
+        anchor_type = type(private_owner_anchor)
+        if getattr(
+            private_origin_module, "ProvisionedPrivateOwnerResolver", None
+        ) is not anchor_type:
+            return None
+        # The artifact must genuinely refuse public construction. This is
+        # checked behaviourally, so a module cannot merely *claim* it.
+        try:
+            anchor_type()
+        except Exception:
+            pass
+        else:
+            return None
+        # Finally the private origin itself must recognise the artifact as one
+        # it actually provisioned. Type identity alone would still admit an
+        # instance reconstructed through ``__new__``, so recognition is
+        # delegated to the origin rather than inferred here.
+        recognises = getattr(private_origin_module, "is_genuinely_provisioned", None)
+        if not callable(recognises):
+            return None
+        try:
+            if recognises(private_owner_anchor) is not True:
+                return None
+        except Exception:
+            return None
+        designation_id = getattr(private_owner_anchor, "designation_id", None)
+        resolver = getattr(private_owner_anchor, "provisioned_resolver", None)
+        authorization_identity = getattr(
+            private_owner_anchor, "consumer_authorization_identity", None
+        )
+        workflow_run_id = getattr(
+            private_owner_anchor, "consumer_workflow_run_id", None
+        )
+        if (
+            designation_id != _DESIGNATED_PRIVATE_OWNER_ID
+            or not isinstance(resolver, ModuleType)
+            or not isinstance(authorization_identity, str)
+            or not isinstance(workflow_run_id, str)
+            or not authorization_identity.strip()
+            or not workflow_run_id.strip()
+        ):
+            return None
+        return _PrivateOwnerAnchorSnapshot(
+            resolver_ref=weakref.ref(resolver),
+            consumer_authorization_identity=authorization_identity,
+            consumer_workflow_run_id=workflow_run_id,
+        )
+
+    def _require_authentic_designated_private_owner(
+        *,
+        private_owner_resolver: object,
+        private_owner_anchor: object,
+    ) -> _PrivateOwnerAnchorSnapshot:
+        """Verify genuine private-owner provenance before any private release.
+
+        Module shape, designation strings, exported class types, and callable
+        release functions are caller-reproducible and are never sufficient.
+        Authenticity rests entirely on the anchor artifact's own private-origin
+        attestation, which binds it to this exact resolver object. This module
+        never provisions an anchor, so it can only accept or refuse one.
+        """
+        if (
+            not isinstance(private_owner_resolver, ModuleType)
+            or getattr(private_owner_resolver, "DESIGNATION_ID", None)
+            != _DESIGNATED_PRIVATE_OWNER_ID
+        ):
+            raise BindingError("designated private owner resolver is invalid")
+        anchor_snapshot = _read_private_origin_anchor(private_owner_anchor)
+        if (
+            not isinstance(anchor_snapshot, _PrivateOwnerAnchorSnapshot)
+            or anchor_snapshot.resolver_ref() is not private_owner_resolver
+        ):
+            raise BindingError(
+                "designated private owner authenticity anchor is invalid"
+            )
+        return anchor_snapshot
+
+    def consume_designated_private_owner_binding_reference(
+        *,
+        private_owner_resolver: object,
+        private_binding_reference: object,
+        private_owner_anchor: object,
+        consumer_authorization_identity: str,
+        consumer_workflow_run_id: str,
+    ) -> _VerifiedContactBindingCapability:
+        """Consume a designated owner's sealed reference after exact run binding.
+
+        The resolver is a process-local capability from the designated private
+        owner, and the anchor is the unforgeable process-local proof that this
+        exact resolver was provisioned by the private control plane. Both are
+        verified before the private owner is invoked. The resolver releases
+        only already-verified binding data; public code never accepts raw
+        binding data or materializes a production lease.
+        """
+        presented_authorization_identity = _require_identifier(
+            "consumer_authorization_identity", consumer_authorization_identity
+        )
+        presented_workflow_run_id = _require_identifier(
+            "consumer_workflow_run_id", consumer_workflow_run_id
+        )
+        anchor_snapshot = _require_authentic_designated_private_owner(
+            private_owner_resolver=private_owner_resolver,
+            private_owner_anchor=private_owner_anchor,
+        )
+        expected_authorization_identity = (
+            anchor_snapshot.consumer_authorization_identity
+        )
+        expected_workflow_run_id = anchor_snapshot.consumer_workflow_run_id
+        if presented_authorization_identity != expected_authorization_identity:
+            raise BindingError("designated private owner authorization binding is invalid")
+        if presented_workflow_run_id != expected_workflow_run_id:
+            raise BindingError("designated private owner workflow run binding is invalid")
+
+        reference_type = getattr(
+            private_owner_resolver, "OpaqueSafePrivateBindingReference", None
+        )
+        material_type = getattr(private_owner_resolver, "PrivateBindingMaterial", None)
+        release = getattr(private_owner_resolver, "release_to_public_consumer", None)
+        if (
+            not isinstance(reference_type, type)
+            or not isinstance(material_type, type)
+            or not callable(release)
+            or not isinstance(private_binding_reference, reference_type)
+        ):
+            raise BindingError("designated private owner reference is invalid")
+
+        material = release(private_binding_reference)
+        if (
+            not isinstance(material, material_type)
+            or getattr(material, "designation_id", None) != _DESIGNATED_PRIVATE_OWNER_ID
+        ):
+            raise BindingError("designated private owner binding material is invalid")
+        provider_ids = getattr(material, "provider_ids", None)
+        if (
+            not isinstance(provider_ids, tuple)
+            or len(provider_ids) != 2
+            or not all(isinstance(value, str) and value.strip() for value in provider_ids)
+        ):
+            raise BindingError("designated private owner binding material is invalid")
+        location_id, contact_id = provider_ids
+        source = _issue_source(
+            trusted_origin=_TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS,
+            location_id=location_id,
+            contact_id=contact_id,
+            synthetic_contact_bound=False,
+            private_allowlist_complete=True,
+            relationship_verified=True,
+        )
+        return _issue_capability(
+            trusted_origin=_TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS,
+            location_id=location_id,
+            contact_id=contact_id,
+            consumer_authorization_identity=expected_authorization_identity,
+            consumer_workflow_run_id=expected_workflow_run_id,
+            trusted_binding_source=source,
+        )
+
     def private_at8_binding_lease_state(private_binding_reference: object) -> str:
         """Report lease lifecycle state without granting or spending authority."""
         if not isinstance(private_binding_reference, _OpaqueSafePrivateBindingReference):
@@ -876,6 +1113,8 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
+        bind_root_composed_private_origin,
+        consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
         build_bound_contact_get,
         require_issued_verified_capability,
@@ -889,6 +1128,8 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
+    _bind_root_composed_private_origin,
+    _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,
     _require_issued_verified_capability,

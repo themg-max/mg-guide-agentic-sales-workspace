@@ -31,6 +31,9 @@ _SEALED_LIVE_NOTE_REST_RESOURCE_NAME = (
     "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
 )
 _ROOT_OWNED_DB_CONFIG_KEY = "MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH"
+_ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY = (
+    "MG_GUIDE_NW008_PRIVATE_OWNER_ORIGIN_MODULE"
+)
 _TARGET_RUNTIME_SERVICE_ACCOUNT = (
     "mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
 )
@@ -130,6 +133,40 @@ def _new_secret_manager_client(target_runtime_credentials: object) -> Any:
     )
 
 
+def compose_root_owned_private_origin() -> None:
+    """Resolve the approved private origin once, at the composition boundary.
+
+    Private-origin SELECTION lives here, in the process root, and never in the
+    consumer/verifier. The root reads its own configuration, resolves the
+    module to an exact object, and binds that object identity into note_path.
+
+    The binding is one-shot. Ordinary consumer code that later mutates
+    ``os.environ`` or ``sys.modules`` cannot reselect, rebind, or clear the
+    already-composed origin, because nothing on the verification path consults
+    either one again.
+
+    This composes no authority: the private control plane remains the sole
+    authority source, and this only records which already-existing origin the
+    process was composed against.
+    """
+    os_module = importlib.import_module("os")
+    module_name = os_module.environ.get(_ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY)
+    if not isinstance(module_name, str) or not module_name.strip():
+        raise LiveNoteRuntimeAssemblyError(
+            "root composition requires the approved private origin module"
+        )
+    # Only an already-imported module is honoured; the root never imports a
+    # module on a caller's behalf.
+    private_origin_module = importlib.import_module("sys").modules.get(
+        module_name.strip()
+    )
+    if private_origin_module is None:
+        raise LiveNoteRuntimeAssemblyError(
+            "the approved private origin module is not present in this process"
+        )
+    note_path._bind_root_composed_private_origin(private_origin_module)
+
+
 def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDependencies:
     """Resolve the minimal production dependencies from the orchestrator-owned process environment."""
     db_path = importlib.import_module("os").environ.get(_ROOT_OWNED_DB_CONFIG_KEY)
@@ -194,13 +231,17 @@ def _consume_root_owned_private_binding_reference(
     private_binding_reference: object,
     consumer_authorization_identity: str,
     consumer_workflow_run_id: str,
+    private_owner_resolver: object | None = None,
+    private_owner_anchor: object | None = None,
 ) -> note_path._VerifiedContactBindingCapability:
     """Consume a pre-existing opaque private binding reference.
 
     This composition root never mints private authority and never resolves an
     authority provider. It accepts only an opaque reference materialized earlier
     by the private control plane, and a finished capability is explicitly not an
-    accepted boundary substitute.
+    accepted boundary substitute. The designated-owner ingress additionally
+    requires the owner's provisioned authenticity anchor; shape alone is never
+    sufficient.
     """
     if isinstance(private_binding_reference, note_path._VerifiedContactBindingCapability):
         raise LiveNoteRuntimeAssemblyError(
@@ -212,11 +253,26 @@ def _consume_root_owned_private_binding_reference(
     expected_consumer_workflow_run_id = note_path._require_identifier(
         "consumer_workflow_run_id", consumer_workflow_run_id
     )
-    verified_capability = note_path._consume_private_at8_binding_lease(
-        private_binding_reference,
-        consumer_authorization_identity=expected_consumer_authorization_identity,
-        consumer_workflow_run_id=expected_consumer_workflow_run_id,
-    )
+    if private_owner_resolver is None:
+        if private_owner_anchor is not None:
+            raise LiveNoteRuntimeAssemblyError(
+                "a private owner authenticity anchor requires the designated private owner resolver"
+            )
+        verified_capability = note_path._consume_private_at8_binding_lease(
+            private_binding_reference,
+            consumer_authorization_identity=expected_consumer_authorization_identity,
+            consumer_workflow_run_id=expected_consumer_workflow_run_id,
+        )
+    else:
+        verified_capability = (
+            note_path._consume_designated_private_owner_binding_reference(
+                private_owner_resolver=private_owner_resolver,
+                private_binding_reference=private_binding_reference,
+                private_owner_anchor=private_owner_anchor,
+                consumer_authorization_identity=expected_consumer_authorization_identity,
+                consumer_workflow_run_id=expected_consumer_workflow_run_id,
+            )
+        )
     return _validate_issued_capability(
         verified_capability,
         consumer_authorization_identity=expected_consumer_authorization_identity,
@@ -229,12 +285,16 @@ def assemble_bound_live_note_runtime(
     private_binding_reference: object,
     consumer_authorization_identity: str,
     consumer_workflow_run_id: str,
+    private_owner_resolver: object | None = None,
+    private_owner_anchor: object | None = None,
 ) -> NotePathAdapter:
-    """Assemble only from a consumed private lease and root-owned dependencies."""
+    """Assemble only from a consumed private reference and root-owned dependencies."""
     validated_capability = _consume_root_owned_private_binding_reference(
         private_binding_reference=private_binding_reference,
         consumer_authorization_identity=consumer_authorization_identity,
         consumer_workflow_run_id=consumer_workflow_run_id,
+        private_owner_resolver=private_owner_resolver,
+        private_owner_anchor=private_owner_anchor,
     )
     dependencies = _resolve_root_owned_runtime_dependencies()
     store_ownership = _StoreOwnershipGuard(dependencies.execution_store)
