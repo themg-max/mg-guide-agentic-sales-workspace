@@ -96,13 +96,14 @@ T12_VALID_OWNER_REMAINS_AVAILABLE_AFTER_FORGED_OWNER_REJECTION=PASS
 T13_PUBLIC_SYNTHETIC_HANDOFF_SOURCE_CANNOT_PROVISION_DESIGNATED_OWNER=PASS
 T14_ORDINARY_IMPORTER_CANNOT_SELF_ISSUE_OR_PROVISION_OWNER=PASS
 T15_PUBLIC_MODULE_PERFORMS_AUTHORITY_ORIGIN_AT_IMPORT=PASS
+T16_ORDINARY_CALLER_CANNOT_RESELECT_PRIVATE_ORIGIN_MODULE=PASS
 
 TEST_COMMAND=
   PYTHONPATH=src python3.9 -m pytest -q tests/integrations/ghl/highlevel_rest
-TEST_RESULT=254_PASSED
+TEST_RESULT=255_PASSED
 REPO_TEST_COMMAND=
   PYTHONPATH=src python3.9 -m pytest -q tests
-REPO_TEST_RESULT=739_PASSED
+REPO_TEST_RESULT=740_PASSED
 
 NETWORK_CALLS=0
 HIGHLEVEL_CALLS=0
@@ -212,7 +213,8 @@ T12_VALID_OWNER_REMAINS_AVAILABLE_AFTER_FORGED_OWNER_REJECTION=PASS
 T13_PUBLIC_SYNTHETIC_HANDOFF_SOURCE_CANNOT_PROVISION_DESIGNATED_OWNER=PASS
 T14_ORDINARY_IMPORTER_CANNOT_SELF_ISSUE_OR_PROVISION_OWNER=PASS
 T15_PUBLIC_MODULE_PERFORMS_AUTHORITY_ORIGIN_AT_IMPORT=PASS
-TEST_RESULT=254_PASSED
+T16_ORDINARY_CALLER_CANNOT_RESELECT_PRIVATE_ORIGIN_MODULE=PASS
+TEST_RESULT=255_PASSED
 
 NETWORK_CALLS=0
 HIGHLEVEL_CALLS=0
@@ -303,4 +305,93 @@ Mutation evidence that T14/T15 are load-bearing:
 ```text
 MUTATION_REINTRODUCE_IMPORT_TIME_ORIGIN=T14_FAIL_AND_T15_FAIL
 MUTATION_REEXPORT_ISSUER=T14_FAIL
+```
+
+### 6.6 Trust-root reselection closed (fourth change request)
+
+Review finding `MUTABLE_ENVIRONMENT_CAN_RESELECT_PRIVATE_AUTHORITY_ORIGIN` was
+accepted. Previously `note_path` resolved the private origin at *verification
+time* by reading an environment selector and then `sys.modules`, so an ordinary
+same-process caller could author a fake private-origin module, insert it into
+`sys.modules`, repoint the selector, and be verified against caller-controlled
+code.
+
+Private-origin SELECTION has been removed from the consumer/verifier entirely
+and now happens once, at the pre-existing root-owned composition boundary in
+`live_note_runtime.py`
+(`compose_root_owned_private_origin()`), which binds the exact resolved object
+identity into `note_path` through a one-shot latch. No new trust boundary was
+invented; the existing root composition seam was reused. `note_path` no longer
+imports or consults `os`, `sys`, or `importlib` at all.
+
+```
+PRIVATE_CONTROL_PLANE_IS_AUTHORITY_SOURCE=YES
+PRIVATE_OWNER_REMAINS_SOLE_AUTHORITY_SOURCE=YES
+
+PUBLIC_RUNTIME_IS_VERIFIER_CONSUMER_ONLY=YES
+PUBLIC_MODULE_PERFORMS_AUTHORITY_ORIGIN_AT_IMPORT=NO
+PUBLIC_MODULE_CAN_ISSUE_OWNER_PROVISIONING_AUTHORITY=NO
+PUBLIC_MODULE_CAN_PROVISION_OWNER=NO
+
+PRIVATE_ORIGIN_RESOLVED_BY_ROOT_COMPOSITION=YES
+PRIVATE_ORIGIN_RESOLVED_ONCE=YES
+VERIFICATION_TIME_ENVIRONMENT_SELECTION=NO
+VERIFICATION_TIME_SYS_MODULES_SELECTION=NO
+
+ORDINARY_CALLER_CAN_RESELECT_PRIVATE_ORIGIN_MODULE=NO
+ORDINARY_CALLER_CAN_REBIND_PRIVATE_ORIGIN_AFTER_COMPOSITION=NO
+
+T16_ORDINARY_CALLER_CANNOT_RESELECT_PRIVATE_ORIGIN_MODULE=PASS
+```
+
+The private-origin artifact verification added earlier is preserved unchanged:
+exact anchor type identity, behavioural refusal of public construction,
+delegated recognition by the private origin, exact resolver object binding,
+exact authorization identity, exact workflow-run identity, and the one-shot
+private reference.
+
+T16 is adversarial: it composes the legitimate origin through the real root
+seam, then builds a fully caller-controlled fake origin (token-guarded
+`ProvisionedPrivateOwnerResolver` lookalike plus `is_genuinely_provisioned()`
+returning `True`), inserts it into `sys.modules`, repoints the selector,
+replaces the genuine module entry, and presents the forged
+resolver/reference/anchor to the already-composed consumer.
+
+```
+FAKE_ORIGIN_ACCEPTED=NO
+FAKE_RELEASE_CALLS=0
+CAPABILITY_ISSUED_FROM_FAKE_ORIGIN=NO
+GENUINE_PRIVATE_AUTHORITY_REMAINS_VALID=YES
+```
+
+Mutation evidence that T16 is load-bearing:
+
+```
+MUTATION_RESTORE_VERIFICATION_TIME_RESELECTION=T16_FAIL
+CORRECTED_IMPLEMENTATION_RESTORED=YES
+```
+
+#### Threat-model boundary
+
+T16 covers ordinary same-process consumer behaviour AFTER legitimate root
+composition: `os.environ` mutation, `sys.modules` insertion/replacement,
+caller-authored fake private-origin modules, caller-authored token-guarded
+anchor lookalikes, caller-controlled `is_genuinely_provisioned()`, and
+caller-controlled resolver/reference/material.
+
+Protection is NOT claimed against module reload, rebinding `note_path` module
+globals, or closure-cell writes. Those runtime-memory attacks are outside the
+currently approved threat model and are stated here rather than asserted as
+guarantees.
+
+```
+NETWORK_CALLS=0
+HIGHLEVEL_CALLS=0
+HTTP_REQUEST_DISPATCHES=0
+PR223_AUTHORIZATION_CONSUMED=NO
+PR225_AUTHORIZATION_CONSUMED=NO
+R3_EXECUTION_ATTEMPTS_USED=0
+R3_EXECUTION_PERFORMED=NO
+R4_PERFORMED=NO
+PRIVATE_REPO_MUTATED=NO
 ```

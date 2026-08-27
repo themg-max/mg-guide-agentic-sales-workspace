@@ -5,9 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from hashlib import sha256
 from hmac import compare_digest
-import importlib
 import json
-import sys
 import threading
 from types import ModuleType
 from typing import Any, Mapping, Protocol
@@ -57,12 +55,6 @@ _TRUSTED_SOURCE_DESIGNATED_PRIVATE_OWNER_INGRESS = (
 )
 _DESIGNATED_PRIVATE_OWNER_ID = (
     "NW008_AT8W30_R3_PRIVATE_OWNER_LEASE_INGRESS_DESIGNATION_001"
-)
-# Root-owned process configuration naming the private control-plane module
-# that originates designated-owner anchors. Only the process root sets this;
-# a public caller cannot designate an authority origin.
-_ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY = (
-    "MG_GUIDE_NW008_PRIVATE_OWNER_ORIGIN_MODULE"
 )
 _REQUIRED_FIELDS = (
     "SYNTHETIC_MARKER",
@@ -800,31 +792,41 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     # *reads and verifies* such an artifact; it never creates, registers, or
     # vouches for one, at import time or at any later time.
     #
-    # Authenticity rests on an unforgeable artifact from a module that the
-    # PROCESS ROOT designated, not on the artifact's own claims. Duck-typing
-    # and self-declared contracts are deliberately NOT accepted: a caller can
-    # always author a module that asserts it is the private control plane, so
-    # any self-certifying check would be worthless. The trust root is
-    # root-owned process configuration, exactly like every other root-owned
-    # dependency this runtime consumes.
-    def _root_designated_private_origin_module() -> object | None:
-        """Return the private-origin module the process root designated.
+    # Authenticity rests on an unforgeable artifact from the private origin
+    # that the PROCESS ROOT bound, not on the artifact's own claims, and not
+    # on anything an ordinary caller can change. Duck-typing and self-declared
+    # contracts are deliberately NOT accepted: a caller can always author a
+    # module that asserts it is the private control plane.
+    #
+    # Selection happens exactly once, at the root-owned composition boundary,
+    # and is then latched to an exact object identity. This module performs no
+    # verification-time environment read and no verification-time sys.modules
+    # lookup, so mutating os.environ or sys.modules after composition has no
+    # effect on the already-bound origin.
+    private_origin_binding = {"bound": False, "module": None}
 
-        The module name comes from root-owned process configuration. A public
-        caller cannot designate it, and this module never falls back to a
-        caller-supplied or self-declared origin.
+    def bind_root_composed_private_origin(private_origin_module: object) -> None:
+        """Bind the private origin resolved by the root composition boundary.
+
+        Called once by the composition root before ordinary consumer code
+        runs. The binding is one-shot: a later caller cannot rebind, replace,
+        or clear it, so authority cannot be redirected after composition. This
+        confers no authority -- it only records which already-existing private
+        origin this process was composed against.
         """
-        # Deferred, indirect lookup: this module never imports ``os`` at
-        # module scope, preserving the offline-purity guarantee that no
-        # environment/network-capable module is imported by note_path.
-        module_name = importlib.import_module("os").environ.get(
-            _ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY
-        )
-        if not isinstance(module_name, str) or not module_name.strip():
-            return None
-        # Only an already-imported module is honoured. This runtime never
-        # imports a module on a caller's behalf.
-        return sys.modules.get(module_name.strip())
+        if private_origin_binding["bound"]:
+            raise BindingError(
+                "the private origin is bound once by the composition root and "
+                "cannot be rebound"
+            )
+        if not isinstance(private_origin_module, ModuleType):
+            raise BindingError("root-composed private origin is invalid")
+        private_origin_binding["module"] = private_origin_module
+        private_origin_binding["bound"] = True
+
+    def _root_composed_private_origin_module() -> object | None:
+        """Return the exact private origin bound at root composition time."""
+        return private_origin_binding["module"]
 
     def _read_private_origin_anchor(
         private_owner_anchor: object,
@@ -836,7 +838,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         must genuinely refuse public construction. This public module holds no
         registry and confers nothing: it can only accept or refuse.
         """
-        private_origin_module = _root_designated_private_origin_module()
+        private_origin_module = _root_composed_private_origin_module()
         if private_origin_module is None:
             return None
         anchor_type = type(private_owner_anchor)
@@ -1111,6 +1113,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
+        bind_root_composed_private_origin,
         consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
         build_bound_contact_get,
@@ -1125,6 +1128,7 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
+    _bind_root_composed_private_origin,
     _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,

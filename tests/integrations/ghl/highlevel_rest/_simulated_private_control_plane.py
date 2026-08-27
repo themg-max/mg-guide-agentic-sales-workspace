@@ -100,16 +100,49 @@ def provision_simulated_private_owner(
 
 
 def install_as_root_designated_private_origin(monkeypatch) -> None:
-    """Model the process root designating this module as the private origin.
+    """Drive the REAL root composition seam to bind this module as the origin.
 
-    Only the process root may do this in production; tests perform it
-    explicitly so that the designation is never implicit or caller-driven.
+    Only the process root may select an authority origin. Tests therefore go
+    through the production composition boundary rather than reaching into
+    note_path, so the seam under test is the one production uses.
+
+    The binding in note_path is one-shot per trust-issuer instance, so the
+    module-level issuer is rebuilt first to give each test a pristine,
+    unbound composition. That models process startup, not a rebinding
+    capability offered to callers.
     """
     import sys
 
-    from integrations.ghl.highlevel_rest.note_path import (
-        _ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY,
-    )
+    import integrations.ghl.highlevel_rest.live_note_runtime as runtime
+    from integrations.ghl.highlevel_rest import note_path
 
     monkeypatch.setitem(sys.modules, __name__, sys.modules[__name__])
-    monkeypatch.setenv(_ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY, __name__)
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY, __name__
+    )
+    _rebuild_unbound_trust_issuer(monkeypatch, note_path)
+    runtime.compose_root_owned_private_origin()
+
+
+def _rebuild_unbound_trust_issuer(monkeypatch, note_path) -> None:
+    """Give the test a fresh, not-yet-composed trust issuer (process startup)."""
+    rebuilt = note_path._build_internal_trust_issuer()
+    names = _TRUST_ISSUER_EXPORT_NAMES
+    assert len(rebuilt) == len(names), (len(rebuilt), len(names))
+    for name, value in zip(names, rebuilt):
+        monkeypatch.setattr(note_path, name, value)
+
+
+_TRUST_ISSUER_EXPORT_NAMES = (
+    "_issue_bound_contact_capability",
+    "_issue_synthetic_test_capability",
+    "_issue_private_at8_handoff_source_for_synthetic_tests",
+    "_handoff_private_at8_capability_from_registered_source",
+    "_issue_private_at8_binding_reference_for_synthetic_tests",
+    "_consume_private_at8_binding_lease",
+    "_bind_root_composed_private_origin",
+    "_consume_designated_private_owner_binding_reference",
+    "_private_at8_binding_lease_state",
+    "_build_bound_contact_get",
+    "_require_issued_verified_capability",
+)

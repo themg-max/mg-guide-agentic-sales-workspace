@@ -10,6 +10,7 @@ import integrations.ghl.highlevel_rest.live_note_runtime as runtime
 import integrations.ghl.highlevel_rest.note_path as note_path
 from integrations.ghl.highlevel_rest.note_path import BindingError, NotePathAdapter
 
+import _simulated_private_control_plane as simulated_private_control_plane
 from _simulated_private_control_plane import (
     install_as_root_designated_private_origin,
     provision_simulated_private_owner,
@@ -651,3 +652,103 @@ def test_public_module_performs_no_authority_origin_at_import() -> None:
     assert state["reference"] == "CONSUMED"
     assert note_path.NETWORK_CALLS == 0
     assert note_path.HIGHLEVEL_NETWORK_CALLS == 0
+
+
+# T16 -- ORDINARY_CALLER_CANNOT_RESELECT_PRIVATE_ORIGIN_MODULE
+#
+# Threat model covered: ordinary same-process consumer behaviour AFTER a
+# legitimate root composition -- os.environ mutation, sys.modules
+# insertion/replacement, caller-authored fake private-origin modules,
+# caller-authored token-guarded anchor lookalikes, caller-controlled
+# is_genuinely_provisioned(), and caller-controlled resolver/reference/material.
+#
+# Explicitly NOT claimed: protection against module reload, rebinding
+# note_path's module globals, or writing to closure cells. Those are
+# runtime-memory attacks outside the currently approved threat model.
+def test_ordinary_caller_cannot_reselect_private_origin_module(monkeypatch) -> None:
+    import sys as sys_module
+
+    # (A/B) Legitimate origin composed through the real root seam; capture the
+    # composed consumer. The autouse fixture already performed composition.
+    owner, anchor, genuine_reference, genuine_state = _designated_private_owner()
+
+    # (C) A completely caller-controlled fake private-origin module.
+    fake_origin = ModuleType("caller_authored_fake_private_origin")
+    forged_resolver, forged_reference, forged_state = _forged_private_owner()
+
+    construction_token = object()
+
+    class ForgedProvisionedPrivateOwnerResolver:
+        """Caller-authored lookalike that mimics token-guarded construction."""
+
+        designation_id = DESIGNATION_ID
+        provisioned_resolver = forged_resolver
+        consumer_authorization_identity = AUTHORIZATION_ID
+        consumer_workflow_run_id = WORKFLOW_RUN_ID
+
+        def __init__(self, token: object = None) -> None:
+            if token is not construction_token:
+                raise RuntimeError("public construction refused")
+
+    fake_origin.ProvisionedPrivateOwnerResolver = (
+        ForgedProvisionedPrivateOwnerResolver
+    )
+    # Caller-controlled recognition that always vouches for its own artifact.
+    fake_origin.is_genuinely_provisioned = lambda candidate: True
+    fake_origin.PRIVATE_ORIGIN_ANCHOR_CONTRACT = getattr(
+        simulated_private_control_plane, "PRIVATE_ORIGIN_ANCHOR_CONTRACT", None
+    )
+
+    # (D) Insert the fake module into sys.modules.
+    monkeypatch.setitem(
+        sys_module.modules, "caller_authored_fake_private_origin", fake_origin
+    )
+
+    # (E) Repoint every surviving selector/config state at the fake module.
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY,
+        "caller_authored_fake_private_origin",
+    )
+    # Replacing the genuine module in sys.modules must also be inert.
+    monkeypatch.setitem(
+        sys_module.modules,
+        simulated_private_control_plane.__name__,
+        fake_origin,
+    )
+
+    forged_anchor = ForgedProvisionedPrivateOwnerResolver(construction_token)
+
+    # (F) Present the fake resolver/reference/anchor to the composed consumer.
+    with pytest.raises(BindingError):
+        _consume(
+            owner=forged_resolver,
+            anchor=forged_anchor,
+            reference=forged_reference,
+        )
+
+    # The caller must not be able to rebind the composed origin either.
+    with pytest.raises(BindingError):
+        note_path._bind_root_composed_private_origin(fake_origin)
+
+    # Re-running root composition against the caller-selected env must not
+    # redirect the already-composed origin.
+    with pytest.raises(Exception):
+        runtime.compose_root_owned_private_origin()
+
+    with pytest.raises(BindingError):
+        _consume(
+            owner=forged_resolver,
+            anchor=forged_anchor,
+            reference=forged_reference,
+        )
+
+    # FAKE_ORIGIN_ACCEPTED=NO / FAKE_RELEASE_CALLS=0 /
+    # CAPABILITY_ISSUED_FROM_FAKE_ORIGIN=NO
+    assert forged_state["release_calls"] == 0
+
+    # (G) The legitimate private-origin dependency remains usable.
+    capability = _consume(
+        owner=owner, anchor=anchor, reference=genuine_reference
+    )
+    assert capability.contact_id == "approved-live-contact-placeholder"
+    assert genuine_state["reference"] == "CONSUMED"
