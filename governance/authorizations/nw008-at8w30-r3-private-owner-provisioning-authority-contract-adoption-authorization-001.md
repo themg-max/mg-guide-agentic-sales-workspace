@@ -1,0 +1,771 @@
+# NW-008 AT8W30 R3 Private-Owner Provisioning-Authority Contract Adoption Authorization 001
+
+## 1. Authorization identity and classification
+
+```text
+AUTHORIZATION_ID=
+  NW008_AT8W30_R3_PRIVATE_OWNER_PROVISIONING_AUTHORITY_CONTRACT_ADOPTION_AUTHORIZATION_001
+
+UNIT=
+  NW008_AT8W30_R3_PRIVATE_OWNER_PROVISIONING_AUTHORITY_CONTRACT_ADOPTION_AUTHORIZATION_001
+
+CLASSIFICATION=authorization
+PR_CLASS=authorization
+AUTHORIZATION_CLASS=private_source_implementation_adoption_planning
+MODE=PRIVATE_SOURCE_PROVISIONING_CONTRACT_ADOPTION_AUTHORIZATION_ONLY
+
+ARTIFACT_OWNER=VS_CODE_ORCHESTRATOR
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+HUMAN_GOVERNANCE_SOURCE_CUSTODIAN=REQUIRED
+HUMAN_GOVERNANCE_RETAINS_MERGE_AUTHORITY=YES
+
+AUTHORIZATION_ARTIFACT=
+  governance/authorizations/nw008-at8w30-r3-private-owner-provisioning-authority-contract-adoption-authorization-001.md
+AUTHORIZATION_BRANCH=
+  auth/nw008-at8w30-r3-private-owner-provisioning-authority-contract-adoption-authorization-001
+
+STATUS_AT_AUTHORING=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
+AUTHORIZATION_STATE_AT_AUTHORING=PROPOSED_NOT_EFFECTIVE
+SELF_ACTIVATION=FORBIDDEN
+HUMAN_MERGE_REQUIRED=YES
+
+PURPOSE=
+  AUTHORIZE_ONE_BOUNDED_PRIVATE_SOURCE_LANE_THAT_UPDATES_THE_ALREADY_CREATED
+  R3_PRIVATE_OWNER_IMPLEMENTATION_SOLELY_TO_ADOPT_THE_NEW_DISTINCT
+  OWNER_PROVISIONING_AUTHORITY_CALLING_CONTRACT_WITHOUT_CREATING_A_NEW
+  DESIGNATION_WITHOUT_RESELECTING_THE_OWNER_WITHOUT_RESTORING_SYNTHETIC_AT8
+  PROVISIONING_AS_A_SUBSTITUTE_AND_WITHOUT_CONSUMING_OR_EXECUTING_THE_R3_GRANT
+
+THIS_ARTIFACT_IMPLEMENTS_PRIVATE_OWNER=NO
+THIS_ARTIFACT_PROVISIONS_EXECUTION_SURFACE=NO
+THIS_ARTIFACT_EXECUTES_R3=NO
+THIS_ARTIFACT_RESTORES_SYNTHETIC_AT8_PROVISIONING=NO
+THIS_ARTIFACT_CALLS_HIGHLEVEL=NO
+THIS_ARTIFACT_MUTATES_MG_GUIDE_RUNTIME=NO
+THIS_ARTIFACT_CREATES_PUBLIC_PRODUCTION_MATERIALIZER=NO
+AUTHORIZATION_ONLY=YES
+```
+
+This artifact creates only a bounded future private-source implementation
+adoption authorization. Creating, reviewing, committing, pushing, or merging it
+does not modify the private owner implementation, provision the private owner
+surface, execute R3, restore synthetic AT8 provisioning, construct
+target-runtime credentials, read secret payloads, mint tokens, open SQLite,
+assemble the production runtime, dispatch HTTP, call HighLevel, mutate CRM or
+IAM, deploy, publish private locators, or change MG Guide public runtime code.
+
+```text
+AUTHORED_AT_LOCAL=2026-08-27T08:46:31-0400
+AUTHORED_AT_UTC=2026-08-27T12:46:31Z
+BASE_REF=origin/main
+BASE_SHA=
+  f09879ed4f07415f6f94d35b776318e91ff28bec
+INSPECTED_PENDING_HEAD=
+  ead4e4a5adea92d6a7f15293ca9b93af5c0d6913
+INSPECTED_PENDING_PR=231
+INSPECTED_PENDING_PR_STATE=OPEN_UNMERGED
+```
+
+---
+
+## 2. Inspection finding (why this artifact exists)
+
+An inspection was performed to determine whether the already-created R3
+private-owner implementation (authorized for creation by PR226 and provisioned
+under PR225) can originate or provide the owner-provisioning capability under
+the current public contract without any private-repo code change. The
+inspection is read-only: it examined only the public repository's own
+contract surface, since the private locator remains unresolvable by this
+orchestrator.
+
+```text
+INSPECTION_SCOPE=PUBLIC_REPOSITORY_CONTRACT_SURFACE_ONLY
+PRIVATE_SOURCE_LOCATOR_RESOLVABLE_BY_ORCHESTRATOR=NO
+PRIVATE_SOURCE_DIRECTLY_INSPECTED=NO
+DETERMINATION_BASIS=PUBLIC_CONTRACT_SHAPE_COMPARISON
+```
+
+### 2.1 Prior contract (in effect when PR226 authorized private-owner
+implementation creation)
+
+```text
+PRIOR_PROVISIONING_FUNCTION_SIGNATURE=
+  provision_designated_private_owner_resolver(
+    trusted_binding_source: object,
+    private_owner_resolver: object,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
+  )
+PRIOR_PROVISIONING_GATE=
+  _require_private_at8_handoff_source(trusted_binding_source)
+PRIOR_ANCHOR_BINDING=
+  resolver_identity: int = id(private_owner_resolver)
+```
+
+### 2.2 Current contract (introduced on PR231's still-open, unmerged head;
+not yet on `main`)
+
+```text
+CURRENT_PROVISIONING_FUNCTION_SIGNATURE=
+  provision_designated_private_owner_resolver(
+    private_owner_provisioning_authority: object,
+    private_owner_resolver: object,
+    consumer_authorization_identity: str,
+    consumer_workflow_run_id: str,
+  )
+CURRENT_PROVISIONING_GATE=
+  _require_private_owner_provisioning_authority(private_owner_provisioning_authority)
+CURRENT_AUTHORITY_SOURCE=
+  issue_private_owner_provisioning_authority()  # new distinct process-local
+                                                 # _PrivateOwnerProvisioningAuthority
+CURRENT_ANCHOR_BINDING=
+  resolver_ref: weakref.ref = weakref.ref(private_owner_resolver)
+  (checked via resolver_ref() is private_owner_resolver)
+
+EVIDENCE_COMMIT=
+  ead4e4a5adea92d6a7f15293ca9b93af5c0d6913
+EVIDENCE_COMMIT_SUBJECT=
+  "fix(nw008): separate owner-provisioning authority from synthetic AT8 handoff"
+EVIDENCE_TEST_FILE=
+  tests/integrations/ghl/highlevel_rest/test_private_owner_public_ingress_repair.py
+EVIDENCE_TEST_HELPER_CONFIRMS_NEW_TWO_STEP_CALL=
+  "authority = note_path._issue_private_owner_provisioning_authority();
+   note_path._provision_designated_private_owner_resolver(
+     private_owner_provisioning_authority=authority, ...)"
+```
+
+### 2.3 Determination
+
+```text
+KEYWORD_PARAMETER_CHANGED=
+  trusted_binding_source -> private_owner_provisioning_authority
+CALL_SHAPE_IS_BREAKING=YES
+OLD_CALLER_SIGNATURE_STILL_ACCEPTED_BY_NEW_FUNCTION=NO
+A_CALLER_STILL_PASSING_trusted_binding_source_FAILS=YES
+FAILURE_MODE_FOR_UNADAPTED_CALLER=
+  TypeError_UNEXPECTED_KEYWORD_ARGUMENT_OR_BindingError_INVALID_AUTHORITY
+
+CAN_EXISTING_PRIVATE_OWNER_IMPLEMENTATION_ORIGINATE_OR_PROVIDE_THE
+OWNER_PROVISIONING_CAPABILITY_WITHOUT_A_PRIVATE_CODE_MUTATION=NO
+
+REASONING=
+  THE_PUBLIC_CONTRACT_THAT_THE_PRIVATE_OWNER_IMPLEMENTATION_MUST_CALL_CHANGED
+  ITS_REQUIRED_ARGUMENT_FROM_A_REGISTERED_PRIVATE_AT8_HANDOFF_SOURCE_TO_A
+  DISTINCT_PROCESS_LOCAL_OWNER_PROVISIONING_AUTHORITY_TOKEN_THAT_DID_NOT_EXIST
+  AT_THE_TIME_THE_PRIVATE_IMPLEMENTATION_WAS_AUTHORIZED_FOR_CREATION_UNDER
+  PR226_THEREFORE_ANY_PRIVATE_OWNER_IMPLEMENTATION_BUILT_AGAINST_THE_PRIOR
+  CONTRACT_CANNOT_SUCCEED_AGAINST_THE_CURRENT_CONTRACT_WITHOUT_A_PRIVATE_SIDE
+  CODE_CHANGE_TO_FIRST_CALL_issue_private_owner_provisioning_authority_AND_PASS
+  ITS_RESULT_AS_THE_NEW_KEYWORD_ARGUMENT_INDEPENDENT_OF_WHETHER_THE_PRIVATE
+  SOURCE_LOCATOR_IS_RESOLVABLE_BY_THIS_ORCHESTRATOR
+```
+
+### 2.4 Why the public side is not being repaired again
+
+```text
+PUBLIC_SIDE_STATUS=
+  ALREADY_COMPLETE_ON_PR231_PENDING_MERGE
+POST_REPAIR_BINDING_REQUIRES_IMPLEMENTATION_MUTATION=NO
+  # asserted in
+  # proof/nw008/at-8w30/nw008-at8w30-r3-private-owner-public-ingress-repair-proof-001.md
+  # section 6.2
+FURTHER_PUBLIC_RUNTIME_MUTATION_AUTHORIZED_BY_THIS_ARTIFACT=NO
+BOUNDED_PUBLIC_WIRING_REPAIR_APPLICABLE=NO
+  # a bounded public wiring repair is not the applicable remedy: the gap is
+  # entirely on the private-source calling side, not in MG Guide's public
+  # runtime or note_path contract, which already tests and passes the new
+  # contract offline (T01-T13, 252 tests, 0 network/HighLevel calls)
+SYNTHETIC_AT8_PROVISIONING_RESTORATION_CONSIDERED_AND_REJECTED=YES
+  # restoring _issue_private_at8_handoff_source_for_synthetic_tests as a
+  # provisioning substitute is exactly the gap PR231/ead4e4a closed and is
+  # explicitly out of scope and forbidden by this artifact
+```
+
+---
+
+## 3. Durable prerequisite reconciliation
+
+### 3.1 Bound designation (unchanged)
+
+```text
+SOURCE_DESIGNATION_ID=
+  NW008_AT8W30_R3_PRIVATE_OWNER_LEASE_INGRESS_DESIGNATION_001
+SOURCE_DESIGNATION_STATE=APPROVED
+SOURCE_DESIGNATION_MATCH=YES
+
+NEW_DESIGNATION_CREATED=NO
+OWNER_RESELECTION_PERFORMED=NO
+DESIGNATION_RENAMED=NO
+```
+
+If the designation is no longer approved, any unit acting under this grant
+must stop:
+
+```text
+STOP_CODE=PRIVATE_OWNER_DESIGNATION_PREREQUISITE_FAILED
+```
+
+### 3.2 Still-live grants that must remain unconsumed
+
+```text
+PR225_AUTHORIZATION_ID=
+  NW008_AT8W30_R3_PRIVATE_OWNER_EXECUTION_SURFACE_PROVISIONING_AUTHORIZATION_001
+PR225_STATE_AT_LAST_KNOWN_PROOF=AVAILABLE_UNCONSUMED
+PR225_CONSUMED_BY_THIS_ARTIFACT=NO
+
+PR226_AUTHORIZATION_ID=
+  NW008_AT8W30_R3_PRIVATE_OWNER_IMPLEMENTATION_CREATION_AUTHORIZATION_001
+PR226_STATE=CONSUMED
+PR226_MERGE_COMMIT=
+  a5edec070ac67a4ea532bfd81fba76072b89011f
+PR226_CONSUMED_BY_THIS_ARTIFACT=NO
+  # PR226 already created the implementation this artifact only authorizes
+  # updating; PR226 is not re-consumed or reopened
+
+PR223_R3_AUTHORIZATION_ID=
+  nw008-at8w30-r3-get-contact-execution-authorization-002
+PR223_R3_STATE_AT_LAST_KNOWN_PROOF=AVAILABLE_UNCONSUMED
+PR223_CONSUMED_BY_THIS_ARTIFACT=NO
+
+PR230_PUBLIC_INGRESS_REPAIR_AUTHORIZATION_ID=
+  NW008_AT8W30_R3_PRIVATE_OWNER_PUBLIC_INGRESS_REPAIR_AUTHORIZATION_001
+PR230_STATE=CONSUMED
+PR230_MERGE_COMMIT=
+  f09879ed4f07415f6f94d35b776318e91ff28bec
+PR231_IMPLEMENTATION_PR=231
+PR231_STATE=OPEN_UNMERGED
+PR231_INTRODUCES_THE_CONTRACT_THIS_ARTIFACT_REACTS_TO=YES
+```
+
+This adoption lane is strictly pre-provisioning and pre-consumption relative to
+every live grant. It must never construct the target-runtime credential object
+that is the R3 consumption trigger, and it must never perform the first
+private-control-plane provisioning mutation that is the PR225 consumption
+trigger.
+
+### 3.3 Activation depends on PR231 reaching `main`
+
+```text
+PR231_MERGE_TO_MAIN_REQUIRED_BEFORE_ACTIVATION=YES
+```
+
+The current contract this artifact authorizes adoption of exists only on
+PR231's open, unmerged head. If PR231 is revised, rejected, or its contract
+shape changes before merge, the private-side call sequence described in
+Section 2.2 must be re-verified against whatever contract actually reaches
+`main` before this grant may be treated as activatable.
+
+---
+
+## 4. Authorization objective
+
+```text
+OBJECTIVE=
+  ADOPT_THE_NEW_OWNER_PROVISIONING_AUTHORITY_CALLING_CONTRACT_IN_THE_ALREADY
+  CREATED_PRIVATE_OWNER_IMPLEMENTATION
+
+OBJECTIVE_SCOPE=
+  CONTRACT_ADOPTION_ONLY_IN_PRIVATE_DESIGNATED_SOURCE
+OBJECTIVE_COUNT_MAX=1
+```
+
+### 4.1 This authorization must not
+
+```text
+NEW_PRIVATE_OWNER_DESIGNATION=FORBIDDEN
+OWNER_RENAME_OR_RESELECTION=FORBIDDEN
+MG_GUIDE_PUBLIC_RUNTIME_MUTATION=FORBIDDEN
+PUBLIC_PRODUCTION_MATERIALIZER_CREATION=FORBIDDEN
+SYNTHETIC_AT8_PROVISIONING_RESTORATION=FORBIDDEN
+INTENDED_R3_EXECUTION_HOST_PROVISIONING=FORBIDDEN
+PR225_CONSUMPTION=FORBIDDEN
+PR223_CONSUMPTION=FORBIDDEN
+PR226_REOPENING_OR_RECONSUMPTION=FORBIDDEN
+LIVE_R3_TARGET_VALIDATION=FORBIDDEN
+LIVE_R3_REFERENCE_MATERIALIZATION=FORBIDDEN
+TARGET_RUNTIME_CREDENTIAL_CONSTRUCTION=FORBIDDEN
+R3_SECRET_PAYLOAD_READ=FORBIDDEN
+R3_ACCESS_TOKEN_MINT=FORBIDDEN
+R3_EXECUTION_STORE_OPEN=FORBIDDEN
+R3_EXECUTION=FORBIDDEN
+HIGHLEVEL_CALL=FORBIDDEN
+CRM_MUTATION=FORBIDDEN
+IAM_MUTATION=FORBIDDEN
+PRODUCTION_INFRASTRUCTURE_DEPLOYMENT=FORBIDDEN
+```
+
+Provisioning the created implementation into the intended R3 execution process
+remains the separate, already-merged PR225 lane. Executing R3 remains the
+separate, already-merged PR223 lane. Neither may be entered under this grant.
+
+---
+
+## 5. Required implementation contract (frozen)
+
+The future adoption change authorized by this artifact must satisfy the
+existing designation and the current public contract rather than change
+either.
+
+```text
+PRIVATE_OWNER_REMAINS_AUTHORITY_SOURCE=YES
+PUBLIC_RUNTIME_IS_AUTHORITY_SOURCE=NO
+PUBLIC_NOTE_PATH_IS_AUTHORITY_SOURCE=NO
+
+FIXED_GOVERNED_DESIGNATION_ONLY=YES
+OWNER_SELECTION_MODE=FIXED_GOVERNED_DESIGNATION_ONLY
+
+REQUIRED_CALL_SEQUENCE=
+  1_CALL_issue_private_owner_provisioning_authority_WITH_NO_ARGUMENTS|
+  2_PASS_THE_RETURNED_TOKEN_AS_private_owner_provisioning_authority_TO
+    provision_designated_private_owner_resolver|
+  3_REMOVE_ANY_trusted_binding_source_ARGUMENT_FROM_THE_PRIOR_CALL_SITE
+
+FORBIDDEN_ADOPTION_SHORTCUTS=
+  CALLING_issue_private_at8_handoff_source_for_synthetic_tests_TO_SATISFY
+    PROVISIONING|
+  CONSTRUCTING_OR_TRANSPLANTING_AN_ANCHOR_OBJECT_DIRECTLY|
+  REPRODUCING_THE_RESOLVER_MODULE_SHAPE_WITHOUT_THE_GENUINE_ANCHOR|
+  WIDENING_THE_PUBLIC_CONTRACT_TO_ACCEPT_THE_PRIOR_SIGNATURE
+
+VERIFIED_PRIVATE_PROVENANCE_REQUIRED=YES
+RAW_PROVIDER_IDS_ALONE_CAN_MINT_AUTHORITY=NO
+
+SAME_PROCESS_ONLY=YES
+CROSS_PROCESS_HANDOFF_AUTHORIZED=NO
+CROSS_PROCESS_HANDOFF_REQUIRED=NO
+
+REFERENCE_SERIALIZATION_AUTHORIZED=NO
+REFERENCE_RECONSTRUCTION_AUTHORIZED=NO
+REFERENCE_COPYABLE=NO
+
+PRIVATE_OWNER_LOCATOR_PUBLICATION=FORBIDDEN
+PRIVATE_OWNER_IMPLEMENTATION_PATH_PUBLICATION=FORBIDDEN
+PRIVATE_IDENTIFIER_PUBLICATION=FORBIDDEN
+SECRET_PAYLOAD_PUBLICATION=FORBIDDEN
+TOKEN_PUBLICATION=FORBIDDEN
+```
+
+Any change that would move authority into public runtime, restore synthetic
+AT8 sources as a provisioning substitute, accept raw provider identifiers as
+sufficient authority, emit a serializable or reconstructable reference, or
+widen the public contract to keep accepting the prior signature is outside
+this grant.
+
+---
+
+## 6. Implementation test requirements
+
+Only synthetic, offline, deterministic tests are authorized. No live target,
+no network, no secret material, no execution store.
+
+```text
+TEST_MODE=SYNTHETIC_OFFLINE_DETERMINISTIC_ONLY
+LIVE_TARGET_IN_TESTS=FORBIDDEN
+NETWORK_IN_TESTS=FORBIDDEN
+```
+
+### 6.1 Required proof targets
+
+```text
+DESIGNATION_MATCH=PASS
+FIXED_OWNER_ONLY=PASS
+ADOPTED_CALL_USES_issue_private_owner_provisioning_authority=PASS
+ADOPTED_CALL_NO_LONGER_PASSES_trusted_binding_source=PASS
+VERIFIED_PRIVATE_PROVENANCE_REQUIRED=PASS
+SAME_PROCESS_COMPATIBILITY=PASS
+CROSS_PROCESS_HANDOFF_FORBIDDEN=PASS
+SYNTHETIC_AT8_PROVISIONING_STILL_REJECTED=PASS
+```
+
+### 6.2 Required zero-effect test counters
+
+```text
+HIGHLEVEL_CALLS=0
+SECRET_PAYLOAD_READS=0
+TOKEN_MINTS=0
+SQLITE_OPENS=0
+R3_EXECUTION_ATTEMPTS_USED=0
+HTTP_REQUEST_DISPATCHES=0
+```
+
+---
+
+## 7. Authorized future consumer and scope
+
+```text
+AUTHORIZED_FUTURE_CONSUMER_UNIT=
+  NW008_AT8W30_R3_PRIVATE_OWNER_PROVISIONING_AUTHORITY_CONTRACT_ADOPTION_001
+
+AUTHORIZED_CONSUMER_CLASS=
+  private_source_implementation_adoption
+
+AUTHORIZED_ACTORS=
+  VS_CODE_ORCHESTRATOR|
+  HUMAN_GOVERNANCE_SOURCE_CUSTODIAN
+```
+
+### 7.1 Authorized future effects (private designated source only)
+
+```text
+AUTHORIZED_FUTURE_EFFECTS=
+  UPDATE_THE_ALREADY_CREATED_PRIVATE_OWNER_IMPLEMENTATIONS_PROVISIONING_CALL
+    SITE_TO_THE_REQUIRED_CALL_SEQUENCE_IN_SECTION_5|
+  ADD_OR_UPDATE_SYNTHETIC_OFFLINE_DETERMINISTIC_TESTS_FOR_THE_PROOF_TARGETS_IN
+    SECTION_6|
+  RECORD_SANITIZED_PRIVATE_ADOPTION_PROOF_PACKET
+
+PRIVATE_SOURCE_PATHS_LIMITED_TO_DESIGNATED_OWNER_MODULE_AND_ITS_TESTS=YES
+MG_GUIDE_PUBLIC_RUNTIME_MUTATION=FORBIDDEN
+MG_GUIDE_PUBLIC_TESTS_MUTATION=FORBIDDEN
+MG_GUIDE_DEPENDENCY_MANIFEST_MUTATION=FORBIDDEN
+```
+
+### 7.2 Public repository path authority under this grant
+
+```text
+MG_GUIDE_REPOSITORY_MUTATION_AUTHORIZED=NO
+
+AUTHORIZED_PUBLIC_REPOSITORY_PATHS_FOR_THIS_AUTHORIZATION_PR_ONLY=
+  governance/authorizations/nw008-at8w30-r3-private-owner-provisioning-authority-contract-adoption-authorization-001.md
+
+AUTHORIZED_PUBLIC_PATH_COUNT_MAX_FOR_THIS_AUTHORIZATION_PR=1
+```
+
+Private implementation proof is retained privately unless a separate public
+proof path is later authorized, and may then contain sanitized booleans and
+stop codes only.
+
+### 7.3 Blocked effects
+
+```text
+BLOCKED_EFFECTS=
+  NEW_PRIVATE_OWNER_DESIGNATION|
+  OWNER_RENAME_OR_RESELECTION|
+  PRIVATE_OWNER_EXECUTION_SURFACE_PROVISIONING|
+  SYNTHETIC_AT8_PROVISIONING_RESTORATION|
+  PR225_CONSUMPTION|
+  PR223_CONSUMPTION|
+  PR226_REOPENING_OR_RECONSUMPTION|
+  R3_EXECUTION|
+  R3_RETRY|
+  R3_SECOND_EXECUTION|
+  R4_EXECUTION|
+  LIVE_R3_TARGET_VALIDATION|
+  LIVE_R3_REFERENCE_MATERIALIZATION|
+  TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTION|
+  APPLICATION_DEFAULT_CREDENTIAL_RESOLUTION_FOR_R3|
+  SERVICE_ACCOUNT_IMPERSONATION|
+  SERVICE_ACCOUNT_ACCESS_TOKEN_MINT|
+  SECRET_MANAGER_CLIENT_INSTANTIATION_FOR_R3|
+  SECRET_PAYLOAD_READ|
+  TOKEN_MINT|
+  SQLITE_CREATE|
+  SQLITE_EXISTING_OPEN|
+  PRODUCTION_RUNTIME_ASSEMBLY|
+  PUBLIC_PRODUCTION_MATERIALIZER_CREATION|
+  PUBLIC_RUNTIME_MUTATION|
+  SYNTHETIC_TEST_GATE_WEAKENING|
+  HIGHLEVEL_CALL|
+  HTTP_REQUEST_DISPATCH|
+  GET_CONTACT_ATTEMPT|
+  NOTE_WRITE|
+  STAGE_WRITE|
+  CRM_MUTATION|
+  IAM_MUTATION|
+  DEPLOYMENT|
+  CROSS_PROCESS_HANDOFF|
+  REFERENCE_SERIALIZATION|
+  REFERENCE_RECONSTRUCTION|
+  ENVIRONMENT_OR_CALLER_OR_REGISTRY_OWNER_SELECTION|
+  PRIVATE_OWNER_LOCATOR_PUBLICATION|
+  PRIVATE_IDENTIFIER_PUBLICATION|
+  RECONSTRUCTION_OF_PRIVATE_AUTHORITY_FROM_PUBLIC_ARTIFACTS
+```
+
+Any blocked effect requires an immediate fail-closed stop:
+
+```text
+STOP_CODE=UNAUTHORIZED_PATH_OR_EFFECT
+```
+
+---
+
+## 8. Zero-effect budget
+
+```text
+PR225_AUTHORIZATION_CONSUMED_MAX=NO_CHANGE
+PR225_PROVISIONING_ATTEMPTS_USED_MAX=0
+
+R3_AUTHORIZATION_CONSUMED_MAX=NO_CHANGE
+R3_EXECUTION_ATTEMPTS_USED_MAX=0
+R3_EXECUTION_PERFORMED_MAX=0
+
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS_MAX=0
+APPLICATION_DEFAULT_CREDENTIAL_RESOLUTIONS_MAX=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS_MAX=0
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS_MAX=0
+SECRET_MANAGER_CLIENT_INSTANTIATIONS_MAX=0
+SECRET_PAYLOAD_READS_MAX=0
+TOKEN_MINTS_MAX=0
+SQLITE_CREATES_MAX=0
+SQLITE_EXISTING_OPENS_MAX=0
+PRODUCTION_RUNTIME_ASSEMBLIES_MAX=0
+HIGHLEVEL_CALLS_MAX=0
+HTTP_REQUEST_DISPATCHES_MAX=0
+GET_CONTACT_ATTEMPTS_MAX=0
+CRM_MUTATIONS_MAX=0
+IAM_MUTATIONS_MAX=0
+DEPLOYMENTS_MAX=0
+```
+
+This budget is absolute for any unit acting under this grant. Exceeding any
+ceiling fails closed and does not authorize retry under this same grant.
+
+---
+
+## 9. Authorization lifecycle and consumption
+
+```text
+ONE_SHOT=YES
+REUSABLE=NO
+TRANSFERABLE=NO
+FAILURE_RESTORES_AUTHORITY=NO
+SELF_ACTIVATION=FORBIDDEN
+
+AUTHORIZATION_STATE_AT_AUTHORING=PROPOSED_NOT_EFFECTIVE
+
+GRANT_ACTIVATION=
+  HUMAN_MERGE_TO_PRIVATE_MAIN_PLUS_DURABLE_MAIN_RECONCILIATION
+
+GRANT_ACTIVATION_PRECONDITIONS=
+  HUMAN_MIRROR_OF_THIS_ARTIFACT_INTO_DESIGNATED_PRIVATE_GOVERNANCE_SURFACE|
+  HUMAN_MERGE_TO_PRIVATE_MAIN|
+  DURABLE_PRIVATE_MAIN_RECONCILIATION|
+  DESIGNATION_STILL_APPROVED|
+  PR231_MERGED_TO_MG_GUIDE_MAIN_WITH_THE_CONTRACT_DESCRIBED_IN_SECTION_2.2|
+  PR225_STILL_AVAILABLE_UNCONSUMED|
+  PR223_STILL_AVAILABLE_UNCONSUMED
+
+AUTHORIZATION_STATE_BEFORE_IMPLEMENTATION=
+  AVAILABLE_IF_MERGED_AND_VERIFIED
+
+AUTHORIZATION_CONSUMPTION_TRIGGER=
+  FIRST_PRIVATE_SOURCE_WRITE_ATTEMPT_THAT_MODIFIES_THE_DESIGNATED_PRIVATE
+  OWNER_IMPLEMENTATIONS_PROVISIONING_CALL_SITE_BY_THE_DESIGNATED_ADOPTION_UNIT
+
+AUTHORIZATION_STATE_ON_TRIGGER=CONSUMED
+AUTHORIZATION_STATE_AFTER_TRIGGER=CONSUMED
+
+AUTHORIZATION_ARTIFACT_MUTABLE_BY_CONSUMER=NO
+CONSUMPTION_RECORD_REQUIRED=YES
+```
+
+Authority is consumed at the first private-source write attempt by the
+designated adoption unit, whether or not that attempt succeeds. A failed,
+aborted, reverted, or abandoned adoption attempt does not restore authority;
+any subsequent attempt requires a new authorization artifact.
+
+```text
+IMPLEMENTATION_BEFORE_HUMAN_MERGE_AND_RECONCILIATION=FORBIDDEN
+IMPLEMENTATION_BEFORE_PR231_REACHING_MG_GUIDE_MAIN=FORBIDDEN
+
+PR225_CONSUMPTION_TRIGGER_REMAINS=
+  FIRST_PRIVATE_CONTROL_PLANE_PROVISIONING_MUTATION_OR_INSTALL_ATTEMPT
+R3_AUTHORIZATION_CONSUMPTION_TRIGGER_REMAINS=
+  FIRST_TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTION_ATTEMPT_FOR_R3
+
+THIS_GRANT_DOES_NOT_CONSUME_PR225=YES
+THIS_GRANT_DOES_NOT_CONSUME_PR223=YES
+THIS_GRANT_DOES_NOT_CONSUME_PR226=YES
+THIS_GRANT_DOES_NOT_TRANSFER_R3=YES
+THIS_GRANT_DOES_NOT_RETRY_R3=YES
+THIS_GRANT_DOES_NOT_RESTORE_SYNTHETIC_AT8_PROVISIONING=YES
+```
+
+---
+
+## 10. Required future proof assertions
+
+The designated adoption unit must produce a sanitized proof packet asserting
+at minimum:
+
+```text
+SOURCE_DESIGNATION_MATCH=<YES|NO>
+NEW_DESIGNATION_CREATED=NO
+OWNER_RESELECTION_PERFORMED=NO
+
+ADOPTED_CALL_USES_issue_private_owner_provisioning_authority=<PASS|FAIL>
+ADOPTED_CALL_NO_LONGER_PASSES_trusted_binding_source=<PASS|FAIL>
+DESIGNATION_MATCH=<PASS|FAIL>
+FIXED_OWNER_ONLY=<PASS|FAIL>
+VERIFIED_PRIVATE_PROVENANCE_REQUIRED=<PASS|FAIL>
+SAME_PROCESS_COMPATIBILITY=<PASS|FAIL>
+CROSS_PROCESS_HANDOFF_FORBIDDEN=<PASS|FAIL>
+SYNTHETIC_AT8_PROVISIONING_STILL_REJECTED=<PASS|FAIL>
+
+AUTHORIZATION_CONSUMED_FOR_THIS_ADOPTION_GRANT=<YES|NO>
+PR225_AUTHORIZATION_CONSUMED=NO
+PR225_PROVISIONING_ATTEMPTS_USED=0
+PR223_AUTHORIZATION_CONSUMED=NO
+R3_EXECUTION_ATTEMPTS_USED=0
+R3_EXECUTION_PERFORMED=NO
+
+HIGHLEVEL_CALLS=0
+HTTP_REQUEST_DISPATCHES=0
+SECRET_PAYLOAD_READS=0
+TOKEN_MINTS=0
+SQLITE_OPENS=0
+PRODUCTION_RUNTIME_ASSEMBLIES=0
+CRM_MUTATIONS=0
+IAM_MUTATIONS=0
+DEPLOYMENTS=0
+
+PUBLIC_RUNTIME_MODIFIED=NO
+PRIVATE_OWNER_LOCATOR_PUBLISHED=NO
+PRIVATE_OWNER_IMPLEMENTATION_PATH_PUBLISHED=NO
+PRIVATE_IDENTIFIER_PUBLISHED=NO
+
+RESULT=<PASS|FAIL_CLOSED>
+STOP_CODE=<exact stop code|NONE>
+```
+
+---
+
+## 11. Fail-closed stop codes
+
+```text
+STOP_CODES=
+  PRIVATE_OWNER_DESIGNATION_PREREQUISITE_FAILED|
+  PR231_NOT_YET_MERGED_TO_MAIN|
+  PRIVATE_MIRROR_OR_PRIVATE_MERGE_MISSING|
+  UNAUTHORIZED_PATH_OR_EFFECT|
+  PUBLIC_RUNTIME_MUTATION_ATTEMPTED|
+  PUBLIC_PRODUCTION_MATERIALIZER_ATTEMPTED|
+  SYNTHETIC_AT8_PROVISIONING_RESTORATION_ATTEMPTED|
+  SYNTHETIC_TEST_GATE_WEAKENING_ATTEMPTED|
+  ENVIRONMENT_OR_CALLER_OR_REGISTRY_OWNER_SELECTION_ATTEMPTED|
+  CROSS_PROCESS_HANDOFF_ATTEMPTED|
+  REFERENCE_SERIALIZATION_ATTEMPTED|
+  REFERENCE_RECONSTRUCTION_ATTEMPTED|
+  PRIVATE_LOCATOR_PUBLICATION_ATTEMPTED|
+  PR225_CONSUMPTION_TRIGGER_APPROACHED|
+  PR226_RECONSUMPTION_ATTEMPTED|
+  R3_CONSUMPTION_TRIGGER_APPROACHED|
+  R3_EXECUTION_ATTEMPTED|
+  DESIGNATION_MATCH_FAILED
+```
+
+---
+
+## 12. Explicit non-goals
+
+This authorization does not:
+
+- create a new private owner designation;
+- rename or reselect the private owner;
+- provision the intended R3 execution host;
+- consume PR225, PR223, or reopen/re-consume PR226;
+- restore synthetic AT8 provisioning as an owner-provisioning substitute;
+- execute, retry, or complete R3;
+- authorize R4, note write, or stage transition;
+- change MG Guide public runtime, public tests, or dependency manifests;
+- attempt a bounded public wiring repair (none is required; the public side is
+  already complete pending PR231's merge);
+- validate the live R3 target or materialize a live R3 reference;
+- construct target-runtime credentials, read secret payloads, or mint tokens;
+- open the R3 execution store;
+- call HighLevel, mutate CRM or IAM, or deploy production infrastructure;
+- publish or encode the private locator.
+
+---
+
+## 13. Authoring-unit effect declaration
+
+The unit that authored this artifact performed only read-only inspection of
+the public repository's own contract surface (current `note_path.py`,
+`live_note_runtime.py`, the associated offline test suite, prior governance
+and proof artifacts, and `gh pr` metadata) and created this single sanitized
+governance authorization file. It created no implementation, provisioned
+nothing, restored no synthetic provisioning path, and approached no
+consumption trigger.
+
+```text
+BRANCH_AT_AUTHORING_IS_MAIN=NO
+UNRELATED_DIRTY_WORKTREES_PRESERVED=YES
+BROAD_STAGING_USED=NO
+
+SOURCE_DESIGNATION_MATCH=YES
+NEW_DESIGNATION_CREATED=NO
+OWNER_RESELECTION_PERFORMED=NO
+ALTERNATE_PRIVATE_SOURCE_SELECTED=NO
+
+PRIVATE_IMPLEMENTATION_MODIFIED=NO
+PRIVATE_OWNER_PROVISIONED=NO
+SYNTHETIC_AT8_PROVISIONING_RESTORED=NO
+R3_EXECUTED=NO
+
+PR225_AUTHORIZATION_CONSUMED=NO
+PR225_PROVISIONING_ATTEMPTS_USED=0
+PR223_AUTHORIZATION_CONSUMED=NO
+PR226_RECONSUMED=NO
+R3_EXECUTION_ATTEMPTS_USED=0
+R3_EXECUTION_PERFORMED=NO
+
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS=0
+APPLICATION_DEFAULT_CREDENTIAL_RESOLUTIONS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS=0
+SECRET_MANAGER_CLIENT_INSTANTIATIONS=0
+SECRET_PAYLOAD_READS=0
+TOKEN_MINTS=0
+SQLITE_CREATES=0
+SQLITE_EXISTING_OPENS=0
+SQLITE_OPENS=0
+PRODUCTION_RUNTIME_ASSEMBLIES=0
+HIGHLEVEL_CALLS=0
+HTTP_REQUEST_DISPATCHES=0
+GET_CONTACT_ATTEMPTS=0
+CRM_MUTATIONS=0
+IAM_MUTATIONS=0
+DEPLOYMENTS=0
+PRODUCTION_EFFECTS=0
+
+PUBLIC_RUNTIME_MODIFIED=NO
+PUBLIC_TESTS_MODIFIED=NO
+PRIVATE_OWNER_LOCATOR_PUBLISHED=NO
+PRIVATE_OWNER_IMPLEMENTATION_PATH_PUBLISHED=NO
+PRIVATE_IDENTIFIER_PUBLISHED=NO
+
+TESTS_RUN_FOR_INSPECTION_ONLY=
+  PYTHONPATH=src python -m pytest -q tests/integrations/ghl/highlevel_rest
+TESTS_RUN_RESULT=ALL_PASSED_ON_PR231_HEAD_ead4e4a
+TESTS_RUN_NETWORK_CALLS=0
+TESTS_RUN_HIGHLEVEL_CALLS=0
+
+RESULT=PASS
+STOP_CODE=NONE
+NEXT_ACTION_AUTHORIZED_BY_THIS_ARTIFACT_BEFORE_HUMAN_MERGE=NONE
+```
+
+---
+
+## 14. Disposition for human review
+
+Human governance should review this authorization, confirm PR231 merges to
+`main` with the contract described in Section 2.2 intact, mirror this artifact
+into the designated private governance surface, and, if accepted, merge it to
+private main with durable reconciliation. Only after that may the designated
+private source adoption unit consume this grant to update the already-created
+private-owner implementation's provisioning call site.
+
+Until that human mirror, merge, and reconciliation:
+
+```text
+PRIVATE_OWNER_IMPLEMENTATION_CALL_SITE_ADOPTED=NO
+PRIVATE_OWNER_EXECUTION_SURFACE_READY=UNCHANGED_FROM_PR225_STATE
+PR225_PROVISIONING_AUTHORIZED_TO_PROCEED=NO
+R3_PRECONSUMPTION_CONTINUATION_AUTHORIZED_BY_THIS_ARTIFACT=NO
+R3_EXECUTION_AUTHORIZED_BY_THIS_ARTIFACT=NO
+R4_AUTHORIZED=NO
+SYNTHETIC_AT8_PROVISIONING_RESTORATION_AUTHORIZED_BY_THIS_ARTIFACT=NO
+```
