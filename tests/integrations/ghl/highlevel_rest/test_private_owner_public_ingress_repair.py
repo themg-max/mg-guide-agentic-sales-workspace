@@ -25,8 +25,8 @@ def _provision_owner(
     authorization_id: str = AUTHORIZATION_ID,
     workflow_run_id: str = WORKFLOW_RUN_ID,
 ) -> object:
-    authority = note_path._issue_private_owner_provisioning_authority()
-    return note_path._provision_designated_private_owner_resolver(
+    authority = note_path._issue_private_owner_provisioning_authority_for_tests()
+    return note_path._provision_designated_private_owner_resolver_for_tests(
         private_owner_provisioning_authority=authority,
         private_owner_resolver=owner,
         consumer_authorization_identity=authorization_id,
@@ -224,7 +224,7 @@ def test_owner_anchor_provisioning_requires_private_authority() -> None:
     owner.DESIGNATION_ID = DESIGNATION_ID
 
     with pytest.raises(BindingError, match="provisioning authority is invalid"):
-        note_path._provision_designated_private_owner_resolver(
+        note_path._provision_designated_private_owner_resolver_for_tests(
             private_owner_provisioning_authority=object(),
             private_owner_resolver=owner,
             consumer_authorization_identity=AUTHORIZATION_ID,
@@ -344,7 +344,7 @@ def test_public_synthetic_handoff_source_cannot_provision_designated_owner() -> 
     )
 
     with pytest.raises(BindingError, match="provisioning authority is invalid"):
-        note_path._provision_designated_private_owner_resolver(
+        note_path._provision_designated_private_owner_resolver_for_tests(
             private_owner_provisioning_authority=synthetic_source,
             private_owner_resolver=forged,
             consumer_authorization_identity=AUTHORIZATION_ID,
@@ -356,5 +356,53 @@ def test_public_synthetic_handoff_source_cannot_provision_designated_owner() -> 
 
     assert forged_state["release_calls"] == 0
     assert genuine_state["reference"] == "AVAILABLE"
+    assert note_path.NETWORK_CALLS == 0
+    assert note_path.HIGHLEVEL_NETWORK_CALLS == 0
+
+
+def test_public_module_cannot_self_issue_owner_provisioning_authority() -> None:
+    """T14: the public module never originates owner-provisioning authority.
+
+    The production composition root (`assemble_bound_live_note_runtime`)
+    only consumes a pre-provisioned resolver/anchor/reference; it never
+    calls an issuer or provisioner. The only mint-shaped functions in this
+    module are explicitly named `_for_tests` offline seam constructors, are
+    never reachable from the production runtime module, and cannot recover
+    genuine private-control-plane authority. Reproducing every public shape
+    (module attributes, source strings, even a private AT8 handoff source)
+    never satisfies the distinct provisioning-authority check.
+    """
+    import inspect
+
+    import integrations.ghl.highlevel_rest.live_note_runtime as runtime
+
+    runtime_source = inspect.getsource(runtime)
+    assert "issue_private_owner_provisioning_authority" not in runtime_source
+    assert "provision_designated_private_owner_resolver" not in runtime_source
+
+    assert not hasattr(note_path, "issue_private_owner_provisioning_authority")
+    assert not hasattr(note_path, "provision_designated_private_owner_resolver")
+    assert hasattr(note_path, "_issue_private_owner_provisioning_authority_for_tests")
+    assert hasattr(
+        note_path, "_provision_designated_private_owner_resolver_for_tests"
+    )
+
+    forged, forged_reference, forged_state = _forged_private_owner()
+    synthetic_source = note_path._issue_private_at8_handoff_source_for_synthetic_tests(
+        location_id="synthetic-owner-provisioning-authority-location-001",
+        contact_id="synthetic-owner-provisioning-authority-contact-001",
+    )
+    forged_authority = ModuleType("offline_forged_owner_provisioning_authority")
+
+    for candidate_authority in (object(), synthetic_source, forged_authority, forged):
+        with pytest.raises(BindingError, match="provisioning authority is invalid"):
+            note_path._provision_designated_private_owner_resolver_for_tests(
+                private_owner_provisioning_authority=candidate_authority,
+                private_owner_resolver=forged,
+                consumer_authorization_identity=AUTHORIZATION_ID,
+                consumer_workflow_run_id=WORKFLOW_RUN_ID,
+            )
+
+    assert forged_state["release_calls"] == 0
     assert note_path.NETWORK_CALLS == 0
     assert note_path.HIGHLEVEL_NETWORK_CALLS == 0

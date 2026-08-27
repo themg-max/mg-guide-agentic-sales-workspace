@@ -851,14 +851,23 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             trusted_binding_source=registered_source,
         )
 
-    def issue_private_owner_provisioning_authority() -> (
+    def issue_private_owner_provisioning_authority_for_tests() -> (
         _PrivateOwnerProvisioningAuthority
     ):
-        """Issue the private control-plane owner-provisioning authority token.
+        """Model an already-provisioned private owner-provisioning authority.
 
-        This origin is distinct from every `_TrustedPrivateBindingSource`,
-        including sources created by
-        `_issue_private_at8_handoff_source_for_synthetic_tests`.
+        This is an offline test-seam constructor only. It is not a public
+        owner-provisioning issuer and is never invoked by the production
+        composition root (`live_note_runtime.assemble_bound_live_note_runtime`
+        never calls this function or the paired
+        `_provision_designated_private_owner_resolver_for_tests`). The real
+        owner-provisioning authority originates exclusively in the private
+        control plane, which is the sole authority source; this public
+        module never mints that authority for production use. This origin
+        is distinct from every `_TrustedPrivateBindingSource`, including
+        sources created by
+        `_issue_private_at8_handoff_source_for_synthetic_tests`; a public
+        synthetic AT8 handoff source can never satisfy it (see T13/T14).
         """
         authority = _PrivateOwnerProvisioningAuthority()
         owner_provisioning_authorities.add(
@@ -881,23 +890,26 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
             raise BindingError("private owner provisioning authority is invalid")
         return authority
 
-    def provision_designated_private_owner_resolver(
+    def provision_designated_private_owner_resolver_for_tests(
         *,
         private_owner_provisioning_authority: object,
         private_owner_resolver: object,
         consumer_authorization_identity: str,
         consumer_workflow_run_id: str,
     ) -> _PrivateOwnerAuthenticityAnchor:
-        """Provision the designated private owner with an authenticity anchor.
+        """Model the private control plane provisioning an owner anchor.
 
-        Only a caller holding the distinct private control-plane provisioning
-        authority can provision an owner anchor. A public synthetic AT8
-        handoff source cannot designate an owner. The anchor is bound at
-        provisioning time to the exact resolver object (weak identity) and
-        to the exact consumer authorization identity and workflow run
-        selected by the governing authorization. Binding the eventual
-        post-repair authorization is a private provisioning act and requires
-        no public runtime mutation.
+        This is an offline test-seam constructor only, paired with
+        `issue_private_owner_provisioning_authority_for_tests`, and is never
+        invoked by the production composition root. Only a caller holding
+        the distinct private control-plane provisioning authority can
+        provision an owner anchor. A public synthetic AT8 handoff source
+        cannot designate an owner. The anchor is bound at provisioning time
+        to the exact resolver object (weak identity) and to the exact
+        consumer authorization identity and workflow run selected by the
+        governing authorization. Binding the eventual post-repair
+        authorization is a private provisioning act and requires no public
+        runtime mutation.
         """
         _require_private_owner_provisioning_authority(
             private_owner_provisioning_authority
@@ -1150,8 +1162,8 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
         handoff_private_at8_capability_from_registered_source,
         issue_private_at8_binding_reference_for_synthetic_tests,
         consume_private_at8_binding_lease,
-        issue_private_owner_provisioning_authority,
-        provision_designated_private_owner_resolver,
+        issue_private_owner_provisioning_authority_for_tests,
+        provision_designated_private_owner_resolver_for_tests,
         consume_designated_private_owner_binding_reference,
         private_at8_binding_lease_state,
         build_bound_contact_get,
@@ -1166,8 +1178,8 @@ def _build_internal_trust_issuer() -> tuple[Any, ...]:
     _handoff_private_at8_capability_from_registered_source,
     _issue_private_at8_binding_reference_for_synthetic_tests,
     _consume_private_at8_binding_lease,
-    _issue_private_owner_provisioning_authority,
-    _provision_designated_private_owner_resolver,
+    _issue_private_owner_provisioning_authority_for_tests,
+    _provision_designated_private_owner_resolver_for_tests,
     _consume_designated_private_owner_binding_reference,
     _private_at8_binding_lease_state,
     _build_bound_contact_get,
