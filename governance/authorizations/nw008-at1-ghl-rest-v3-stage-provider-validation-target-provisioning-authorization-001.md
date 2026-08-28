@@ -1,0 +1,442 @@
+# NW-008 AT-1 — GHL REST v3 Stage Provider Validation Target Provisioning Authorization 001
+
+```text
+ARTIFACT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_TARGET_PROVISIONING_AUTHORIZATION_001
+ARTIFACT_PATH=
+  governance/authorizations/nw008-at1-ghl-rest-v3-stage-provider-validation-target-provisioning-authorization-001.md
+ARTIFACT_KIND=
+  HUMAN_MANUAL_GHL_UI_SYNTHETIC_VALIDATION_TARGET_PROVISIONING_AUTHORIZATION_DRAFT
+PR_CLASS=authorization
+UNIT=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_TARGET_PROVISIONING_AUTHORIZATION_001
+MODE=AUTHORIZATION_DRAFT_ONLY
+
+PUBLIC_REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+PUBLIC_BASE_SHA=6747fcd2457482a857484e1b451728f4abb1396c
+BASE_REF=origin/main
+BASE_SHA=6747fcd2457482a857484e1b451728f4abb1396c
+BRANCH=
+  auth/nw008-at1-ghl-rest-v3-stage-provider-validation-target-provisioning-authorization-001
+BRANCH_IS_MAIN=NO
+
+OWNER=VS_CODE_ORCHESTRATOR
+OWNER_LANE=GOVERNANCE_GHL_SYNTHETIC_TARGET_PROVISIONING
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+APPROVING_AUTHORITY=HUMAN_GHL_SPACE_OWNER
+HUMAN_MERGE_REQUIRED=YES
+HUMAN_COUNTERSIGNATURE_REQUIRED=YES
+SELF_ACTIVATION=FORBIDDEN
+
+RECORDED_AT_LOCAL=2026-08-28T14:14:03-0400
+RECORDED_AT_UTC=2026-08-28T18:14:03Z
+```
+
+## 0. Authorization state (inactive at draft)
+
+```text
+AUTHORIZATION_STATE=PROPOSED_NOT_EFFECTIVE
+
+AUTHORIZATION_DRAFTED=YES
+HUMAN_COUNTERSIGNATURE_REQUIRED=YES
+HUMAN_COUNTERSIGNATURE_PRESENT=NO
+HUMAN_COUNTERSIGNATURE_AT_UTC=
+HUMAN_APPROVER=
+APPROVED_AT_UTC=
+EXPIRES_AT_UTC=
+
+PROVISIONING_AUTHORIZED=NO
+OPERATOR_PROVISIONING_AUTHORIZED=NO
+SELF_ACTIVATION=FORBIDDEN
+
+REST_PROVISIONING_AUTHORIZED=NO
+MCP_PROVISIONING_AUTHORIZED=NO
+SCRIPTED_PROVISIONING_AUTHORIZED=NO
+AUTOMATED_PROVISIONING_AUTHORIZED=NO
+VALIDATION_EXECUTION_AUTHORIZED=NO
+
+CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+LIVE_GHL_CALLS=0
+LIVE_GHL_READ_CALLS=0
+LIVE_GHL_WRITE_CALLS=0
+CREATE_OPPORTUNITY_ATTEMPTS_USED=0
+CREATE_OPPORTUNITY_SUCCEEDED=0
+
+SUBMISSION_READY=NO
+```
+
+This artifact is an **inactive draft**. Drafting, reviewing, committing, pushing,
+or merging it does **not** authorize provisioning, REST execution, MCP
+execution, scripted CRM mutation, or validation.
+
+Only a later explicit human countersignature may change
+`HUMAN_COUNTERSIGNATURE_PRESENT` to `YES`. Until that later act:
+
+```text
+PROVISIONING_AUTHORIZED=NO
+GRANT_VALID_FOR_PROVISIONING=NO
+VALIDATION_EXECUTION_AUTHORIZED=NO
+```
+
+```text
+INFERRED_APPROVAL_FROM_DRAFT_REQUEST=NO
+INFERRED_APPROVAL_FROM_PR_MERGE=NO
+INFERRED_APPROVAL_FROM_PR264_STOP=NO
+```
+
+## 1. Purpose
+
+Authorize, **only after a later explicit human countersignature**, one manual
+GoHighLevel UI operation that creates **exactly one** dedicated synthetic
+NON-ACCEPTANCE opportunity for the merged PR #263 REST v3 stage-provider
+validation design.
+
+```text
+AUTHORIZED_FUTURE_ACT=
+  HUMAN_GHL_UI_MANUAL_CREATE_ONE_DEDICATED_SYNTHETIC_VALIDATION_OPPORTUNITY
+
+THIS_UNIT_PROVISIONS_THE_OPPORTUNITY=NO
+THIS_UNIT_AUTHORIZES_REST_EXECUTION=NO
+THIS_UNIT_SEALS_VALIDATION_PACKAGE=NO
+THIS_UNIT_DRAFTS_THREE_CALL_VALIDATION_GRANT=NO
+DOES_NOT_COUNTERSIGN=YES
+DOES_NOT_INFER_HUMAN_APPROVAL=YES
+```
+
+This authorization must **not** authorize REST execution.
+
+## 2. Controlling predecessors
+
+```text
+PR263_MERGED=YES
+PR263_MERGE_SHA=8a32e31eb12c69bb7eead8b1ded118041070c2c2
+PR263_ARTIFACT=
+  docs/nw008/nw-008-at1-ghl-rest-v3-stage-provider-contract-validation-design-001.md
+
+PR264_MERGED=YES
+PR264_MERGE_SHA=6747fcd2457482a857484e1b451728f4abb1396c
+PR264_ARTIFACT=
+  proof/nw008/nw-008-at1-ghl-rest-v3-stage-provider-validation-private-binding-reconciliation-001.md
+
+PR264_RESULT=
+  NW008_STAGE_PROVIDER_VALIDATION_DEDICATED_TARGET_NOT_AVAILABLE
+
+DEDICATED_VALIDATION_OPPORTUNITY_READY=NO
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=NO
+VALIDATION_AUTHORIZATION_PREPARATION_READY=NO
+```
+
+PR #264 established, offline and fail-closed, that no dedicated synthetic
+non-acceptance opportunity is independently bound for stage-provider validation.
+Existing Grant 008 / fresh E2E private packages bind the **acceptance**
+opportunity and must not be reused as the validation target.
+
+This unit answers that stop **only** by drafting an inactive human-manual
+provisioning authorization. It does not create the opportunity.
+
+If either predecessor merge SHA is not in the main lineage at a future
+activation attempt, stop without CRM mutation:
+
+```text
+STOP_CODE=CONTROLLING_PREDECESSOR_PREREQUISITE_FAILED
+CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+```
+
+## 3. Target class
+
+```text
+TARGET_CLASS=
+  SYNTHETIC_STAGE_CONTRACT_VALIDATION_OPPORTUNITY
+
+TARGET_MUST_BE_DISTINCT_FROM_ACCEPTANCE_OPPORTUNITY=YES
+TARGET_MUST_BE_SYNTHETIC=YES
+SYNTHETIC_ONLY=YES
+AUTHORIZED_RECORD_CLASS=SYNTHETIC_ONLY
+
+USE_EXISTING_APPROVED_SYNTHETIC_CONTACT=YES
+CREATE_NEW_CONTACT=NO
+
+USE_EXISTING_BOUND_PIPELINE=YES
+CREATE_NEW_PIPELINE=NO
+
+CREATE_DIRECTLY_IN_VALIDATION_INITIAL_STAGE=YES
+DO_NOT_MOVE_TO_FINAL_STAGE_DURING_PROVISIONING=YES
+
+FUTURE_ACCEPTANCE_OPPORTUNITY_AS_VALIDATION_TARGET=FORBIDDEN
+GRANT008_OR_ACCEPTANCE_TARGET_REUSE=FORBIDDEN
+```
+
+The future manual create must produce one new opportunity that:
+
+1. is synthetic;
+2. is not the Grant 008 / future E2E acceptance opportunity;
+3. is attached to the already-approved synthetic contact (no new contact);
+4. is created on the already-bound pipeline (no new pipeline);
+5. is created directly in the validation **initial** stage;
+6. is **not** moved to the validation final stage during provisioning.
+
+Raw contact, pipeline, and stage identifiers remain private and are not
+published in this artifact.
+
+## 4. Execution surface
+
+```text
+PROVISIONING_SURFACE=HUMAN_GHL_UI_MANUAL
+
+REST_PROVISIONING_AUTHORIZED=NO
+MCP_PROVISIONING_AUTHORIZED=NO
+SCRIPTED_PROVISIONING_AUTHORIZED=NO
+AUTOMATED_PROVISIONING_AUTHORIZED=NO
+
+POST_OPPORTUNITIES_REST_AUTHORIZED=NO
+POST_OPPORTUNITIES_UPSERT_AUTHORIZED=NO
+PUT_OPPORTUNITY_AUTHORIZED=NO
+SEARCH_LIST_GET_AUTHORIZED_FOR_PROVISIONING=NO
+```
+
+After countersignature, the only authorized mutation surface is a human operator
+using the GoHighLevel UI. Agents, scripts, REST clients, MCP tools, and
+automated runners remain unauthorized for this act.
+
+## 5. Exact mutation budget (future countersigned act only)
+
+Even after a later human countersignature, the authorized mutation budget is:
+
+```text
+CREATE_OPPORTUNITY_ATTEMPTS_MAX=1
+CREATE_OPPORTUNITY_SUCCEEDED_MAX=1
+
+CONTACT_CREATE_ATTEMPTS_MAX=0
+NOTE_CREATE_ATTEMPTS_MAX=0
+STAGE_UPDATE_ATTEMPTS_MAX=0
+DELETE_ATTEMPTS_MAX=0
+
+REST_NETWORK_CALLS_MAX=0
+```
+
+```text
+ONE_SHOT=YES
+RETRY=NO
+AUTOMATIC_RETRY=NO
+SECOND_CREATE_ATTEMPT=NO
+```
+
+A failed UI create does **not** authorize a second attempt under this artifact.
+A second attempt requires a new authorization identity.
+
+This drafting unit itself uses none of that budget:
+
+```text
+CREATE_OPPORTUNITY_ATTEMPTS_USED=0
+CREATE_OPPORTUNITY_SUCCEEDED=0
+CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+```
+
+## 6. Forbidden
+
+```text
+REAL_CUSTOMER_TARGET=NO
+NON_SYNTHETIC_TARGET=NO
+
+ACCEPTANCE_OPPORTUNITY_MUTATION=NO
+GRANT008_OPPORTUNITY_MUTATION=NO
+
+SEARCH_FOR_ALTERNATE_TARGET=NO
+CREATE_ALTERNATE_CONTACT=NO
+
+EMAIL_AUTHORIZED=NO
+SMS_AUTHORIZED=NO
+OUTBOUND_COMMUNICATION_AUTHORIZED=NO
+
+WORKFLOW_ENROLLMENT_AUTHORIZED=NO
+AUTOMATION_TRIGGER_AUTHORIZED=NO
+
+AUTOMATIC_CLEANUP=NO
+COMPENSATING_MUTATION=NO
+DELETE_AFTER_PROVISIONING=NO
+
+REST_EXECUTION_AUTHORIZED=NO
+THREE_CALL_VALIDATION_AUTHORIZED=NO
+STAGE_PATH_IMPLEMENTATION_AUTHORIZED=NO
+```
+
+### 6.1 Human-operator refuse-closed rule
+
+If the human operator determines that creation will cause an unauthorized
+outbound workflow or other unintended business-side effect:
+
+```text
+PROVISIONING_EXECUTION=REFUSED
+CRM_MUTATIONS=0
+CREATE_OPPORTUNITY_ATTEMPTS_USED=0
+STOP
+```
+
+Do not proceed with a “safer” alternate target, contact, pipeline, or stage.
+Do not compensate. Do not delete. Stop.
+
+## 7. Private handling
+
+```text
+PUBLIC_OPPORTUNITY_ID=FORBIDDEN
+PUBLIC_CONTACT_ID=FORBIDDEN
+PUBLIC_PIPELINE_ID=FORBIDDEN
+PUBLIC_STAGE_IDS=FORBIDDEN
+PUBLIC_RAW_CRM_VALUES=FORBIDDEN
+TOKEN_OR_PIT_PUBLISHED=NO
+CREDENTIALS_PUBLISHED=NO
+```
+
+After a future successful manual creation, record the new opportunity ID **only**
+in the governed gitignored private package lane. Do not publish it in this
+authorization, in PR text, in commit messages, or in public proof.
+
+Designated future private package identity (not sealed by this unit):
+
+```text
+PACKAGE_ID=
+  NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001
+PRIVATE_VALIDATION_PACKAGE_SEALED=NO
+PRIVATE_VALIDATION_PACKAGE_PATH=ABSENT
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=NO
+VALIDATION_PACKAGE_DIGEST=
+```
+
+Blank digest is intentional: no dedicated package exists yet.
+
+## 8. After future successful provisioning (next offline unit)
+
+A **later** offline unit — not this authorization — must seal:
+
+```text
+PACKAGE_ID=
+  NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001
+```
+
+and establish:
+
+```text
+DEDICATED_VALIDATION_OPPORTUNITY_READY=YES
+VALIDATION_TARGET_SYNTHETIC=YES
+VALIDATION_TARGET_DISTINCT_FROM_ACCEPTANCE_TARGET=YES
+PRIVATE_BINDING_COMPLETE=YES
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=YES
+VALIDATION_PACKAGE_DIGEST=<sha256>
+VALIDATION_AUTHORIZATION_PREPARATION_READY=YES
+```
+
+Required private binding symbols for that later seal (names only):
+
+```text
+PRIVATE_BINDING_SYMBOLS=
+  location_id
+  contact_id
+  opportunity_id
+  pipeline_id
+  validation_initial_stage_id
+  validation_final_stage_id
+```
+
+```text
+INITIAL_AND_FINAL_STAGE_MUST_DIFFER=YES
+```
+
+Only after those predicates pass may the three-call REST validation grant be
+drafted. This artifact does **not** draft that grant.
+
+```text
+NEXT_VALIDATION_AUTHORIZATION_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_AUTHORIZATION_001
+NEXT_VALIDATION_GRANT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_GRANT_001
+
+THREE_CALL_REST_VALIDATION_GRANT_DRAFTED_BY_THIS_UNIT=NO
+```
+
+## 9. Countersignature block (future human act only)
+
+Required future fields (blank / negative at draft):
+
+```text
+HUMAN_COUNTERSIGNATURE_PRESENT=NO
+HUMAN_COUNTERSIGNATURE_AT_UTC=
+HUMAN_APPROVER=
+APPROVED_AT_UTC=
+EXPIRES_AT_UTC=
+PROVISIONING_AUTHORIZED=NO
+```
+
+Only an explicit later human act may change those states. Operators and agents
+must not self-activate this draft.
+
+Creating or merging this artifact **MUST NOT** itself authorize provisioning.
+
+```text
+SELF_ACTIVATION=FORBIDDEN
+GRANT_MAY_MERGE_WHILE_INACTIVE=YES
+AUTHORIZATION_WINDOW_FINALIZED=NO
+AUTHORIZATION_WINDOW_START_UTC=REQUIRES_HUMAN_COUNTERSIGNATURE_FINALIZATION
+AUTHORIZATION_WINDOW_END_UTC=REQUIRES_HUMAN_COUNTERSIGNATURE_FINALIZATION
+```
+
+## 10. Explicit non-actions (this unit)
+
+```text
+DID_NOT_PROVISION_OPPORTUNITY=YES
+DID_NOT_CREATE_CONTACT=YES
+DID_NOT_CREATE_PIPELINE=YES
+DID_NOT_MOVE_STAGE=YES
+DID_NOT_CALL_HIGHLEVEL=YES
+DID_NOT_ISSUE_REST=YES
+DID_NOT_USE_MCP=YES
+DID_NOT_RUN_SCRIPTED_PROVISIONING=YES
+DID_NOT_MUTATE_CRM=YES
+DID_NOT_SEARCH_FOR_ALTERNATE_TARGET=YES
+DID_NOT_REUSE_GRANT008_OR_ACCEPTANCE_OPPORTUNITY=YES
+DID_NOT_COUNTERSIGN=YES
+DID_NOT_SET_PROVISIONING_AUTHORIZED=YES
+DID_NOT_SEAL_VALIDATION_PACKAGE=YES
+DID_NOT_PUBLISH_RAW_PRIVATE_VALUES=YES
+DID_NOT_DRAFT_THREE_CALL_VALIDATION_GRANT=YES
+DID_NOT_AUTHORIZE_VALIDATION_EXECUTION=YES
+DID_NOT_CLAIM_SUBMISSION_READY=YES
+DID_NOT_MUTATE_SRC_TESTS_CONTRACTS_WORKFLOWS_DEPLOY_IAM_SECRETS=YES
+```
+
+## 11. Required public return block
+
+```text
+ARTIFACT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_TARGET_PROVISIONING_AUTHORIZATION_001
+
+BASE_SHA=6747fcd2457482a857484e1b451728f4abb1396c
+
+PR_NUMBER=EXTERNAL_METADATA
+HEAD_SHA=EXTERNAL_METADATA
+
+PR_CLASS=authorization
+
+PROVISIONING_SURFACE=HUMAN_GHL_UI_MANUAL
+CREATE_OPPORTUNITY_ATTEMPTS_MAX=1
+
+AUTHORIZATION_STATE=PROPOSED_NOT_EFFECTIVE
+HUMAN_COUNTERSIGNATURE_PRESENT=NO
+PROVISIONING_AUTHORIZED=NO
+SELF_ACTIVATION=FORBIDDEN
+
+REST_NETWORK_CALLS=0
+LIVE_GHL_CALLS=0
+CRM_MUTATIONS=0
+
+VALIDATION_EXECUTION_AUTHORIZED=NO
+SUBMISSION_READY=NO
+
+NEXT=RETURN_AUTHORIZATION_PR_TO_CHATGPT_FOR_GOVERNANCE_REVIEW
+```
+
+`PR_NUMBER` and `HEAD_SHA` remain `EXTERNAL_METADATA` inside this durable
+artifact. The authorization PR return may populate concrete GitHub values
+separately for governance handoff.
