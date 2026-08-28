@@ -1,0 +1,642 @@
+# NW-008 AT-1 — GHL REST v3 Stage Provider Validation Private Identity Capture Authorization 001
+
+```text
+ARTIFACT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_IDENTITY_CAPTURE_AUTHORIZATION_001
+ARTIFACT_PATH=
+  governance/authorizations/nw008-at1-ghl-rest-v3-stage-provider-validation-private-identity-capture-authorization-001.md
+ARTIFACT_KIND=
+  HUMAN_GHL_UI_READ_ONLY_EXISTING_VALIDATION_OPPORTUNITY_PRIVATE_IDENTITY_CAPTURE_AUTHORIZATION_DRAFT
+PR_CLASS=authorization
+UNIT=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_IDENTITY_CAPTURE_AUTHORIZATION_001
+MODE=AUTHORIZATION_DRAFT_ONLY
+
+PUBLIC_REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+PUBLIC_BASE_SHA=3eb89386849d49bd5f2b92518a33f5f6240770a6
+BASE_REF=origin/main
+BASE_SHA=3eb89386849d49bd5f2b92518a33f5f6240770a6
+BRANCH=
+  auth/nw008-at1-ghl-rest-v3-stage-provider-validation-private-identity-capture-authorization-001
+BRANCH_IS_MAIN=NO
+
+OWNER=VS_CODE_ORCHESTRATOR
+OWNER_LANE=NW008_GOVERNANCE_PRIVATE_IDENTITY_CAPTURE
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+APPROVING_AUTHORITY=HUMAN_GHL_SPACE_OWNER
+HUMAN_MERGE_REQUIRED=YES
+HUMAN_COUNTERSIGNATURE_REQUIRED=YES
+SELF_ACTIVATION=FORBIDDEN
+
+RECORDED_AT_LOCAL=2026-08-28T15:07:46-0400
+RECORDED_AT_UTC=2026-08-28T19:07:46Z
+```
+
+## 0. Authorization state (inactive at draft)
+
+```text
+AUTHORIZATION_STATE=PROPOSED_NOT_EFFECTIVE
+
+AUTHORIZATION_DRAFTED=YES
+HUMAN_COUNTERSIGNATURE_REQUIRED=YES
+HUMAN_COUNTERSIGNATURE_PRESENT=NO
+HUMAN_COUNTERSIGNATURE_AT_UTC=
+HUMAN_APPROVER=
+APPROVED_AT_UTC=
+EXPIRES_AT_UTC=
+
+IDENTITY_CAPTURE_AUTHORIZED=NO
+OPERATOR_IDENTITY_CAPTURE_AUTHORIZED=NO
+SELF_ACTIVATION=FORBIDDEN
+
+CREATE_OPPORTUNITY_AUTHORIZED=NO
+UPDATE_OPPORTUNITY_AUTHORIZED=NO
+MOVE_STAGE_AUTHORIZED=NO
+CREATE_NOTE_AUTHORIZED=NO
+DELETE_AUTHORIZED=NO
+
+API_SEARCH_AUTHORIZED=NO
+API_LIST_AUTHORIZED=NO
+MANUAL_API_GET_AUTHORIZED=NO
+
+REST_VALIDATION_AUTHORIZED=NO
+THREE_CALL_VALIDATION_AUTHORIZED=NO
+VALIDATION_EXECUTION_AUTHORIZED=NO
+
+LIVE_CRM_MUTATIONS=0
+CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+LIVE_GHL_CALLS=0
+LIVE_GHL_READ_CALLS=0
+LIVE_GHL_WRITE_CALLS=0
+
+SUBMISSION_READY=NO
+```
+
+This artifact is an **inactive draft**. Drafting, reviewing, committing, pushing,
+or merging it does **not** authorize identity capture, CRM mutation, REST
+execution, MCP execution, scripted capture, or validation.
+
+Only a later explicit human countersignature may change
+`HUMAN_COUNTERSIGNATURE_PRESENT` to `YES`. Until that later act:
+
+```text
+IDENTITY_CAPTURE_AUTHORIZED=NO
+GRANT_VALID_FOR_IDENTITY_CAPTURE=NO
+VALIDATION_EXECUTION_AUTHORIZED=NO
+```
+
+```text
+INFERRED_APPROVAL_FROM_DRAFT_REQUEST=NO
+INFERRED_APPROVAL_FROM_PR_MERGE=NO
+INFERRED_APPROVAL_FROM_PR267_STOP=NO
+INFERRED_APPROVAL_FROM_PROVISIONING_SUCCESS=NO
+```
+
+## 1. Purpose
+
+Authorize, **only after a later explicit human countersignature**, one future
+**read-only** human GoHighLevel UI session whose sole purpose is to capture the
+stable opportunity ID of the **already-created** dedicated validation
+opportunity:
+
+```text
+DEDICATED_VALIDATION_OPPORTUNITY_DISPLAY_NAME=
+  MG Guide Stage Validation Synthetic 001
+
+TARGET_RECORD_ALREADY_EXISTS=YES
+CREATE_NEW_RECORD_AUTHORIZED=NO
+```
+
+```text
+AUTHORIZED_FUTURE_ACT=
+  HUMAN_GHL_UI_READ_ONLY_CAPTURE_EXISTING_VALIDATION_OPPORTUNITY_ID
+
+THIS_UNIT_CAPTURES_THE_OPPORTUNITY_ID=NO
+THIS_UNIT_AUTHORIZES_REST_EXECUTION=NO
+THIS_UNIT_SEALS_VALIDATION_PACKAGE=NO
+THIS_UNIT_DRAFTS_THREE_CALL_VALIDATION_GRANT=NO
+DOES_NOT_COUNTERSIGN=YES
+DOES_NOT_INFER_HUMAN_APPROVAL=YES
+```
+
+The only authorized output of the future countersigned capture act is:
+
+```text
+AUTHORIZED_OUTPUT_SYMBOL=
+  private_validation_opportunity_id
+
+RAW_OPPORTUNITY_ID_PUBLIC=NO
+RAW_ID_ALLOWED_ONLY_IN=
+  GOVERNED_GITIGNORED_PRIVATE_LANE
+```
+
+This authorization must **not** authorize REST execution, package seal, or a new
+create attempt.
+
+## 2. Controlling predecessors and state
+
+```text
+PR263_MERGED=YES
+PR263_MERGE_SHA=8a32e31eb12c69bb7eead8b1ded118041070c2c2
+
+PR264_MERGED=YES
+PR264_MERGE_SHA=6747fcd2457482a857484e1b451728f4abb1396c
+PR264_STOP_CODE=
+  NW008_STAGE_PROVIDER_VALIDATION_DEDICATED_TARGET_NOT_AVAILABLE
+
+PR265_MERGED=YES
+PR265_MERGE_SHA=58396345226f728c8a929a3ce7af097dfb24702f
+CONTROLLING_PROVISIONING_AUTHORIZATION=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_TARGET_PROVISIONING_AUTHORIZATION_001
+
+PR266_MERGED=YES
+PR266_MERGE_SHA=08d1770f3deba0398de78b78d7ec3e27172f3d88
+CONTROLLING_PROVISIONING_COUNTERSIGNATURE=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_TARGET_PROVISIONING_AUTHORIZATION_001_COUNTERSIGNATURE
+
+PR267_MERGED=YES
+PR267_MERGE_SHA=3eb89386849d49bd5f2b92518a33f5f6240770a6
+PR267_ARTIFACT=
+  proof/nw008/nw-008-at1-ghl-rest-v3-stage-provider-validation-private-package-reconciliation-002.md
+PR267_STOP_CODE=
+  NW008_STAGE_PROVIDER_VALIDATION_PRIVATE_PACKAGE_RECONCILIATION_FAILED
+```
+
+Controlling post-provisioning state established by PR #267 (recorded; not
+re-executed by this unit):
+
+```text
+PROVISIONING_EXECUTION=SUCCESS
+CREATE_OPPORTUNITY_ATTEMPTS_USED=1
+CREATE_OPPORTUNITY_SUCCEEDED=YES
+PROVISIONING_CONSUMED=YES
+NEW_CREATE_ATTEMPT_AUTHORIZED=NO
+
+DEDICATED_VALIDATION_OPPORTUNITY_DISPLAY_NAME=
+  MG Guide Stage Validation Synthetic 001
+
+NEW_VALIDATION_OPPORTUNITY_ID_CAPTURED_PRIVATE=NO
+RAW_OPPORTUNITY_ID_PUBLIC=NO
+
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=NO
+VALIDATION_AUTHORIZATION_PREPARATION_READY=NO
+```
+
+PR #267 established, offline and fail-closed, that the dedicated synthetic
+opportunity was human-created under the countersigned provisioning
+authorization, but no governed private capture of
+`private_validation_opportunity_id` exists. Display name / screenshot evidence
+is insufficient to freeze private bindings.
+
+This unit answers that stop **only** by drafting an inactive human read-only
+identity-capture authorization. It does not capture the ID, does not seal the
+package, and does not authorize a new create.
+
+If any controlling predecessor merge SHA is not in the main lineage at a future
+activation attempt, stop without capture or CRM mutation:
+
+```text
+STOP_CODE=CONTROLLING_PREDECESSOR_PREREQUISITE_FAILED
+CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+IDENTITY_CAPTURE_AUTHORIZED=NO
+```
+
+## 3. Target class and identity scope
+
+```text
+TARGET_CLASS=
+  ALREADY_CREATED_SYNTHETIC_STAGE_CONTRACT_VALIDATION_OPPORTUNITY
+
+TARGET_RECORD_DISPLAY_NAME=
+  MG Guide Stage Validation Synthetic 001
+
+TARGET_RECORD_ALREADY_EXISTS=YES
+TARGET_MUST_BE_SYNTHETIC=YES
+SYNTHETIC_ONLY=YES
+AUTHORIZED_RECORD_CLASS=SYNTHETIC_ONLY
+
+TARGET_MUST_BE_DISTINCT_FROM_ACCEPTANCE_OPPORTUNITY=YES
+FUTURE_ACCEPTANCE_OPPORTUNITY_AS_VALIDATION_TARGET=FORBIDDEN
+GRANT008_OR_ACCEPTANCE_TARGET_REUSE=FORBIDDEN
+
+CREATE_NEW_RECORD_AUTHORIZED=NO
+CREATE_NEW_CONTACT=NO
+CREATE_NEW_PIPELINE=NO
+CREATE_NEW_OPPORTUNITY=NO
+```
+
+The future capture act may open **only** the already-known opportunity whose
+display name is `MG Guide Stage Validation Synthetic 001`. It must not select a
+substitute record, invent an ID, or reuse the Grant 008 / acceptance opportunity.
+
+Raw opportunity, contact, pipeline, and stage identifiers remain private and are
+not published in this artifact.
+
+## 4. Execution surface (future countersigned act only)
+
+```text
+CAPTURE_SURFACE=HUMAN_GHL_UI_READ_ONLY
+
+REST_CAPTURE_AUTHORIZED=NO
+MCP_CAPTURE_AUTHORIZED=NO
+SCRIPTED_CAPTURE_AUTHORIZED=NO
+AUTOMATED_CAPTURE_AUTHORIZED=NO
+
+API_SEARCH_AUTHORIZED=NO
+API_LIST_AUTHORIZED=NO
+MANUAL_API_GET_AUTHORIZED=NO
+POST_OPPORTUNITIES_REST_AUTHORIZED=NO
+PUT_OPPORTUNITY_AUTHORIZED=NO
+```
+
+After countersignature, the only authorized surface is a human operator using
+the GoHighLevel UI in **read-only** mode against the already-created target.
+Agents, scripts, REST clients, MCP tools, and automated runners remain
+unauthorized for this act.
+
+Ordinary human UI navigation needed to open the already-known opportunity is
+permitted. No CRM mutation is permitted.
+
+## 5. Allowed read-only capture methods (ordered)
+
+Use **exactly one** successful method, preferring the earliest method that yields
+the stable opportunity ID without mutation:
+
+```text
+CAPTURE_METHOD_1=
+  EXISTING_OPPORTUNITY_DETAIL_PAGE_URL_OR_ROUTE
+
+CAPTURE_METHOD_2=
+  EXISTING_OPPORTUNITY_READ_ONLY_UI_METADATA
+
+CAPTURE_METHOD_3=
+  READ_ONLY_BROWSER_DEVTOOLS_OBSERVATION_OF_UI_GENERATED_REQUEST
+```
+
+### 5.1 Method 1 — detail page URL or route
+
+Observe the opportunity detail page URL or in-app route for the already-open
+`MG Guide Stage Validation Synthetic 001` record and extract only the stable
+opportunity ID segment needed for private binding.
+
+### 5.2 Method 2 — read-only UI metadata
+
+Observe read-only UI metadata already displayed for that same existing
+opportunity and extract only the stable opportunity ID.
+
+### 5.3 Method 3 — DevTools observation only
+
+If Methods 1 and 2 are insufficient, the operator may **observe** a browser
+DevTools view of a request the **UI itself** already generated while the human
+navigated to the existing opportunity.
+
+Method 3 is observation only:
+
+```text
+DEVTOOLS_MANUAL_REQUEST_SEND=NO
+DEVTOOLS_REPLAY=NO
+REQUEST_EDIT=NO
+REQUEST_RESEND=NO
+```
+
+No API request may be manually initiated, edited, replayed, or resent from
+DevTools or any other client.
+
+```text
+NO_API_REQUEST_MAY_BE_MANUALLY_INITIATED=YES
+```
+
+## 6. Exact capture budget (future countersigned act only)
+
+Even after a later human countersignature, the authorized budget is:
+
+```text
+IDENTITY_CAPTURE_SESSIONS_MAX=1
+IDENTITY_CAPTURE_SUCCEEDED_MAX=1
+
+CREATE_OPPORTUNITY_ATTEMPTS_MAX=0
+CONTACT_CREATE_ATTEMPTS_MAX=0
+NOTE_CREATE_ATTEMPTS_MAX=0
+STAGE_UPDATE_ATTEMPTS_MAX=0
+DELETE_ATTEMPTS_MAX=0
+
+REST_NETWORK_CALLS_MAX=0
+MANUAL_API_CALLS_MAX=0
+```
+
+```text
+ONE_SHOT=YES
+RETRY=NO
+AUTOMATIC_RETRY=NO
+SECOND_CAPTURE_ATTEMPT=NO
+NEW_CREATE_ATTEMPT_AUTHORIZED=NO
+```
+
+A failed capture session does **not** authorize a second attempt under this
+artifact. A second attempt requires a new authorization identity.
+
+This drafting unit itself uses none of that budget:
+
+```text
+IDENTITY_CAPTURE_SESSIONS_USED=0
+IDENTITY_CAPTURE_SUCCEEDED=0
+CREATE_OPPORTUNITY_ATTEMPTS_USED=0
+CRM_MUTATIONS=0
+LIVE_CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+```
+
+## 7. Explicitly forbidden
+
+```text
+CREATE_OPPORTUNITY_AUTHORIZED=NO
+UPDATE_OPPORTUNITY_AUTHORIZED=NO
+MOVE_STAGE_AUTHORIZED=NO
+CREATE_NOTE_AUTHORIZED=NO
+DELETE_AUTHORIZED=NO
+
+API_SEARCH_AUTHORIZED=NO
+API_LIST_AUTHORIZED=NO
+MANUAL_API_GET_AUTHORIZED=NO
+
+REST_VALIDATION_AUTHORIZED=NO
+THREE_CALL_VALIDATION_AUTHORIZED=NO
+VALIDATION_EXECUTION_AUTHORIZED=NO
+
+REAL_CUSTOMER_TARGET=NO
+NON_SYNTHETIC_TARGET=NO
+
+ACCEPTANCE_OPPORTUNITY_MUTATION=NO
+GRANT008_OPPORTUNITY_MUTATION=NO
+ACCEPTANCE_OPPORTUNITY_REUSE_AS_VALIDATION_TARGET=NO
+
+SEARCH_FOR_ALTERNATE_TARGET=NO
+CREATE_ALTERNATE_CONTACT=NO
+INVENT_OPPORTUNITY_ID=NO
+
+EMAIL_AUTHORIZED=NO
+SMS_AUTHORIZED=NO
+OUTBOUND_COMMUNICATION_AUTHORIZED=NO
+
+WORKFLOW_ENROLLMENT_AUTHORIZED=NO
+AUTOMATION_TRIGGER_AUTHORIZED=NO
+
+AUTOMATIC_CLEANUP=NO
+COMPENSATING_MUTATION=NO
+DELETE_AFTER_CAPTURE=NO
+
+STAGE_PATH_IMPLEMENTATION_AUTHORIZED=NO
+```
+
+### 7.1 Human-operator refuse-closed rule
+
+If the human operator cannot locate the already-known opportunity without
+searching alternate records, initiating API calls, or performing any mutation:
+
+```text
+IDENTITY_CAPTURE_EXECUTION=REFUSED
+CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+NEW_VALIDATION_OPPORTUNITY_ID_CAPTURED_PRIVATE=NO
+STOP
+```
+
+Do not proceed with a “safer” alternate target. Do not create. Do not compensate.
+Do not delete. Stop.
+
+## 8. Privacy
+
+```text
+RAW_OPPORTUNITY_ID_PUBLIC=NO
+PUBLIC_OPPORTUNITY_ID=FORBIDDEN
+PUBLIC_CONTACT_ID=FORBIDDEN
+PUBLIC_PIPELINE_ID=FORBIDDEN
+PUBLIC_STAGE_IDS=FORBIDDEN
+PUBLIC_RAW_CRM_VALUES=FORBIDDEN
+TOKEN_OR_PIT_PUBLISHED=NO
+CREDENTIALS_PUBLISHED=NO
+```
+
+After a future successful read-only capture, record
+`private_validation_opportunity_id` **only** in the governed gitignored private
+lane. Do **not** put the raw ID in:
+
+* public proof
+* PR body
+* commit messages
+* screenshots
+* logs
+* ChatGPT
+* Devpost assets
+* this authorization artifact
+
+```text
+RAW_ID_ALLOWED_ONLY_IN=
+  GOVERNED_GITIGNORED_PRIVATE_LANE
+```
+
+Designated future private package identity (not sealed by this unit):
+
+```text
+PACKAGE_ID=
+  NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001
+PRIVATE_VALIDATION_PACKAGE_SEALED=NO
+PRIVATE_VALIDATION_PACKAGE_PATH=ABSENT
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=NO
+VALIDATION_PACKAGE_DIGEST=
+```
+
+Blank digest is intentional: no dedicated package is sealed by this draft or by
+the future capture act alone.
+
+## 9. Successful later capture (does not seal package)
+
+After **explicit human countersignature** and **one** successful read-only
+capture into the governed private lane only:
+
+```text
+NEW_VALIDATION_OPPORTUNITY_ID_CAPTURED_PRIVATE=YES
+RAW_OPPORTUNITY_ID_PUBLIC=NO
+CRM_MUTATIONS=0
+LIVE_CRM_MUTATIONS=0
+REST_NETWORK_CALLS=0
+
+PRIVATE_VALIDATION_PACKAGE_SEALED=NO
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=NO
+VALIDATION_AUTHORIZATION_PREPARATION_READY=NO
+```
+
+The capture act must **not** seal the validation package and must **not** draft
+or activate the three-call REST validation grant.
+
+```text
+NEXT=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_PACKAGE_RECONCILIATION_003
+```
+
+## 10. Later offline reconciliation 003 requirements
+
+A **later** offline unit —
+`NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_PACKAGE_RECONCILIATION_003`
+— not this authorization and not the capture act itself — must privately
+establish:
+
+```text
+PRIVATE_LOCATION_BINDING_PRESENT=YES
+PRIVATE_CONTACT_BINDING_PRESENT=YES
+PRIVATE_OPPORTUNITY_BINDING_PRESENT=YES
+PRIVATE_PIPELINE_BINDING_PRESENT=YES
+PRIVATE_INITIAL_STAGE_BINDING_PRESENT=YES
+PRIVATE_FINAL_STAGE_BINDING_PRESENT=YES
+
+VALIDATION_TARGET_SYNTHETIC=YES
+VALIDATION_TARGET_DISTINCT_FROM_ACCEPTANCE_TARGET=YES
+
+VALIDATION_PIPELINE_MATCH=YES
+VALIDATION_INITIAL_STAGE_MATCH=YES
+INITIAL_FINAL_STAGE_DISTINCT=YES
+```
+
+Explicit private inequality required:
+
+```text
+private_validation_opportunity_id
+  !=
+private_acceptance_opportunity_id
+```
+
+If any predicate is `NO` or `UNKNOWN`:
+
+```text
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=NO
+VALIDATION_AUTHORIZATION_PREPARATION_READY=NO
+STOP
+```
+
+If all predicates pass, that later unit may seal:
+
+```text
+PACKAGE_ID=
+  NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001
+```
+
+and produce:
+
+```text
+VALIDATION_PACKAGE_DIGEST=<sha256>
+VALIDATION_AUTHORIZATION_PREPARATION_READY=YES
+```
+
+Only after those predicates pass may the three-call REST validation grant be
+drafted by a still-later unit. This artifact does **not** draft that grant.
+
+```text
+NEXT_VALIDATION_AUTHORIZATION_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_AUTHORIZATION_001
+NEXT_VALIDATION_GRANT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_GRANT_001
+
+THREE_CALL_REST_VALIDATION_GRANT_DRAFTED_BY_THIS_UNIT=NO
+```
+
+## 11. Countersignature block (future human act only)
+
+Required future fields (blank / negative at draft):
+
+```text
+HUMAN_COUNTERSIGNATURE_PRESENT=NO
+HUMAN_COUNTERSIGNATURE_AT_UTC=
+HUMAN_APPROVER=
+APPROVED_AT_UTC=
+EXPIRES_AT_UTC=
+IDENTITY_CAPTURE_AUTHORIZED=NO
+```
+
+Only an explicit later human act may change those states. Operators and agents
+must not self-activate this draft.
+
+Creating or merging this artifact **MUST NOT** itself authorize identity
+capture.
+
+```text
+SELF_ACTIVATION=FORBIDDEN
+GRANT_MAY_MERGE_WHILE_INACTIVE=YES
+AUTHORIZATION_WINDOW_FINALIZED=NO
+AUTHORIZATION_WINDOW_START_UTC=REQUIRES_HUMAN_COUNTERSIGNATURE_FINALIZATION
+AUTHORIZATION_WINDOW_END_UTC=REQUIRES_HUMAN_COUNTERSIGNATURE_FINALIZATION
+```
+
+## 12. Explicit non-actions (this unit)
+
+```text
+DID_NOT_CAPTURE_OPPORTUNITY_ID=YES
+DID_NOT_PROVISION_OPPORTUNITY=YES
+DID_NOT_CREATE_CONTACT=YES
+DID_NOT_CREATE_PIPELINE=YES
+DID_NOT_CREATE_OPPORTUNITY=YES
+DID_NOT_UPDATE_OPPORTUNITY=YES
+DID_NOT_MOVE_STAGE=YES
+DID_NOT_CREATE_NOTE=YES
+DID_NOT_DELETE=YES
+DID_NOT_CALL_HIGHLEVEL=YES
+DID_NOT_ISSUE_REST=YES
+DID_NOT_USE_MCP=YES
+DID_NOT_RUN_SCRIPTED_CAPTURE=YES
+DID_NOT_MUTATE_CRM=YES
+DID_NOT_SEARCH_FOR_ALTERNATE_TARGET=YES
+DID_NOT_REUSE_GRANT008_OR_ACCEPTANCE_OPPORTUNITY=YES
+DID_NOT_INVENT_OPPORTUNITY_ID=YES
+DID_NOT_COUNTERSIGN=YES
+DID_NOT_SET_IDENTITY_CAPTURE_AUTHORIZED=YES
+DID_NOT_SEAL_VALIDATION_PACKAGE=YES
+DID_NOT_PUBLISH_RAW_PRIVATE_VALUES=YES
+DID_NOT_DRAFT_THREE_CALL_VALIDATION_GRANT=YES
+DID_NOT_AUTHORIZE_VALIDATION_EXECUTION=YES
+DID_NOT_CLAIM_SUBMISSION_READY=YES
+DID_NOT_MUTATE_SRC_TESTS_CONTRACTS_WORKFLOWS_DEPLOY_IAM_SECRETS=YES
+```
+
+## 13. Required public return block
+
+```text
+ARTIFACT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_IDENTITY_CAPTURE_AUTHORIZATION_001
+
+BASE_SHA=3eb89386849d49bd5f2b92518a33f5f6240770a6
+
+PR_NUMBER=EXTERNAL_METADATA
+HEAD_SHA=EXTERNAL_METADATA
+
+PR_CLASS=authorization
+
+AUTHORIZATION_STATE=PROPOSED_NOT_EFFECTIVE
+
+HUMAN_COUNTERSIGNATURE_PRESENT=NO
+IDENTITY_CAPTURE_AUTHORIZED=NO
+SELF_ACTIVATION=FORBIDDEN
+
+CRM_MUTATIONS=0
+LIVE_CRM_MUTATIONS=0
+REST_VALIDATION_AUTHORIZED=NO
+THREE_CALL_VALIDATION_AUTHORIZED=NO
+
+CAPTURE_SURFACE=HUMAN_GHL_UI_READ_ONLY
+AUTHORIZED_FUTURE_ACT=
+  HUMAN_GHL_UI_READ_ONLY_CAPTURE_EXISTING_VALIDATION_OPPORTUNITY_ID
+
+SUBMISSION_READY=NO
+
+NEXT=RETURN_AUTHORIZATION_PR_TO_CHATGPT_FOR_GOVERNANCE_REVIEW
+```
+
+`PR_NUMBER` and `HEAD_SHA` remain `EXTERNAL_METADATA` inside this durable
+artifact. The authorization PR return may populate concrete GitHub values
+separately for governance handoff.
+
+## 14. Stop
+
+```text
+STOP
+```
