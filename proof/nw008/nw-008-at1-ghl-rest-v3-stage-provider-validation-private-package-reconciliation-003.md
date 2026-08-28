@@ -1,0 +1,419 @@
+# NW-008 AT-1 — GHL REST v3 Stage Provider Validation Private Package Reconciliation 003
+
+```text
+ARTIFACT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_PACKAGE_RECONCILIATION_003
+ARTIFACT_PATH=
+  proof/nw008/nw-008-at1-ghl-rest-v3-stage-provider-validation-private-package-reconciliation-003.md
+ARTIFACT_KIND=SANITIZED_PRIVATE_PACKAGE_RECONCILIATION_PROOF
+PR_CLASS=proof_only
+OWNER=VS_CODE_ORCHESTRATOR_PRIVATE_BINDING_GOVERNANCE_LANE
+
+PLAN_BASE_REF=origin/main
+PLAN_BASE_SHA=a567b84799697e058fd3102c2c0137721466a143
+PLAN_BRANCH=
+  proof/nw008-at1-ghl-rest-v3-stage-provider-validation-private-package-reconciliation-003
+BRANCH_IS_MAIN=NO
+
+MODE=OFFLINE_PRIVATE_RECONCILIATION_ONLY
+IMPLEMENTATION_IN_SCOPE=NO
+AUTHORIZATION_ARTIFACT_IN_SCOPE=NO
+VALIDATION_EXECUTION_IN_SCOPE=NO
+CRM_TARGET_CREATION_IN_SCOPE=NO
+IDENTITY_CAPTURE_IN_SCOPE=NO
+
+COMPUTED_AT_UTC=2026-08-28T19:52:26Z
+SOURCE_MACHINE_RESULT=
+  local/private/nw008-ghl-rest-v3-stage-provider-validation-private-package-reconciliation-003-result.json
+```
+
+## 1. Authority boundary
+
+This unit is offline proof only. It reconciles the governed private capture of
+`private_validation_opportunity_id` into the designated dedicated stage-provider
+validation private package and, if every required predicate is `YES`, seals that
+package.
+
+It does **not** call HighLevel, search/list CRM, mutate CRM, capture another ID,
+create another opportunity, move stages, delete, retry capture, draft the
+three-call REST validation authorization/grant, or publish raw identifiers.
+
+```text
+REST_NETWORK_CALLS=0
+MCP_CALLS=0
+LIVE_GHL_CALLS=0
+CRM_MUTATIONS=0
+
+NO_HIGHLEVEL_SEARCH=YES
+NO_HIGHLEVEL_LIST=YES
+NO_HIGHLEVEL_GET=YES
+NO_HIGHLEVEL_PUT=YES
+NO_PAGINATION=YES
+NO_RETRY=YES
+NO_ALTERNATE_TARGET=YES
+NO_CREATE=YES
+NO_STAGE_UPDATE=YES
+NO_NOTE_CREATE=YES
+NO_DELETE=YES
+
+VALIDATION_EXECUTION_AUTHORIZED=NO
+THREE_CALL_REST_VALIDATION_AUTHORIZED=NO
+THREE_CALL_REST_VALIDATION_EXECUTED=NO
+LIVE_READ_AUTHORIZED=NO
+LIVE_MUTATION_AUTHORIZED=NO
+FURTHER_GHL_INTERACTION_AUTHORIZED=NO
+STOP_GHL_INTERACTION=YES
+SUBMISSION_READY=NO
+SELF_ACTIVATION=FORBIDDEN
+```
+
+## 2. Controlling merged lineage
+
+```text
+PR263_MERGED=YES
+PR263_MERGE_SHA=8a32e31eb12c69bb7eead8b1ded118041070c2c2
+
+PR264_MERGED=YES
+PR264_MERGE_SHA=6747fcd2457482a857484e1b451728f4abb1396c
+
+PR265_MERGED=YES
+PR265_MERGE_SHA=58396345226f728c8a929a3ce7af097dfb24702f
+
+PR266_MERGED=YES
+PR266_MERGE_SHA=08d1770f3deba0398de78b78d7ec3e27172f3d88
+
+PR267_MERGED=YES
+PR267_MERGE_SHA=3eb89386849d49bd5f2b92518a33f5f6240770a6
+PR267_STOP_CODE=
+  NW008_STAGE_PROVIDER_VALIDATION_PRIVATE_PACKAGE_RECONCILIATION_FAILED
+
+PR268_MERGED=YES
+PR268_HEAD_SHA=bfd09a7531f2c8b9096ac7a55251ca07da27a4d8
+PR268_MERGE_SHA=188e3ef3d7587604eb3b716fcfb58d0af5a987ce
+CONTROLLING_CAPTURE_AUTHORIZATION=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_IDENTITY_CAPTURE_AUTHORIZATION_001
+
+PR269_MERGED=YES
+PR269_MERGE_SHA=a567b84799697e058fd3102c2c0137721466a143
+CONTROLLING_CAPTURE_COUNTERSIGNATURE=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_IDENTITY_CAPTURE_AUTHORIZATION_001_COUNTERSIGNATURE
+
+PACKAGE_ID_DESIGNATED=
+  NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001
+```
+
+PR #267 established, fail-closed, that the dedicated synthetic opportunity was
+human-created but no governed private capture of
+`private_validation_opportunity_id` existed. PR #268 drafted the inactive
+read-only identity-capture authorization. PR #269 finalized the explicit human
+countersignature. A later human read-only capture completed into the governed
+gitignored private lane. This unit answers the post-capture reconciliation
+obligation only.
+
+## 3. Governing post-capture state (recorded, not re-executed)
+
+```text
+PRIVATE_IDENTITY_CAPTURE_COMPLETED=YES
+NEW_VALIDATION_OPPORTUNITY_ID_CAPTURED_PRIVATE=YES
+PRIVATE_OPPORTUNITY_BINDING_PRESENT=YES
+IDENTITY_CAPTURE_AUTHORIZATION_CONSUMED=YES
+
+FURTHER_GHL_INTERACTION_AUTHORIZED=NO
+STOP_GHL_INTERACTION=YES
+
+PROVISIONING_EXECUTION=SUCCESS
+CREATE_OPPORTUNITY_ATTEMPTS_USED=1
+CREATE_OPPORTUNITY_SUCCEEDED=YES
+PROVISIONING_CONSUMED=YES
+NEW_CREATE_ATTEMPT_AUTHORIZED=NO
+
+DEDICATED_VALIDATION_OPPORTUNITY_DISPLAY_NAME=
+  MG Guide Stage Validation Synthetic 001
+
+RAW_OPPORTUNITY_ID_PUBLIC=NO
+RAW_PRIVATE_VALUES_PUBLIC=NO
+```
+
+This unit does **not** recapture the ID and does **not** interact with
+GoHighLevel.
+
+## 4. Inspection scope (private/local only)
+
+Inspected offline, without printing raw IDs or CRM values:
+
+| Surface | Role | Disposition for this unit |
+| --- | --- | --- |
+| `local/private/nw008-ghl-rest-v3-stage-provider-validation-private-identity-capture-001.env` | Governed capture of `private_validation_opportunity_id` | Present; gitignored; expected symbol present and nonempty |
+| `local/private/grant008_private_package.json` | Historical Grant 008 private package (gitignored) | Present; binds the **acceptance** synthetic target |
+| `local/private/nw008-fresh-private-execution-package-001.json` | Fresh E2E/private execution package (gitignored) | Present; same **acceptance** identity fields as Grant 008; `synthetic_only=YES` |
+| `proof/nw008/nw-008-at1-ghl-rest-v3-stage-provider-validation-private-package-reconciliation-002.md` | Prior fail-closed package reconciliation | Present; opportunity ID was absent |
+| Designated dedicated validation package | `NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001` | **Sealed by this unit** into the gitignored private lane |
+| HighLevel network | Live CRM | **Not contacted** |
+
+```text
+INSPECTED_PUBLIC_REPO_ONLY_PLUS_LOCAL_PRIVATE=YES
+PRIVATE_PACKAGE_FILES_REMAIN_GITIGNORED=YES
+PRIVATE_IDENTITY_CAPTURE_FILE_GITIGNORED=YES
+RAW_IDS_READ_FOR_COMPARISON_ONLY=YES
+RAW_IDS_PUBLISHED=NO
+RAW_CRM_VALUES_PUBLISHED=NO
+TOKEN_OR_PIT_PUBLISHED=NO
+GHL_URL_PUBLISHED=NO
+```
+
+## 5. Required private predicates (computed)
+
+Acceptance-package identity continuity was rechecked offline by equality
+comparison only (raw IDs not published):
+
+```text
+GRANT008_AND_FRESH_LOCATION_IDENTITY_EQUAL=YES
+GRANT008_AND_FRESH_CONTACT_IDENTITY_EQUAL=YES
+GRANT008_AND_FRESH_OPPORTUNITY_IDENTITY_EQUAL=YES
+GRANT008_AND_FRESH_PIPELINE_IDENTITY_EQUAL=YES
+GRANT008_AND_FRESH_INITIAL_STAGE_IDENTITY_EQUAL=YES
+GRANT008_AND_FRESH_FINAL_STAGE_IDENTITY_EQUAL=YES
+GOVERNED_CANDIDATE_INITIAL_FINAL_STAGE_DISTINCT=YES
+ACCEPTANCE_OR_GRANT008_OPPORTUNITY_PRESENT_IN_PRIVATE_PACKAGES=YES
+ACCEPTANCE_OR_GRANT008_OPPORTUNITY_REUSE_ALLOWED_FOR_STAGE_PROVIDER_VALIDATION=NO
+```
+
+Dedicated-package predicates:
+
+```text
+PRIVATE_LOCATION_BINDING_PRESENT=YES
+PRIVATE_CONTACT_BINDING_PRESENT=YES
+PRIVATE_OPPORTUNITY_BINDING_PRESENT=YES
+PRIVATE_PIPELINE_BINDING_PRESENT=YES
+PRIVATE_INITIAL_STAGE_BINDING_PRESENT=YES
+PRIVATE_FINAL_STAGE_BINDING_PRESENT=YES
+
+VALIDATION_TARGET_SYNTHETIC=YES
+VALIDATION_TARGET_DISTINCT_FROM_ACCEPTANCE_TARGET=YES
+
+VALIDATION_PIPELINE_MATCH=YES
+VALIDATION_INITIAL_STAGE_MATCH=YES
+INITIAL_FINAL_STAGE_DISTINCT=YES
+
+PRIVATE_BINDING_COMPLETE=YES
+```
+
+Rationale:
+
+1. The capture file contains the required symbol
+   `private_validation_opportunity_id` with a nonempty value of opportunity-class
+   length. The raw value is not published.
+2. Location, contact, pipeline, validation-initial stage, and validation-final
+   stage are bound from the already-governed Grant 008 / fresh private identity
+   fields. Those two packages match pairwise. Provisioning required use of the
+   existing approved synthetic contact, existing bound pipeline, and creation
+   directly in the validation initial stage.
+3. Offline inequality
+   `private_validation_opportunity_id != private_acceptance_opportunity_id`
+   holds. The capture value is also distinct from location, contact, pipeline,
+   and both stage identifiers. Neither value is disclosed.
+4. `VALIDATION_TARGET_SYNTHETIC=YES` because the captured record is the dedicated
+   opportunity created under synthetic-only provisioning
+   (`MG Guide Stage Validation Synthetic 001`) and the continuity packages record
+   `synthetic_only=YES` for the bound contact/location class.
+5. `VALIDATION_PIPELINE_MATCH=YES` and `VALIDATION_INITIAL_STAGE_MATCH=YES`
+   because the sealed validation package pipeline and initial stage equal the
+   already-bound Grant 008 / fresh pipeline and expected-initial stage.
+6. `INITIAL_FINAL_STAGE_DISTINCT=YES` because those governed stage identifiers
+   differ.
+
+```text
+INDEPENDENT_DEDICATED_VALIDATION_OPPORTUNITY_BOUND=YES
+SUBSTITUTE_TARGET_SELECTION_PERFORMED=NO
+CRM_OPPORTUNITY_CREATED_BY_THIS_UNIT=NO
+HIGHLEVEL_SEARCH_FOR_OPPORTUNITY_ID=NO
+ACCEPTANCE_OPPORTUNITY_REUSED_AS_VALIDATION_TARGET=NO
+IDENTITY_CAPTURE_EXECUTED_BY_THIS_UNIT=NO
+```
+
+## 6. Package seal (applied)
+
+All required predicates are `YES`. This unit therefore seals:
+
+```text
+PACKAGE_ID=
+  NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001
+
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=YES
+DEDICATED_VALIDATION_OPPORTUNITY_READY=YES
+PRIVATE_VALIDATION_PACKAGE_SEALED=YES
+VALIDATION_AUTHORIZATION_PREPARATION_READY=YES
+
+PRIVATE_VALIDATION_PACKAGE_PATH=
+  local/private/nw008-ghl-rest-v3-stage-provider-validation-package-001.json
+PRIVATE_VALIDATION_PACKAGE_ENV_PATH=
+  local/private/nw008-ghl-rest-v3-stage-provider-validation-package-001.env
+PRIVATE_VALIDATION_PACKAGE_PATH_GITIGNORED=YES
+```
+
+Canonical digest specification (no raw values):
+
+```text
+CANONICAL_DIGEST_SPEC=
+  SHA256_UTF8_OF_SORT_KEYS_COMPACT_JSON_PACKAGE_ID_PLUS_FIELDS
+
+VALIDATION_PACKAGE_DIGEST=
+  1f75f5956476824c976c2d1c0a79a892ec4129c5bb55a8ba636f85d30af75c8d
+```
+
+Public-safe SHA-256 fingerprints of the sealed binding values (not the values):
+
+```text
+LOCATION_FINGERPRINT=
+  5e14ac52bf73156914fc2a017415561e619f76f911c9e509316825f39c5fd614
+CONTACT_FINGERPRINT=
+  6551008e889c0e11f256c480a8a87e0260535ff40983560a4a1cfa2da6e2ee2c
+OPPORTUNITY_FINGERPRINT=
+  928d8b0437912618dbeb18670d7359745da92202e3e72f3caaf0482b06c42d2d
+PIPELINE_FINGERPRINT=
+  2ca9c0cd5bd28d2ba1bce6f849fddb34503b04fc15ba8287d0a84e3cd0453973
+INITIAL_STAGE_FINGERPRINT=
+  8a4d12b7122f0f0e0164f92801e1069ca8cc0f9b984b042ff6dfbef14e48b260
+FINAL_STAGE_FINGERPRINT=
+  e6500595a4ce325b66ebee7c74635282c642cd37fd58fabc4e3c96948f1707d0
+```
+
+```text
+OPPORTUNITY_NE_ACCEPTANCE_PROVEN=YES
+```
+
+The three-call contract remains design-retained and is **not** executed here:
+
+```text
+CALL_1=GET /opportunities/{private_validation_opportunity_id}
+CALL_2=PUT /opportunities/{private_validation_opportunity_id}
+CALL_2_BODY_EXACT={"pipelineStageId":"<private_validation_final_stage_id>"}
+CALL_3=GET /opportunities/{private_validation_opportunity_id}
+
+MAX_READS=2
+MAX_WRITES=1
+MAX_TOTAL_BUSINESS_CALLS=3
+
+NO_SEARCH=YES
+NO_LIST=YES
+NO_PAGINATION=YES
+NO_RETRY=YES
+NO_ALTERNATE_BODY=YES
+NO_ALTERNATE_TARGET=YES
+NO_COMPENSATING_MUTATION=YES
+NO_AUTOMATIC_CLEANUP=YES
+
+INVARIANT_SET_VERSION=NW008_STAGE_VALIDATION_INVARIANT_SET_V1
+AUTHORIZED_CHANGED_FIELD=pipelineStageId
+CANONICAL_JSON_SPEC=NW008_CANONICAL_JSON_V1
+
+CALLS_BOUND_TO_PRIVATE_VALIDATION_OPPORTUNITY_ID=YES
+THREE_CALL_REST_VALIDATION_AUTHORIZED=NO
+THREE_CALL_REST_VALIDATION_EXECUTED=NO
+```
+
+## 7. Grant-preparation result
+
+```text
+VALIDATION_AUTHORIZATION_PREPARATION_READY=YES
+
+NEXT_AUTHORIZATION_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_AUTHORIZATION_001
+NEXT_GRANT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_GRANT_001
+
+AUTHORIZATION_DRAFT_CREATED_BY_THIS_UNIT=NO
+GRANT_DRAFT_CREATED_BY_THIS_UNIT=NO
+GRANT_STATE=NOT_DRAFTED
+GRANT_COUNTERSIGNED=NO
+EXECUTION_AUTHORIZED=NO
+SELF_ACTIVATION=FORBIDDEN
+```
+
+A later separate unit may draft the three-call REST validation
+authorization/grant. This unit does **not** draft that grant and does **not**
+authorize execution.
+
+## 8. Explicit non-actions
+
+```text
+DID_NOT_CALL_HIGHLEVEL=YES
+DID_NOT_SEARCH_LIST_GET_OR_PUT=YES
+DID_NOT_MUTATE_CRM=YES
+DID_NOT_CREATE_OPPORTUNITY=YES
+DID_NOT_CAPTURE_ANOTHER_ID=YES
+DID_NOT_RETRY_CAPTURE=YES
+DID_NOT_SELECT_SUBSTITUTE_EXISTING_CRM_OPPORTUNITY=YES
+DID_NOT_REUSE_GRANT008_OR_ACCEPTANCE_OPPORTUNITY_AS_VALIDATION_TARGET=YES
+DID_NOT_INVENT_OPPORTUNITY_ID=YES
+DID_NOT_PUBLISH_RAW_IDS=YES
+DID_NOT_PUBLISH_RAW_CRM_VALUES=YES
+DID_NOT_PUBLISH_TOKEN_OR_PIT=YES
+DID_NOT_PUBLISH_GHL_URL=YES
+DID_NOT_CREATE_AUTHORIZATION_OR_GRANT=YES
+DID_NOT_AUTHORIZE_VALIDATION_EXECUTION=YES
+DID_NOT_MUTATE_CONTRACTS_SRC_TESTS_WORKFLOWS_DEPLOY_IAM_SECRETS=YES
+```
+
+## 9. Required public return block
+
+```text
+ARTIFACT_ID=
+  NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PRIVATE_PACKAGE_RECONCILIATION_003
+
+BASE_SHA=a567b84799697e058fd3102c2c0137721466a143
+
+PR_NUMBER=EXTERNAL_METADATA
+HEAD_SHA=EXTERNAL_METADATA
+
+PR_CLASS=proof_only
+
+PRIVATE_LOCATION_BINDING_PRESENT=YES
+PRIVATE_CONTACT_BINDING_PRESENT=YES
+PRIVATE_OPPORTUNITY_BINDING_PRESENT=YES
+PRIVATE_PIPELINE_BINDING_PRESENT=YES
+PRIVATE_INITIAL_STAGE_BINDING_PRESENT=YES
+PRIVATE_FINAL_STAGE_BINDING_PRESENT=YES
+
+VALIDATION_TARGET_SYNTHETIC=YES
+VALIDATION_TARGET_DISTINCT_FROM_ACCEPTANCE_TARGET=YES
+VALIDATION_PIPELINE_MATCH=YES
+VALIDATION_INITIAL_STAGE_MATCH=YES
+INITIAL_FINAL_STAGE_DISTINCT=YES
+
+PRIVATE_VALIDATION_PACKAGE_RECONCILED=YES
+PRIVATE_VALIDATION_PACKAGE_SEALED=YES
+DEDICATED_VALIDATION_OPPORTUNITY_READY=YES
+
+PACKAGE_ID=
+  NW008_GHL_REST_V3_STAGE_PROVIDER_VALIDATION_PACKAGE_001
+
+VALIDATION_PACKAGE_DIGEST=
+  1f75f5956476824c976c2d1c0a79a892ec4129c5bb55a8ba636f85d30af75c8d
+
+VALIDATION_AUTHORIZATION_PREPARATION_READY=YES
+
+GHL_INTERACTION_PERFORMED=NO
+REST_NETWORK_CALLS=0
+MCP_CALLS=0
+CRM_MUTATIONS=0
+
+THREE_CALL_REST_VALIDATION_AUTHORIZED=NO
+VALIDATION_EXECUTION_AUTHORIZED=NO
+SUBMISSION_READY=NO
+
+STOP_CODE=
+  NW008_STAGE_PROVIDER_VALIDATION_PRIVATE_PACKAGE_RECONCILED_SEALED_GRANT_NOT_DRAFTED
+
+NEXT=RETURN_RECONCILIATION_003_PR_TO_CHATGPT_FOR_GOVERNANCE_REVIEW
+```
+
+`PR_NUMBER` and `HEAD_SHA` remain `EXTERNAL_METADATA` inside this durable
+artifact. The proof PR return may populate concrete GitHub values separately
+for governance handoff.
+
+## 10. Stop
+
+```text
+STOP
+```
