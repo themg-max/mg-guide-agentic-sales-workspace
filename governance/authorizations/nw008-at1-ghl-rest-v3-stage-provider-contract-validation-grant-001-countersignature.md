@@ -34,6 +34,9 @@ HUMAN_APPROVER=HUMAN_GHL_SPACE_OWNER_EXPLICIT_USER_ACT
 HUMAN_APPROVER_NAMED_IDENTITY_SUPPLIED=NO
 USER_STATED_COUNTERSIGNATURE_AT_LOCAL=2026-08-28T16:17:15-04:00
 HUMAN_COUNTERSIGNATURE_AT_UTC=2026-08-28T20:17:15Z
+AUTHORIZATION_WINDOW_START_UTC=2026-08-28T20:17:15Z
+AUTHORIZATION_WINDOW_END_UTC=2026-08-28T21:17:15Z
+AUTHORIZATION_WINDOW_DURATION_SECONDS=3600
 RECORDED_AT_LOCAL=2026-08-28T16:17:15-04:00
 RECORDED_AT_UTC=2026-08-28T20:17:15Z
 ```
@@ -41,9 +44,10 @@ RECORDED_AT_UTC=2026-08-28T20:17:15Z
 ## 0. Decision
 
 The human GHL space owner explicitly countersigned the already-merged
-GRANT_001. This unit records that explicit human act and authorizes one bounded
-use only, after this countersignature artifact is merged and all frozen
-runtime gates pass.
+GRANT_001 and explicitly authorized the fixed one-hour execution window stated
+below. This unit records that human act and authorizes one bounded use only,
+after this countersignature artifact is merged and all frozen runtime gates
+pass.
 
 ```text
 HUMAN_FINALIZED_INPUTS_SUPPLIED_TO_THIS_UNIT=YES
@@ -57,6 +61,7 @@ THREE_CALL_REST_VALIDATION_AUTHORIZED=
   YES_AFTER_THIS_COUNTERSIGNATURE_PR_MERGE_AND_REQUIRED_RUNTIME_GATES
 VALIDATION_EXECUTION_AUTHORIZED=
   YES_AFTER_THIS_COUNTERSIGNATURE_PR_MERGE_AND_REQUIRED_RUNTIME_GATES
+CURRENT_TIME_INSIDE_AUTHORIZATION_WINDOW_REQUIRED=YES
 SELF_ACTIVATION=FORBIDDEN
 SUBMISSION_READY=NO
 ```
@@ -71,7 +76,33 @@ INFERRED_APPROVAL_FROM_PR_MERGE=NO
 INFERRED_COUNTERSIGNATURE_FROM_GRANT_ARTIFACT=NO
 ```
 
-## 1. Durable authority and immutable bindings
+## 1. Fixed authorization window
+
+```text
+AUTHORIZATION_WINDOW_START_UTC=2026-08-28T20:17:15Z
+AUTHORIZATION_WINDOW_END_UTC=2026-08-28T21:17:15Z
+AUTHORIZATION_WINDOW_DURATION_SECONDS=3600
+AUTHORIZATION_WINDOW_FINALIZED=YES
+START_UTC_BEFORE_END_UTC=YES
+CURRENT_TIME_INSIDE_AUTHORIZATION_WINDOW_REQUIRED=YES
+WINDOW_EXTENDABLE_BY_AGENT_OR_OPERATOR=NO
+```
+
+The window is final and not extendable by an agent or operator. After expiry:
+
+```text
+IF_CURRENT_TIME_OUTSIDE_AUTHORIZATION_WINDOW=
+  GRANT_EFFECTIVE=NO
+  VALIDATION_EXECUTION_AUTHORIZED=NO
+  GRANT_EXPIRED=YES
+  NEW_EXECUTION_ATTEMPT_AUTHORIZED=NO
+  RETRY_AUTHORIZED=NO
+  SECOND_EXECUTION_AUTHORIZED=NO
+  GRANT_REUSE_AUTHORIZED=NO
+  STOP
+```
+
+## 2. Durable authority and immutable bindings
 
 ```text
 GRANT_ARTIFACT_ID=
@@ -115,7 +146,7 @@ IF_ANY_MANDATORY_BINDING_MISMATCH=
   STOP
 ```
 
-## 2. Exact one-shot operation and call budget
+## 3. Exact one-shot operation and call budget
 
 ```text
 CALL_1=
@@ -163,7 +194,7 @@ GRANT008_TARGET_REUSE_ALLOWED=NO
 RAW_PRIVATE_IDS_PUBLIC=NO
 ```
 
-## 3. Frozen mutation and invariant contract
+## 4. Frozen mutation and invariant contract
 
 ```text
 AUTHORIZED_CHANGED_FIELD=pipelineStageId
@@ -197,12 +228,13 @@ CALL_BUDGET_EXPANSION_AUTHORIZED=NO
 INVARIANT_SET_EXPANSION_AUTHORIZED=NO
 ```
 
-## 4. Required execution gates and consumption
+## 5. Required execution gates and consumption
 
 No live business call is authorized unless all of the following are true:
 
 ```text
 THIS_COUNTERSIGNATURE_MERGED=YES
+CURRENT_TIME_INSIDE_AUTHORIZATION_WINDOW=YES
 GRANT_MERGE_SHA_MATCH=YES
 AUTHORIZATION_MERGE_SHA_MATCH=YES
 PACKAGE_ID_MATCH=YES
@@ -243,7 +275,7 @@ IF_GRANT_CONSUMED=YES=
   STOP
 ```
 
-## 5. This unit performs no GHL execution
+## 6. This unit performs no GHL execution
 
 ```text
 GHL_INTERACTION_PERFORMED=NO
@@ -269,7 +301,7 @@ DID_NOT_RETRY=YES
 DID_NOT_CONSUME_GRANT=YES
 ```
 
-## 6. Required public return block
+## 7. Required public return block
 
 ```text
 ARTIFACT_ID=
@@ -302,6 +334,12 @@ MAX_TOTAL_BUSINESS_CALLS=3
 CALL_BUDGET_BOUND=YES
 INVARIANT_SET_BOUND=YES
 
+AUTHORIZATION_WINDOW_START_UTC=2026-08-28T20:17:15Z
+AUTHORIZATION_WINDOW_END_UTC=2026-08-28T21:17:15Z
+AUTHORIZATION_WINDOW_DURATION_SECONDS=3600
+CURRENT_TIME_INSIDE_AUTHORIZATION_WINDOW_REQUIRED=YES
+WINDOW_EXTENDABLE_BY_AGENT_OR_OPERATOR=NO
+
 HUMAN_COUNTERSIGNATURE_PRESENT=YES
 GRANT_COUNTERSIGNED=YES
 GRANT_EFFECTIVE=YES_AFTER_THIS_COUNTERSIGNATURE_PR_MERGE_AND_REQUIRED_RUNTIME_GATES
@@ -318,13 +356,14 @@ MCP_CALLS=0
 CRM_MUTATIONS=0
 
 NEXT=
-  MERGE_COUNTERSIGNATURE_PR_AFTER_EXACT_HEAD_CI_THEN_MAY_BEGIN_ONE_AUTHORIZED_ATTEMPT
+  MERGE_COUNTERSIGNATURE_PR_AFTER_EXACT_HEAD_CI_THEN_MAY_BEGIN_ONE_AUTHORIZED_ATTEMPT_WITHIN_FIXED_WINDOW
 STOP
 ```
 
-## 7. Stop
+## 8. Stop
 
 This countersignature artifact may merge only after exact-head repository CI
 passes. This unit must not execute the three-call validation. A later executor
-must revalidate every immutable binding and required prewrite gate, consume the
-grant before its first live business call, and stop on any mismatch or failure.
+must revalidate the fixed time window, every immutable binding, and every
+required prewrite gate; consume the grant before its first live business call;
+and stop on expiry, any mismatch, or any failure.
