@@ -14,6 +14,7 @@ from integrations.ghl import (
     At1LiveTransportSerializer,
     BoundedAt1GhlExecutor,
     BoundedAt1Input,
+    AttemptStateError,
     DuplicateBusinessOrdinalError,
     ExecutionClaimError,
     PostGrantControlPlaneCallRefusedError,
@@ -69,6 +70,29 @@ def _execution_store(
     return At1ExecutionStore(db_path=db_path, commitment_material=material)
 
 
+def _responses_with_provider_metadata(case_id: str) -> list[dict[str, Any]]:
+    responses = deepcopy(FIXTURE["cases"][case_id]["responses"])
+    binding = FIXTURE["binding"]
+    for response in responses:
+        content = response.get("result", {}).get("content", [])
+        if not content or not isinstance(content[0], dict):
+            continue
+        nested = content[0]
+        payload = nested.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        operation_id = nested.get("operationId")
+        if operation_id == "get-contact":
+            payload.setdefault("location_id", binding["location_id"])
+        elif operation_id == "get-opportunity":
+            payload.setdefault("contact_id", binding["contact_id"])
+            payload.setdefault("pipeline_id", binding["pipeline_id"])
+            payload.setdefault("location_id", binding["location_id"])
+        elif operation_id == "get-note":
+            payload.setdefault("contact_id", binding["contact_id"])
+    return responses
+
+
 def _adapter_and_executor(
     tmp_path: Path,
     case_id: str,
@@ -79,7 +103,7 @@ def _adapter_and_executor(
 ) -> tuple[At1LiveTransportAdapter, BoundedAt1GhlExecutor, ScriptedEstablishedSession]:
     store = _execution_store(tmp_path / "at1-remediation.sqlite3")
     session = ScriptedEstablishedSession(
-        responses=list(FIXTURE["cases"][case_id]["responses"])
+        responses=_responses_with_provider_metadata(case_id)
     )
     adapter = At1LiveTransportAdapter(
         session=session,
@@ -87,6 +111,20 @@ def _adapter_and_executor(
         grant_run_id=grant_run_id,
         owner_id=owner_id,
         grant_active=grant_active,
+    )
+    return adapter, BoundedAt1GhlExecutor(adapter), session
+
+
+def _adapter_and_executor_for_responses(
+    tmp_path: Path, responses: list[dict[str, Any]]
+) -> tuple[At1LiveTransportAdapter, BoundedAt1GhlExecutor, ScriptedEstablishedSession]:
+    store = _execution_store(tmp_path / "at1-remediation.sqlite3")
+    session = ScriptedEstablishedSession(responses=responses)
+    adapter = At1LiveTransportAdapter(
+        session=session,
+        store=store,
+        grant_run_id="grant-run-at1-remediation",
+        owner_id="owner-1",
     )
     return adapter, BoundedAt1GhlExecutor(adapter), session
 
@@ -857,3 +895,199 @@ def test_b38_request_response_evidence_pair_and_public_binding(tmp_path: Path) -
     public_blob = json.dumps(projection, sort_keys=True)
     assert "SENTINEL_CONTACT_ID" not in public_blob
     assert "SENTINEL_NOTE_CONTENT" not in public_blob
+
+
+def test_r1_sealed_transcript_and_note_provenance_are_publicly_verifiable(
+    tmp_path: Path,
+) -> None:
+    adapter, executor, _ = _adapter_and_executor(tmp_path, "success")
+
+    result = executor.execute(_binding(), _context())
+    projection = adapter.public_projection()
+
+    assert result.disposition == "completed"
+    assert projection["TRANSCRIPT_INGESTED"] == "YES"
+    assert projection["TRANSCRIPT_HASH_CAPTURED"] == "YES"
+    assert projection["TRANSCRIPT_DERIVED_NOTE_HASH_CAPTURED_PREWRITE"] == "YES"
+    assert projection["EXPECTED_NOTE_SHA256_CAPTURED_PREWRITE"] == "YES"
+    assert projection["CREATE_NOTE_BODY_SHA256_MATCHES_EXPECTED"] == "YES"
+    assert len(projection["TRANSCRIPT_SHA256"]) == 64
+    assert len(projection["EXPECTED_NOTE_SHA256"]) == 64
+    create_note = projection["request_response_commitments"][2]
+    assert create_note["TARGET_BINDING_MATCH"] == "NOT_APPLICABLE"
+    assert "SENTINEL_NOTE_CONTENT" not in json.dumps(projection, sort_keys=True)
+
+
+def test_r1_missing_transcript_provenance_is_refused_before_transport(
+    tmp_path: Path,
+) -> None:
+    binding = dict(FIXTURE["binding"])
+    binding["transcript_content"] = ""
+    _, _, session = _adapter_and_executor(tmp_path, "success")
+
+    with pytest.raises(ValueError, match="transcript_content must be a non-empty string"):
+        BoundedAt1Input.from_mapping(binding)
+
+    assert session.dispatch_log == []
+
+
+def test_r1_provenance_cannot_be_captured_after_a_business_call(tmp_path: Path) -> None:
+    adapter, _, _ = _adapter_and_executor(tmp_path, "success")
+    serializer = At1LiveTransportSerializer()
+    binding = _binding()
+    adapter.dispatch(
+        serializer.build_execute_operation_call(
+            "get-contact",
+            {"location_id": binding.location_id, "contact_id": binding.contact_id},
+        )
+    )
+    adapter.record_semantic_outcome(True, target_binding_match=True)
+
+    with pytest.raises(AttemptStateError, match="prewrite provenance must be captured before"):
+        adapter.record_prewrite_provenance(
+            transcript_content=binding.transcript_content,
+            transcript_sha256="0" * 64,
+            expected_note_content=binding.expected_note_content_or_fingerprint,
+            expected_note_sha256="0" * 64,
+        )
+
+
+def test_r1_create_note_body_hash_mismatch_is_refused_before_transport(
+    tmp_path: Path,
+) -> None:
+    _, executor, session = _adapter_and_executor(tmp_path, "success")
+    binding = _binding()
+    executor._expected_note_sha256 = "0" * 64
+
+    with pytest.raises(ValueError, match="sealed expected-note SHA256"):
+        executor._dispatch_write(
+            "create-note",
+            {
+                "location_id": binding.location_id,
+                "contact_id": binding.contact_id,
+                "content_or_fingerprint": binding.expected_note_content_or_fingerprint,
+            },
+            _context(),
+            expected_body_sha256=executor._expected_note_sha256,
+        )
+
+    assert session.dispatch_log == []
+
+
+@pytest.mark.parametrize(
+    ("response_index", "field", "value", "failure_code"),
+    [
+        (0, "location_id", "wrong-location", "CONTACT_LOCATION_MISMATCH"),
+        (1, "contact_id", "wrong-contact", "OPPORTUNITY_CONTACT_MISMATCH"),
+        (1, "pipeline_id", "wrong-pipeline", "OPPORTUNITY_PIPELINE_MISMATCH"),
+        (1, "location_id", "wrong-location", "OPPORTUNITY_LOCATION_MISMATCH"),
+        (3, "contact_id", "wrong-contact", "NOTE_READBACK_CONTACT_MISMATCH"),
+    ],
+)
+def test_r2_response_binding_mismatches_fail_closed(
+    tmp_path: Path,
+    response_index: int,
+    field: str,
+    value: str,
+    failure_code: str,
+) -> None:
+    responses = _responses_with_provider_metadata("success")
+    responses[response_index]["result"]["content"][0]["payload"][field] = value
+    adapter, executor, _ = _adapter_and_executor_for_responses(tmp_path, responses)
+
+    result = executor.execute(_binding(), _context())
+
+    assert result.disposition == "failed"
+    assert result.failure_code == failure_code
+    projection = adapter.public_projection()
+    assert projection["request_response_commitments"][response_index][
+        "TARGET_BINDING_MATCH"
+    ] == "NO"
+
+
+def test_r3_per_call_sanitized_evidence_is_computed_from_captured_envelopes(
+    tmp_path: Path,
+) -> None:
+    adapter, executor, _ = _adapter_and_executor(tmp_path, "success")
+    executor.execute(_binding(), _context())
+
+    commitments = adapter.public_projection()["request_response_commitments"]
+    assert len(commitments) == 6
+    required = {
+        "OPERATION_ID",
+        "HTTP_STATUS",
+        "JSONRPC_ERROR_PRESENT",
+        "MCP_IS_ERROR",
+        "NESTED_OPERATION_SUCCESS",
+        "TARGET_BINDING_MATCH",
+        "REQUEST_EVIDENCE_PERSISTED",
+        "RESPONSE_EVIDENCE_PERSISTED",
+        "REQUEST_RESPONSE_CORRELATION_ID",
+        "SANITIZED_REQUEST_DIGEST",
+        "SANITIZED_RESPONSE_DIGEST",
+    }
+    assert all(required.issubset(set(attempt)) for attempt in commitments)
+    assert all(attempt["HTTP_STATUS"] == 200 for attempt in commitments)
+    assert all(attempt["JSONRPC_ERROR_PRESENT"] == "NO" for attempt in commitments)
+    assert all(attempt["MCP_IS_ERROR"] == "NO" for attempt in commitments)
+    assert all(attempt["NESTED_OPERATION_SUCCESS"] == "YES" for attempt in commitments)
+    assert all(attempt["REQUEST_EVIDENCE_PERSISTED"] == "YES" for attempt in commitments)
+    assert all(attempt["RESPONSE_EVIDENCE_PERSISTED"] == "YES" for attempt in commitments)
+
+
+def test_r3_missing_nested_status_is_fail_closed_and_projected_unknown(
+    tmp_path: Path,
+) -> None:
+    responses = _responses_with_provider_metadata("success")
+    del responses[2]["result"]["content"][0]["status"]
+    adapter, executor, _ = _adapter_and_executor_for_responses(tmp_path, responses)
+
+    result = executor.execute(_binding(), _context())
+    create_note = adapter.public_projection()["request_response_commitments"][2]
+
+    assert result.disposition == "failed"
+    assert result.failure_code == "NOTE_WRITE_REJECTED"
+    assert create_note["HTTP_STATUS"] == "UNKNOWN"
+    assert create_note["NESTED_OPERATION_SUCCESS"] == "YES"
+    assert create_note["TARGET_BINDING_MATCH"] == "UNKNOWN"
+
+
+def test_r3_jsonrpc_error_is_fail_closed_and_projected(tmp_path: Path) -> None:
+    responses = _responses_with_provider_metadata("success")
+    responses[2] = {
+        "jsonrpc": "2.0",
+        "id": "__REQUEST_ID__",
+        "error": {"code": -32000, "message": "synthetic JSON-RPC error"},
+    }
+    adapter, executor, _ = _adapter_and_executor_for_responses(tmp_path, responses)
+
+    result = executor.execute(_binding(), _context())
+    create_note = adapter.public_projection()["request_response_commitments"][2]
+
+    assert result.disposition == "failed"
+    assert result.failure_code == "NOTE_WRITE_REJECTED"
+    assert create_note["JSONRPC_ERROR_PRESENT"] == "YES"
+    assert create_note["HTTP_STATUS"] == "UNKNOWN"
+    assert create_note["NESTED_OPERATION_SUCCESS"] == "UNKNOWN"
+
+
+def test_r3_missing_response_evidence_never_projects_success(tmp_path: Path) -> None:
+    store = _execution_store(tmp_path / "missing-response.sqlite3")
+    store.acquire_claim("grant-run-missing-response", "owner-1")
+    store.record_attempt(
+        grant_run_id="grant-run-missing-response",
+        operation_ordinal=1,
+        operation_id="get-contact",
+        request_id="synthetic-request-1",
+        request_envelope={"name": "execute_operation", "arguments": {"operationId": "get-contact"}},
+    )
+
+    attempt = store.compute_public_projection("grant-run-missing-response")[
+        "request_response_commitments"
+    ][0]
+    assert attempt["RESPONSE_EVIDENCE_PERSISTED"] == "NO"
+    assert attempt["SANITIZED_RESPONSE_DIGEST"] == "UNKNOWN"
+    assert attempt["JSONRPC_ERROR_PRESENT"] == "UNKNOWN"
+    assert attempt["MCP_IS_ERROR"] == "UNKNOWN"
+    assert attempt["NESTED_OPERATION_SUCCESS"] == "UNKNOWN"
+    assert attempt["TARGET_BINDING_MATCH"] == "UNKNOWN"

@@ -53,7 +53,7 @@ class At1ExecutionStore:
     """SQLite-backed local execution store for AT-1 transport/evidence contracts."""
 
     _METADATA_TABLE = "at1_store_metadata"
-    _SCHEMA_VERSION = 1
+    _SCHEMA_VERSION = 2
     _REQUIRED_TABLES = frozenset(
         {
             _METADATA_TABLE,
@@ -61,6 +61,7 @@ class At1ExecutionStore:
             "attempts",
             "protocol_ledger",
             "business_ledger",
+            "prewrite_provenance",
         }
     )
 
@@ -150,6 +151,11 @@ class At1ExecutionStore:
                 request_digest TEXT NOT NULL,
                 response_envelope_json TEXT,
                 response_digest TEXT,
+                http_status INTEGER,
+                jsonrpc_error_present INTEGER,
+                mcp_is_error INTEGER,
+                nested_operation_success INTEGER,
+                target_binding_match TEXT,
                 parse_success INTEGER,
                 semantic_success INTEGER,
                 terminal_failure_code TEXT,
@@ -159,6 +165,17 @@ class At1ExecutionStore:
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 PRIMARY KEY (grant_run_id, operation_ordinal),
                 UNIQUE (grant_run_id, request_id)
+            )
+            """,
+            """
+            CREATE TABLE prewrite_provenance (
+                grant_run_id TEXT PRIMARY KEY,
+                transcript_json TEXT NOT NULL,
+                transcript_digest TEXT NOT NULL,
+                expected_note_json TEXT NOT NULL,
+                expected_note_digest TEXT NOT NULL,
+                captured_before_ordinal INTEGER NOT NULL CHECK (captured_before_ordinal = 1),
+                captured_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
             """,
             """
@@ -417,6 +434,54 @@ class At1ExecutionStore:
             ) from exc
         return request_digest
 
+    def record_prewrite_provenance(
+        self,
+        *,
+        grant_run_id: str,
+        transcript_content: str,
+        transcript_sha256: str,
+        expected_note_content: str,
+        expected_note_sha256: str,
+    ) -> None:
+        if self.next_operation_ordinal(grant_run_id) != 1:
+            raise AttemptStateError("prewrite provenance must be captured before business ordinal 1")
+        if not all(
+            isinstance(value, str) and value
+            for value in (
+                transcript_content,
+                transcript_sha256,
+                expected_note_content,
+                expected_note_sha256,
+            )
+        ):
+            raise AttemptStateError("prewrite provenance values must be non-empty strings")
+        if hashlib.sha256(transcript_content.encode("utf-8")).hexdigest() != transcript_sha256:
+            raise AttemptStateError("transcript SHA256 does not match captured transcript")
+        if hashlib.sha256(expected_note_content.encode("utf-8")).hexdigest() != expected_note_sha256:
+            raise AttemptStateError("expected-note SHA256 does not match captured note")
+        with self._connection:
+            try:
+                self._connection.execute(
+                    """
+                    INSERT INTO prewrite_provenance (
+                        grant_run_id, transcript_json, transcript_digest,
+                        expected_note_json, expected_note_digest, captured_before_ordinal
+                    )
+                    VALUES (?, ?, ?, ?, ?, 1)
+                    """,
+                    (
+                        grant_run_id,
+                        _canonical_json({"transcript": transcript_content}),
+                        transcript_sha256,
+                        _canonical_json({"note": expected_note_content}),
+                        expected_note_sha256,
+                    ),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise AttemptStateError(
+                    f"prewrite provenance is already sealed for {grant_run_id!r}"
+                ) from exc
+
     def mark_dispatched(self, *, grant_run_id: str, operation_ordinal: int) -> None:
         with self._connection:
             cursor = self._connection.execute(
@@ -530,6 +595,46 @@ class At1ExecutionStore:
             )
         return response_digest
 
+    def record_response_evidence(
+        self,
+        *,
+        grant_run_id: str,
+        operation_ordinal: int,
+        http_status: int | None,
+        jsonrpc_error_present: bool,
+        mcp_is_error: bool | None,
+        nested_operation_success: bool | None,
+    ) -> None:
+        with self._connection:
+            cursor = self._connection.execute(
+                """
+                UPDATE attempts
+                SET http_status = ?,
+                    jsonrpc_error_present = ?,
+                    mcp_is_error = ?,
+                    nested_operation_success = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE grant_run_id = ?
+                  AND operation_ordinal = ?
+                  AND state = ?
+                """,
+                (
+                    http_status,
+                    1 if jsonrpc_error_present else 0,
+                    None if mcp_is_error is None else int(mcp_is_error),
+                    None
+                    if nested_operation_success is None
+                    else int(nested_operation_success),
+                    grant_run_id,
+                    operation_ordinal,
+                    RESPONSE_CAPTURED,
+                ),
+            )
+            if cursor.rowcount != 1:
+                raise AttemptStateError(
+                    f"cannot record response evidence for ordinal {operation_ordinal}"
+                )
+
     def record_parse_outcome(
         self, *, grant_run_id: str, operation_ordinal: int, success: bool
     ) -> None:
@@ -548,16 +653,36 @@ class At1ExecutionStore:
                 )
 
     def record_semantic_outcome(
-        self, *, grant_run_id: str, operation_ordinal: int, success: bool
+        self,
+        *,
+        grant_run_id: str,
+        operation_ordinal: int,
+        success: bool,
+        target_binding_match: bool | str | None = None,
     ) -> None:
+        if target_binding_match not in (True, False, "NOT_APPLICABLE", None):
+            raise AttemptStateError("target binding match must be true, false, or NOT_APPLICABLE")
         with self._connection:
             cursor = self._connection.execute(
                 """
                 UPDATE attempts
-                SET semantic_success = ?, updated_at = CURRENT_TIMESTAMP
+                SET semantic_success = ?,
+                    target_binding_match = ?,
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE grant_run_id = ? AND operation_ordinal = ?
                 """,
-                (1 if success else 0, grant_run_id, operation_ordinal),
+                (
+                    1 if success else 0,
+                    (
+                        "YES"
+                        if target_binding_match is True
+                        else "NO"
+                        if target_binding_match is False
+                        else target_binding_match
+                    ),
+                    grant_run_id,
+                    operation_ordinal,
+                ),
             )
             if cursor.rowcount != 1:
                 raise AttemptStateError(
@@ -637,6 +762,11 @@ class At1ExecutionStore:
                 request_digest,
                 response_envelope_json,
                 response_digest,
+                http_status,
+                jsonrpc_error_present,
+                mcp_is_error,
+                nested_operation_success,
+                target_binding_match,
                 parse_success,
                 semantic_success,
                 terminal_failure_code,
@@ -663,6 +793,21 @@ class At1ExecutionStore:
                         else None
                     ),
                     "response_digest": row["response_digest"],
+                    "http_status": row["http_status"],
+                    "jsonrpc_error_present": (
+                        None
+                        if row["jsonrpc_error_present"] is None
+                        else bool(row["jsonrpc_error_present"])
+                    ),
+                    "mcp_is_error": (
+                        None if row["mcp_is_error"] is None else bool(row["mcp_is_error"])
+                    ),
+                    "nested_operation_success": (
+                        None
+                        if row["nested_operation_success"] is None
+                        else bool(row["nested_operation_success"])
+                    ),
+                    "target_binding_match": row["target_binding_match"],
                     "parse_success": (
                         None if row["parse_success"] is None else bool(row["parse_success"])
                     ),
@@ -778,6 +923,29 @@ class At1ExecutionStore:
         else:
             business_effect_truth = "NO"
         at1_complete = business_effect_truth == "YES"
+        provenance = self._connection.execute(
+            """
+            SELECT transcript_digest, expected_note_digest, captured_before_ordinal
+            FROM prewrite_provenance WHERE grant_run_id = ?
+            """,
+            (grant_run_id,),
+        ).fetchone()
+        create_note_attempt = next(
+            (attempt for attempt in attempts if attempt["operation_id"] == "create-note"),
+            None,
+        )
+        create_note_body_digest = None
+        if create_note_attempt is not None:
+            try:
+                create_note_body = create_note_attempt["request_envelope"]["arguments"][
+                    "params"
+                ]["body"]["body"]
+            except (KeyError, TypeError):
+                create_note_body = None
+            if isinstance(create_note_body, str):
+                create_note_body_digest = hashlib.sha256(
+                    create_note_body.encode("utf-8")
+                ).hexdigest()
         request_response_commitments = [
             {
                 "operation_ordinal": attempt["operation_ordinal"],
@@ -785,6 +953,27 @@ class At1ExecutionStore:
                 "request_id": attempt["request_id"],
                 "request_commitment": attempt["request_digest"],
                 "response_commitment": attempt["response_digest"],
+                "OPERATION_ID": attempt["operation_id"],
+                "HTTP_STATUS": (
+                    attempt["http_status"]
+                    if attempt["http_status"] is not None
+                    else "UNKNOWN"
+                ),
+                "JSONRPC_ERROR_PRESENT": self._public_flag(
+                    attempt["jsonrpc_error_present"]
+                ),
+                "MCP_IS_ERROR": self._public_flag(attempt["mcp_is_error"]),
+                "NESTED_OPERATION_SUCCESS": self._public_flag(
+                    attempt["nested_operation_success"]
+                ),
+                "TARGET_BINDING_MATCH": attempt["target_binding_match"] or "UNKNOWN",
+                "REQUEST_EVIDENCE_PERSISTED": "YES",
+                "RESPONSE_EVIDENCE_PERSISTED": (
+                    "YES" if attempt["response_envelope"] is not None else "NO"
+                ),
+                "REQUEST_RESPONSE_CORRELATION_ID": attempt["request_id"],
+                "SANITIZED_REQUEST_DIGEST": attempt["request_digest"],
+                "SANITIZED_RESPONSE_DIGEST": attempt["response_digest"] or "UNKNOWN",
             }
             for attempt in attempts
         ]
@@ -806,4 +995,31 @@ class At1ExecutionStore:
             "business_effect_truth": business_effect_truth,
             "at1_complete": at1_complete,
             "request_response_commitments": request_response_commitments,
+            "TRANSCRIPT_INGESTED": "YES" if provenance is not None else "NO",
+            "TRANSCRIPT_HASH_CAPTURED": "YES" if provenance is not None else "NO",
+            "TRANSCRIPT_DERIVED_NOTE_HASH_CAPTURED_PREWRITE": (
+                "YES" if provenance is not None else "NO"
+            ),
+            "EXPECTED_NOTE_SHA256_CAPTURED_PREWRITE": (
+                "YES" if provenance is not None else "NO"
+            ),
+            "TRANSCRIPT_SHA256": (
+                provenance["transcript_digest"] if provenance is not None else "UNKNOWN"
+            ),
+            "EXPECTED_NOTE_SHA256": (
+                provenance["expected_note_digest"] if provenance is not None else "UNKNOWN"
+            ),
+            "CREATE_NOTE_BODY_SHA256": create_note_body_digest or "UNKNOWN",
+            "CREATE_NOTE_BODY_SHA256_MATCHES_EXPECTED": (
+                "YES"
+                if provenance is not None
+                and create_note_body_digest == provenance["expected_note_digest"]
+                else "NO"
+            ),
         }
+
+    @staticmethod
+    def _public_flag(value: bool | None) -> str:
+        if value is None:
+            return "UNKNOWN"
+        return "YES" if value else "NO"

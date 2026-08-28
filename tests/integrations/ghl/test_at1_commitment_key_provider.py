@@ -148,29 +148,30 @@ def test_production_provider_has_no_secret_or_version_override() -> None:
         )
 
 
-def test_new_store_initializes_schema_v1_atomically(tmp_path: Path) -> None:
+def test_new_store_initializes_schema_v2_atomically(tmp_path: Path) -> None:
     db_path = tmp_path / "new-store.sqlite3"
     store = _store(db_path)
 
-    assert _metadata(db_path) == (1, VERSION_RESOURCE)
+    assert _metadata(db_path) == (2, VERSION_RESOURCE)
     table_names = store._table_names()
     assert table_names == {
         "at1_store_metadata",
         "attempts",
         "business_ledger",
         "execution_claims",
+        "prewrite_provenance",
         "protocol_ledger",
     }
 
 
-def test_schema_v1_reopens_with_same_version_and_never_stores_payload(tmp_path: Path) -> None:
-    db_path = tmp_path / "schema-v1-reopen.sqlite3"
+def test_schema_v2_reopens_with_same_version_and_never_stores_payload(tmp_path: Path) -> None:
+    db_path = tmp_path / "schema-v2-reopen.sqlite3"
     payload = "PAYLOAD_MUST_NOT_REACH_SQLITE"
     store = _store(db_path, payload=payload)
     _close(store)
 
     reopened = _store(db_path, payload=payload)
-    assert _metadata(db_path) == (1, VERSION_RESOURCE)
+    assert _metadata(db_path) == (2, VERSION_RESOURCE)
     dump = "\n".join(reopened._connection.iterdump())
     assert payload not in dump
     _close(reopened)
@@ -358,7 +359,7 @@ def test_at8m2r1_repair_has_no_secret_manager_or_external_effects(
     fresh_path = tmp_path / "no-external-effects.sqlite3"
     assert not fresh_path.exists()
     store = _store(fresh_path)
-    assert _metadata(fresh_path) == (1, VERSION_RESOURCE)
+    assert _metadata(fresh_path) == (2, VERSION_RESOURCE)
     _close(store)
 
     empty_path = tmp_path / "preexisting-empty-for-effects.sqlite3"
@@ -393,16 +394,16 @@ def test_missing_and_corrupt_metadata_fail_closed(tmp_path: Path) -> None:
         _store(corrupt_metadata_path)
 
 
-def test_unknown_newer_schema_fails_and_v1_performs_no_migration(tmp_path: Path) -> None:
+def test_unknown_newer_schema_fails_and_v2_performs_no_migration(tmp_path: Path) -> None:
     db_path = tmp_path / "schema-version.sqlite3"
     store = _store(db_path)
     _close(store)
     reopened = _store(db_path)
-    assert _metadata(db_path) == (1, VERSION_RESOURCE)
+    assert _metadata(db_path) == (2, VERSION_RESOURCE)
     _close(reopened)
 
     with sqlite3.connect(db_path) as connection:
-        connection.execute("UPDATE at1_store_metadata SET schema_version = 2")
+        connection.execute("UPDATE at1_store_metadata SET schema_version = 3")
     with pytest.raises(ExecutionStoreSchemaError, match="unsupported or corrupt"):
         _store(db_path)
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import hashlib
 from typing import Any, Mapping, Protocol, Sequence
 
 from integrations.ghl.at1_live_transport_serializer import (
@@ -12,7 +13,7 @@ from integrations.ghl.at1_live_transport_serializer import (
 )
 
 
-PIPELINE_METADATA_RUNTIME_READ_REQUIRED = "NO"
+PIPELINE_METADATA_RUNTIME_READ_REQUIRED = "YES"
 NETWORK_ENABLED = "NO"
 GHL_LIVE_CLIENT = "NO"
 FIRESTORE_CLIENT = "NO"
@@ -66,9 +67,11 @@ class BoundedAt1Input:
     location_id: str
     contact_id: str
     opportunity_id: str
+    pipeline_id: str
     expected_initial_stage_id: str
     authorized_final_stage_id: str
     expected_note_content_or_fingerprint: str
+    transcript_content: str
 
     def __post_init__(self) -> None:
         for field_name, value in self.__dict__.items():
@@ -81,9 +84,11 @@ class BoundedAt1Input:
             "location_id",
             "contact_id",
             "opportunity_id",
+            "pipeline_id",
             "expected_initial_stage_id",
             "authorized_final_stage_id",
             "expected_note_content_or_fingerprint",
+            "transcript_content",
         }
         actual_fields = set(value)
         if actual_fields != expected_fields:
@@ -289,12 +294,14 @@ class BoundedAt1GhlExecutor:
         self._expected_initial_stage_verified = False
         self._note_readback_verified = False
         self._stage_readback_verified = False
+        self._expected_note_sha256: str | None = None
 
     def execute(
         self, binding: BoundedAt1Input, context: At1ExecutionContext
     ) -> BoundedAt1Result:
         """Execute once in model order; every failure is terminal and non-retrying."""
         self._prevalidate_execution_context(context)
+        self._seal_prewrite_provenance(binding)
         contact = self._dispatch_read(
             "get-contact", {"location_id": binding.location_id, "contact_id": binding.contact_id}
         )
@@ -302,9 +309,12 @@ class BoundedAt1GhlExecutor:
             return self._fail("CONTACT_NOT_FOUND")
         contact_identity = self._identity_from_record(contact.record, ("contact_id", "id"))
         if contact_identity != binding.contact_id:
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("CONTACT_ID_MISMATCH")
-        self._record_transport_semantic(success=True)
+        if contact.record.get("location_id") != binding.location_id:
+            self._record_transport_semantic(success=False, target_binding_match=False)
+            return self._fail("CONTACT_LOCATION_MISMATCH")
+        self._record_transport_semantic(success=True, target_binding_match=True)
 
         opportunity = self._dispatch_read(
             "get-opportunity",
@@ -319,13 +329,22 @@ class BoundedAt1GhlExecutor:
             opportunity.record, ("opportunity_id", "id")
         )
         if opportunity_identity != binding.opportunity_id:
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("OPPORTUNITY_ID_MISMATCH")
+        if opportunity.record.get("contact_id") != binding.contact_id:
+            self._record_transport_semantic(success=False, target_binding_match=False)
+            return self._fail("OPPORTUNITY_CONTACT_MISMATCH")
+        if opportunity.record.get("pipeline_id") != binding.pipeline_id:
+            self._record_transport_semantic(success=False, target_binding_match=False)
+            return self._fail("OPPORTUNITY_PIPELINE_MISMATCH")
+        if opportunity.record.get("location_id") != binding.location_id:
+            self._record_transport_semantic(success=False, target_binding_match=False)
+            return self._fail("OPPORTUNITY_LOCATION_MISMATCH")
         if opportunity.record.get("stage_id") != binding.expected_initial_stage_id:
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("INITIAL_STAGE_MISMATCH")
         self._expected_initial_stage_verified = True
-        self._record_transport_semantic(success=True)
+        self._record_transport_semantic(success=True, target_binding_match=True)
 
         created_note = self._dispatch_write(
             "create-note",
@@ -335,15 +354,16 @@ class BoundedAt1GhlExecutor:
                 "content_or_fingerprint": binding.expected_note_content_or_fingerprint,
             },
             context,
+            expected_body_sha256=self._expected_note_sha256,
         )
         if created_note.status != "ok":
             return self._fail("NOTE_WRITE_REJECTED")
         self._record_write_success("note")
         note_id = created_note.record.get("note_id")
         if not isinstance(note_id, str) or not note_id:
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("NOTE_WRITE_RESPONSE_INVALID")
-        self._record_transport_semantic(success=True)
+        self._record_transport_semantic(success=True, target_binding_match="NOT_APPLICABLE")
 
         note = self._dispatch_read(
             "get-note",
@@ -357,13 +377,16 @@ class BoundedAt1GhlExecutor:
             note.record.get("content_or_fingerprint")
             != binding.expected_note_content_or_fingerprint
         ):
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("NOTE_READBACK_MISMATCH", preserve_proof=True)
         if note.record.get("note_id") != note_id:
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("NOTE_READBACK_MISMATCH", preserve_proof=True)
+        if note.record.get("contact_id") != binding.contact_id:
+            self._record_transport_semantic(success=False, target_binding_match=False)
+            return self._fail("NOTE_READBACK_CONTACT_MISMATCH", preserve_proof=True)
         self._note_readback_verified = True
-        self._record_transport_semantic(success=True)
+        self._record_transport_semantic(success=True, target_binding_match=True)
 
         updated_opportunity = self._dispatch_write(
             "update-opportunity",
@@ -380,10 +403,10 @@ class BoundedAt1GhlExecutor:
             updated_opportunity.record, ("opportunity_id", "id")
         )
         if updated_identity != binding.opportunity_id:
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("STAGE_WRITE_REJECTED")
         self._record_write_success("stage")
-        self._record_transport_semantic(success=True)
+        self._record_transport_semantic(success=True, target_binding_match=True)
 
         readback_opportunity = self._dispatch_read(
             "get-opportunity",
@@ -401,10 +424,10 @@ class BoundedAt1GhlExecutor:
             or readback_opportunity.record.get("stage_id")
             != binding.authorized_final_stage_id
         ):
-            self._record_transport_semantic(success=False)
+            self._record_transport_semantic(success=False, target_binding_match=False)
             return self._fail("STAGE_READBACK_MISMATCH", preserve_proof=True)
         self._stage_readback_verified = True
-        self._record_transport_semantic(success=True)
+        self._record_transport_semantic(success=True, target_binding_match=True)
         return self._result(disposition="completed")
 
     def _dispatch_read(
@@ -423,6 +446,7 @@ class BoundedAt1GhlExecutor:
         operation_id: str,
         arguments: Mapping[str, str],
         context: At1ExecutionContext,
+        expected_body_sha256: str | None = None,
     ) -> FixtureResponse:
         if self._terminal:
             raise TerminalStateError("further transport calls are not authorized")
@@ -432,6 +456,17 @@ class BoundedAt1GhlExecutor:
         envelope = self._serializer.build_execute_operation_call(
             operation_id, arguments, context
         )
+        if operation_id == "create-note":
+            body = envelope["arguments"]["params"]["body"]["body"]
+            if (
+                expected_body_sha256 is None
+                or hashlib.sha256(body.encode("utf-8")).hexdigest()
+                != expected_body_sha256
+            ):
+                self._terminal = True
+                raise InputContractError(
+                    "create-note body does not match sealed expected-note SHA256"
+                )
         write_kind = "note" if operation_id == "create-note" else "stage"
         self._consume_write_attempt(write_kind)
         self._operations.append(operation_id)
@@ -491,9 +526,28 @@ class BoundedAt1GhlExecutor:
             stop_and_preserve_proof=preserve_proof,
         )
 
-    def _record_transport_semantic(self, *, success: bool) -> None:
+    def _record_transport_semantic(
+        self, *, success: bool, target_binding_match: bool | str | None = None
+    ) -> None:
         if hasattr(self._transport, "record_semantic_outcome"):
-            self._transport.record_semantic_outcome(success=success)  # type: ignore[attr-defined]
+            self._transport.record_semantic_outcome(  # type: ignore[attr-defined]
+                success=success,
+                target_binding_match=target_binding_match,
+            )
+
+    def _seal_prewrite_provenance(self, binding: BoundedAt1Input) -> None:
+        transcript_sha256 = hashlib.sha256(binding.transcript_content.encode("utf-8")).hexdigest()
+        expected_note_sha256 = hashlib.sha256(
+            binding.expected_note_content_or_fingerprint.encode("utf-8")
+        ).hexdigest()
+        self._expected_note_sha256 = expected_note_sha256
+        if hasattr(self._transport, "record_prewrite_provenance"):
+            self._transport.record_prewrite_provenance(  # type: ignore[attr-defined]
+                transcript_content=binding.transcript_content,
+                transcript_sha256=transcript_sha256,
+                expected_note_content=binding.expected_note_content_or_fingerprint,
+                expected_note_sha256=expected_note_sha256,
+            )
 
     def _result(
         self,

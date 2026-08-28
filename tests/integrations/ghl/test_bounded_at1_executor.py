@@ -41,8 +41,28 @@ def _context() -> At1ExecutionContext:
     )
 
 
+def _fixture_with_provider_metadata() -> dict[str, Any]:
+    fixture = deepcopy(FIXTURE)
+    binding = fixture["binding"]
+    for case in fixture["cases"].values():
+        for call in case.get("calls", []):
+            record = call.get("response", {}).get("record")
+            if not isinstance(record, dict):
+                continue
+            operation_id = call["operation_id"]
+            if operation_id == "get-contact":
+                record.setdefault("location_id", binding["location_id"])
+            elif operation_id == "get-opportunity":
+                record.setdefault("contact_id", binding["contact_id"])
+                record.setdefault("pipeline_id", binding["pipeline_id"])
+                record.setdefault("location_id", binding["location_id"])
+            elif operation_id == "get-note":
+                record.setdefault("contact_id", binding["contact_id"])
+    return fixture
+
+
 def _executor(case_id: str) -> tuple[BoundedAt1GhlExecutor, DeterministicGhlFixtureTransport]:
-    transport = DeterministicGhlFixtureTransport(FIXTURE, case_id)
+    transport = DeterministicGhlFixtureTransport(_fixture_with_provider_metadata(), case_id)
     return BoundedAt1GhlExecutor(transport), transport
 
 

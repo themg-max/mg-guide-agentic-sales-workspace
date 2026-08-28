@@ -7,9 +7,11 @@
     "location_id": "synthetic-location-at1",
     "contact_id": "synthetic-contact-at1",
     "opportunity_id": "synthetic-opportunity-at1",
+    "pipeline_id": "synthetic-pipeline-at1",
     "expected_initial_stage_id": "synthetic-stage-initial",
     "authorized_final_stage_id": "synthetic-stage-final",
-    "expected_note_content_or_fingerprint": "synthetic-at1-note-fingerprint"
+    "expected_note_content_or_fingerprint": "synthetic-at1-note-fingerprint",
+    "transcript_content": "Synthetic transcript for deterministic AT1 executor."
   },
   "cases": {
     "success": {

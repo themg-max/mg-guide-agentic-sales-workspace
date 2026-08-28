@@ -17,6 +17,7 @@ from .bounded_at1_executor import (
 )
 from .at1_execution_store import (
     At1ExecutionStore,
+    AttemptStateError,
     DuplicateBusinessOrdinalError,
     ExecutionClaimError,
     RunContinuationRefusedError,
@@ -35,6 +36,7 @@ from .read_adapter import (
 __all__ = [
     "At1ExecutionContext",
     "At1ExecutionStore",
+    "AttemptStateError",
     "At1LiveTransportAdapter",
     "At1LiveTransportSerializer",
     "BoundedAt1GhlExecutor",
