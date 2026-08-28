@@ -1,0 +1,319 @@
+# NW-008 — Fresh Private Binding Reconciliation 001
+
+```text
+ARTIFACT_ID=NW008_FRESH_PRIVATE_BINDING_RECONCILIATION_001
+ARTIFACT_PATH=proof/nw008/nw-008-fresh-private-binding-reconciliation-001.md
+ARTIFACT_KIND=SANITIZED_FRESH_PRIVATE_BINDING_RECONCILIATION_PROOF
+UNIT=NW008_FRESH_PRIVATE_BINDING_RECONCILIATION_001
+MODE=ZERO_MUTATION_PRIVATE_PACKAGE_PREPARATION
+PR_CLASS=proof_readonly
+
+PUBLIC_REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+PUBLIC_BASE_SHA=b1356fb93da1a565bab46128504cc795a2ca2a4d
+PR255_MERGED=YES
+PR255_MERGE_SHA=b1356fb93da1a565bab46128504cc795a2ca2a4d
+BRANCH=proof/nw008-fresh-private-binding-reconciliation-001
+
+OWNER=VS_CODE_ORCHESTRATOR
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+HUMAN_MERGE_REQUIRED=YES
+SELF_ACTIVATION=FORBIDDEN
+
+COMPUTED_AT_UTC=2026-08-28T16:04:01Z
+SOURCE_MACHINE_RESULT=local/private/nw008-fresh-private-binding-reconciliation-result-001.json
+```
+
+## 0. Purpose
+
+Construct and reconcile **one** immutable private execution package that binds
+merged PR255 transcript→runner composition provenance to the exact synthetic GHL
+target required for the next one-shot E2E run.
+
+```text
+RUNTIME_CODE_MUTATED=NO
+LIVE_GHL_READ_CALLS=0
+LIVE_GHL_WRITE_CALLS=0
+CRM_MUTATIONS=0
+CREATE_NOTE_ATTEMPTS=0
+UPDATE_OPPORTUNITY_ATTEMPTS=0
+ONE_SHOT_GRANT_CREATED=NO
+GRANT_CREATED=NO
+GRANT_COUNTERSIGNED=NO
+EXECUTION_AUTHORIZED=NO
+NEW_GHL_MUTATION_AUTHORIZED=NO
+SUBMISSION_READY=NO
+GRANT008_REUSED=NO
+PRIVATE_VALUES_PUBLISHED=NO
+```
+
+This unit does **not** draft, countersign, or execute a live grant. It does **not**
+test the package by mutating GHL.
+
+## 1. Authority freeze
+
+```text
+RUNNER_E2E_EVIDENCE_CAPABILITY=READY
+TRANSCRIPT_TO_RUNNER_COMPOSITION_CAPABILITY=READY
+FRESH_V2_STORE_CAPABILITY=READY
+
+FRESH_PRIVATE_BINDING_PACKAGE_RECONCILED=YES
+PRIVATE_BINDING_RECONCILIATION_CAPABILITY=READY
+GRANT_PREPARATION_READY=YES
+
+ONE_SHOT_GRANT_CREATED=NO
+EXECUTION_AUTHORIZED=NO
+NEW_GHL_MUTATION_AUTHORIZED=NO
+SUBMISSION_READY=NO
+```
+
+### 1.1 Controlling inputs
+
+| Role | Artifact / source |
+| --- | --- |
+| Composition capability (merged) | PR255 @ `b1356fb93da1a565bab46128504cc795a2ca2a4d` + `proof/nw008/nw-008-transcript-to-runner-composition-closure-001.md` |
+| Runner/evidence capability | PR253 lineage (on main via PR255 base) |
+| Exact synthetic target identity | `local/private/grant008_private_package.json` (CRM fields only; Grant 008 **not** reused as authority) |
+| Target identity continuity | `proof/nw008/nw-008-current-ghl-synthetic-record-reconciliation-001.md` |
+| Prior private binding process | `proof/nw008/nw-008-at1-grant008-private-binding-reconciliation-pass-001.md` |
+| Authorized final stage authority | `NW008_AT1_FINAL_STAGE_HUMAN_DISPOSITION_CORRECTION_001` |
+| Fresh private package (private) | `local/private/nw008-fresh-private-execution-package-001.json` |
+| Fresh v2 store (private) | `local/private/nw008-fresh-private-execution-store-v2-001/` |
+| Machine result (private) | `local/private/nw008-fresh-private-binding-reconciliation-result-001.json` |
+
+```text
+GRANT008_STATE=CONSUMED
+GRANT008_REUSABLE=NO
+GRANT008_REUSED=NO
+DO_NOT_REUSE_GRANT008_IDEMPOTENCY_KEYS=YES
+DO_NOT_REUSE_GRANT008_EXPECTED_NOTE=YES
+```
+
+## 2. Private package construction (values withheld)
+
+The private package binds the complete logical set:
+
+```text
+SOURCE_TRANSCRIPT_SHA256
+PROCESSOR_OUTPUT_SHA256
+CANONICAL_NOTE_SHA256
+
+LOCATION_ID
+CONTACT_ID
+OPPORTUNITY_ID
+PIPELINE_ID
+EXPECTED_INITIAL_STAGE_ID
+AUTHORIZED_FINAL_STAGE_ID
+
+FRESH_NOTE_IDEMPOTENCY_KEY
+FRESH_STAGE_IDEMPOTENCY_KEY
+
+EXECUTION_STORE_SCHEMA_VERSION=2
+```
+
+Construction rules applied offline:
+
+1. PR255 `TranscriptToRunnerComposition.build` was executed in fixture mode against
+   `fixtures/transcript-success.txt` to capture source transcript, processor
+   output, and processor-derived canonical note commitments.
+2. Exact synthetic CRM/stage target IDs were copied from the Grant 008 private
+   package **identity fields only** (location/contact/opportunity/pipeline/
+   expected-initial/authorized-final), preserving synthetic target continuity
+   already reconfirmed by current-record reconciliation.
+3. Canonical note content is the **PR255 composition-derived** note bytes, not the
+   historical Grant 008 expected-note content.
+4. Fresh note and stage idempotency keys were generated privately, verified
+   distinct from each other, and verified not equal to Grant 008 consumed keys.
+5. A fresh `At1ExecutionStore` schema-v2 SQLite was initialized offline under
+   `local/private/` with a synthetic commitment-key provider (no Secret Manager
+   network call; no GHL call).
+6. A deterministic `PACKAGE_DIGEST` was computed as SHA256 over the canonical JSON
+   of the complete logical package (sorted keys, separators `(',',':')`).
+
+```text
+PRIVATE_PACKAGE_PATH=local/private/nw008-fresh-private-execution-package-001.json
+PRIVATE_PACKAGE_ENV_PATH=local/private/nw008-fresh-private-execution-package-001.env
+PRIVATE_EXECUTION_STORE_PATH=local/private/nw008-fresh-private-execution-store-v2-001/at1_execution_store_v2.sqlite
+RAW_PRIVATE_IDS_PUBLISHED=NO
+RAW_IDEMPOTENCY_KEYS_PUBLISHED=NO
+NOTE_CONTENT_PUBLISHED=NO
+```
+
+## 3. Public-safe package commitments
+
+Copied from the machine result. These are the only package material published.
+
+```text
+PACKAGE_DIGEST=883442bf0ba326231cd0c60cd8568d3732e24fbfa73930a015f4779eae1f2611
+
+SOURCE_TRANSCRIPT_SHA256=1a1a002eb79701d436d199a63ddba0f8e532dd96d1591cc437157e90481a24aa
+PROCESSOR_OUTPUT_SHA256=6738802c9e6041bc4dac009b60956e4c33f8bb233c22c6e85dfb2ca5197b0443
+CANONICAL_NOTE_SHA256=ab4ae4bab5e8e9466638ac92a2e2b893adf9ca7c6ca2e8eff62ba95f4411ada3
+
+LOCATION_FINGERPRINT=5e14ac52bf73156914fc2a017415561e619f76f911c9e509316825f39c5fd614
+CONTACT_FINGERPRINT=6551008e889c0e11f256c480a8a87e0260535ff40983560a4a1cfa2da6e2ee2c
+OPPORTUNITY_FINGERPRINT=4e83afec7e94a109161a40a0957900cb4efcb165f875bf1a4b937a4fa9df6b98
+PIPELINE_FINGERPRINT=2ca9c0cd5bd28d2ba1bce6f849fddb34503b04fc15ba8287d0a84e3cd0453973
+INITIAL_STAGE_FINGERPRINT=8a4d12b7122f0f0e0164f92801e1069ca8cc0f9b984b042ff6dfbef14e48b260
+FINAL_STAGE_FINGERPRINT=e6500595a4ce325b66ebee7c74635282c642cd37fd58fabc4e3c96948f1707d0
+
+NOTE_KEY_COMMITMENT=592cb42181a02faf6422e093236d527072b117cb19b60c52551b11c20e0eaffc
+STAGE_KEY_COMMITMENT=0b1b42e5a3610a421586a9e2552ddd3ac08daa00712d2d2bb414a6da44cabd5a
+```
+
+Any later grant-preparation artifact and human countersignature **must** reference
+the same `PACKAGE_DIGEST`.
+
+## 4. Required private reconciliation predicates (computed)
+
+```text
+SYNTHETIC_ONLY=YES
+
+SOURCE_TRANSCRIPT_COMMITMENT_PRESENT=YES
+PROCESSOR_OUTPUT_COMMITMENT_PRESENT=YES
+CANONICAL_NOTE_COMMITMENT_PRESENT=YES
+
+EXACT_TARGET_CONTACT_BOUND=YES
+CONTACT_LOCATION_BINDING_MATCH=YES
+
+EXACT_TARGET_OPPORTUNITY_BOUND=YES
+OPPORTUNITY_CONTACT_RELATION_MATCH=YES
+OPPORTUNITY_PIPELINE_MATCH=YES
+OPPORTUNITY_LOCATION_MATCH=YES
+
+EXPECTED_INITIAL_STAGE_BOUND=YES
+AUTHORIZED_FINAL_STAGE_BOUND=YES
+
+FRESH_NOTE_IDEMPOTENCY_KEY_READY=YES
+FRESH_STAGE_IDEMPOTENCY_KEY_READY=YES
+WRITE_IDEMPOTENCY_KEYS_DISTINCT=YES
+PRIOR_CONSUMED_KEYS_REUSED=NO
+
+EXECUTION_STORE_SCHEMA_VERSION=2
+FRESH_EXECUTION_STORE_REQUIRED=YES
+FRESH_EXECUTION_STORE_READY=YES
+
+PRIVATE_EXECUTION_PACKAGE_DIGEST_CAPTURED=YES
+PRIVATE_BINDING_RECONCILIATION=PASS
+```
+
+### 4.1 Supporting integrity (sanitized)
+
+```text
+LOCATION_FP_MATCH_GRANT008_POST_CORRECTION=YES
+CONTACT_FP_MATCH_GRANT008_POST_CORRECTION=YES
+OPPORTUNITY_FP_MATCH_GRANT008_POST_CORRECTION=YES
+PIPELINE_FP_MATCH_GRANT008_POST_CORRECTION=YES
+EXPECTED_INITIAL_STAGE_FP_MATCH_GRANT008_POST_CORRECTION=YES
+AUTHORIZED_FINAL_STAGE_FP_MATCH_GRANT008_POST_CORRECTION=YES
+
+CANONICAL_NOTE_DIFFERS_FROM_GRANT008_NOTE=YES
+STAGES_DISTINCT=YES
+ALL_TARGET_FIELDS_PRESENT=YES
+
+RELATION_AUTHORITY_SOURCE=NW008_CURRENT_GHL_SYNTHETIC_RECORD_RECONCILIATION_001+GRANT008_PRIVATE_BINDING_PASS
+RELATION_RECHECKED_LIVE_IN_THIS_UNIT=NO
+```
+
+Relation match predicates are bound from the exact package target IDs plus the
+already-recorded synthetic identity/relation continuity on those same private
+bindings (`CONTACT_LOCATION_MATCH`, `OPPORTUNITY_CONTACT_RELATION_MATCH`,
+`OPPORTUNITY_PIPELINE_MATCH`, `OPPORTUNITY_LOCATION_MATCH`, and expected-initial
+stage class) from
+`proof/nw008/nw-008-current-ghl-synthetic-record-reconciliation-001.md`. This unit
+did **not** re-open a live GHL session to re-read those relations.
+
+## 5. Explicit non-actions
+
+```text
+DID_NOT_CALL_GHL=YES
+DID_NOT_CREATE_NOTE=YES
+DID_NOT_UPDATE_OPPORTUNITY=YES
+DID_NOT_MUTATE_CRM=YES
+DID_NOT_DRAFT_LIVE_GRANT=YES
+DID_NOT_COUNTERSIGN=YES
+DID_NOT_EXECUTE=YES
+DID_NOT_REUSE_GRANT008=YES
+DID_NOT_REUSE_GRANT008_IDEMPOTENCY_KEYS=YES
+DID_NOT_PUBLISH_RAW_PRIVATE_IDS=YES
+DID_NOT_PUBLISH_NOTE_CONTENT=YES
+DID_NOT_PUBLISH_IDEMPOTENCY_KEYS=YES
+DID_NOT_PUBLISH_TOKENS_OR_PIT=YES
+DID_NOT_MODIFY_RUNTIME_SOURCE=YES
+DID_NOT_CLAIM_SUBMISSION_READY=YES
+DID_NOT_CLAIM_LIVE_E2E_PASS=YES
+```
+
+## 6. Grant-preparation gate
+
+```text
+FRESH_PRIVATE_BINDING_PACKAGE_RECONCILED=YES
+PRIVATE_BINDING_RECONCILIATION=PASS
+PRIVATE_EXECUTION_PACKAGE_DIGEST_CAPTURED=YES
+NO_UNKNOWN_REQUIRED_FIELD=YES
+GRANT_PREPARATION_READY=YES
+```
+
+`GRANT_PREPARATION_READY=YES` means offline prerequisites for drafting a future
+one-shot grant package are resolved. It does **not** create a grant, does **not**
+countersign, and does **not** authorize execution.
+
+```text
+ONE_SHOT_GRANT_CREATED=NO
+EXECUTION_AUTHORIZED=NO
+NEW_GHL_MUTATION_AUTHORIZED=NO
+SUBMISSION_READY=NO
+```
+
+## 7. Return block
+
+```text
+ARTIFACT_ID=NW008_FRESH_PRIVATE_BINDING_RECONCILIATION_001
+ARTIFACT_PATH=proof/nw008/nw-008-fresh-private-binding-reconciliation-001.md
+
+BASE_SHA=b1356fb93da1a565bab46128504cc795a2ca2a4d
+PR255_MERGED=YES
+PR255_MERGE_SHA=b1356fb93da1a565bab46128504cc795a2ca2a4d
+
+TRANSCRIPT_TO_RUNNER_COMPOSITION_CAPABILITY=READY
+PRIVATE_BINDING_RECONCILIATION_CAPABILITY=READY
+FRESH_PRIVATE_BINDING_PACKAGE_RECONCILED=YES
+FRESH_V2_STORE_CAPABILITY=READY
+RUNNER_E2E_EVIDENCE_CAPABILITY=READY
+
+PRIVATE_EXECUTION_PACKAGE_DIGEST_CAPTURED=YES
+PACKAGE_DIGEST=883442bf0ba326231cd0c60cd8568d3732e24fbfa73930a015f4779eae1f2611
+PRIVATE_BINDING_RECONCILIATION=PASS
+
+CONTACT_LOCATION_BINDING_MATCH=YES
+OPPORTUNITY_CONTACT_RELATION_MATCH=YES
+OPPORTUNITY_PIPELINE_MATCH=YES
+OPPORTUNITY_LOCATION_MATCH=YES
+EXPECTED_INITIAL_STAGE_BOUND=YES
+AUTHORIZED_FINAL_STAGE_BOUND=YES
+
+FRESH_NOTE_IDEMPOTENCY_KEY_READY=YES
+FRESH_STAGE_IDEMPOTENCY_KEY_READY=YES
+WRITE_IDEMPOTENCY_KEYS_DISTINCT=YES
+PRIOR_CONSUMED_KEYS_REUSED=NO
+
+LIVE_GHL_READ_CALLS=0
+LIVE_GHL_WRITE_CALLS=0
+CRM_MUTATIONS=0
+CREATE_NOTE_ATTEMPTS=0
+UPDATE_OPPORTUNITY_ATTEMPTS=0
+
+ONE_SHOT_GRANT_CREATED=NO
+EXECUTION_AUTHORIZED=NO
+SUBMISSION_READY=NO
+
+GRANT_PREPARATION_READY=YES
+
+NEXT=RETURN_PR_TO_CHATGPT_FOR_GOVERNANCE_REVIEW_THEN_GRANT_PREPARATION_UNIT
+STOP_CODE=NW008_FRESH_PRIVATE_BINDING_RECONCILIATION_001_PASS_GRANT_PREP_READY_NO_EXECUTION
+```
+
+## 8. Stop
+
+Open **one** proof-only PR with this artifact. Do not merge automatically. Do not
+draft or countersign a grant in this unit. Do not execute live GHL. Return the PR
+number and head SHA to ChatGPT for governance review.
