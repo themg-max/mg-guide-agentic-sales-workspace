@@ -1,0 +1,443 @@
+# NW-008 AT8W30 R3 Designated Private Execution-Root Rebinding Authorization 001
+
+## 1. Authorization identity and classification
+
+```text
+AUTHORIZATION_ID=
+  NW008_AT8W30_R3_DESIGNATED_PRIVATE_EXECUTION_ROOT_REBINDING_AUTHORIZATION_001
+
+UNIT=
+  NW008_AT8W30_R3_DESIGNATED_PRIVATE_EXECUTION_ROOT_REBINDING_AUTHORIZATION_001
+
+CLASSIFICATION=authorization
+PR_CLASS=authorization
+AUTHORIZATION_CLASS=private_control_plane_root_rebinding_and_persistence_remediation
+MODE=PRIVATE_CONTROL_PLANE_ROOT_REBINDING_AUTHORIZATION_ONLY
+
+ARTIFACT_OWNER=VS_CODE_ORCHESTRATOR
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+HUMAN_GOVERNANCE_SOURCE_CUSTODIAN=REQUIRED
+HUMAN_GOVERNANCE_RETAINS_MERGE_AUTHORITY=YES
+
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+AUTHORIZATION_ARTIFACT=
+  governance/authorizations/nw008-at8w30-r3-designated-private-execution-root-rebinding-authorization-001.md
+AUTHORIZATION_BRANCH=
+  auth/nw008-at8w30-r3-designated-private-execution-root-rebinding-001
+
+STATUS_AT_AUTHORING=PROPOSED_PENDING_HUMAN_REVIEW_AND_MERGE
+AUTHORIZATION_STATE_AT_AUTHORING=PROPOSED_NOT_EFFECTIVE
+SELF_ACTIVATION=FORBIDDEN
+HUMAN_MERGE_REQUIRED=YES
+
+PURPOSE=
+  AUTHORIZE_EXACTLY_ONE_BOUNDED_FUTURE_PRIVATE_CONTROL_PLANE_PROVISIONING_AND
+  _REMEDIATION_UNIT_THAT_MAKES_THE_ALREADY_GOVERNED_DESIGNATED_PRIVATE_EXECUTION
+  _ROOT_POINTER_DURABLY_RESOLVE_ACROSS_FRESH_PROCESSES_TO_AN_OWNER_CONTROLLED
+  _LOCAL_CHECKOUT_OF_THE_EXPECTED_PRIVATE_REPOSITORY_AT_THE_EXACT_EXPECTED_HEAD
+  _WITHOUT_REDESIGNING_THE_PRIVATE_OWNER_IMPLEMENTATION_AND_WITHOUT_EXECUTING_OR
+  _CONSUMING_THE_PR233_R3_ONE_SHOT_GRANT
+
+THIS_ARTIFACT_IMPLEMENTS_REBINDING=NO
+THIS_ARTIFACT_MUTATES_DESIGNATED_ROOT=NO
+THIS_ARTIFACT_MUTATES_DESIGNATED_POINTER=NO
+THIS_ARTIFACT_EXECUTES_R3=NO
+THIS_ARTIFACT_CALLS_HIGHLEVEL=NO
+THIS_ARTIFACT_MUTATES_MG_GUIDE_RUNTIME=NO
+THIS_ARTIFACT_MODIFIES_PRIVATE_OWNER_IMPLEMENTATION=NO
+AUTHORIZATION_ONLY=YES
+```
+
+This artifact creates only a bounded future private-control-plane rebinding and
+persistence-remediation authorization. Authoring, reviewing, committing, pushing,
+or merging it does not rebind any root, mutate any pointer, create or remove any
+worktree, execute R3, construct target-runtime credentials, impersonate, mint
+tokens, read secret payloads, open SQLite, assemble the production runtime,
+instantiate a HighLevel client or transport, dispatch HTTP, call HighLevel,
+mutate CRM or IAM, deploy, publish private locators, or change MG Guide runtime
+code.
+
+```text
+AUTHORED_AT_LOCAL=2026-08-28T05:50:46-0400
+AUTHORED_AT_UTC=2026-08-28T09:50:46Z
+BASE_REF=origin/main
+BASE_SHA=
+  a91412b97844950234f8fe0ae821def590b766ce
+```
+
+---
+
+## 2. Authority basis
+
+```text
+PR241_STATE=MERGED
+PR241_MERGE_COMMIT=
+  a91412b97844950234f8fe0ae821def590b766ce
+
+PR241_RECORDED_R3_RESULT=BLOCKED_PRE_TRIGGER
+PR241_RECORDED_STOP_CODE=
+  VALIDATED_PRIVATE_EXECUTION_ROOT_UNAVAILABLE_OR_CHANGED
+PR241_RECORDED_CREDENTIAL_CONSTRUCTION_TRIGGER_CROSSED=NO
+PR241_RECORDED_PR233_AUTHORIZATION_CONSUMED=NO
+PR241_RECORDED_R3_EXECUTION_ATTEMPTS_USED=0
+
+PRIVATE_REPOSITORY=themg-max/A.I-Rolodex---Context
+PRIVATE_EXPECTED_PR=3137
+PRIVATE_EXPECTED_HEAD=
+  80246678322d5151fef7eac35c2183e90cbd770d
+LIVE_PRIVATE_MAIN_MATCHES_EXPECTED_HEAD=YES
+
+PRIOR_PROVISIONING_AUTHORITY=PR225
+PRIOR_PROVISIONING_AUTHORITY_STATE=CONSUMED
+PRIOR_PROVISIONING_AUTHORITY_REUSABLE=NO
+
+NEW_R3_EXECUTION_AUTHORIZATION_REQUIRED=NO
+NEW_ROOT_REBINDING_AUTHORIZATION_REQUIRED=YES
+```
+
+The durable main-lineage record from PR241 establishes that the R3 GET-contact
+execution unit stopped at the private-root gate strictly before the irreversible
+consumption trigger, because the designated private execution root no longer
+resolved to the expected private repository head. The private authoritative main
+still carries the expected head, so the defect is local root binding and
+persistence, not private dependency content.
+
+The prior private-owner execution-surface provisioning authority was one-shot and
+is already consumed, so it cannot be reused to correct the binding. This artifact
+supplies the missing, narrowly scoped remediation authority and nothing else.
+
+---
+
+## 3. Authorization relationship to PR233
+
+```text
+PR233_REMAINS_SOLE_R3_EXECUTION_AUTHORITY=YES
+R3_EXECUTION_AUTHORITY_SOURCE=PR233_ONLY
+
+THIS_AUTHORIZATION_EXECUTES_R3=NO
+THIS_AUTHORIZATION_REPLACES_PR233=NO
+THIS_AUTHORIZATION_CONSUMES_PR233=NO
+THIS_AUTHORIZATION_EXTENDS_PR233=NO
+THIS_AUTHORIZATION_ALTERS_PR233_SCOPE=NO
+THIS_AUTHORIZATION_ALTERS_PR233_HARD_MAXIMUMS=NO
+
+R4_AUTHORIZED=NO
+R4_PERFORMED=NO
+```
+
+PR233 is untouched by this grant. Throughout the authorized remediation, and at
+its terminal state, the following MUST continue to hold:
+
+```text
+PR233_AUTHORIZATION_STATE=AVAILABLE_UNCONSUMED
+PR233_AUTHORIZATION_CONSUMED=NO
+R3_EXECUTION_ATTEMPTS_USED=0
+```
+
+---
+
+## 4. Authorized future private effects
+
+The authorized remediation unit MAY:
+
+```text
+INSPECT_CURRENT_DESIGNATED_PROVISIONED_ROOT_STATE=ALLOWED
+VERIFY_REPOSITORY_IDENTITY=ALLOWED
+VERIFY_REMOTE_EXPECTED_HEAD=ALLOWED
+ESTABLISH_EXCLUSIVE_OWNERSHIP_OF_NEW_R3_EXECUTION_WORKTREE=ALLOWED
+CREATE_ONE_FRESH_STABLE_OWNER_CONTROLLED_DETACHED_WORKTREE_AT_EXPECTED_HEAD=ALLOWED
+BIND_OR_REBIND_GOVERNED_DESIGNATED_EXECUTION_SURFACE_ROOT_POINTER=ALLOWED
+RETIRE_OBSOLETE_EPHEMERAL_R3_WORKTREE_ONLY_WHEN_EXCLUSIVE_OWNERSHIP_AND_CLEAN_STATE_PROVEN=ALLOWED
+VALIDATE_DURABLE_POINTER_PERSISTENCE=ALLOWED
+VALIDATE_MODULE_ORIGIN_UNDER_DESIGNATED_ROOT=ALLOWED
+RUN_NON_CONSUMING_PRIVATE_OWNER_READINESS_CHECKS=ALLOWED
+RECORD_SANITIZED_PRIVATE_REMEDIATION_EVIDENCE=ALLOWED
+CREATE_THE_SINGLE_AUTHORIZED_SANITIZED_PUBLIC_START_GATE_PROOF=ALLOWED
+```
+
+Bounded quantities:
+
+```text
+NEW_OWNER_CONTROLLED_WORKTREE_CREATIONS_MAX=1
+DESIGNATED_POINTER_REBINDS_MAX=1
+OBSOLETE_EPHEMERAL_WORKTREE_RETIREMENTS_MAX=1
+PUBLIC_START_GATE_PROOF_ARTIFACTS_MAX=1
+```
+
+### 4.1 Non-arbitrary-reset constraint
+
+```text
+ARBITRARY_RESET_OF_UNRELATED_CHECKOUT=FORBIDDEN
+FORCED_CHECKOUT_OF_UNRELATED_BRANCH=FORBIDDEN
+DISCARDING_UNCOMMITTED_WORK_IN_ANY_CHECKOUT=FORBIDDEN
+```
+
+If the currently divergent worktree has uncertain ownership, it MUST be left
+unchanged. The remediation unit MUST prefer provisioning a new dedicated
+owner-controlled root over reusing or resetting a checkout it does not
+exclusively own. Retirement of an obsolete ephemeral R3 worktree is permitted
+only after exclusive ownership and a clean state are both proven.
+
+---
+
+## 5. Blocked effects
+
+```text
+R3_EXECUTION=BLOCKED
+R4_EXECUTION=BLOCKED
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTION=BLOCKED
+SERVICE_ACCOUNT_IMPERSONATION=BLOCKED
+TOKEN_MINT=BLOCKED
+SECRET_MANAGER_CLIENT_INSTANTIATION_FOR_R3=BLOCKED
+SECRET_PAYLOAD_READ=BLOCKED
+SQLITE_OPEN=BLOCKED
+PRODUCTION_RUNTIME_ASSEMBLY=BLOCKED
+HIGHLEVEL_CLIENT_INSTANTIATION=BLOCKED
+HIGHLEVEL_TRANSPORT_INSTANTIATION=BLOCKED
+HIGHLEVEL_CALL=BLOCKED
+HTTP_REQUEST_DISPATCH=BLOCKED
+GET_CONTACT_ATTEMPT=BLOCKED
+GET_OPPORTUNITY_ATTEMPT=BLOCKED
+SEARCH=BLOCKED
+LIST=BLOCKED
+PAGINATION=BLOCKED
+NOTE_WRITE=BLOCKED
+STAGE_WRITE=BLOCKED
+CRM_MUTATION=BLOCKED
+IAM_MUTATION=BLOCKED
+SECRET_MUTATION=BLOCKED
+DEPLOYMENT=BLOCKED
+MG_GUIDE_RUNTIME_MUTATION=BLOCKED
+PRIVATE_OWNER_SOURCE_MODIFICATION=BLOCKED
+PRIVATE_OWNER_TEST_MODIFICATION=BLOCKED
+PRIVATE_IDENTIFIER_PUBLICATION=BLOCKED
+PRIVATE_LOCATOR_PUBLICATION=BLOCKED
+CREDENTIAL_PUBLICATION=BLOCKED
+TOKEN_PUBLICATION=BLOCKED
+SECRET_PAYLOAD_PUBLICATION=BLOCKED
+RAW_PROVIDER_RESPONSE_PUBLICATION=BLOCKED
+```
+
+Any encounter with a blocked effect terminates the remediation unit fail-closed.
+
+---
+
+## 6. Future remediation authorization lifecycle
+
+```text
+ONE_SHOT=YES
+REUSABLE=NO
+TRANSFERABLE=NO
+FAILURE_RESTORES_AUTHORITY=NO
+
+AUTHORIZATION_CONSUMPTION_TRIGGER=
+  FIRST_PRIVATE_CONTROL_PLANE_DESIGNATED_ROOT_OR_POINTER_MUTATION_ATTEMPT_BY_THE
+  _AUTHORIZED_REBINDING_UNIT
+```
+
+At the instant that first mutation, install, or rebind attempt begins, the
+remediation unit MUST persist:
+
+```text
+ROOT_REBINDING_AUTHORIZATION_CONSUMED=YES
+ROOT_REBINDING_ATTEMPTS_USED=1
+```
+
+This state transition MUST occur before relying on a successful worktree
+creation, pointer write, persistence validation, module-origin validation, or
+readiness result. Failure after the trigger does not restore the grant and does
+not authorize a second remediation attempt.
+
+Read-only inspection and verification performed strictly before the first
+mutation attempt do not consume the grant. If the unit stops before that first
+mutation attempt, it MUST record:
+
+```text
+ROOT_REBINDING_AUTHORIZATION_CONSUMED=NO
+ROOT_REBINDING_ATTEMPTS_USED=0
+```
+
+PR233 state is independent of this lifecycle and MUST remain unconsumed with zero
+R3 execution attempts used in every outcome.
+
+---
+
+## 7. Persistence acceptance requirement
+
+```text
+REMEDIATION_PROCESS_MUST_EXIT_BEFORE_FINAL_START_GATE=YES
+FINAL_START_GATE_RUNS_IN_COMPLETELY_FRESH_PROCESS=YES
+IN_PROCESS_START_GATE_ACCEPTANCE=FORBIDDEN
+```
+
+The fresh start-gate process MUST resolve the private root only from the governed
+designated surface:
+
+```text
+PRIVATE_ROOT_SOURCE=DESIGNATED_PROVISIONED_SURFACE_ONLY
+PRIVATE_ROOT_ENV_OVERRIDE_USED=NO
+PRIVATE_ROOT_TRANSCRIPT_DERIVED=NO
+PRIVATE_ROOT_BROAD_FILESYSTEM_SEARCH=NO
+PRIVATE_ROOT_NEAREST_GIT_ROOT_FALLBACK=NO
+PRIVATE_ROOT_ALTERNATE_CHECKOUT_FALLBACK=NO
+```
+
+Required start-gate assertions:
+
+```text
+PRIVATE_DESIGNATED_ROOT_PRESENT=YES
+PRIVATE_RESOLVED_REPO_IS_EXPECTED_REPOSITORY=YES
+
+PRIVATE_RESOLVED_HEAD=
+  80246678322d5151fef7eac35c2183e90cbd770d
+
+PRIVATE_EXPECTED_HEAD_MATCH=YES
+PRIVATE_WORKTREE_CLEAN_OR_EXPECTED=YES
+PRIVATE_OWNER_MODULE_LOADABLE=YES
+PRIVATE_OWNER_MODULE_ORIGIN_WITHIN_DESIGNATED_ROOT=YES
+
+GENUINE_PRIVATE_ANCHOR_PRESENT=YES
+GENUINE_RESOLVER_PRESENT=YES
+GENUINE_PROVISION_RECOGNITION=PASS
+
+CONSUMER_AUTH_IDENTITY_MATCH=PASS
+WORKFLOW_RUN_IDENTITY_MATCH=PASS
+
+PRIVATE_BINDING_CONTINUITY=PASS
+PROCESS_LOCAL_MEMBERSHIP_READY=YES
+PRIVATE_PROVENANCE_READY=YES
+```
+
+Required zero-effect counters at start gate:
+
+```text
+TARGET_RUNTIME_CREDENTIAL_OBJECT_CONSTRUCTIONS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SERVICE_ACCOUNT_ACCESS_TOKEN_MINTS=0
+SECRET_MANAGER_CLIENT_INSTANTIATIONS=0
+SECRET_PAYLOAD_READS=0
+AT1_EXECUTION_STORE_CONSTRUCTIONS=0
+PRODUCTION_RUNTIME_ASSEMBLY=0
+HIGHLEVEL_CALLS=0
+HTTP_REQUEST_DISPATCHES=0
+GET_CONTACT_ATTEMPTS=0
+
+PR233_AUTHORIZATION_CONSUMED=NO
+R3_EXECUTION_ATTEMPTS_USED=0
+
+PRIVATE_VALUES_DISCLOSED=NO
+```
+
+If any required start-gate assertion fails, the start gate is recorded as not
+accepted, the designated root remains as provisioned, and no R3 execution process
+may be opened.
+
+---
+
+## 8. Authorized future public proof
+
+```text
+AUTHORIZED_FUTURE_PUBLIC_PROOF_PATH=
+  proof/nw008/at-8w30/nw008-at8w30-r3-post-pr241-private-root-rebinding-start-gate-acceptance-001.md
+
+AUTHORIZED_FUTURE_PUBLIC_PROOF_ARTIFACT_COUNT=1
+SECOND_AUTHORIZATION_REQUIRED_TO_RECORD_START_GATE_RESULT=NO
+```
+
+Creation of exactly that sanitized proof path after remediation is explicitly
+allowed under this grant, for either an accepted or a not-accepted start-gate
+result, so that no additional authorization is required merely to record the
+outcome.
+
+### 8.1 The public proof MAY disclose
+
+```text
+expected private PR number
+expected private merge SHA
+repository identity match YES/NO
+head match YES/NO
+worktree clean YES/NO
+module origin match YES/NO
+sanitized readiness booleans
+zero-effect counters
+PR233 unconsumed state
+start-gate result
+sanitized stop code
+```
+
+### 8.2 The public proof MUST NOT disclose
+
+```text
+private root filesystem path
+private locator
+contact ID
+location ID
+credentials
+tokens
+secret payloads
+opaque reference internals
+raw provider response
+unrelated private data
+```
+
+---
+
+## 9. Authorization PR scope
+
+```text
+CHANGED_PATHS=
+  governance/authorizations/nw008-at8w30-r3-designated-private-execution-root-rebinding-authorization-001.md
+CHANGED_PATH_COUNT=1
+STAGING_MODE=PATH_SPECIFIC_ONLY
+BULK_STAGING_USED=NO
+```
+
+Paths that MUST NOT be modified by this authorization PR:
+
+```text
+src/**
+tests/**
+contracts/**
+.github/workflows/**
+deploy/**
+infra/**
+private implementation source
+existing authorization artifacts
+existing execution proofs
+```
+
+---
+
+## 10. Terminal authoring disposition
+
+```text
+AUTHORIZATION_ID=
+  NW008_AT8W30_R3_DESIGNATED_PRIVATE_EXECUTION_ROOT_REBINDING_AUTHORIZATION_001
+
+R3_EXECUTION_PERFORMED=NO
+ROOT_REBINDING_PERFORMED=NO
+DESIGNATED_ROOT_MUTATED=NO
+DESIGNATED_POINTER_MUTATED=NO
+PRIVATE_WORKTREE_CREATED=NO
+PRIVATE_WORKTREE_REMOVED=NO
+
+PR233_AUTHORIZATION_STATE=AVAILABLE_UNCONSUMED
+PR233_AUTHORIZATION_CONSUMED=NO
+R3_EXECUTION_ATTEMPTS_USED=0
+
+ROOT_REBINDING_AUTHORIZATION_CONSUMED=NO
+ROOT_REBINDING_ATTEMPTS_USED=0
+
+R4_AUTHORIZED=NO
+R4_PERFORMED=NO
+
+PRIVATE_VALUES_DISCLOSED=NO
+RAW_PROVIDER_RESPONSE_DISCLOSED=NO
+
+STOP_CODE=AUTHORIZATION_ARTIFACT_OPEN_FOR_INDEPENDENT_GOVERNANCE_REVIEW
+```
+
+This authorization is proposed and not effective. It becomes effective only on
+independent human governance review and merge. The remediation it describes MUST
+be performed by a separate future unit, never by the authoring unit, and the
+authoring unit performed no private mutation of any kind.
