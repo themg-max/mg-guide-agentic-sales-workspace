@@ -178,26 +178,48 @@ STRUCTURAL_FACT_3=
   TARGET_SA_TOKEN_CREATOR_POLICY_READ=NO
   PROJECT_TOKEN_CREATOR_POLICY_READ=NO
 
-RUNTIME_ADC_SOURCE_PRINCIPAL_CORRELATION=MISMATCH
+LOCAL_RUNTIME_ADC_WRAPPER_CLASS=
+  google.auth.impersonated_credentials.Credentials
+
+LOCAL_RUNTIME_ADC_PRECONFIGURED_IMPERSONATION_PRESENT=YES
+
+LOCAL_ADC_EMBEDDED_IMPERSONATION_TARGET_MATCHES_MG_GUIDE_TARGET_SA=NO
+
+GOVERNED_SOURCE_PRINCIPAL_CORRELATION=UNKNOWN
+
+RUNTIME_IDENTITY_PARITY_WITH_AT8W24=NO
+
+IAM_REMEDIATION_REQUIRED=UNKNOWN
+CREDENTIAL_CONTROL_PLANE_READY=NO
+GRANT_002_PREPARATION_READY=NO
+
 PRIVATE_PRINCIPAL_PUBLISHED=NO
 
 RATIONALE=
-  The runtime-resolved credential chain is structurally different in kind
-  (impersonated_credentials wrapping an unrelated impersonation target)
-  from the previously governed/correlated source principal basis
-  (a plain authorized_user identity), and its embedded impersonation
-  target is confirmed (boolean-only) to NOT be the exact target service
-  account required for GRANT_002. This is sufficient to determine the
-  runtime-selected source principal does not correlate to the governed
-  designation without needing to print or persist either principal value.
+  The prior wording of this section ("RUNTIME_ADC_SOURCE_PRINCIPAL_
+  CORRELATION=MISMATCH") overstated what was actually established. The
+  workstation's default ADC file happened to be locally configured as an
+  impersonated_service_account wrapper (source_credentials +
+  service_account_impersonation_url) whose embedded impersonation target
+  is a different service account than the MG Guide runtime target SA.
+  That is evidence of *local ADC configuration drift on this workstation*
+  — it says nothing, by itself, about whether the underlying
+  privately-governed human source principal (the one previously
+  correlated in NW008 AT8W24 as ADC_CREDENTIAL_TYPE=authorized_user)
+  still holds the required project/SA-level roles/iam.
+  serviceAccountTokenCreator grant. No evidence was gathered in this unit
+  that speaks to that underlying governed-principal question either way,
+  so the correlation is correctly recorded as UNKNOWN rather than
+  MISMATCH, and the control plane is treated as fail-closed pending a
+  revalidation performed through a clean, isolated ADC (see Section 8).
 ```
 
 ## 6. Effective token-creator revalidation — NOT PERFORMED
 
 ```text
 STEP=EFFECTIVE_TOKEN_CREATOR_REVALIDATION
-GATING_CONDITION=RUNTIME_ADC_SOURCE_PRINCIPAL_CORRELATION == MATCH
-GATING_CONDITION_MET=NO (correlation = MISMATCH)
+GATING_CONDITION=GOVERNED_SOURCE_PRINCIPAL_CORRELATION == MATCH
+GATING_CONDITION_MET=NO (correlation = UNKNOWN)
 
 PER_INSTRUCTION=
   "If correlation is not MATCH: EFFECTIVE_PERMISSION_EVALUATION_VALID=NO,
@@ -224,17 +246,22 @@ GRANT_002_PREPARATION_READY=NO
 
 STOP_TRIGGERED=YES
 STOP_REASON=
-  RUNTIME_ADC_SOURCE_PRINCIPAL_CORRELATION resolved to MISMATCH rather than
-  MATCH. Per instruction, effective Token Creator revalidation against the
-  target service account was NOT performed using this runtime identity,
-  and no IAM remediation scope is being proposed in this unit because the
-  correct source principal (the one that should hold, or be evaluated for,
-  roles/iam.serviceAccountTokenCreator on the target SA) has not yet been
-  established for the actual production runtime path. Local pinned-venv
-  google.auth.default() resolution in this workstation environment is
-  itself only a proxy for the deployed production runtime's credential
-  resolution and should not be treated as equivalent to it without an
-  explicit, separately governed identity-parity confirmation.
+  GOVERNED_SOURCE_PRINCIPAL_CORRELATION resolved to UNKNOWN rather than
+  MATCH. This unit's normalization corrected an earlier overstatement
+  (RUNTIME_ADC_SOURCE_PRINCIPAL_CORRELATION=MISMATCH): the observed
+  impersonated_credentials wrapper with a non-matching embedded
+  impersonation target is evidence of local ADC configuration drift on
+  this workstation, not proof that the underlying governed human source
+  principal lacks the required grant. Per instruction, effective Token
+  Creator revalidation against the target service account was NOT
+  performed using this ambiguous runtime identity, and no IAM
+  remediation scope is being proposed in this unit because the correct
+  source principal's actual standing has not yet been established via a
+  clean, isolated ADC. Local pinned-venv google.auth.default() resolution
+  in this workstation environment is itself only a proxy for the
+  deployed production runtime's credential resolution and should not be
+  treated as equivalent to it without an explicit, separately governed
+  identity-parity confirmation.
 
 NEXT=
   RETURN_RUNTIME_IDENTITY_REVALIDATION_PR_TO_CHATGPT
@@ -242,7 +269,60 @@ NEXT=
   remediation authorization scope from this unit)
 ```
 
-## 8. Prohibited-effects attestation
+## 8. Isolated ADC config + blocked human-operator login (this amendment)
+
+```text
+STEP=CREATE_ISOLATED_CLOUD_SDK_CONFIG
+WORKTREE_ROOT=
+  /Users/achandler/Google_DevPost/mg-guide-agentic-sales-workspace
+NW008_GCLOUD_CONFIG=
+  local/runtime/nw008-stage-provider-validation/gcloud-config
+NW008_GCLOUD_CONFIG_CREATED=YES
+NW008_GCLOUD_CONFIG_IS_GIT_IGNORED=YES
+EXISTING_WORKSTATION_ADC_COPIED_INTO_ISOLATED_CONFIG=NO
+NW008_GCLOUD_CONFIG_CONTENTS_AFTER_SETUP=EMPTY
+
+STEP=HUMAN_ADC_LOGIN
+REQUIRED_COMMAND=
+  CLOUDSDK_CONFIG=<isolated NW008_GCLOUD_CONFIG path> \
+    gcloud auth application-default login
+REQUIRED_COMMAND_MUST_NOT_INCLUDE=
+  --impersonate-service-account
+COMMAND_EXECUTED_BY_AGENT=NO
+REASON=
+  This step requires an interactive human/browser OAuth consent flow
+  authenticating the exact privately governed source identity from the
+  prior NW008 AT8W24 correlation. The agent cannot supply that consent
+  or principal on the human operator's behalf, and no human operator was
+  available in this turn to complete it interactively. Per the action's
+  own framing ("Human operator:"), this step is intentionally left to a
+  human to perform out-of-band.
+HUMAN_ADC_LOGIN_COMPLETED=NO
+
+STEPS_4_5_6_STATUS=BLOCKED_PENDING_HUMAN_ADC_LOGIN
+STEP_4_PINNED_RUNTIME_REVALIDATION=NOT_PERFORMED
+STEP_5_PRIVATE_CORRELATION=NOT_PERFORMED
+STEP_6_SAME_CREDENTIAL_IAM_TEST=NOT_PERFORMED
+
+GOVERNED_SOURCE_PRINCIPAL_CORRELATION=UNKNOWN
+FAIL_CLOSED=YES
+
+# No secret payload, token, ADC JSON, or principal was read, minted,
+# printed, or persisted while probing/creating the isolated config
+# directory. The isolated config directory remains empty.
+
+NEXT_FOR_HUMAN_OPERATOR=
+  1. Run, in your own terminal (not relayed through this agent):
+     CLOUDSDK_CONFIG=local/runtime/nw008-stage-provider-validation/gcloud-config \
+       gcloud auth application-default login
+     (do NOT pass --impersonate-service-account)
+  2. Authenticate as the exact privately governed NW008 source identity.
+  3. Notify the orchestrator that login is complete so Steps 4-6 of this
+     unit (pinned-runtime revalidation, private correlation, and the
+     same-credential testIamPermissions check) can proceed.
+```
+
+## 9. Prohibited-effects attestation
 
 ```text
 IAM_MUTATIONS=0
@@ -255,7 +335,7 @@ GHL_CALLS=0
 CRM_MUTATIONS=0
 ```
 
-## 9. Git
+## 10. Git
 
 ```text
 GIT_DIFF_CHECK=CLEAN
@@ -263,4 +343,5 @@ STAGED_PATHS=
   proof/nw008/nw-008-at1-ghl-rest-v3-stage-provider-contract-validation-runtime-identity-revalidation-001.md
 GIT_ADD_DOT_USED=NO
 MERGE_PERFORMED=NO
+AMENDMENT_TO=PR276
 ```
