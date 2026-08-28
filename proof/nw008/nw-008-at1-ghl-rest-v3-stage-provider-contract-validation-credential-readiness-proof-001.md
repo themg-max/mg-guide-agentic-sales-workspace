@@ -10,8 +10,7 @@ PR_CLASS=proof_only
 UNIT=
   NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_CREDENTIAL_READINESS_001
 ACTION=
-  REMEDIATE_NW008_STAGE_PROVIDER_VALIDATION_CREDENTIAL_RUNTIME_AND_PROVE_READINESS
-ACTION_TYPE=create
+  PREPARE_NW008_STAGE_PROVIDER_VALIDATION_RUNTIME_FOR_FRESH_GRANT_002
 OWNER=VS_CODE_ORCHESTRATOR
 
 PUBLIC_REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
@@ -21,26 +20,22 @@ PROOF_BRANCH_IS_MAIN=NO
 BASE_REF=origin/main
 BASE_SHA=b0df125e905b4d81b170f0ae16ccbb511b8662b6
 
-RECORDED_AT_UTC=2026-08-28T20:45:31Z
+RECORDED_AT_UTC=2026-08-28T20:49:08Z
 ```
 
 ## 0. Authority boundary
 
-This unit restores a host-local gitignored interpreter from already-declared
-manifest dependencies and proves import/composition readiness. It does **not**
-retry GRANT_001, access Secret Manager payloads, mint tokens, impersonate over
-the network, call HighLevel, or mutate CRM/IAM.
+This unit pins one worktree-local gitignored runtime from the already-pinned
+repository `requirements.txt` and proves deterministic import/`pip` readiness
+for a **future** GRANT_002. It does **not** retry GRANT_001, resolve ADC,
+impersonate, read secrets, or call HighLevel.
 
 ```text
 GRANT_001_CONSUMED=YES
 GRANT_001_RETRY_AUTHORIZED=NO
 GRANT_001_REUSE_AUTHORIZED=NO
 SECOND_EXECUTION_UNDER_GRANT_001=FORBIDDEN
-
-LAST_STOP_CODE=
-  NW008_STAGE_PROVIDER_CONTRACT_VALIDATION_FAIL_CREDENTIAL_ACQUISITION_AFTER_CONSUMPTION_ZERO_BUSINESS_CALLS
-LAST_PROVIDER_BUSINESS_CALLS=0
-LAST_CRM_MUTATIONS=0
+DO_NOT_EXECUTE_PROVIDER_CALLS_UNDER_GRANT_001=YES
 
 VALIDATION_EXECUTION_AUTHORIZED=NO
 THREE_CALL_REST_VALIDATION_AUTHORIZED=NO
@@ -54,82 +49,71 @@ SELF_ACTIVATION=FORBIDDEN
 WORKSPACE_MATCH=YES
 BRANCH_NOT_MAIN=YES
 ABORT_IF_BRANCH_MAIN=YES
-LOCAL_PRIVATE_LANE_GITIGNORED=YES
+LOCAL_LANE_GITIGNORED=YES
 ORIGIN_MAIN_SHA=b0df125e905b4d81b170f0ae16ccbb511b8662b6
 ```
 
-`local/` remains gitignored (`.gitignore` rule `local/`). The isolated
-interpreter created by this unit is therefore not a public-tree change.
-
-## 2. Root cause (recorded, not re-opened)
-
-GRANT_001's one-shot attempt consumed the grant, then stopped before any
-HighLevel business call because the **host-local execution interpreter** lacked
-the already-declared Secret Manager client library.
+## 2. Pinned worktree-local runtime
 
 ```text
-ROOT_CAUSE=
-  HOST_LOCAL_EXECUTION_INTERPRETER_MISSING_DECLARED_DEPENDENCY
-DECLARED_DEPENDENCY=
-  google-cloud-secret-manager==2.27.0
-PUBLIC_MANIFEST_CHANGE_REQUIRED=NO
-```
+RUNTIME_ROOT_RELATIVE=
+  local/runtime/nw008-stage-provider-validation
+VENV_RELATIVE=
+  local/runtime/nw008-stage-provider-validation/.venv
+EXECUTION_PYTHON_RELATIVE=
+  local/runtime/nw008-stage-provider-validation/.venv/bin/python
 
-The public manifest already pins the dependency. No `requirements.txt` or
-`pyproject.toml` change is required or performed.
-
-## 3. Isolated local interpreter restore
-
-```text
-VENV=local/venv-nw008-stage-provider-validation
+EXECUTION_INTERPRETER_INSIDE_WORKTREE=YES
 EXECUTION_INTERPRETER_GITIGNORED=YES
-CREATED_OR_REUSED_EXISTING_VENV=YES
-PIP_INSTALL_SOURCE=requirements.txt
-PUBLIC_MANIFEST_CHANGED=NO
-NEW_DEPENDENCY_INTRODUCED=NO
+FULL_REQUIREMENTS_INSTALLED=YES
 ```
 
 Remediation class:
 
 ```text
 REMEDIATION_CLASS=
-  HOST_LOCAL_GITIGNORED_INTERPRETER_RESTORE_OF_ALREADY_DECLARED_MANIFEST_DEPENDENCIES
+  WORKTREE_LOCAL_GITIGNORED_RUNTIME_RESTORE_FROM_PINNED_REPOSITORY_REQUIREMENTS
+PUBLIC_MANIFEST_CHANGED=NO
+NEW_DEPENDENCY_INTRODUCED=NO
 ```
 
 This unit did not modify `pyproject.toml`, `requirements.txt`, `src/**`,
-`tests/**`, `contracts/**`, IAM, or Secret Manager.
+`tests/**`, `contracts/**`, IAM, or Secret Manager. Private `pip freeze` /
+`pip check` diagnostics remain under gitignored `local/`.
 
-## 4. Local-only readiness check
+## 3. Deterministic local import and pip gates
 
-Performed with `PYTHONPATH=src` against the isolated interpreter. Imports only.
-No Secret Manager `access_secret_version`, no ADC token mint, no impersonation
-network attempt, no HighLevel HTTP.
+Performed with `PYTHONPATH=<worktree>/src` against the pinned interpreter.
+Imports only. No `google.auth.default()`, no impersonation, no Secret Manager
+payload read, no HighLevel HTTP.
 
 ```text
-GOOGLE_CLOUD_SECRET_MANAGER_IMPORTABLE=YES
 GOOGLE_AUTH_IMPORTABLE=YES
 IMPERSONATED_CREDENTIALS_IMPORTABLE=YES
+GOOGLE_CLOUD_SECRET_MANAGER_IMPORTABLE=YES
 REPO_CREDENTIAL_PROVIDER_IMPORTABLE=YES
 REPO_RUNTIME_COMPOSITION_IMPORTABLE=YES
+REPO_HTTP_CLIENT_IMPORTABLE=YES
 SECRET_MANAGER_PACKAGE_VERSION=2.27.0
 PIP_CHECK=PASS
+ALL_DECLARED_DEPENDENCIES_READY=YES
+LOCAL_RUNTIME_READY=YES
 ```
 
 Imported modules (names only):
 
-- `google.cloud.secretmanager`
 - `google.auth`
 - `google.auth.impersonated_credentials`
+- `google.cloud.secretmanager`
 - `integrations.ghl.highlevel_rest.live_note_credential_provider`
 - `integrations.ghl.highlevel_rest.live_note_runtime`
+- `integrations.ghl.highlevel_rest.live_note_http_client`
 
-`pip check` reported no broken requirements.
+## 4. Normalized future GRANT_002 credential route (not executed here)
 
-## 5. Normalized future execution route (not executed here)
-
-Future GRANT_002 execution, if separately authorized and countersigned, MUST
-use the repository-owned credential composition and MUST NOT reuse GRANT_001's
-inline `SecretManagerServiceClient()` default-credentials path.
+If GRANT_002 is later merged and explicitly countersigned with a fresh window,
+execution MUST use the repository-owned composition and MUST NOT reuse
+GRANT_001's inline default `SecretManagerServiceClient()` path.
 
 ```text
 FUTURE_CREDENTIAL_ROUTE=
@@ -141,58 +125,41 @@ FUTURE_CREDENTIAL_ROUTE=
 
 DO_NOT_REUSE_DIRECT_DEFAULT_SECRET_MANAGER_CLIENT=YES
 REPO_OWNED_COMPOSITION_REQUIRED=YES
+
+AUTHORIZATION_CONSUMPTION_TRIGGER=
+  FIRST_PRIVILEGED_CREDENTIAL_PLANE_ACTION
 ```
 
-Repository composition already implements this route in
-`src/integrations/ghl/highlevel_rest/live_note_runtime.py`
-(`_resolve_source_application_credentials` →
-`_impersonate_target_runtime_credentials` →
-`_new_secret_manager_client` →
-`GoogleSecretManagerLiveNoteSecretAccessor`).
+All deterministic local dependency/readiness gates MUST pass **before**
+GRANT_002 consumption. This unit did not invoke that composition for live
+secret access.
 
-This unit did not invoke that composition for live secret access.
-
-## 6. Prohibited-surface ledger
+## 5. Prohibited-surface ledger
 
 ```text
+ADC_LIVE_RESOLUTION_ATTEMPTS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SECRET_MANAGER_SECRET_READS=0
 SECRET_MANAGER_ACCESS_SECRET_VERSION=0
 SECRET_PAYLOAD_READS=0
-ADC_TOKEN_MINTS=0
-SERVICE_ACCOUNT_IMPERSONATION_NETWORK_ATTEMPTS=0
-
-GHL_INTERACTION_PERFORMED=NO
-REST_NETWORK_CALLS_TO_GHL=0
+GHL_HTTP_REQUESTS=0
+GHL_CALLS=0
 CRM_MUTATIONS=0
 IAM_MUTATIONS=0
-SECRET_MANAGER_MUTATIONS=0
 
+DID_NOT_CALL_GOOGLE_AUTH_DEFAULT=YES
+DID_NOT_IMPERSONATE_RUNTIME_SERVICE_ACCOUNT=YES
+DID_NOT_INSTANTIATE_LIVE_SECRET_ACCESSOR_FOR_RETRIEVAL=YES
 DID_NOT_READ_MG_GUIDE_PIT_GHL=YES
-DID_NOT_PRINT_OR_RESOLVE_GHL_PIT=YES
 DID_NOT_ISSUE_GET_OPPORTUNITIES=YES
 DID_NOT_ISSUE_PUT_OPPORTUNITIES=YES
-DID_NOT_USE_ALTERNATE_ENVIRONMENT_TOKEN=YES
 DID_NOT_USE_GCLOUD_SECRET_ACCESS_FALLBACK=YES
-DID_NOT_MODIFY_IAM=YES
-DID_NOT_MODIFY_SECRET_MANAGER=YES
+DID_NOT_READ_TOKEN_FROM_ENVIRONMENT_AS_FALLBACK=YES
 DID_NOT_RETRY_GRANT_001=YES
+ZERO_CREDENTIAL_OR_GHL_ACTIVITY=YES
 ```
 
-## 7. Grant-002 preparation consequence
-
-Local, non-network dependency-readiness gates are now proven for a **future**
-grant. GRANT_002 is not created by this unit. When drafted, GRANT_002 MUST:
-
-- bind AUTHORIZATION_001
-- bind the same sealed package/digest
-- bind consumed EXECUTION_PROOF_001 merge SHA
-- bind CREDENTIAL_READINESS_PROOF_001 merge SHA (this artifact after merge)
-- use a fresh human countersignature/window
-- preserve GET → PUT → GET
-- preserve `MAX_READS=2`, `MAX_WRITES=1`, `MAX_TOTAL_BUSINESS_CALLS=3`
-- preserve `NO_RETRY`, `NO_ALTERNATE_BODY`, `NO_ALTERNATE_TARGET`,
-  `NO_COMPENSATING_MUTATION`, `NO_AUTOMATIC_CLEANUP`
-- place all local, non-network dependency-readiness gates **before** the
-  irreversible grant-consumption trigger
+## 6. Grant-002 preparation consequence
 
 ```text
 NEW_GRANT_PREPARATION_READY=YES
@@ -201,7 +168,25 @@ GRANT_002_COUNTERSIGNED=NO
 VALIDATION_EXECUTION_AUTHORIZED=NO
 ```
 
-## 8. Required public return block
+When separately created after this proof merges, GRANT_002 MUST preserve:
+
+```text
+CALL_SEQUENCE=GET -> PUT -> GET
+MAX_READS=2
+MAX_WRITES=1
+MAX_TOTAL_BUSINESS_CALLS=3
+NO_RETRY=YES
+NO_ALTERNATE_BODY=YES
+NO_ALTERNATE_OPERATION=YES
+NO_ALTERNATE_TARGET=YES
+NO_COMPENSATING_MUTATION=YES
+NO_AUTOMATIC_CLEANUP=YES
+```
+
+GRANT_002 execution remains forbidden until that grant is merged and
+explicitly countersigned with a fresh valid window.
+
+## 7. Required public return block
 
 ```text
 ARTIFACT_ID=
@@ -211,39 +196,50 @@ PR_CLASS=proof_only
 MODE=LOCAL_INTERPRETER_READINESS_ONLY
 
 REMEDIATION_CLASS=
-  HOST_LOCAL_GITIGNORED_INTERPRETER_RESTORE_OF_ALREADY_DECLARED_MANIFEST_DEPENDENCIES
+  WORKTREE_LOCAL_GITIGNORED_RUNTIME_RESTORE_FROM_PINNED_REPOSITORY_REQUIREMENTS
+
+EXECUTION_INTERPRETER_INSIDE_WORKTREE=YES
+EXECUTION_INTERPRETER_GITIGNORED=YES
+
+FULL_REQUIREMENTS_INSTALLED=YES
+PIP_CHECK=PASS
+
+GOOGLE_AUTH_IMPORTABLE=YES
+IMPERSONATED_CREDENTIALS_IMPORTABLE=YES
+GOOGLE_CLOUD_SECRET_MANAGER_IMPORTABLE=YES
+
+SECRET_MANAGER_PACKAGE_VERSION=2.27.0
+
+REPO_CREDENTIAL_PROVIDER_IMPORTABLE=YES
+REPO_RUNTIME_COMPOSITION_IMPORTABLE=YES
+REPO_HTTP_CLIENT_IMPORTABLE=YES
 
 PUBLIC_MANIFEST_CHANGED=NO
 NEW_DEPENDENCY_INTRODUCED=NO
-EXECUTION_INTERPRETER_GITIGNORED=YES
 
-GOOGLE_CLOUD_SECRET_MANAGER_IMPORTABLE=YES
-GOOGLE_AUTH_IMPORTABLE=YES
-IMPERSONATED_CREDENTIALS_IMPORTABLE=YES
-REPO_CREDENTIAL_PROVIDER_IMPORTABLE=YES
-REPO_RUNTIME_COMPOSITION_IMPORTABLE=YES
-
-SECRET_MANAGER_PACKAGE_VERSION=2.27.0
-PIP_CHECK=PASS
-
-SECRET_PAYLOAD_READS=0
-GHL_CALLS=0
+ADC_LIVE_RESOLUTION_ATTEMPTS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SECRET_MANAGER_SECRET_READS=0
+GHL_HTTP_REQUESTS=0
 CRM_MUTATIONS=0
+
+LOCAL_RUNTIME_READY=YES
+ALL_DECLARED_DEPENDENCIES_READY=YES
+ZERO_CREDENTIAL_OR_GHL_ACTIVITY=YES
+NEW_GRANT_PREPARATION_READY=YES
 
 GRANT_001_CONSUMED=YES
 GRANT_001_RETRY_AUTHORIZED=NO
 SECOND_EXECUTION_UNDER_GRANT_001=FORBIDDEN
 
-NEW_GRANT_PREPARATION_READY=YES
-
 STOP_CODE=
-  NW008_STAGE_PROVIDER_VALIDATION_CREDENTIAL_RUNTIME_READINESS_PROVEN_GRANT_002_NOT_CREATED
+  NW008_STAGE_PROVIDER_VALIDATION_WORKTREE_LOCAL_RUNTIME_READY_GRANT_002_NOT_CREATED
 
 NEXT=
-  CREATE_NW008_AT1_GHL_REST_V3_STAGE_PROVIDER_CONTRACT_VALIDATION_GRANT_002
+  RETURN_CREDENTIAL_READINESS_PROOF_PR_TO_CHATGPT_FOR_REVIEW
 ```
 
-## 9. Stop
+## 8. Stop
 
 ```text
 STOP
