@@ -44,9 +44,12 @@ PYTHONPATH=src python -m agents.follow_up_planning \
 PYTHONPATH=src MEETING_CONTEXT_GEMINI_MODE=stub python -m mg_guide.judge_surface.server
 ```
 
-> Live CRM/GHL mutation is **not** claimed. Demo paths use synthetic fixtures.
-> Cloud Run is IAP-gated (browser demo may need human 2FA). Firestore Stage B
-> smoke is create→read→verify→delete under existing authorization.
+> Judge/demo paths do **not** perform live CRM/GHL mutation
+> (`JUDGE_DEMO_LIVE_GHL_MUTATION=NO`; synthetic fixtures). Historical one-shot
+> live synthetic note+stage under consumed Grant 008 is separate proof
+> (`GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; not reusable). Cloud Run is IAP-gated
+> (browser demo may need human 2FA). Firestore Stage B smoke is
+> create→read→verify→delete under existing authorization.
 
 ### Historical merge baseline
 
@@ -89,9 +92,20 @@ one synthetic transcript in → one verified CRM note, at most one
 policy-permitted opportunity-stage change, one Firestore audit record, and one
 MG Guide next-step brief out.
 
-> Verified CRM mutation and Firestore audit remain undelivered in this branch.
-> The competition-local card and proof artifacts document the target end-state
-> without claiming live verification or runtime write delivery.
+> **Evidence posture (do not collapse lanes):** Business-content ingestion via
+> live Gemini is proven (`BUSINESS_CONTENT_INGESTION_PROVEN=YES`). Provider
+> contract ingestion via HighLevel MCP operation metadata is proven
+> (`PROVIDER_CONTRACT_INGESTION_PROVEN=YES`). A one-shot human-authorized live
+> synthetic GoHighLevel note+stage with readback succeeded historically under
+> consumed Grant 008 (`GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; grant
+> **non-reusable**). Firestore Stage B audit smoke is proven on `mg-devpost`.
+> The judge / demo path remains deterministic and performs **no** live CRM
+> mutation (`JUDGE_DEMO_LIVE_GHL_MUTATION=NO`). The exact Gemini-derived note
+> content is **not** claimed as written to GoHighLevel in the same live
+> execution (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`;
+> `END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES`). Any additional live GoHighLevel
+> execution requires a **new** authorization. Contest runtime code gap:
+> `CONTEST_RUNTIME_CODE_GAP_EXISTS=NO`.
 
 ---
 
@@ -271,11 +285,19 @@ PYTHONPATH=src python3 -m mg_guide.meeting_follow_up_card \
 - Phase 3 unit 2 Google ADK package runtime orchestration (actual `google-adk` Runner/SequentialAgent/session primitives; fail-closed, no local fallback) + Relationship Context Agent — **merged** (PR #11; synthetic CRM only)
 - Phase 3 unit 3 Follow-Up Planning Agent — **merged** (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / final exact-head CI 31623771005 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; synthetic only; deterministic policy gate invoked; intent-only packet assembly; EXTERNAL_EFFECTS=0)
 - NW-006 MG Guide Meeting Follow-Up card — **MERGED_COMPLETE** (PR #15 final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627` / exact-head CI 31630399411 SUCCESS / merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; host-agnostic renderer only; no mutation controls; EXTERNAL_EFFECTS=0)
-- NW-008 readiness matrix + planning packet — **planning only** (`proof/nw008/**`; historical AT-1…AT-10 not complete)
+- NW-008 readiness matrix + planning packet — planning + historical AT1 live
+  synthetic execution proof under consumed Grant 008
+  (`proof/nw008/nw-008-at1-live-execution-result-008.md`;
+  `GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; AT-2…AT-10 not claimed complete from
+  card tests alone)
 
-**Not yet available (do not invent):**
+**Not yet available / not claimed (do not invent):**
 
-- Mutation execution (live CRM note/stage writes) — agents + policy record intents; demo path does not claim live GHL mutation
+- Judge/demo live CRM note/stage writes — agents + policy record intents;
+  `JUDGE_DEMO_LIVE_GHL_MUTATION=NO` (historical Grant 008 AT1 is separate and
+  **non-reusable**)
+- Single-run transcript→Gemini→live-GHL evidence join
+  (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`)
 - GHL credential configuration or live CRM calls against customer data
 - Unauthenticated public hosted demo (Cloud Run judge is **IAP-gated**)
 - Marketplace/source reconciliation writes (R4 closed read-only for competition)
@@ -314,7 +336,8 @@ Apache License 2.0 — see [`LICENSE`](LICENSE).
 | MG Guide Meeting Follow-Up card (NW-006) | **MERGED_COMPLETE** — PR #15; final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627`; exact-head CI **31630399411** SUCCESS; merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; merged `2026-08-12T19:12:33Z`; closeout [`proof/nw006/nw-006-merge-closeout.md`](proof/nw006/nw-006-merge-closeout.md); no mutation controls; zero external effects; no private host wiring |
 | Competition acceptance (`meeting_follow_up_v1`) | **Packet complete on branch** — see [`proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md`](proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md); SUCCESS + FAIL-CLOSED proven; Gemini/ADK/Cloud Run/Firestore markers PASS |
 | Acceptance tests AT-1…AT-10 historical matrix (NW-008) | Readiness docs remain under [`proof/nw008/`](proof/nw008/); do not mark every historical AT complete from card tests alone |
-| Live GHL / CRM writes | Forbidden under current grants (`LIVE_CRM_MUTATION_AUTHORIZED=NO`) |
+| Live GHL / CRM writes (current grants) | Forbidden now (`LIVE_CRM_MUTATION_AUTHORIZED=NO`); historical Grant 008 AT1 synthetic note+stage **proven and consumed** (`GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; judge path still non-mutating) |
+| Ingestion→live-GHL single run | **Not proven** (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`; evidence gap only — `CONTEST_RUNTIME_CODE_GAP_EXISTS=NO`) |
 | Firestore audit writer (NW-005) | Stage A merged; Stage B smoke **PASS** on `mg-devpost` / `devpost-google-contest` |
 | Cloud Run deployment (NW-007) | Judge service **Ready** on `mg-devpost` `us-east4` (IAP-gated) |
 | Real-customer / non-allowlisted CRM mutation | Forbidden; allowlisted synthetic-only mutation requires separate human execution authorization |

@@ -60,6 +60,7 @@ DEMO_TRUTH_BOUNDARY=synthetic_offline_only
 LIVE_GHL_CALLS=NO
 CRM_MUTATIONS_PERFORMED=NO
 LIVE_CRM_EXECUTION=NOT_PERFORMED
+JUDGE_DEMO_LIVE_GHL_MUTATION=NO
 FIRESTORE_WRITES_CLAIMED=NO
 PROVIDER_ENDPOINT_PROBES=NO
 OAUTH_PIT_CHANGES=NO
@@ -75,6 +76,14 @@ CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO=YES
 PRESENTER_MAY_USE_NARRATIVE_ALIAS=NO
 DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD
 NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
+
+# Adjacent historical lanes (not this demo unit's runtime — see §1.1)
+BUSINESS_CONTENT_INGESTION_PROVEN=YES
+PROVIDER_CONTRACT_INGESTION_PROVEN=YES
+GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
+CONTEST_RUNTIME_CODE_GAP_EXISTS=NO
+END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES
 ```
 
 ### Hard rules for presenters and UI copy
@@ -83,8 +92,9 @@ NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
 2. Mutation intents may be shown as **planned / proposed / allowed / blocked** /
    **not_attempted** as emitted by the live packet/card.
 3. Do **not** say note or stage “was written,” “was updated,” “was verified in
-   CRM,” or “executed live.” This v1 unit keeps
-   `LIVE_CRM_EXECUTION=NOT_PERFORMED`.
+   CRM,” or “executed live” **during this judge demo**. This v1 unit keeps
+   `LIVE_CRM_EXECUTION=NOT_PERFORMED` and
+   `JUDGE_DEMO_LIVE_GHL_MUTATION=NO`.
 4. Success card framing already sets `no_crm_changes_made=true` and
    intent-only mutation fields (`note_execution_attempted=false`,
    `stage_execution_attempted=false`).
@@ -99,6 +109,55 @@ NW006_STATIC_SNAPSHOT_ROLE=REFERENCE_ONLY_WHEN_DIFFERENT_FROM_LIVE_JUDGE_PATH
    `0.96`, review date `2026-08-20`, or any other non-fixture identity.
 7. Do **not** overlay NW-006 static snapshot policy enums onto the live judge
    path when they differ. Live runner is authoritative for demo runtime fields.
+8. Do **not** collapse adjacent historical proof into the judge path. If asked
+   about live CRM capability, use the §1.1 evidence-lane wording — never
+   imply the demo just performed a live write, and never revive Grant 008.
+
+### 1.1 Adjacent evidence lanes (not part of judge demo runtime)
+
+These lanes are **competition-period proof**, not actions of this demo unit.
+Presenter may acknowledge them only if asked, and must keep them separate from
+on-screen judge behavior.
+
+```text
+BUSINESS_CONTENT_INGESTION_PROVEN=YES
+proof=proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md
+markers=GEMINI_EXECUTION=PASS; MEETING_CONTEXT_LIVE=PASS;
+        schema_valid=true; extraction_confidence=0.98
+
+PROVIDER_CONTRACT_INGESTION_PROVEN=YES
+proof=proof/nw008/nw-008-at1-write-credential-readiness.md
+      proof/nw008/nw-008-at1-create-note-request-contract-reconciliation.md
+method=MCP initialize → tools/list → search_operations →
+       describe_operation(create-note) → describe_operation(update-opportunity)
+create-note=idempotencyRequired=YES; MISSING_REQUIRED_FIELD_NAME=idempotencyKey
+             (transport corrected before successful Grant 008)
+
+GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES
+proof=proof/nw008/nw-008-at1-live-execution-result-008.md
+markers=TOTAL_GHL_CALLS_EXECUTED=6; MODELED_GHL_WRITES=2;
+        NOTE_WRITES_SUCCEEDED=1; NOTE_READBACK_VERIFIED=YES;
+        STAGE_WRITES_SUCCEEDED=1; FINAL_STAGE_READBACK_VERIFIED=YES;
+        AT1_COMPLETE=YES; GRANT008_REUSABLE=NO
+
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
+CONTEST_RUNTIME_CODE_GAP_EXISTS=NO
+END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES
+JUDGE_DEMO_LIVE_GHL_MUTATION=NO
+```
+
+**Canonical wording (if asked off-demo):**
+
+> A synthetic meeting transcript was successfully ingested and extracted through
+> live Gemini into schema-valid meeting context. Separately, a one-shot
+> human-authorized live synthetic GoHighLevel execution successfully created and
+> verified a CRM note and updated and verified an opportunity stage. HighLevel
+> MCP operation metadata and schemas were also retrieved and used to reconcile
+> the write transport contract. The current evidence does not claim that the
+> exact Gemini-derived note content was written to GoHighLevel in the same live
+> execution. The judge demo remains deterministic and performs no live CRM
+> mutation. Any additional live GoHighLevel execution requires a new
+> authorization.
 
 ---
 
@@ -448,7 +507,7 @@ Preferred total: **3 minutes 25 seconds**. Statuses/evidence only.
 | **0:40–1:05** | Stage 2 Meeting Context | Discovery covering **retirement income planning** and **liquidity** on a **sixty-day** timeline; objection **liquidity lock-up concern**; Alex next step **Send recommendation review follow-up**; confidence **0.95**. |
 | **1:05–1:25** | Stage 3 Relationship Resolution | Exact **email** match; `candidate_count=1`; current stage **`discovery_scheduled`**; synthetic ids `contact_demo_taylor_001` / `opp_demo_taylor_001`. |
 | **1:25–1:45** | Stage 4 Follow-Up Planning | Planned **note** intent from summary; planned **stage** intent **`discovery_scheduled → discovery_complete`**. Label both **proposed intents**, not executed writes. |
-| **1:45–2:05** | Stage 5 Policy Evaluation | Policy **note_write=allowed**, **stage_write=allowed**, reason_codes empty. Deterministic gate sits between proposal and any future mutation authority. |
+| **1:45–2:05** | Stage 5 Policy Evaluation | Policy **note_write=allowed**, **stage_write=allowed**, reason_codes empty. Deterministic gate sits between proposal and any **separately authorized** mutation authority (judge path does not live-write). |
 | **2:05–2:30** | Stage 6 Success card | Card **`completed`**; `no_crm_changes_made=true`; **`LIVE_CRM_EXECUTION=NOT_PERFORMED`**; **`external_effects=0`**. |
 | **2:30–3:10** | Failure contrast | Switch to **`AMBIGUOUS_CONTACT`**: **Jordan Lee**, no unique identifiers, **`candidate_count=2`**, reason **`AMBIGUOUS_CONTACT`**, raw policy **`note_write=not_attempted`** / **`stage_write=not_attempted`**, disposition **`blocked`**, **zero CRM writes**. Say: **“The workflow is blocked before any CRM write is attempted.”** |
 | **3:10–3:25** | Close | **“MG Guide turns meetings into governed sales work—and knows when not to act.”** |
@@ -485,8 +544,14 @@ synthetic demo execution.”
 
 ### 7.2 Forbidden claims
 
-- Live GHL/MCP calls were made during this demo unit.
-- CRM note or stage was **executed**, **written**, or **verified** live.
+- Live GHL/MCP calls were made **during this demo unit** / judge path.
+- CRM note or stage was **executed**, **written**, or **verified** live **by
+  this judge demo** (do not attribute Grant 008 history to the on-screen run).
+- Transcript-to-live-GHL already proven as **one** execution
+  (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN` remains `NO`).
+- Grant 008 is reusable, or any additional live GHL run is pre-authorized.
+- Private bindings are public; PR247 authorized live mutation; private MG repo
+  is required at contest runtime.
 - Firestore audit was newly written by this demo unit.
 - Production or real customer data was used.
 - Private model reasoning was shown.
@@ -498,6 +563,8 @@ synthetic demo execution.”
   observation/execution.
 - Grant009, OAuth/PIT changes, endpoint probes, or new observation authority.
 - “Fully autonomous CRM operator” without fail-closed stops.
+- Implying live synthetic CRM mutation was **never** validated under any prior
+  one-shot grant (see §1.1 — historical AT1 is separate from this demo).
 
 ---
 
@@ -552,9 +619,11 @@ NEXT_ACTOR=mg-pr-governance-reviewer
 
 ---
 
-*Planning-only synthetic demo artifact (live-truth normalization).
-`EXTERNAL_EFFECTS=0`.
-`LIVE_CRM_EXECUTION=NOT_PERFORMED`.
+*Planning-only synthetic demo artifact (live-truth + ingestion/CRM claim
+normalization). `EXTERNAL_EFFECTS=0`. `LIVE_CRM_EXECUTION=NOT_PERFORMED`.
+`JUDGE_DEMO_LIVE_GHL_MUTATION=NO`. `BUSINESS_CONTENT_INGESTION_PROVEN=YES`.
+`PROVIDER_CONTRACT_INGESTION_PROVEN=YES`. `GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`.
+`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`.
 `CANONICAL_FIXTURE_VALUES_CONTROL_VISIBLE_DEMO=YES`.
 `PRESENTER_MAY_USE_NARRATIVE_ALIAS=NO`.
 `DEMO_RUNTIME_FIELD_AUTHORITY=LIVE_JUDGE_RUNNER_PACKET_AND_CARD`.

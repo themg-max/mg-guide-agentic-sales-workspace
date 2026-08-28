@@ -106,10 +106,39 @@ FIRESTORE_AUDIT=PASS
 SUCCESS_SCENARIO=PASS
 FAIL_CLOSED_SCENARIO=PASS
 UNAUTHORIZED_EXTERNAL_EFFECTS=0
+JUDGE_DEMO_LIVE_GHL_MUTATION=NO
+
+BUSINESS_CONTENT_INGESTION_PROVEN=YES
+PROVIDER_CONTRACT_INGESTION_PROVEN=YES
+GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
+
+CONTEST_RUNTIME_CODE_GAP_EXISTS=NO
+END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES
 ```
 
 Acceptance packet:
 `proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md`
+
+Historical live synthetic CRM packet (one-shot Grant 008; consumed; not judge demo):
+`proof/nw008/nw-008-at1-live-execution-result-008.md`
+
+Provider-contract ingestion packets:
+`proof/nw008/nw-008-at1-write-credential-readiness.md`,
+`proof/nw008/nw-008-at1-create-note-request-contract-reconciliation.md`
+
+### Evidence lanes (do not collapse)
+
+A synthetic meeting transcript was successfully ingested and extracted through
+live Gemini into schema-valid meeting context. Separately, a one-shot
+human-authorized live synthetic GoHighLevel execution successfully created and
+verified a CRM note and updated and verified an opportunity stage. HighLevel MCP
+operation metadata and schemas were also retrieved and used to reconcile the
+write transport contract. The current evidence does not claim that the exact
+Gemini-derived note content was written to GoHighLevel in the same live
+execution. The judge demo remains deterministic and performs no live CRM
+mutation. Any additional live GoHighLevel execution requires a new
+authorization.
 
 ## Built with
 
@@ -136,23 +165,38 @@ Acceptance packet:
 
 - End-to-end SUCCESS and fail-closed paths with zero unauthorized effects
 - Live Gemini 3.5 meeting-context extraction with schema validation
+  (`BUSINESS_CONTENT_INGESTION_PROVEN=YES`; `schema_valid=true`;
+  `extraction_confidence=0.98`)
+- HighLevel MCP provider-contract ingestion and create-note transport
+  reconciliation (`PROVIDER_CONTRACT_INGESTION_PROVEN=YES`;
+  `idempotencyRequired=YES` / `idempotencyKey` before Grant 008)
+- Historical one-shot live synthetic GoHighLevel note+stage with readback
+  under consumed Grant 008 (`GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`;
+  `TOTAL_GHL_CALLS_EXECUTED=6`; `MODELED_GHL_WRITES=2`; `AT1_COMPLETE=YES`)
 - ADK package-bound multi-agent runtime proof
 - Cloud Run Ready + Firestore Stage B audit smoke PASS
 - Competition packet: architecture, demo script, acceptance proof, Devpost copy
+- Explicit honesty that transcript-to-live-GHL is **not** claimed as one run
+  (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`)
 
 ## What's next
 
 - Human-recorded 4-minute demo video from the script
 - Optional IAP-authenticated hosted walkthrough
-- Future separately human-authorized CRM mutation lane against the
-  business-active canonical CRM under synthetic-only bounded execution
-  controls (private exact-ID allowlist; no real customer records; out of scope
-  for this packet)
+- Optional **new** human-authorized live synthetic CRM execution if a single
+  transcript→Gemini→live-GHL evidence run is required for a later packet
+  (Grant 008 is **consumed and non-reusable**; private exact-ID allowlist;
+  no real customer records; judge demo stays non-mutating)
+
+Do **not** read “what's next” as “CRM mutation was never proven.” Live
+synthetic note+stage already succeeded historically under Grant 008. What
+remains is the **end-to-end live evidence** join (same-run Gemini-derived
+content into live GHL), not a contest runtime code gap.
 
 ## Team / repo
 
 - Repository: `themg-max/mg-guide-agentic-sales-workspace`
-- Branch: `competition/meeting-follow-up-v1-acceptance-finalization-001`
+- Branch: `plan/nw008-contest-ingestion-crm-claim-normalization-001`
 
 ## Cover / media checklist
 

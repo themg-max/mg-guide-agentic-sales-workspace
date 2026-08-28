@@ -107,28 +107,46 @@ PRIVATE_BINDINGS_PUBLICATION=NO
 
 GRANT008_REUSABLE=NO
 NEW_LIVE_EXECUTION_AUTHORIZED=NO
+
+BUSINESS_CONTENT_INGESTION_PROVEN=YES
+PROVIDER_CONTRACT_INGESTION_PROVEN=YES
+GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
+
+CONTEST_RUNTIME_CODE_GAP_EXISTS=NO
+END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES
 ```
 
-### 2.1 Two paths, one competition story
+### 2.1 Four evidence lanes (do not collapse)
 
-| Path | Role | Live GHL mutation | Authorization posture |
+| Lane | Role | Live GHL mutation | Authorization posture |
 | --- | --- | --- | --- |
+| **Business-content ingestion** | Synthetic transcript → live Gemini → schema-valid meeting context | **NO** | Competition acceptance / Vertex live extract |
+| **Provider-contract ingestion** | MCP initialize / tools/list / search_operations / describe_operation for create-note + update-opportunity; create-note idempotencyKey reconciliation | **NO** (metadata only) | Non-mutating engineering readiness |
 | **Judge / demo critical path** | Competition-visible SUCCESS + fail-closed demo; Cloud Run judge; ADK/Gemini/OL3 | **NO** | Safe deterministic; fixtures / stub or live Gemini extract only |
 | **Historical live synthetic AT1 path** | Competition-period proof that bounded public CRM adapter can note+stage with readback under one-shot human grant | **YES (historical only)** | Grant 008 **consumed**; not reusable |
 
 **Canonical wording for contest-facing material:**
 
-> A live synthetic CRM write path was separately validated under a prior
-> one-shot human authorization. The judge demo remains deterministic and does
-> **not** perform live CRM mutation. Any additional live execution requires a
-> **new** authorization.
+> A synthetic meeting transcript was successfully ingested and extracted through
+> live Gemini into schema-valid meeting context. Separately, a one-shot
+> human-authorized live synthetic GoHighLevel execution successfully created and
+> verified a CRM note and updated and verified an opportunity stage. HighLevel
+> MCP operation metadata and schemas were also retrieved and used to reconcile
+> the write transport contract. The current evidence does not claim that the
+> exact Gemini-derived note content was written to GoHighLevel in the same live
+> execution. The judge demo remains deterministic and performs no live CRM
+> mutation. Any additional live GoHighLevel execution requires a new
+> authorization.
 
-**Do not imply:**
+**Do not claim / imply:**
 
 - the judge path currently performs GHL writes;
 - Grant 008 remains reusable;
+- transcript-to-live-GHL has already been proven as one execution;
 - private bindings are public;
-- PR246 activated CRM execution;
+- PR246 or PR247 authorized live mutation;
+- private MG repo is needed at contest runtime;
 - live CRM is required to demonstrate the contest runtime.
 
 ---
@@ -227,7 +245,45 @@ Acceptance non-claims (still true for **that lane**):
 - judge Cloud Run image remains stub Gemini mode by design (deterministic demo);
 - no real customer data.
 
-### 4.3 Historical live synthetic AT1 (Grant 008)
+### 4.3 Business-content ingestion (live Gemini)
+
+| Field | Value |
+| --- | --- |
+| Artifact | `proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md` |
+
+```text
+BUSINESS_CONTENT_INGESTION_PROVEN=YES
+GEMINI_EXECUTION=PASS
+MEETING_CONTEXT_LIVE=PASS
+schema_valid=true
+extraction_confidence=0.98
+JUDGE_DEMO_LIVE_GHL_MUTATION=NO
+UNAUTHORIZED_EXTERNAL_EFFECTS=0
+```
+
+Live Gemini extract proves **content ingestion**, not live CRM mutation.
+
+### 4.4 Provider-contract ingestion (MCP metadata)
+
+| Field | Value |
+| --- | --- |
+| Artifacts | `proof/nw008/nw-008-at1-write-credential-readiness.md`; `proof/nw008/nw-008-at1-create-note-request-contract-reconciliation.md` |
+
+```text
+PROVIDER_CONTRACT_INGESTION_PROVEN=YES
+METHOD=MCP initialize → tools/list → search_operations →
+       describe_operation(create-note) → describe_operation(update-opportunity)
+CREATE_NOTE_OPERATION_SCHEMA_AVAILABLE=YES
+UPDATE_OPPORTUNITY_OPERATION_SCHEMA_AVAILABLE=YES
+idempotencyRequired=YES
+MISSING_REQUIRED_FIELD_NAME=idempotencyKey
+TRANSPORT_SERIALIZATION_CORRECTED_BEFORE_GRANT_008=YES
+```
+
+Contract ingestion is **non-mutating** metadata recovery used to reconcile the
+write transport before the successful Grant 008 execution.
+
+### 4.5 Historical live synthetic AT1 (Grant 008)
 
 | Field | Value |
 | --- | --- |
@@ -235,8 +291,10 @@ Acceptance non-claims (still true for **that lane**):
 | Grant | `NW008_AT1_LIVE_EXECUTION_008` (one-shot) |
 
 ```text
+GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES
 LIVE_SYNTHETIC_CRM_EXECUTION_PREVIOUSLY_VALIDATED=YES
 TOTAL_GHL_CALLS_EXECUTED=6
+MODELED_GHL_WRITES=2
 NOTE_WRITES_SUCCEEDED=1
 NOTE_READBACK_VERIFIED=YES
 STAGE_WRITES_SUCCEEDED=1
@@ -245,33 +303,40 @@ AT1_COMPLETE=YES
 PRIVATE_BINDING_PUBLICATION=NO
 
 GRANT008_REUSABLE=NO
+GRANT008_CONSUMED=YES
 NEW_LIVE_EXECUTION_AUTHORIZED=NO
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
 ```
 
 **Preserve as historical competition-period proof.** Do not rerun. Do not treat
-as current judge behavior. Do not treat as open authorization.
+as current judge behavior. Do not treat as open authorization. Do **not** claim
+the exact Gemini-derived note body from the acceptance lane was the note body
+written in this AT1 run.
 
 Bounded executor cited by the result packet:
 `src/integrations/ghl/bounded_at1_executor.py` (public repo).
 
-### 4.4 Contest-facing copy / demo
+### 4.6 Contest-facing copy / demo (normalization target)
 
 | Artifact | Role |
 | --- | --- |
 | `docs/competition/DEVPOST_WRITEUP.md` | Devpost submission copy |
 | `docs/demo/meeting-follow-up-v1-4min-demo-script.md` | ~4 min presenter script |
 | `docs/demo/meeting-follow-up-demo-v1.md` | Demo truth boundary |
+| `README.md` | Public entry; avoid “undelivered / future-only” CRM erase of AT1 |
 
-Wording tension to reconcile (documentation, not runtime):
+Wording tension addressed by docs-only unit
+`NW-008 contest ingestion / CRM claim normalization 001`:
 
-1. **Devpost “What's next”** frames CRM mutation as only a future lane — accurate
-   that **additional** live execution needs new auth, but incomplete if it
-   implies **no** prior competition-period live synthetic validation.
+1. **Devpost “What's next”** must not frame CRM mutation as only an unproven
+   future lane — **additional** live execution needs new auth, and historical
+   Grant 008 already proved live synthetic note+stage.
 2. **Demo truth boundary** correctly sets `LIVE_CRM_EXECUTION=NOT_PERFORMED` for
-   the **demo unit / judge path**, but absolute presenter lines can be misread as
-   “never proven under any grant.”
+   the **demo unit / judge path**, with §1.1 adjacent lanes for historical proof.
 3. **Acceptance non-claims** correctly scope “no live mutation **in this
    acceptance lane**” — keep that scope explicit when cited.
+4. **End-to-end honesty:** `INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO` and
+   `END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES` without inventing a runtime code gap.
 
 ---
 
@@ -474,21 +539,23 @@ UPDATE_TARGET=
 ### CLAIM-015 — Contest-facing CRM mutation narrative completeness
 
 ```text
-CLAIM=Contest copy accurately distinguishes judge non-mutation from historical live synthetic AT1 proof and non-reusable Grant 008
+CLAIM=Contest copy accurately distinguishes business-content ingestion, provider-contract ingestion, judge non-mutation, historical live synthetic AT1 proof, non-reusable Grant 008, and the remaining single-run end-to-end evidence gap
 JUDGE_VISIBLE=YES (Devpost / demo / README readers)
 IMPLEMENTATION_PATH=N/A (documentation posture)
-PROOF_ARTIFACT=docs/competition/DEVPOST_WRITEUP.md §What's next; docs/demo/meeting-follow-up-demo-v1.md LIVE_CRM_EXECUTION=NOT_PERFORMED; proof/nw008/nw-008-at1-live-execution-result-008.md
-CURRENT_STATUS=DOC_WORDING_DRIFT
-CLAIM_ACCURATE=NO
-UPDATE_REQUIRED=YES
-UPDATE_TARGET=docs/competition/DEVPOST_WRITEUP.md; optionally docs/demo/meeting-follow-up-demo-v1.md and README CRM “undelivered/future-only” lines — apply §2.1 canonical wording without claiming judge live writes or reusable Grant 008
+PROOF_ARTIFACT=docs/competition/DEVPOST_WRITEUP.md; docs/demo/meeting-follow-up-demo-v1.md §1.1; docs/nw008/nw-008-contest-critical-path-rebase-001.md §2.1; proof/nw008/nw-008-at1-live-execution-result-008.md; proof/nw008/nw-008-at1-write-credential-readiness.md; proof/nw008/nw-008-at1-create-note-request-contract-reconciliation.md; proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md
+CURRENT_STATUS=DOC_NORMALIZED
+CLAIM_ACCURATE=YES
+UPDATE_REQUIRED=NO
+UPDATE_TARGET=
+NORMALIZATION_UNIT=NW008_CONTEST_INGESTION_CRM_CLAIM_NORMALIZATION_001
+FLAGS=BUSINESS_CONTENT_INGESTION_PROVEN=YES; PROVIDER_CONTRACT_INGESTION_PROVEN=YES; GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES; INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO; CONTEST_RUNTIME_CODE_GAP_EXISTS=NO; END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES
 ```
 
-**Accuracy note for CLAIM-015:** The underlying technical claims (judge safe;
-AT1 historical success; grant consumed) are each true in isolation. The
-**composed contest narrative** is incomplete where materials imply live
-synthetic CRM mutation was never validated or remains only unspecified future
-work. That is a **documentation** update target, not a missing runtime feature.
+**Accuracy note for CLAIM-015:** Docs-only normalization applies §2.1 canonical
+wording so contest materials no longer erase AT1 historical proof, revive
+Grant 008, collapse Gemini extract into live GHL writes, or claim a single-run
+transcript→live-GHL trace. Remaining gap is **evidence join**, not missing
+contest runtime code.
 
 ### CLAIM-016 — PR246 did not activate CRM execution
 
@@ -520,12 +587,13 @@ UPDATE_TARGET=
 
 ```text
 CLAIM_COUNT=17
-ACCURATE_CLAIM_COUNT=16
-UPDATE_REQUIRED_COUNT=1
+ACCURATE_CLAIM_COUNT=17
+UPDATE_REQUIRED_COUNT=0
 ```
 
-`UPDATE_REQUIRED_COUNT=1` is **documentation narrative** only
-(CLAIM-015). No contest runtime code gap is opened by this matrix.
+CLAIM-015 documentation narrative is normalized by
+`NW008_CONTEST_INGESTION_CRM_CLAIM_NORMALIZATION_001`. No contest runtime code
+gap is opened by this matrix.
 
 ---
 
@@ -533,7 +601,10 @@ UPDATE_REQUIRED_COUNT=1
 
 ```text
 CONTEST_RUNTIME_IMPLEMENTATION_GAP_EXISTS=NO
+CONTEST_RUNTIME_CODE_GAP_EXISTS=NO
+END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES
 SMALLEST_IMPLEMENTATION_GAP=
+SMALLEST_EVIDENCE_GAP=INGESTION_TO_LIVE_GHL_SINGLE_RUN_NOT_PROVEN
 NEXT=DEMO_AND_SUBMISSION_READINESS
 ```
 
@@ -547,18 +618,23 @@ NEXT=DEMO_AND_SUBMISSION_READINESS
 3. PR246 correctly removed private-repo / B4 loader work from the contest
    critical path; nothing in that decision creates a missing public runtime
    feature for demo or submission.
-4. The only material follow-up is **wording** so contest-facing docs do not
-   erase AT1 historical proof or revive consumed Grant 008 / imply judge
-   live writes.
+4. Business-content ingestion, provider-contract ingestion, and historical live
+   synthetic writes are each proven on **separate** lanes;
+   `INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO` is an **evidence-join** gap,
+   not a missing contest runtime feature.
+5. Contest-facing docs now carry §2.1 canonical wording so they do not erase
+   AT1 historical proof, revive consumed Grant 008, or imply judge live writes.
 
 ### 6.2 What “DEMO_AND_SUBMISSION_READINESS” means (non-coding)
 
 - Record ~4 min demo from existing script (human).
 - Optional IAP hosted walkthrough (human 2FA).
-- Optional **docs-only** follow-on to apply §2.1 wording to Devpost / demo /
-  README (separate planning or docs PR if governance wants it — **not** a
-  runtime implementation unit).
+- Docs-only ingestion/CRM claim normalization applied to Devpost / demo /
+  critical-path / README (this follow-on) — **not** a runtime implementation
+  unit.
 - Do **not** reopen B4, R3, PR242, PR233, PR3140 activation, or Grant 008.
+- Any single-run transcript→live-GHL evidence path requires **new** human
+  authorization (Grant 008 non-reusable).
 
 ```text
 CODING_PR_AUTHORIZED_BY_THIS_UNIT=NO
@@ -596,7 +672,8 @@ PRIVATE_BINDINGS_PUBLISHED=NO
 | Concern | Authoritative artifact |
 | --- | --- |
 | Contest boundary / no private runtime dep | `docs/nw008/nw-008-contest-runtime-boundary-reconciliation-001.md` (PR246 merge `4594d6b…`) |
-| Competition gate board | `proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md` |
+| Competition gate board / business-content ingestion | `proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md` |
+| Provider-contract ingestion | `proof/nw008/nw-008-at1-write-credential-readiness.md`; `proof/nw008/nw-008-at1-create-note-request-contract-reconciliation.md` |
 | Historical live synthetic AT1 | `proof/nw008/nw-008-at1-live-execution-result-008.md` |
 | Devpost copy | `docs/competition/DEVPOST_WRITEUP.md` |
 | 4 min script | `docs/demo/meeting-follow-up-v1-4min-demo-script.md` |
@@ -611,19 +688,28 @@ PRIVATE_BINDINGS_PUBLISHED=NO
 ```text
 ARTIFACT_ID=NW008_CONTEST_CRITICAL_PATH_REBASE_001
 ARTIFACT_PATH=docs/nw008/nw-008-contest-critical-path-rebase-001.md
-PUBLIC_BASE_SHA=4594d6b866a64193a9a2ea695771beda706a9220
-BRANCH=plan/nw008-contest-critical-path-rebase-001
+PUBLIC_BASE_SHA=d654a98f22c19e7156b5f982f185eecb7c88772a
+BRANCH=plan/nw008-contest-ingestion-crm-claim-normalization-001
+NORMALIZATION_UNIT=NW008_CONTEST_INGESTION_CRM_CLAIM_NORMALIZATION_001
 
 CLAIM_COUNT=17
-ACCURATE_CLAIM_COUNT=16
-UPDATE_REQUIRED_COUNT=1
+ACCURATE_CLAIM_COUNT=17
+UPDATE_REQUIRED_COUNT=0
 
 JUDGE_DEMO_LIVE_GHL_MUTATION=NO
 LIVE_SYNTHETIC_GHL_PATH_PREVIOUSLY_VALIDATED=YES
 ADDITIONAL_LIVE_GHL_EXECUTION_REQUIRES_NEW_HUMAN_AUTHORIZATION=YES
 
+BUSINESS_CONTENT_INGESTION_PROVEN=YES
+PROVIDER_CONTRACT_INGESTION_PROVEN=YES
+GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
+
 CONTEST_RUNTIME_IMPLEMENTATION_GAP_EXISTS=NO
+CONTEST_RUNTIME_CODE_GAP_EXISTS=NO
+END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES
 SMALLEST_IMPLEMENTATION_GAP=
+SMALLEST_EVIDENCE_GAP=INGESTION_TO_LIVE_GHL_SINGLE_RUN_NOT_PROVEN
 
 PRIVATE_REPO_MUTATED=NO
 PUBLIC_RUNTIME_SOURCE_MUTATED=NO
@@ -633,15 +719,17 @@ IAM_MUTATIONS=0
 SECRET_MUTATIONS=0
 DEPLOYMENTS=0
 
-RESULT=CRITICAL_PATH_REBASE_COMPLETE_DEMO_AND_SUBMISSION_READINESS
-STOP_CODE=NW008_CONTEST_CRITICAL_PATH_REBASE_001_PR_OPEN_STOP
+RESULT=CRITICAL_PATH_REBASE_PLUS_INGESTION_CRM_CLAIM_NORMALIZATION
+STOP_CODE=NW008_CONTEST_INGESTION_CRM_CLAIM_NORMALIZATION_001_PR_OPEN_STOP
 ```
 
 ---
 
 ## 10. Stop
 
-Open **one** planning-only PR with this artifact. Do not merge automatically.
-Do not implement documentation wording fixes or runtime changes in this unit.
-Return the PR to ChatGPT for architecture / governance review before any
-additional runtime implementation.
+Docs-only normalization of contest-facing claims is in scope for the
+ingestion/CRM claim normalization PR. Do not merge automatically. Do not
+mutate runtime source, perform live GHL calls, write CRM, change IAM/secrets,
+deploy, mutate the private repo, reuse Grant 008, or activate B4/R3/private
+loader. Return the docs-only PR to ChatGPT for architecture / governance
+review.
