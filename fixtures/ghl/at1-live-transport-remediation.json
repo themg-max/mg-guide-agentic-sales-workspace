@@ -7,9 +7,11 @@
     "location_id": "synthetic-location-remediation",
     "contact_id": "synthetic-contact-SENTINEL_CONTACT_ID",
     "opportunity_id": "synthetic-opportunity-SENTINEL_OPPORTUNITY_ID",
+    "pipeline_id": "synthetic-pipeline-remediation",
     "expected_initial_stage_id": "synthetic-stage-initial",
     "authorized_final_stage_id": "synthetic-stage-final",
-    "expected_note_content_or_fingerprint": "synthetic-note-content-SENTINEL_NOTE_CONTENT"
+    "expected_note_content_or_fingerprint": "synthetic-note-content-SENTINEL_NOTE_CONTENT",
+    "transcript_content": "Synthetic transcript for deterministic AT1 evidence remediation."
   },
   "cases": {
     "success": {

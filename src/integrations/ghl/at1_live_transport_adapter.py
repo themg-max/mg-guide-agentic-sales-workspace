@@ -123,6 +123,11 @@ class At1LiveTransportAdapter:
             operation_ordinal=ordinal,
             response_envelope=response,
         )
+        self.store.record_response_evidence(
+            grant_run_id=self.grant_run_id,
+            operation_ordinal=ordinal,
+            **self._response_evidence(response),
+        )
         parsed = self._parse_response(
             request_id=request_id,
             operation_id=operation_id,
@@ -153,7 +158,9 @@ class At1LiveTransportAdapter:
         )
         return FixtureResponse(status="ok", record=parsed.payload)
 
-    def record_semantic_outcome(self, success: bool) -> None:
+    def record_semantic_outcome(
+        self, success: bool, target_binding_match: bool | str | None = None
+    ) -> None:
         ordinal = self.store.latest_operation_ordinal(self.grant_run_id)
         if ordinal is None:
             return
@@ -161,6 +168,24 @@ class At1LiveTransportAdapter:
             grant_run_id=self.grant_run_id,
             operation_ordinal=ordinal,
             success=success,
+            target_binding_match=target_binding_match,
+        )
+
+    def record_prewrite_provenance(
+        self,
+        *,
+        transcript_content: str,
+        transcript_sha256: str,
+        expected_note_content: str,
+        expected_note_sha256: str,
+    ) -> None:
+        self.store.require_run_continuable(self.grant_run_id)
+        self.store.record_prewrite_provenance(
+            grant_run_id=self.grant_run_id,
+            transcript_content=transcript_content,
+            transcript_sha256=transcript_sha256,
+            expected_note_content=expected_note_content,
+            expected_note_sha256=expected_note_sha256,
         )
 
     def record_terminal_failure(
@@ -258,6 +283,8 @@ class At1LiveTransportAdapter:
         operation_id: str,
         response: Mapping[str, Any],
     ) -> _ParsedOperation:
+        if response.get("jsonrpc") != "2.0":
+            return _ParsedOperation(False, {}, "JSONRPC_VERSION_INVALID")
         if response.get("id") != request_id:
             return _ParsedOperation(False, {}, "JSONRPC_REQUEST_ID_MISMATCH")
         if "error" in response and response.get("error") is not None:
@@ -284,3 +311,36 @@ class At1LiveTransportAdapter:
         if not isinstance(payload, Mapping):
             return _ParsedOperation(False, {}, "MCP_OPERATION_PAYLOAD_INVALID")
         return _ParsedOperation(True, dict(payload), None)
+
+    @staticmethod
+    def _response_evidence(response: Mapping[str, Any]) -> dict[str, Any]:
+        jsonrpc_error_present = "error" in response and response.get("error") is not None
+        result = response.get("result")
+        if not isinstance(result, Mapping):
+            return {
+                "http_status": None,
+                "jsonrpc_error_present": jsonrpc_error_present,
+                "mcp_is_error": None,
+            }
+        is_error = result.get("isError")
+        mcp_is_error = is_error if isinstance(is_error, bool) else None
+        content = result.get("content")
+        if not isinstance(content, list) or not content or not isinstance(content[0], Mapping):
+            return {
+                "http_status": None,
+                "jsonrpc_error_present": jsonrpc_error_present,
+                "mcp_is_error": mcp_is_error,
+            }
+        nested = content[0]
+        status = nested.get("status")
+        return {
+            "http_status": (
+                status
+                if not jsonrpc_error_present
+                and mcp_is_error is False
+                and isinstance(status, int)
+                else None
+            ),
+            "jsonrpc_error_present": jsonrpc_error_present,
+            "mcp_is_error": mcp_is_error,
+        }
