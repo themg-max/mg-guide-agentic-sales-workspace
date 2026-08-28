@@ -303,19 +303,27 @@ does not amend contest docs.
 ## 9. Required question answers
 
 ```text
-GRANT008_CREATE_NOTE_TRANSPORT_SUCCESS_SUPPORTED=YES
-  # Basis: success-claim terminal OP3_STATUS=OK (no top-level JSON-RPC error /
-  # no urllib HTTPError path). Nested operation success UNKNOWN.
-  # HTTP 200 code itself was not envelope-retained (Result-008 recon: NOT_PROVEN
-  # for CREATE_NOTE_TRANSPORT_HTTP=200 as a measured status code).
+GRANT008_CREATE_NOTE_TOP_LEVEL_REQUEST_PATH_SUPPORTED=YES
+  # Basis: success-claim terminal OP3_STATUS=OK shows top-level request-path
+  # progress (no top-level JSON-RPC error / no urllib HTTPError path only).
+GRANT008_CREATE_NOTE_NESTED_OPERATION_SUCCESS=UNKNOWN
+GRANT008_CREATE_NOTE_HTTP_200_INDEPENDENTLY_VERIFIED=NO
+  # HTTP 200 was not envelope-retained (Result-008 recon: NOT_PROVEN for
+  # CREATE_NOTE_TRANSPORT_HTTP=200 as a measured status code). Top-level path
+  # progress is not independently verified transport HTTP success or nested
+  # operation success.
 
 GRANT008_NOTE_READBACK_SUPPORTED=NO
   # Basis: note_id_present=False; unconditional YES print; CONTENT binding mode
   # compare not performed; no retained get-note body; PR249 notes_count=0.
 
-GRANT008_STAGE_UPDATE_TRANSPORT_SUCCESS_SUPPORTED=YES
-  # Basis: success-claim terminal OP5_STATUS=OK (top-level no-error path only).
-  # Nested operation success UNKNOWN; HTTP status code not envelope-retained.
+GRANT008_STAGE_UPDATE_TOP_LEVEL_REQUEST_PATH_SUPPORTED=YES
+  # Basis: success-claim terminal OP5_STATUS=OK shows top-level request-path
+  # progress only.
+GRANT008_STAGE_UPDATE_NESTED_OPERATION_SUCCESS=UNKNOWN
+GRANT008_STAGE_UPDATE_HTTP_200_INDEPENDENTLY_VERIFIED=NO
+  # HTTP status code not envelope-retained. Top-level path progress is not
+  # independently verified transport HTTP success or nested operation success.
 
 GRANT008_FINAL_STAGE_READBACK_SUPPORTED=NO
   # Basis: unconditional YES print; no retained stage compare to authorized
@@ -328,11 +336,15 @@ POST_GRANT008_MANUAL_OR_AUTOMATED_MUTATION_EVIDENCE=NO
 PROVIDER_RETENTION_BEHAVIOR_RELEVANT=UNKNOWN
   # Possible non-exclusive hypothesis only; no positive retention/audit evidence.
 
-CURRENT_PROVIDER_STATE_EXPLAINED=YES
-  # Explained without requiring a later-state-changed theory: historical success
-  # end-state was never independently proven; current empty-note + initial-stage
-  # observation is consistent with never-applied durable effects and does not
-  # by itself prove post-hoc deletion/reset. Identity continuity remains YES.
+CURRENT_PROVIDER_STATE_CAUSALLY_EXPLAINED=NO
+CURRENT_PROVIDER_STATE_COMPATIBLE_WITH_HISTORICAL_EVIDENCE_GAP=YES
+POST_GRANT008_STATE_CHANGE_CAUSE=UNKNOWN
+  # The historical evidence gap removes any *need* to assume a later
+  # deletion/reset to reconcile current empty-note + initial-stage inventory
+  # with Result-008 claims (those claims lacked independent durable-effect
+  # proof). That compatibility does **not** prove no later change occurred;
+  # causal history of the current provider state remains unresolved.
+  # Identity continuity remains YES.
 
 HISTORICAL_GRANT008_EXECUTION_CLAIM_SUPPORTED=PARTIAL
   # PARTIAL = execution attempt under Grant 008 occurred (completion decision:
@@ -341,16 +353,15 @@ HISTORICAL_GRANT008_EXECUTION_CLAIM_SUPPORTED=PARTIAL
   # retained evidence. Business-effect truth remains partially unknown per
   # completion decision (missing response envelopes).
 ```
-
 ## 10. Claim vs evidence vs current state matrix
 
 | Element | Result 008 claim | Controlling historical evidence | Current provider (PR249) |
 | --- | --- | --- | --- |
 | Exact contact target | used | binding PASS pre-exec | **MATCH** |
 | Exact opportunity target | used | binding PASS pre-exec | **MATCH** |
-| create-note transport | HTTP 200 | OP3_STATUS=OK; nested UNKNOWN; note_id **False** | n/a (no write) |
+| create-note top-level path | HTTP 200 claim | OP3_STATUS=OK path only; nested UNKNOWN; HTTP 200 not independently verified; note_id **False** | n/a (no write) |
 | Note created + readable | YES + readback YES | readback **NO**; id **NO** | notes=**0** |
-| update-opportunity transport | HTTP 200 | OP5_STATUS=OK; nested UNKNOWN | n/a |
+| stage-update top-level path | HTTP 200 claim | OP5_STATUS=OK path only; nested UNKNOWN; HTTP 200 not independently verified | n/a |
 | Final stage = authorized final | readback YES | stage match **UNKNOWN** | stage=**EXPECTED_INITIAL** |
 | AT1_COMPLETE | YES | **NO** (FAIL recon + decision) | end-state absent |
 | Grant reusable | (consumed after) | CONSUMED / RETRY=NO | REUSED=NO |
@@ -377,16 +388,17 @@ Computation (no forced PASS):
    → **Not selected as sole label**.
 
 4. **UNRESOLVED_CONTRADICTORY_EVIDENCE** describes PR249’s identity-match vs
-   end-state-missing surface, but this historical audit **can** explain that
-   surface without leaving the contradiction unanalyzed: the claimed end-state
-   lacked independent historical support.
-   → **Not selected**.
+   end-state-missing surface. This audit analyzes that surface as
+   **compatible** with the historical evidence gap (no need to assume later
+   deletion/reset), but does **not** causally explain current provider state
+   or prove that no later change occurred (`POST_GRANT008_STATE_CHANGE_CAUSE=UNKNOWN`).
+   → **Not selected** as the primary taxonomy (evidence insufficiency governs).
 
 5. **HISTORICAL_RESULT008_EVIDENCE_INSUFFICIENT** matches the controlling chain:
    missing OP envelopes; non-probative YES prints; decisive note-id absence;
    unresolved nested write success; insufficient basis to prefer
    later-state-changed vs never-durably-applied; current provider state does
-   not fill the historical evidence gap.
+   not fill the historical evidence gap and is not causally explained here.
 
 ```text
 RESULT=HISTORICAL_RESULT008_EVIDENCE_INSUFFICIENT
@@ -441,9 +453,13 @@ CURRENT_GRANT008_TARGET_IDENTITY_RECONFIRMED=YES
 CURRENT_GRANT008_END_STATE_RECONFIRMED=NO
 CURRENT_PROVIDER_STATE_CONTRADICTS_HISTORICAL_END_STATE=YES
 
-GRANT008_CREATE_NOTE_TRANSPORT_SUCCESS_SUPPORTED=YES
+GRANT008_CREATE_NOTE_TOP_LEVEL_REQUEST_PATH_SUPPORTED=YES
+GRANT008_CREATE_NOTE_NESTED_OPERATION_SUCCESS=UNKNOWN
+GRANT008_CREATE_NOTE_HTTP_200_INDEPENDENTLY_VERIFIED=NO
 GRANT008_NOTE_READBACK_SUPPORTED=NO
-GRANT008_STAGE_UPDATE_TRANSPORT_SUCCESS_SUPPORTED=YES
+GRANT008_STAGE_UPDATE_TOP_LEVEL_REQUEST_PATH_SUPPORTED=YES
+GRANT008_STAGE_UPDATE_NESTED_OPERATION_SUCCESS=UNKNOWN
+GRANT008_STAGE_UPDATE_HTTP_200_INDEPENDENTLY_VERIFIED=NO
 GRANT008_FINAL_STAGE_READBACK_SUPPORTED=NO
 
 POST_GRANT008_NOTE_DELETION_EVIDENCE=NO
@@ -451,7 +467,9 @@ POST_GRANT008_STAGE_RESET_EVIDENCE=NO
 POST_GRANT008_MANUAL_OR_AUTOMATED_MUTATION_EVIDENCE=NO
 PROVIDER_RETENTION_BEHAVIOR_RELEVANT=UNKNOWN
 
-CURRENT_PROVIDER_STATE_EXPLAINED=YES
+CURRENT_PROVIDER_STATE_CAUSALLY_EXPLAINED=NO
+CURRENT_PROVIDER_STATE_COMPATIBLE_WITH_HISTORICAL_EVIDENCE_GAP=YES
+POST_GRANT008_STATE_CHANGE_CAUSE=UNKNOWN
 HISTORICAL_GRANT008_EXECUTION_CLAIM_SUPPORTED=PARTIAL
 
 RESULT=HISTORICAL_RESULT008_EVIDENCE_INSUFFICIENT
