@@ -603,7 +603,6 @@ class At1ExecutionStore:
         http_status: int | None,
         jsonrpc_error_present: bool,
         mcp_is_error: bool | None,
-        nested_operation_success: bool | None,
     ) -> None:
         with self._connection:
             cursor = self._connection.execute(
@@ -612,7 +611,6 @@ class At1ExecutionStore:
                 SET http_status = ?,
                     jsonrpc_error_present = ?,
                     mcp_is_error = ?,
-                    nested_operation_success = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE grant_run_id = ?
                   AND operation_ordinal = ?
@@ -622,9 +620,6 @@ class At1ExecutionStore:
                     http_status,
                     1 if jsonrpc_error_present else 0,
                     None if mcp_is_error is None else int(mcp_is_error),
-                    None
-                    if nested_operation_success is None
-                    else int(nested_operation_success),
                     grant_run_id,
                     operation_ordinal,
                     RESPONSE_CAPTURED,
@@ -642,10 +637,22 @@ class At1ExecutionStore:
             cursor = self._connection.execute(
                 """
                 UPDATE attempts
-                SET parse_success = ?, updated_at = CURRENT_TIMESTAMP
+                SET parse_success = ?,
+                    http_status = CASE WHEN ? = 0 THEN NULL ELSE http_status END,
+                    nested_operation_success = CASE
+                        WHEN ? = 0 THEN 0
+                        ELSE nested_operation_success
+                    END,
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE grant_run_id = ? AND operation_ordinal = ?
                 """,
-                (1 if success else 0, grant_run_id, operation_ordinal),
+                (
+                    1 if success else 0,
+                    1 if success else 0,
+                    1 if success else 0,
+                    grant_run_id,
+                    operation_ordinal,
+                ),
             )
             if cursor.rowcount != 1:
                 raise AttemptStateError(
@@ -662,24 +669,34 @@ class At1ExecutionStore:
     ) -> None:
         if target_binding_match not in (True, False, "NOT_APPLICABLE", None):
             raise AttemptStateError("target binding match must be true, false, or NOT_APPLICABLE")
+        public_target_binding_match = (
+            "YES"
+            if target_binding_match is True
+            else "NO"
+            if target_binding_match is False
+            else target_binding_match
+        )
         with self._connection:
             cursor = self._connection.execute(
                 """
                 UPDATE attempts
                 SET semantic_success = ?,
                     target_binding_match = ?,
+                    nested_operation_success = CASE
+                        WHEN parse_success = 1
+                         AND ? = 1
+                         AND ? IN ('YES', 'NOT_APPLICABLE')
+                        THEN 1
+                        ELSE 0
+                    END,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE grant_run_id = ? AND operation_ordinal = ?
                 """,
                 (
                     1 if success else 0,
-                    (
-                        "YES"
-                        if target_binding_match is True
-                        else "NO"
-                        if target_binding_match is False
-                        else target_binding_match
-                    ),
+                    public_target_binding_match,
+                    1 if success else 0,
+                    public_target_binding_match,
                     grant_run_id,
                     operation_ordinal,
                 ),
@@ -946,6 +963,61 @@ class At1ExecutionStore:
                 create_note_body_digest = hashlib.sha256(
                     create_note_body.encode("utf-8")
                 ).hexdigest()
+        create_note_payload = self._nested_payload(create_note_attempt)
+        readback_note_attempt = next(
+            (attempt for attempt in attempts if attempt["operation_id"] == "get-note"),
+            None,
+        )
+        readback_note_payload = self._nested_payload(readback_note_attempt)
+        created_note_id = (
+            create_note_payload.get("note_id")
+            if create_note_attempt is not None
+            and create_note_attempt["parse_success"] is True
+            else None
+        )
+        if not isinstance(created_note_id, str) or not created_note_id:
+            created_note_id = None
+        readback_note_id = (
+            readback_note_payload.get("note_id")
+            if readback_note_attempt is not None
+            and readback_note_attempt["parse_success"] is True
+            else None
+        )
+        readback_contact_id = (
+            readback_note_payload.get("contact_id")
+            if readback_note_attempt is not None
+            and readback_note_attempt["parse_success"] is True
+            else None
+        )
+        expected_contact_id = self._request_path_value(
+            readback_note_attempt, "contactId"
+        )
+        readback_note_content = readback_note_payload.get("content_or_fingerprint")
+        readback_note_digest = (
+            hashlib.sha256(readback_note_content.encode("utf-8")).hexdigest()
+            if isinstance(readback_note_content, str)
+            else None
+        )
+        readback_note_id_match = (
+            created_note_id is not None and readback_note_id == created_note_id
+        )
+        readback_contact_match = (
+            isinstance(expected_contact_id, str)
+            and bool(expected_contact_id)
+            and readback_contact_id == expected_contact_id
+        )
+        note_content_match = (
+            provenance is not None
+            and readback_note_digest is not None
+            and readback_note_digest == provenance["expected_note_digest"]
+        )
+        note_visible_under_exact_contact = (
+            readback_note_attempt is not None
+            and readback_note_attempt["nested_operation_success"] is True
+            and readback_note_id_match
+            and readback_contact_match
+            and note_content_match
+        )
         request_response_commitments = [
             {
                 "operation_ordinal": attempt["operation_ordinal"],
@@ -1016,6 +1088,20 @@ class At1ExecutionStore:
                 and create_note_body_digest == provenance["expected_note_digest"]
                 else "NO"
             ),
+            "CREATED_NOTE_ID_PRESENT": "YES" if created_note_id is not None else "NO",
+            "CREATED_NOTE_ID_FINGERPRINT": (
+                self._commitment({"created_note_id": created_note_id})
+                if created_note_id is not None
+                else "UNKNOWN"
+            ),
+            "READBACK_NOTE_ID_MATCH": "YES" if readback_note_id_match else "NO",
+            "READBACK_CONTACT_MATCH": "YES" if readback_contact_match else "NO",
+            "READBACK_NOTE_SHA256": readback_note_digest or "UNKNOWN",
+            "NOTE_CONTENT_MATCH": "YES" if note_content_match else "NO",
+            "NOTE_CONTENT_COMPARATOR": "SHA256",
+            "CRM_NOTE_VISIBLE_UNDER_EXACT_CONTACT": (
+                "YES" if note_visible_under_exact_contact else "NO"
+            ),
         }
 
     @staticmethod
@@ -1023,3 +1109,34 @@ class At1ExecutionStore:
         if value is None:
             return "UNKNOWN"
         return "YES" if value else "NO"
+
+    @staticmethod
+    def _nested_payload(attempt: Mapping[str, Any] | None) -> Mapping[str, Any]:
+        if attempt is None:
+            return {}
+        response = attempt.get("response_envelope")
+        if not isinstance(response, Mapping):
+            return {}
+        result = response.get("result")
+        if not isinstance(result, Mapping):
+            return {}
+        content = result.get("content")
+        if not isinstance(content, list) or not content or not isinstance(content[0], Mapping):
+            return {}
+        payload = content[0].get("payload")
+        return payload if isinstance(payload, Mapping) else {}
+
+    @staticmethod
+    def _request_path_value(
+        attempt: Mapping[str, Any] | None, key: str
+    ) -> str | None:
+        if attempt is None:
+            return None
+        request = attempt.get("request_envelope")
+        if not isinstance(request, Mapping):
+            return None
+        try:
+            value = request["arguments"]["params"]["path"][key]
+        except (KeyError, TypeError):
+            return None
+        return value if isinstance(value, str) else None

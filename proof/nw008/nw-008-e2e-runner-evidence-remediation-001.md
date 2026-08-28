@@ -99,11 +99,29 @@ visibility without an additional inventory operation.
 
 ## 4. R3 — First-class sanitized per-call evidence
 
-`At1ExecutionStore` schema version 2 stores parse evidence and semantic
-target-binding outcome per attempt. `At1LiveTransportAdapter._response_evidence`
-derives fields from the retained response before parse reduction. Missing or
-contradictory nested status is projected as `UNKNOWN`; no absence converts to
-success.
+`At1ExecutionStore` schema version 2 retains raw private response envelopes,
+parse evidence, and semantic target-binding outcome per attempt.
+`NESTED_OPERATION_SUCCESS` is a **contract-level** public field, not the raw
+provider `nested.success` field. It is `YES` only after the adapter has
+captured response evidence, passed every transport/parser gate, and the
+executor has recorded the required semantic/target binding verification.
+
+```text
+RESPONSE_EVIDENCE_PERSISTED=YES
+JSONRPC_VERSION_VALID=YES
+REQUEST_RESPONSE_CORRELATION_MATCH=YES
+JSONRPC_ERROR_PRESENT=NO
+MCP_IS_ERROR=NO
+OPERATION_ID_MATCH=YES
+RAW_NESTED_SUCCESS=YES
+TRUSTED_NESTED_2XX_STATUS=YES
+VALID_PAYLOAD=YES
+TARGET_BINDING_MATCH=YES|NOT_APPLICABLE
+  -> NESTED_OPERATION_SUCCESS=YES
+```
+
+Any failed gate yields `NESTED_OPERATION_SUCCESS=NO`; missing response evidence
+remains `UNKNOWN`. In particular, missing nested status **never** yields YES.
 
 Every `request_response_commitments` object now contains:
 
@@ -125,7 +143,73 @@ The store retains private request/response envelopes and canonical provenance
 payloads. The public projection retains only flags, correlation identifier,
 and HMAC-SHA256 commitments / SHA256 content digests.
 
-## 5. Deterministic coverage
+## 5. Mandatory PR251 note-evidence projection
+
+The public projection recomputes this note evidence from retained private OP3
+and OP4 envelopes plus sealed prewrite provenance. No caller can supply
+success-shaped flags.
+
+```text
+EXPECTED_NOTE_SHA256
+EXPECTED_NOTE_SHA256_CAPTURED_PREWRITE
+CREATE_NOTE_BODY_SHA256
+CREATE_NOTE_BODY_SHA256_MATCHES_EXPECTED
+
+CREATED_NOTE_ID_PRESENT
+CREATED_NOTE_ID_FINGERPRINT
+
+READBACK_NOTE_ID_MATCH
+READBACK_CONTACT_MATCH
+READBACK_NOTE_SHA256
+NOTE_CONTENT_MATCH
+NOTE_CONTENT_COMPARATOR=SHA256
+
+CRM_NOTE_VISIBLE_UNDER_EXACT_CONTACT
+```
+
+Computation:
+
+```text
+CREATED_NOTE_ID_PRESENT =
+  nonempty OP3 note id from a successfully parsed retained OP3 response
+
+CREATED_NOTE_ID_FINGERPRINT =
+  HMAC commitment of the private created note id, or UNKNOWN
+
+READBACK_NOTE_ID_MATCH =
+  retained parsed OP4 note id equals private OP3 created note id
+
+READBACK_CONTACT_MATCH =
+  retained parsed OP4 contact association equals exact private OP4 request contact
+
+READBACK_NOTE_SHA256 =
+  SHA256 of retained parsed OP4 canonical note body, or UNKNOWN
+
+NOTE_CONTENT_MATCH =
+  READBACK_NOTE_SHA256 equals EXPECTED_NOTE_SHA256
+
+CRM_NOTE_VISIBLE_UNDER_EXACT_CONTACT =
+  OP4 NESTED_OPERATION_SUCCESS=YES
+  AND READBACK_NOTE_ID_MATCH=YES
+  AND READBACK_CONTACT_MATCH=YES
+  AND NOTE_CONTENT_MATCH=YES
+```
+
+The ID fingerprint is HMAC-protected. No raw note/contact/opportunity/stage ID,
+note body, transcript, idempotency key, token, PIT, or credential is projected.
+
+## 6. Store schema guard
+
+```text
+FRESH_EXECUTION_STORE_REQUIRED=YES
+EXECUTION_STORE_SCHEMA_VERSION=2
+REUSE_V1_STORE=NO
+```
+
+Schema version 2 is fail-closed: a v1 or other non-v2 store does not satisfy
+the required table/metadata validation and is not migrated in place.
+
+## 7. Deterministic coverage
 
 Targeted test evidence:
 
@@ -158,6 +242,13 @@ FAIL_CLOSED_NESTED_SUCCESS_FALSE=YES
 FAIL_CLOSED_MISSING_NESTED_STATUS=YES
 FAIL_CLOSED_TARGET_BINDING_MISMATCH=YES
 FAIL_CLOSED_MISSING_RESPONSE_EVIDENCE=YES
+FAIL_CLOSED_INVALID_JSONRPC_VERSION=YES
+FAIL_CLOSED_REQUEST_ID_MISMATCH=YES
+FAIL_CLOSED_OPERATION_ID_MISMATCH=YES
+FAIL_CLOSED_NON_2XX_NESTED_STATUS=YES
+FAIL_CLOSED_INVALID_NESTED_PAYLOAD=YES
+MANDATORY_NOTE_EVIDENCE_PROJECTION_SUCCESS=YES
+MANDATORY_NOTE_EVIDENCE_PROJECTION_FAILURE=YES
 SECOND_NOTE_OR_STAGE_WRITE_REFUSED=YES
 ```
 
@@ -169,7 +260,7 @@ PHASE1_DETERMINISTIC_LOCAL_PASS=YES
 GIT_DIFF_CHECK=PASS
 ```
 
-## 6. Predicate closure
+## 8. Predicate closure
 
 All 29 required PR #251 runner/evidence predicates attributable to this
 implementation are now deterministically proven by the composed offline

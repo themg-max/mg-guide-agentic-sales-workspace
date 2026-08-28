@@ -321,7 +321,6 @@ class At1LiveTransportAdapter:
                 "http_status": None,
                 "jsonrpc_error_present": jsonrpc_error_present,
                 "mcp_is_error": None,
-                "nested_operation_success": None,
             }
         is_error = result.get("isError")
         mcp_is_error = is_error if isinstance(is_error, bool) else None
@@ -331,7 +330,6 @@ class At1LiveTransportAdapter:
                 "http_status": None,
                 "jsonrpc_error_present": jsonrpc_error_present,
                 "mcp_is_error": mcp_is_error,
-                "nested_operation_success": None,
             }
         nested = content[0]
         status = nested.get("status")
@@ -345,7 +343,4 @@ class At1LiveTransportAdapter:
             ),
             "jsonrpc_error_present": jsonrpc_error_present,
             "mcp_is_error": mcp_is_error,
-            "nested_operation_success": (
-                nested["success"] if isinstance(nested.get("success"), bool) else None
-            ),
         }

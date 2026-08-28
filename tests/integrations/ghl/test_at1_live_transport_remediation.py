@@ -399,7 +399,7 @@ def test_b36_restart_persistence_and_crash_window_refusals(tmp_path: Path) -> No
     )
     adapter_a.dispatch(envelope)
     # Simulate executor semantic completion so the ordinal is fully resolved.
-    adapter_a.record_semantic_outcome(True)
+    adapter_a.record_semantic_outcome(True, target_binding_match=True)
     assert len(session_a.dispatch_log) == 1
 
     store_b = _execution_store(db_path)
@@ -910,7 +910,16 @@ def test_r1_sealed_transcript_and_note_provenance_are_publicly_verifiable(
     assert projection["TRANSCRIPT_HASH_CAPTURED"] == "YES"
     assert projection["TRANSCRIPT_DERIVED_NOTE_HASH_CAPTURED_PREWRITE"] == "YES"
     assert projection["EXPECTED_NOTE_SHA256_CAPTURED_PREWRITE"] == "YES"
+    assert len(projection["CREATE_NOTE_BODY_SHA256"]) == 64
     assert projection["CREATE_NOTE_BODY_SHA256_MATCHES_EXPECTED"] == "YES"
+    assert projection["CREATED_NOTE_ID_PRESENT"] == "YES"
+    assert len(projection["CREATED_NOTE_ID_FINGERPRINT"]) == 64
+    assert projection["READBACK_NOTE_ID_MATCH"] == "YES"
+    assert projection["READBACK_CONTACT_MATCH"] == "YES"
+    assert len(projection["READBACK_NOTE_SHA256"]) == 64
+    assert projection["NOTE_CONTENT_MATCH"] == "YES"
+    assert projection["NOTE_CONTENT_COMPARATOR"] == "SHA256"
+    assert projection["CRM_NOTE_VISIBLE_UNDER_EXACT_CONTACT"] == "YES"
     assert len(projection["TRANSCRIPT_SHA256"]) == 64
     assert len(projection["EXPECTED_NOTE_SHA256"]) == 64
     create_note = projection["request_response_commitments"][2]
@@ -1048,7 +1057,7 @@ def test_r3_missing_nested_status_is_fail_closed_and_projected_unknown(
     assert result.disposition == "failed"
     assert result.failure_code == "NOTE_WRITE_REJECTED"
     assert create_note["HTTP_STATUS"] == "UNKNOWN"
-    assert create_note["NESTED_OPERATION_SUCCESS"] == "YES"
+    assert create_note["NESTED_OPERATION_SUCCESS"] == "NO"
     assert create_note["TARGET_BINDING_MATCH"] == "UNKNOWN"
 
 
@@ -1068,7 +1077,96 @@ def test_r3_jsonrpc_error_is_fail_closed_and_projected(tmp_path: Path) -> None:
     assert result.failure_code == "NOTE_WRITE_REJECTED"
     assert create_note["JSONRPC_ERROR_PRESENT"] == "YES"
     assert create_note["HTTP_STATUS"] == "UNKNOWN"
-    assert create_note["NESTED_OPERATION_SUCCESS"] == "UNKNOWN"
+    assert create_note["NESTED_OPERATION_SUCCESS"] == "NO"
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected_http_status"),
+    [
+        (
+            lambda response: response.__setitem__("jsonrpc", "1.0"),
+            "UNKNOWN",
+        ),
+        (
+            lambda response: response.__setitem__("id", "wrong-request-id"),
+            "UNKNOWN",
+        ),
+        (
+            lambda response: response["result"]["content"][0].__setitem__(
+                "operationId", "wrong-operation"
+            ),
+            "UNKNOWN",
+        ),
+        (
+            lambda response: response["result"]["content"][0].__setitem__(
+                "success", False
+            ),
+            "UNKNOWN",
+        ),
+        (
+            lambda response: response["result"]["content"][0].__setitem__(
+                "status", 400
+            ),
+            "UNKNOWN",
+        ),
+        (
+            lambda response: response["result"]["content"][0].__setitem__(
+                "payload", "not-a-payload"
+            ),
+            "UNKNOWN",
+        ),
+    ],
+)
+def test_r3_layered_gate_failures_never_project_nested_success_yes(
+    tmp_path: Path,
+    mutate,
+    expected_http_status: int | str,
+) -> None:
+    responses = _responses_with_provider_metadata("success")
+    mutate(responses[2])
+    adapter, executor, _ = _adapter_and_executor_for_responses(tmp_path, responses)
+
+    result = executor.execute(_binding(), _context())
+    create_note = adapter.public_projection()["request_response_commitments"][2]
+
+    assert result.disposition == "failed"
+    assert create_note["NESTED_OPERATION_SUCCESS"] == "NO"
+    assert create_note["TARGET_BINDING_MATCH"] == "UNKNOWN"
+    assert create_note["HTTP_STATUS"] == expected_http_status
+
+
+def test_r3_note_evidence_fields_fail_closed_on_readback_content_mismatch(
+    tmp_path: Path,
+) -> None:
+    adapter, executor, _ = _adapter_and_executor(tmp_path, "wrong_note_content")
+
+    result = executor.execute(_binding(), _context())
+    projection = adapter.public_projection()
+
+    assert result.disposition == "failed"
+    assert projection["CREATED_NOTE_ID_PRESENT"] == "YES"
+    assert projection["READBACK_NOTE_ID_MATCH"] == "YES"
+    assert projection["READBACK_CONTACT_MATCH"] == "YES"
+    assert len(projection["READBACK_NOTE_SHA256"]) == 64
+    assert projection["NOTE_CONTENT_MATCH"] == "NO"
+    assert projection["CRM_NOTE_VISIBLE_UNDER_EXACT_CONTACT"] == "NO"
+
+
+def test_r3_note_evidence_fields_fail_closed_on_missing_created_note_id(
+    tmp_path: Path,
+) -> None:
+    adapter, executor, _ = _adapter_and_executor(tmp_path, "missing_note_id")
+
+    result = executor.execute(_binding(), _context())
+    projection = adapter.public_projection()
+
+    assert result.disposition == "failed"
+    assert projection["CREATED_NOTE_ID_PRESENT"] == "NO"
+    assert projection["CREATED_NOTE_ID_FINGERPRINT"] == "UNKNOWN"
+    assert projection["READBACK_NOTE_ID_MATCH"] == "NO"
+    assert projection["READBACK_CONTACT_MATCH"] == "NO"
+    assert projection["NOTE_CONTENT_MATCH"] == "NO"
+    assert projection["CRM_NOTE_VISIBLE_UNDER_EXACT_CONTACT"] == "NO"
 
 
 def test_r3_missing_response_evidence_never_projects_success(tmp_path: Path) -> None:
@@ -1091,3 +1189,23 @@ def test_r3_missing_response_evidence_never_projects_success(tmp_path: Path) -> 
     assert attempt["MCP_IS_ERROR"] == "UNKNOWN"
     assert attempt["NESTED_OPERATION_SUCCESS"] == "UNKNOWN"
     assert attempt["TARGET_BINDING_MATCH"] == "UNKNOWN"
+
+
+def test_r3_semantic_success_without_target_binding_never_projects_nested_success(
+    tmp_path: Path,
+) -> None:
+    adapter, _, _ = _adapter_and_executor(tmp_path, "success")
+    serializer = At1LiveTransportSerializer()
+    binding = _binding()
+    adapter.dispatch(
+        serializer.build_execute_operation_call(
+            "get-contact",
+            {"location_id": binding.location_id, "contact_id": binding.contact_id},
+        )
+    )
+    adapter.record_semantic_outcome(True)
+
+    attempt = adapter.public_projection()["request_response_commitments"][0]
+
+    assert attempt["TARGET_BINDING_MATCH"] == "UNKNOWN"
+    assert attempt["NESTED_OPERATION_SUCCESS"] == "NO"
