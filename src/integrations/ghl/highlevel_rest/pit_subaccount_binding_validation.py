@@ -9,8 +9,13 @@ from typing import Any, Mapping
 from .live_note_transport import (
     LiveNoteHttpResult,
     LiveNoteHttpUncertainty,
+    PrivateProviderErrorEvidence,
     derive_private_provider_error_evidence,
     project_public_provider_error_evidence,
+)
+from .private_provider_diagnostic_persistence import (
+    PrivateProviderDiagnosticContext,
+    PrivateProviderDiagnosticPersistenceError,
 )
 
 
@@ -50,7 +55,12 @@ class PitSubaccountBindingValidationResult:
 class OfflinePitSubaccountBindingValidationExecutor:
     """Evaluate exactly one injected result without a network or credential path."""
 
-    def __init__(self, *, private_validation_location_id: str) -> None:
+    def __init__(
+        self,
+        *,
+        private_validation_location_id: str,
+        private_diagnostic_context: PrivateProviderDiagnosticContext | None = None,
+    ) -> None:
         if (
             not isinstance(private_validation_location_id, str)
             or not private_validation_location_id.strip()
@@ -59,6 +69,7 @@ class OfflinePitSubaccountBindingValidationExecutor:
                 "private_validation_location_id must be a non-empty string"
             )
         self._private_validation_location_id = private_validation_location_id
+        self._private_diagnostic_context = private_diagnostic_context
         self._consumed = False
 
     def evaluate(
@@ -93,14 +104,60 @@ class OfflinePitSubaccountBindingValidationExecutor:
             return self._evaluate_success_response(outcome.body, status_code=status_code)
         if 100 <= status_code <= 599 and not 200 <= status_code <= 299:
             private_evidence = derive_private_provider_error_evidence(outcome)
+            if not self._persist_private_diagnostic(private_evidence):
+                return self._result(
+                    disposition="FAIL_CLOSED",
+                    public_proof={
+                        "PROVIDER_HTTP_STATUS": status_code,
+                        "PRIVATE_DIAGNOSTIC_PERSISTED": "NO",
+                        "DIAGNOSTIC_PERSISTENCE_VERIFIED": "NO",
+                        "DIAGNOSTIC_PERSISTENCE_FAILURE": "YES",
+                        "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "UNKNOWN",
+                        "RAW_PROVIDER_RESPONSE_PUBLISHED": "NO",
+                        "RAW_LOCATION_ID_PUBLIC": "NO",
+                        "TOKEN_OR_PIT_PUBLISHED": "NO",
+                        "RETRY_PERFORMED": "NO",
+                        "SECOND_PROVIDER_CALL": "NO",
+                    },
+                )
             public_evidence = project_public_provider_error_evidence(
                 private_evidence
             ).as_public_dict()
+            public_evidence.update(
+                {
+                    "PRIVATE_DIAGNOSTIC_PERSISTED": "YES",
+                    "DIAGNOSTIC_PERSISTENCE_VERIFIED": "YES",
+                    "DIAGNOSTIC_PERSISTENCE_FAILURE": "NO",
+                    "RETRY_PERFORMED": "NO",
+                    "SECOND_PROVIDER_CALL": "NO",
+                }
+            )
             # No provider location id was available for comparison.
             public_evidence["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] = "UNKNOWN"
             public_evidence["RAW_LOCATION_ID_PUBLIC"] = "NO"
             return self._result(disposition="FAIL_CLOSED", public_proof=public_evidence)
         return self._unresolved_closed_result(http_status=status_code)
+
+    def _persist_private_diagnostic(
+        self, private_evidence: PrivateProviderErrorEvidence
+    ) -> bool:
+        context = self._private_diagnostic_context
+        if context is None:
+            return False
+        try:
+            receipt = context.store.persist(
+                private_evidence,
+                grant_id=context.grant_id,
+                run_id=context.run_id,
+                operation_id=context.operation_id,
+                sensitive_values=(
+                    self._private_validation_location_id,
+                    *context.sensitive_values,
+                ),
+            )
+        except PrivateProviderDiagnosticPersistenceError:
+            return False
+        return receipt.verified
 
     def _evaluate_success_response(
         self, body: object, *, status_code: int

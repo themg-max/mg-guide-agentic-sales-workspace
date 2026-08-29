@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import subprocess
 from typing import Any
 
 import pytest
@@ -22,6 +23,12 @@ from integrations.ghl.highlevel_rest.live_note_transport import (
     LiveNoteHttpResult,
     LiveNoteHttpUncertainty,
 )
+from integrations.ghl.highlevel_rest.private_provider_diagnostic_persistence import (
+    PrivateProviderDiagnosticContext,
+)
+from mg_guide.evidence.private_provider_diagnostic_persistence import (
+    PrivateProviderDiagnosticStore,
+)
 
 
 FIXTURE_PATH = (
@@ -34,9 +41,13 @@ FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 PRIVATE_TARGET = FIXTURE["binding"]["private_validation_location_id"]
 
 
-def _executor() -> OfflinePitSubaccountBindingValidationExecutor:
+def _executor(
+    *,
+    private_diagnostic_context: PrivateProviderDiagnosticContext | None = None,
+) -> OfflinePitSubaccountBindingValidationExecutor:
     return OfflinePitSubaccountBindingValidationExecutor(
-        private_validation_location_id=PRIVATE_TARGET
+        private_validation_location_id=PRIVATE_TARGET,
+        private_diagnostic_context=private_diagnostic_context,
     )
 
 
@@ -57,6 +68,23 @@ def _assert_one_read_budget(result: Any) -> None:
     assert result.reads_attempted == 1
     assert result.writes_attempted == 0
     assert result.retry_performed is False
+
+
+def _private_diagnostic_context(tmp_path: Path) -> PrivateProviderDiagnosticContext:
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    (repo / ".gitignore").write_text("local/\n", encoding="utf-8")
+    return PrivateProviderDiagnosticContext(
+        store=PrivateProviderDiagnosticStore(
+            repo_root=repo,
+            private_root=repo / "local" / "private" / "provider-diagnostics",
+        ),
+        grant_id="grant-test-001",
+        run_id="run-test-001",
+        operation_id="location-get-001",
+        sensitive_values=("synthetic-pit-never-persist",),
+    )
 
 
 def test_exact_location_match_passes_without_publishing_private_values() -> None:
@@ -148,9 +176,11 @@ def test_invalid_status_shape_is_binding_unresolved() -> None:
     ],
 )
 def test_definitive_non_2xx_is_binding_unresolved_with_safe_provider_evidence(
-    case_id: str, error_class: str
+    case_id: str, error_class: str, tmp_path: Path
 ) -> None:
-    result = _executor().evaluate(_result(case_id))
+    result = _executor(
+        private_diagnostic_context=_private_diagnostic_context(tmp_path)
+    ).evaluate(_result(case_id))
     rendered_public = json.dumps(result.public_proof)
 
     assert result.disposition == "FAIL_CLOSED"
@@ -160,6 +190,11 @@ def test_definitive_non_2xx_is_binding_unresolved_with_safe_provider_evidence(
     assert result.public_proof["RAW_PROVIDER_RESPONSE_PUBLISHED"] == "NO"
     assert result.public_proof["TOKEN_OR_PIT_PUBLISHED"] == "NO"
     assert result.public_proof["RAW_LOCATION_ID_PUBLIC"] == "NO"
+    assert result.public_proof["PRIVATE_DIAGNOSTIC_PERSISTED"] == "YES"
+    assert result.public_proof["DIAGNOSTIC_PERSISTENCE_VERIFIED"] == "YES"
+    assert result.public_proof["DIAGNOSTIC_PERSISTENCE_FAILURE"] == "NO"
+    assert result.public_proof["RETRY_PERFORMED"] == "NO"
+    assert result.public_proof["SECOND_PROVIDER_CALL"] == "NO"
     assert set(result.public_proof) == {
         "PROVIDER_HTTP_STATUS",
         "PROVIDER_CONTENT_TYPE_CLASS",
@@ -176,11 +211,45 @@ def test_definitive_non_2xx_is_binding_unresolved_with_safe_provider_evidence(
         "PROVIDER_CORRELATION_ID_PUBLISHED",
         "AUTHORIZATION_HEADER_PUBLISHED",
         "TOKEN_OR_PIT_PUBLISHED",
+        "PRIVATE_DIAGNOSTIC_PERSISTED",
+        "DIAGNOSTIC_PERSISTENCE_VERIFIED",
+        "DIAGNOSTIC_PERSISTENCE_FAILURE",
+        "RETRY_PERFORMED",
+        "SECOND_PROVIDER_CALL",
         "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH",
         "RAW_LOCATION_ID_PUBLIC",
     }
     assert FIXTURE["cases"][case_id]["body"]["message"] not in rendered_public
     assert PRIVATE_TARGET not in rendered_public
+    _assert_one_read_budget(result)
+
+
+def test_non_2xx_without_private_persistence_fails_before_projection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def unexpected_projection(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("public projection ran before persistence verification")
+
+    monkeypatch.setattr(
+        "integrations.ghl.highlevel_rest.pit_subaccount_binding_validation."
+        "project_public_provider_error_evidence",
+        unexpected_projection,
+    )
+    result = _executor().evaluate(_result("unauthorized"))
+
+    assert result.disposition == "FAIL_CLOSED"
+    assert result.public_proof == {
+        "PROVIDER_HTTP_STATUS": 403,
+        "PRIVATE_DIAGNOSTIC_PERSISTED": "NO",
+        "DIAGNOSTIC_PERSISTENCE_VERIFIED": "NO",
+        "DIAGNOSTIC_PERSISTENCE_FAILURE": "YES",
+        "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "UNKNOWN",
+        "RAW_PROVIDER_RESPONSE_PUBLISHED": "NO",
+        "RAW_LOCATION_ID_PUBLIC": "NO",
+        "TOKEN_OR_PIT_PUBLISHED": "NO",
+        "RETRY_PERFORMED": "NO",
+        "SECOND_PROVIDER_CALL": "NO",
+    }
     _assert_one_read_budget(result)
 
 
