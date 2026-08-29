@@ -80,6 +80,7 @@ class OfflinePitSubaccountBindingValidationExecutor:
                 disposition="FAIL_AMBIGUOUS_READ",
                 public_proof={
                     "READ_FAILURE_CLASS": "AMBIGUOUS",
+                    "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "UNKNOWN",
                     "RAW_LOCATION_ID_PUBLIC": "NO",
                     "TOKEN_OR_PIT_PUBLISHED": "NO",
                 },
@@ -87,46 +88,82 @@ class OfflinePitSubaccountBindingValidationExecutor:
 
         status_code = outcome.status_code
         if type(status_code) is not int:
-            return self._closed_result(http_status=None)
+            return self._unresolved_closed_result(http_status=None)
         if status_code == 200:
-            envelope_present, returned_location_id = self._parse_success_envelope(
-                outcome.body
-            )
-            returned_location_id_match = (
-                envelope_present == "YES"
-                and returned_location_id == self._private_validation_location_id
-            )
-            return self._result(
-                disposition="PASS" if returned_location_id_match else "FAIL_CLOSED",
-                public_proof={
-                    "HTTP_STATUS": status_code,
-                    "LOCATION_ENVELOPE_PRESENT": envelope_present,
-                    "RETURNED_LOCATION_ID_MATCH": (
-                        "YES" if returned_location_id_match else "NO"
-                    ),
-                    "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": (
-                        "YES" if returned_location_id_match else "NO"
-                    ),
-                    "RAW_LOCATION_ID_PUBLIC": "NO",
-                    "TOKEN_OR_PIT_PUBLISHED": "NO",
-                },
-            )
+            return self._evaluate_success_response(outcome.body, status_code=status_code)
         if 100 <= status_code <= 599 and not 200 <= status_code <= 299:
             private_evidence = derive_private_provider_error_evidence(outcome)
             public_evidence = project_public_provider_error_evidence(
                 private_evidence
             ).as_public_dict()
+            # No provider location id was available for comparison.
+            public_evidence["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] = "UNKNOWN"
             public_evidence["RAW_LOCATION_ID_PUBLIC"] = "NO"
             return self._result(disposition="FAIL_CLOSED", public_proof=public_evidence)
-        return self._closed_result(http_status=status_code)
+        return self._unresolved_closed_result(http_status=status_code)
 
-    def _closed_result(
+    def _evaluate_success_response(
+        self, body: object, *, status_code: int
+    ) -> PitSubaccountBindingValidationResult:
+        envelope_present, returned_location_id = self._parse_success_envelope(body)
+
+        # Exact-match PASS is unchanged: valid 200 + exact private id.
+        if (
+            envelope_present == "YES"
+            and isinstance(returned_location_id, str)
+            and returned_location_id == self._private_validation_location_id
+        ):
+            return self._result(
+                disposition="PASS",
+                public_proof={
+                    "HTTP_STATUS": status_code,
+                    "LOCATION_ENVELOPE_PRESENT": "YES",
+                    "RETURNED_LOCATION_ID_MATCH": "YES",
+                    "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "YES",
+                    "RAW_LOCATION_ID_PUBLIC": "NO",
+                    "TOKEN_OR_PIT_PUBLISHED": "NO",
+                },
+            )
+
+        # Explicit different non-empty provider id remains a definitive mismatch.
+        if (
+            envelope_present == "YES"
+            and isinstance(returned_location_id, str)
+            and returned_location_id.strip()
+        ):
+            return self._result(
+                disposition="FAIL_CLOSED",
+                public_proof={
+                    "HTTP_STATUS": status_code,
+                    "LOCATION_ENVELOPE_PRESENT": "YES",
+                    "RETURNED_LOCATION_ID_MATCH": "NO",
+                    "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "NO",
+                    "RAW_LOCATION_ID_PUBLIC": "NO",
+                    "TOKEN_OR_PIT_PUBLISHED": "NO",
+                },
+            )
+
+        # Missing envelope, malformed payload, or no comparable location id:
+        # do not infer NO where no provider location id was available.
+        return self._result(
+            disposition="FAIL_CLOSED",
+            public_proof={
+                "HTTP_STATUS": status_code,
+                "LOCATION_ENVELOPE_PRESENT": envelope_present,
+                "RETURNED_LOCATION_ID_MATCH": "UNKNOWN",
+                "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "UNKNOWN",
+                "RAW_LOCATION_ID_PUBLIC": "NO",
+                "TOKEN_OR_PIT_PUBLISHED": "NO",
+            },
+        )
+
+    def _unresolved_closed_result(
         self, *, http_status: int | None
     ) -> PitSubaccountBindingValidationResult:
         proof: dict[str, Any] = {
-            "LOCATION_ENVELOPE_PRESENT": "NO",
-            "RETURNED_LOCATION_ID_MATCH": "NO",
-            "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "NO",
+            "LOCATION_ENVELOPE_PRESENT": "UNKNOWN",
+            "RETURNED_LOCATION_ID_MATCH": "UNKNOWN",
+            "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH": "UNKNOWN",
             "RAW_LOCATION_ID_PUBLIC": "NO",
             "TOKEN_OR_PIT_PUBLISHED": "NO",
         }

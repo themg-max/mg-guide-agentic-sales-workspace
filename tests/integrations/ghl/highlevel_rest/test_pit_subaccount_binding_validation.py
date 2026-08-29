@@ -87,18 +87,30 @@ def test_bare_location_response_shape_passes() -> None:
     assert result.disposition == "PASS"
     assert result.public_proof["LOCATION_ENVELOPE_PRESENT"] == "YES"
     assert result.public_proof["RETURNED_LOCATION_ID_MATCH"] == "YES"
+    assert result.public_proof["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] == "YES"
+    _assert_one_read_budget(result)
+
+
+def test_explicit_wrong_location_id_is_definitive_mismatch() -> None:
+    result = _executor().evaluate(_result("wrong_location_id"))
+
+    assert result.disposition == "FAIL_CLOSED"
+    assert result.public_proof["HTTP_STATUS"] == 200
+    assert result.public_proof["LOCATION_ENVELOPE_PRESENT"] == "YES"
+    assert result.public_proof["RETURNED_LOCATION_ID_MATCH"] == "NO"
+    assert result.public_proof["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] == "NO"
+    assert result.public_proof["RAW_LOCATION_ID_PUBLIC"] == "NO"
     _assert_one_read_budget(result)
 
 
 @pytest.mark.parametrize(
     ("case_id", "envelope_present"),
     [
-        ("wrong_location_id", "YES"),
         ("missing_location_envelope", "NO"),
         ("malformed_payload", "NO"),
     ],
 )
-def test_200_mismatch_or_malformed_response_fails_closed(
+def test_200_missing_or_malformed_binding_is_unknown(
     case_id: str, envelope_present: str
 ) -> None:
     result = _executor().evaluate(_result(case_id))
@@ -106,9 +118,21 @@ def test_200_mismatch_or_malformed_response_fails_closed(
     assert result.disposition == "FAIL_CLOSED"
     assert result.public_proof["HTTP_STATUS"] == 200
     assert result.public_proof["LOCATION_ENVELOPE_PRESENT"] == envelope_present
-    assert result.public_proof["RETURNED_LOCATION_ID_MATCH"] == "NO"
-    assert result.public_proof["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] == "NO"
+    assert result.public_proof["RETURNED_LOCATION_ID_MATCH"] == "UNKNOWN"
+    assert result.public_proof["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] == "UNKNOWN"
     assert result.public_proof["RAW_LOCATION_ID_PUBLIC"] == "NO"
+    _assert_one_read_budget(result)
+
+
+def test_invalid_status_shape_is_binding_unresolved() -> None:
+    result = _executor().evaluate(
+        LiveNoteHttpResult(status_code="200", body=b"{}", headers={})  # type: ignore[arg-type]
+    )
+
+    assert result.disposition == "FAIL_CLOSED"
+    assert result.public_proof["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] == "UNKNOWN"
+    assert result.public_proof["RETURNED_LOCATION_ID_MATCH"] == "UNKNOWN"
+    assert "HTTP_STATUS" not in result.public_proof
     _assert_one_read_budget(result)
 
 
@@ -123,7 +147,7 @@ def test_200_mismatch_or_malformed_response_fails_closed(
         ("provider_failure", "PROVIDER_FAILURE"),
     ],
 )
-def test_definitive_non_2xx_projects_only_safe_provider_evidence(
+def test_definitive_non_2xx_is_binding_unresolved_with_safe_provider_evidence(
     case_id: str, error_class: str
 ) -> None:
     result = _executor().evaluate(_result(case_id))
@@ -132,6 +156,7 @@ def test_definitive_non_2xx_projects_only_safe_provider_evidence(
     assert result.disposition == "FAIL_CLOSED"
     assert result.public_proof["PROVIDER_ERROR_CLASS"] == error_class
     assert result.public_proof["PROVIDER_ERROR_CAUSE"] == "UNKNOWN"
+    assert result.public_proof["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] == "UNKNOWN"
     assert result.public_proof["RAW_PROVIDER_RESPONSE_PUBLISHED"] == "NO"
     assert result.public_proof["TOKEN_OR_PIT_PUBLISHED"] == "NO"
     assert result.public_proof["RAW_LOCATION_ID_PUBLIC"] == "NO"
@@ -151,6 +176,7 @@ def test_definitive_non_2xx_projects_only_safe_provider_evidence(
         "PROVIDER_CORRELATION_ID_PUBLISHED",
         "AUTHORIZATION_HEADER_PUBLISHED",
         "TOKEN_OR_PIT_PUBLISHED",
+        "PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH",
         "RAW_LOCATION_ID_PUBLIC",
     }
     assert FIXTURE["cases"][case_id]["body"]["message"] not in rendered_public
@@ -159,11 +185,14 @@ def test_definitive_non_2xx_projects_only_safe_provider_evidence(
 
 
 @pytest.mark.parametrize("uncertainty", ["timeout", "disconnect"])
-def test_timeout_or_disconnect_is_an_ambiguous_read_failure(uncertainty: str) -> None:
+def test_timeout_or_disconnect_is_binding_unresolved_ambiguous_read(
+    uncertainty: str,
+) -> None:
     result = _executor().evaluate(LiveNoteHttpUncertainty(uncertainty))
 
     assert result.disposition == "FAIL_AMBIGUOUS_READ"
     assert result.public_proof["READ_FAILURE_CLASS"] == "AMBIGUOUS"
+    assert result.public_proof["PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH"] == "UNKNOWN"
     assert result.public_proof["RAW_LOCATION_ID_PUBLIC"] == "NO"
     _assert_one_read_budget(result)
 
