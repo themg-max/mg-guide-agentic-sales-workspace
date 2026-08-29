@@ -12,6 +12,12 @@ from .note_path import (
     VerifiedMeetingNote,
 )
 from .live_note_runtime import assemble_bound_live_note_runtime
+from .pit_subaccount_binding_validation import (
+    OfflinePitSubaccountBindingValidationExecutor,
+    PitSubaccountBindingValidationError,
+    PitSubaccountBindingValidationResult,
+    PitSubaccountBindingValidationTerminalStateError,
+)
 
 __all__ = [
     "assemble_bound_live_note_runtime",
@@ -23,6 +29,10 @@ __all__ = [
     "NoteContractError",
     "NotePathAdapter",
     "NotePathError",
+    "OfflinePitSubaccountBindingValidationExecutor",
+    "PitSubaccountBindingValidationError",
+    "PitSubaccountBindingValidationResult",
+    "PitSubaccountBindingValidationTerminalStateError",
     "TransportError",
     "VerifiedMeetingNote",
 ]
