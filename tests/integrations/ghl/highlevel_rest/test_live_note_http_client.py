@@ -381,7 +381,9 @@ def test_stdlib_redirect_not_followed(monkeypatch: pytest.MonkeyPatch) -> None:
         allow_redirects=False,
     )
 
-    assert result == LiveNoteHttpResult(status_code=302, body=b"redirect body")
+    assert result.status_code == 302
+    assert result.body == b"redirect body"
+    assert result.headers.get("location") == alternate_url
     assert attempted_urls == [source_url]
     assert len(attempted_urls) - 1 == 0
     assert alternate_url not in attempted_urls
