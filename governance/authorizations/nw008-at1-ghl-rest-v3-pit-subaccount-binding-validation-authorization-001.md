@@ -308,10 +308,13 @@ CREDENTIAL_ROUTE=
   ->
   exact MG_GUIDE_PIT_GHL accessor
 
-TARGET_RUNTIME_SERVICE_ACCOUNT=
-  mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
-TARGET_SECRET=
-  projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1
+TARGET_RUNTIME_SERVICE_ACCOUNT_REF=
+  PRIVATE_BOUND_RUNTIME_SERVICE_ACCOUNT
+TARGET_SECRET_REF=
+  PRIVATE_BOUND_MG_GUIDE_PIT_GHL_SECRET_VERSION
+
+EXACT_RUNTIME_BINDING_RESOLVED_PRIVATELY=YES
+EXACT_SECRET_BINDING_RESOLVED_PRIVATELY=YES
 
 ALTERNATE_CREDENTIALS_FORBIDDEN=YES
 SERVICE_ACCOUNT_KEY_FORBIDDEN=YES
@@ -319,6 +322,10 @@ GCLOUD_SECRET_ACCESS_FALLBACK_FORBIDDEN=YES
 ENVIRONMENT_TOKEN_FALLBACK_FORBIDDEN=YES
 IAM_MUTATION_FORBIDDEN=YES
 ```
+
+The private credential route is unchanged. Exact runtime service-account and
+Secret Manager version bindings remain privately resolved and are not
+republished as operational resource identifiers in this public artifact.
 
 ```text
 AUTHORIZATION_CONSUMPTION_TRIGGER=
@@ -360,19 +367,41 @@ PASS_DOES_NOT_PUBLISH_LOCATION_PAYLOAD=YES
 | Outcome class | Signal | Result | Retry | Binding claim |
 | --- | --- | --- | --- | --- |
 | Definitive success + id match | 200 + envelope + id match | `PASS` | NO | `PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH=YES` |
-| Definitive authn failure | 401 | `FAIL` | NO | binding unresolved; class=`AUTHENTICATION` |
-| Definitive authz failure | 403 | `FAIL` | NO | binding unresolved; class=`AUTHORIZATION` |
-| Definitive not found | 404 | `FAIL` | NO | binding unresolved; class=`NOT_FOUND` |
-| Definitive validation failure | 400/422 | `FAIL` | NO | class=`REQUEST_VALIDATION` |
-| Rate limit | 429 | `FAIL` | NO | class=`RATE_LIMIT` |
-| Provider 5xx | 5xx | `FAIL` | NO | class=`PROVIDER_FAILURE` |
-| Transport ambiguity | timeout/disconnect | `FAIL_AMBIGUOUS_READ` | NO | binding unresolved |
-| 200 without envelope/id match | malformed/mismatch | `FAIL` | NO | binding unresolved |
+| Definitive authn failure | 401 | `FAIL` | NO | binding `UNKNOWN`; class=`AUTHENTICATION` |
+| Definitive authz failure | 403 | `FAIL` | NO | binding `UNKNOWN`; class=`AUTHORIZATION` |
+| Definitive not found | 404 | `FAIL` | NO | binding `UNKNOWN`; class=`NOT_FOUND` |
+| Definitive validation failure | 400/422 | `FAIL` | NO | binding `UNKNOWN`; class=`REQUEST_VALIDATION` |
+| Rate limit | 429 | `FAIL` | NO | binding `UNKNOWN`; class=`RATE_LIMIT` |
+| Provider 5xx | 5xx | `FAIL` | NO | binding `UNKNOWN`; class=`PROVIDER_FAILURE` |
+| Transport ambiguity | timeout/disconnect | `FAIL_AMBIGUOUS_READ` | NO | binding `UNKNOWN` |
+
+PR285-normalized 200 fail-closed states (distinct; do not collapse):
 
 ```text
+STATE_A=
+  SIGNAL=
+    200 + valid envelope + explicit different non-empty provider location id
+  RESULT=FAIL_CLOSED
+  RETURNED_LOCATION_ID_MATCH=NO
+  PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH=NO
+  RETRY=NO
+
+STATE_B=
+  SIGNAL=
+    200 + missing/malformed envelope or no comparable provider location id
+  RESULT=FAIL_CLOSED
+  RETURNED_LOCATION_ID_MATCH=UNKNOWN
+  PIT_TARGET_SUB_ACCOUNT_BINDING_MATCH=UNKNOWN
+  RETRY=NO
+```
+
+```text
+NON_2XX_BINDING_CLAIM=UNKNOWN
+TIMEOUT_OR_DISCONNECT_BINDING_CLAIM=UNKNOWN
 HTTP_CLASS_DOES_NOT_ESTABLISH_DETAILED_CAUSE=YES
 DEFAULT_PROVIDER_ERROR_CAUSE=UNKNOWN
 NO_RETRY=YES
+PR285_SEMANTICS_PRESERVED=YES
 ```
 
 ## 8. PR281 provider-error evidence wiring (mandatory for future executor)
@@ -629,10 +658,16 @@ CRM_MUTATIONS=0
 SECRET_MANAGER_SECRET_READS=0
 TARGET_SA_IMPERSONATION_ATTEMPTS=0
 
+PR285_SEMANTICS_PRESERVED=YES
+PUBLIC_OPERATIONAL_RESOURCE_VALUES_REMOVED=YES
+EXACT_RUNTIME_BINDING_RESOLVED_PRIVATELY=YES
+EXACT_SECRET_BINDING_RESOLVED_PRIVATELY=YES
+GRANT_CREATED=NO
+
 SUBMISSION_READY=NO
 
 NEXT=
-  RETURN_BINDING_AUTHORIZATION_PR_TO_CHATGPT_FOR_REVIEW
+  RETURN_PR286_TO_CHATGPT_FOR_FINAL_REVIEW_AND_MERGE
 ```
 
 `PR_NUMBER` and `HEAD_SHA` remain `EXTERNAL_METADATA` inside this durable
