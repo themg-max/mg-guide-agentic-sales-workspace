@@ -20,9 +20,9 @@ from .pit_subaccount_binding_validation import (
 )
 from .private_provider_diagnostic_persistence import (
     PrivateProviderDiagnosticContext,
+    PrivateProviderDiagnosticPersistence,
     PrivateProviderDiagnosticPersistenceError,
     PrivateProviderDiagnosticReceipt,
-    PrivateProviderDiagnosticStore,
 )
 
 __all__ = [
@@ -40,9 +40,9 @@ __all__ = [
     "PitSubaccountBindingValidationResult",
     "PitSubaccountBindingValidationTerminalStateError",
     "PrivateProviderDiagnosticContext",
+    "PrivateProviderDiagnosticPersistence",
     "PrivateProviderDiagnosticPersistenceError",
     "PrivateProviderDiagnosticReceipt",
-    "PrivateProviderDiagnosticStore",
     "TransportError",
     "VerifiedMeetingNote",
 ]

@@ -17,6 +17,8 @@ from integrations.ghl.highlevel_rest.live_note_transport import (
 from integrations.ghl.highlevel_rest.private_provider_diagnostic_persistence import (
     SCHEMA_VERSION,
     PrivateProviderDiagnosticPersistenceError,
+)
+from mg_guide.evidence.private_provider_diagnostic_persistence import (
     PrivateProviderDiagnosticStore,
 )
 

@@ -54,7 +54,8 @@ private record.
 
 | Surface | Responsibility |
 | --- | --- |
-| `src/integrations/ghl/highlevel_rest/private_provider_diagnostic_persistence.py` | Whitelisted record construction, gitignore enforcement, create-only atomic write, mode and content verification |
+| `src/integrations/ghl/highlevel_rest/private_provider_diagnostic_persistence.py` | Transport-neutral persistence protocol, diagnostic context, receipt, and shared failure contract |
+| `src/mg_guide/evidence/private_provider_diagnostic_persistence.py` | Whitelisted record construction, gitignore enforcement, create-only atomic write, mode and content verification |
 | `src/integrations/ghl/highlevel_rest/pit_subaccount_binding_validation.py` | Required non-2xx ordering and fail-closed persistence markers |
 | `tests/integrations/ghl/highlevel_rest/test_private_provider_diagnostic_persistence.py` | Store security, atomicity, overwrite, and whitelist tests |
 | `tests/integrations/ghl/highlevel_rest/test_pit_subaccount_binding_validation.py` | Ordering, projection, and one-call failure semantics |
@@ -191,6 +192,8 @@ The implementation PR is intentionally limited to:
 src/integrations/ghl/highlevel_rest/private_provider_diagnostic_persistence.py
 src/integrations/ghl/highlevel_rest/pit_subaccount_binding_validation.py
 src/integrations/ghl/highlevel_rest/__init__.py
+src/mg_guide/evidence/__init__.py
+src/mg_guide/evidence/private_provider_diagnostic_persistence.py
 tests/integrations/ghl/highlevel_rest/test_private_provider_diagnostic_persistence.py
 tests/integrations/ghl/highlevel_rest/test_pit_subaccount_binding_validation.py
 docs/nw008/nw-008-at1-ghl-rest-v3-private-provider-diagnostic-persistence-design-001.md
