@@ -18,6 +18,12 @@ from .pit_subaccount_binding_validation import (
     PitSubaccountBindingValidationResult,
     PitSubaccountBindingValidationTerminalStateError,
 )
+from .private_provider_diagnostic_persistence import (
+    PrivateProviderDiagnosticContext,
+    PrivateProviderDiagnosticPersistenceError,
+    PrivateProviderDiagnosticReceipt,
+    PrivateProviderDiagnosticStore,
+)
 
 __all__ = [
     "assemble_bound_live_note_runtime",
@@ -33,6 +39,10 @@ __all__ = [
     "PitSubaccountBindingValidationError",
     "PitSubaccountBindingValidationResult",
     "PitSubaccountBindingValidationTerminalStateError",
+    "PrivateProviderDiagnosticContext",
+    "PrivateProviderDiagnosticPersistenceError",
+    "PrivateProviderDiagnosticReceipt",
+    "PrivateProviderDiagnosticStore",
     "TransportError",
     "VerifiedMeetingNote",
 ]
