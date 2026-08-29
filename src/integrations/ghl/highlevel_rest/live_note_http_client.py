@@ -33,6 +33,7 @@ from .live_note_transport import (
     REQUEST_TIMEOUT_SECONDS,
     LiveNoteHttpResult,
     LiveNoteHttpUncertainty,
+    normalize_provider_response_headers,
 )
 
 
@@ -140,10 +141,14 @@ class StdlibLiveNoteHttpSession:
             method=method.upper(),
         )
         opener = _build_no_redirect_opener(urllib_error, urllib_request)
+        response_headers: Mapping[str, str] = {}
         try:
             with opener.open(request, timeout=timeout_seconds) as response:
                 status_code = int(getattr(response, "status", response.getcode()))
                 response_body = response.read()
+                response_headers = normalize_provider_response_headers(
+                    getattr(response, "headers", None)
+                )
         except urllib_error.HTTPError as exc:
             # HTTPError is a valid HTTP response with a non-2xx status.
             status_code = int(exc.code)
@@ -151,6 +156,9 @@ class StdlibLiveNoteHttpSession:
                 response_body = exc.read()
             except Exception:  # noqa: BLE001 - body may be unavailable
                 response_body = b""
+            response_headers = normalize_provider_response_headers(
+                getattr(exc, "headers", None)
+            )
         except TimeoutError as exc:
             raise LiveNoteHttpUncertainty("timeout") from exc
         except urllib_error.URLError as exc:
@@ -166,7 +174,11 @@ class StdlibLiveNoteHttpSession:
 
         if not isinstance(response_body, (bytes, bytearray)):
             response_body = bytes(response_body)
-        return LiveNoteHttpResult(status_code=status_code, body=bytes(response_body))
+        return LiveNoteHttpResult(
+            status_code=status_code,
+            body=bytes(response_body),
+            headers=response_headers,
+        )
 
 
 class ConcreteLiveNoteHttpClient:

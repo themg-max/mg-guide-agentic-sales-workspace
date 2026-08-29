@@ -13,7 +13,8 @@ client, discover environment secrets, or import socket/HTTP libraries.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import hashlib
 import json
 from typing import Any, Mapping, Protocol
 
@@ -57,6 +58,54 @@ _REDACTED_CONTACT_GET_PATH = "/contacts/<redacted>"
 _REDACTED_POST_PATH = "/contacts/<redacted>/notes"
 _REDACTED_GET_PATH = "/contacts/<redacted>/notes/<redacted>"
 
+# Response-header aliases only. Authorization and unknown headers stay ignored
+# for public projection and never enter diagnostic evidence as values.
+_REQUEST_ID_HEADER_ALIASES = frozenset(
+    {
+        "x-request-id",
+        "request-id",
+        "x-amzn-requestid",
+        "x-amz-request-id",
+        "x-amzn-trace-id",
+    }
+)
+_CORRELATION_ID_HEADER_ALIASES = frozenset(
+    {
+        "x-correlation-id",
+        "correlation-id",
+        "x-correlationid",
+        "cf-ray",
+        "traceparent",
+        "x-trace-id",
+        "trace-id",
+    }
+)
+_ERROR_CODE_FIELD_ALIASES = (
+    "errorCode",
+    "error_code",
+    "code",
+    "statusCode",
+    "status_code",
+    "type",
+)
+_ERROR_MESSAGE_FIELD_ALIASES = (
+    "message",
+    "error",
+    "msg",
+    "detail",
+    "title",
+    "description",
+)
+_FORBIDDEN_DIAGNOSTIC_HEADER_NAMES = frozenset(
+    {
+        "authorization",
+        "proxy-authorization",
+        "cookie",
+        "set-cookie",
+        "x-api-key",
+    }
+)
+
 
 class LiveNoteTransportError(ValueError):
     """Raised when a dispatch is rejected before any HTTP attempt."""
@@ -76,10 +125,279 @@ class LiveNoteResponse:
 
 @dataclass(frozen=True)
 class LiveNoteHttpResult:
-    """Raw HTTP result from an injected HTTP client. Not a published provider envelope."""
+    """Raw HTTP result from an injected HTTP client. Not a published provider envelope.
+
+    ``headers`` may carry definitive provider response headers privately. They
+    are never projected wholesale into public proof artifacts.
+    """
 
     status_code: int
     body: bytes
+    headers: Mapping[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class PrivateProviderErrorEvidence:
+    """Private diagnostic surface for one definitive non-2xx provider response."""
+
+    PROVIDER_HTTP_STATUS: int
+    CONTENT_TYPE: str | None
+    CONTENT_TYPE_CLASS: str
+    RESPONSE_BODY_LENGTH: int
+    RESPONSE_BODY_SHA256: str
+    PROVIDER_ERROR_ENVELOPE_PARSEABLE: bool
+    PROVIDER_ERROR_CODE: str | None
+    PROVIDER_ERROR_MESSAGE: str | None
+    PROVIDER_REQUEST_ID: str | None
+    PROVIDER_CORRELATION_ID: str | None
+    PROVIDER_ERROR_CLASS: str
+    PROVIDER_ERROR_CAUSE: str
+
+
+@dataclass(frozen=True)
+class PublicProviderErrorProjection:
+    """Public-safe presence/class projection for definitive non-2xx responses."""
+
+    PROVIDER_HTTP_STATUS: int
+    PROVIDER_CONTENT_TYPE_CLASS: str
+    PROVIDER_ERROR_ENVELOPE_PRESENT: str
+    PROVIDER_ERROR_CODE_PRESENT: str
+    PROVIDER_ERROR_MESSAGE_PRESENT: str
+    PROVIDER_REQUEST_ID_PRESENT: str
+    PROVIDER_CORRELATION_ID_PRESENT: str
+    PROVIDER_ERROR_CLASS: str
+    PROVIDER_ERROR_CAUSE: str
+    RAW_PROVIDER_RESPONSE_PUBLISHED: str = "NO"
+    PROVIDER_ERROR_MESSAGE_PUBLISHED: str = "NO"
+    PROVIDER_REQUEST_ID_PUBLISHED: str = "NO"
+    PROVIDER_CORRELATION_ID_PUBLISHED: str = "NO"
+    AUTHORIZATION_HEADER_PUBLISHED: str = "NO"
+    TOKEN_OR_PIT_PUBLISHED: str = "NO"
+
+    def as_public_dict(self) -> dict[str, Any]:
+        return {
+            "PROVIDER_HTTP_STATUS": self.PROVIDER_HTTP_STATUS,
+            "PROVIDER_CONTENT_TYPE_CLASS": self.PROVIDER_CONTENT_TYPE_CLASS,
+            "PROVIDER_ERROR_ENVELOPE_PRESENT": self.PROVIDER_ERROR_ENVELOPE_PRESENT,
+            "PROVIDER_ERROR_CODE_PRESENT": self.PROVIDER_ERROR_CODE_PRESENT,
+            "PROVIDER_ERROR_MESSAGE_PRESENT": self.PROVIDER_ERROR_MESSAGE_PRESENT,
+            "PROVIDER_REQUEST_ID_PRESENT": self.PROVIDER_REQUEST_ID_PRESENT,
+            "PROVIDER_CORRELATION_ID_PRESENT": self.PROVIDER_CORRELATION_ID_PRESENT,
+            "PROVIDER_ERROR_CLASS": self.PROVIDER_ERROR_CLASS,
+            "PROVIDER_ERROR_CAUSE": self.PROVIDER_ERROR_CAUSE,
+            "RAW_PROVIDER_RESPONSE_PUBLISHED": self.RAW_PROVIDER_RESPONSE_PUBLISHED,
+            "PROVIDER_ERROR_MESSAGE_PUBLISHED": self.PROVIDER_ERROR_MESSAGE_PUBLISHED,
+            "PROVIDER_REQUEST_ID_PUBLISHED": self.PROVIDER_REQUEST_ID_PUBLISHED,
+            "PROVIDER_CORRELATION_ID_PUBLISHED": self.PROVIDER_CORRELATION_ID_PUBLISHED,
+            "AUTHORIZATION_HEADER_PUBLISHED": self.AUTHORIZATION_HEADER_PUBLISHED,
+            "TOKEN_OR_PIT_PUBLISHED": self.TOKEN_OR_PIT_PUBLISHED,
+        }
+
+
+def normalize_provider_response_headers(
+    headers: Mapping[str, Any] | None,
+) -> dict[str, str]:
+    """Copy response headers while dropping credential-bearing header names."""
+    if headers is None:
+        return {}
+    normalized: dict[str, str] = {}
+    items = headers.items() if hasattr(headers, "items") else []
+    for raw_key, raw_value in items:
+        if raw_key is None:
+            continue
+        key = str(raw_key).strip()
+        if not key:
+            continue
+        if key.lower() in _FORBIDDEN_DIAGNOSTIC_HEADER_NAMES:
+            continue
+        if raw_value is None:
+            continue
+        if isinstance(raw_value, (list, tuple)):
+            value = ",".join(str(part) for part in raw_value if part is not None)
+        else:
+            value = str(raw_value)
+        normalized[key] = value
+    return normalized
+
+
+# Backward-compatible internal alias used by the concrete HTTP client.
+_normalize_response_headers = normalize_provider_response_headers
+
+
+def _header_lookup(
+    headers: Mapping[str, str], aliases: frozenset[str]
+) -> str | None:
+    for key, value in headers.items():
+        if key.lower() in aliases:
+            stripped = value.strip()
+            if stripped:
+                return stripped
+    return None
+
+
+def _content_type_value(headers: Mapping[str, str]) -> str | None:
+    for key, value in headers.items():
+        if key.lower() == "content-type":
+            stripped = value.strip()
+            return stripped or None
+    return None
+
+
+def classify_content_type(
+    *, content_type: str | None, body: bytes
+) -> str:
+    """Classify provider content-type without publishing the raw header value."""
+    if not body:
+        return "EMPTY"
+    if content_type is None:
+        return "UNKNOWN"
+    lowered = content_type.lower()
+    media_type = lowered.split(";", 1)[0].strip()
+    if media_type in {"application/json", "text/json"} or media_type.endswith("+json"):
+        return "JSON"
+    if media_type in {"text/html", "application/xhtml+xml"}:
+        return "HTML"
+    if media_type.startswith("text/"):
+        return "TEXT"
+    if media_type:
+        return "OTHER"
+    return "UNKNOWN"
+
+
+def classify_provider_error_class(status_code: int) -> str:
+    """Map definitive HTTP status to a bounded provider error class."""
+    if status_code in {400, 422}:
+        return "REQUEST_VALIDATION"
+    if status_code == 401:
+        return "AUTHENTICATION"
+    if status_code == 403:
+        return "AUTHORIZATION"
+    if status_code == 404:
+        return "NOT_FOUND"
+    if status_code == 409:
+        return "CONFLICT"
+    if status_code == 429:
+        return "RATE_LIMIT"
+    if 500 <= status_code <= 599:
+        return "PROVIDER_FAILURE"
+    return "UNKNOWN"
+
+
+def _extract_first_string_field(
+    envelope: Mapping[str, Any], aliases: tuple[str, ...]
+) -> str | None:
+    lowered = {str(key).lower(): key for key in envelope.keys()}
+    for alias in aliases:
+        actual = lowered.get(alias.lower())
+        if actual is None:
+            continue
+        value = envelope.get(actual)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            return str(value)
+    nested_error = envelope.get("error")
+    if isinstance(nested_error, Mapping):
+        return _extract_first_string_field(nested_error, aliases)
+    return None
+
+
+def _parse_provider_error_envelope(
+    body: bytes, content_type_class: str
+) -> tuple[bool, str | None, str | None]:
+    if content_type_class != "JSON" or not body:
+        return False, None, None
+    try:
+        decoded = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError, ValueError):
+        return False, None, None
+    if not isinstance(decoded, Mapping):
+        return False, None, None
+    code = _extract_first_string_field(decoded, _ERROR_CODE_FIELD_ALIASES)
+    message = _extract_first_string_field(decoded, _ERROR_MESSAGE_FIELD_ALIASES)
+    # A bare JSON object counts as a parseable envelope even when only structure
+    # is present; presence flags still remain NO when fields are absent.
+    return True, code, message
+
+
+def derive_private_provider_error_evidence(
+    result: LiveNoteHttpResult,
+) -> PrivateProviderErrorEvidence:
+    """Derive private diagnostic evidence from one definitive provider response."""
+    if not isinstance(result, LiveNoteHttpResult):
+        raise LiveNoteTransportError("result must be a LiveNoteHttpResult")
+    if 200 <= int(result.status_code) < 300:
+        raise LiveNoteTransportError(
+            "provider error evidence is only derived for definitive non-2xx responses"
+        )
+    headers = normalize_provider_response_headers(result.headers)
+    body = bytes(result.body or b"")
+    content_type = _content_type_value(headers)
+    content_type_class = classify_content_type(content_type=content_type, body=body)
+    parseable, error_code, error_message = _parse_provider_error_envelope(
+        body, content_type_class
+    )
+    return PrivateProviderErrorEvidence(
+        PROVIDER_HTTP_STATUS=int(result.status_code),
+        CONTENT_TYPE=content_type,
+        CONTENT_TYPE_CLASS=content_type_class,
+        RESPONSE_BODY_LENGTH=len(body),
+        RESPONSE_BODY_SHA256=hashlib.sha256(body).hexdigest(),
+        PROVIDER_ERROR_ENVELOPE_PARSEABLE=parseable,
+        PROVIDER_ERROR_CODE=error_code,
+        PROVIDER_ERROR_MESSAGE=error_message,
+        PROVIDER_REQUEST_ID=_header_lookup(headers, _REQUEST_ID_HEADER_ALIASES),
+        PROVIDER_CORRELATION_ID=_header_lookup(
+            headers, _CORRELATION_ID_HEADER_ALIASES
+        ),
+        PROVIDER_ERROR_CLASS=classify_provider_error_class(int(result.status_code)),
+        # HTTP class alone never establishes detailed cause.
+        PROVIDER_ERROR_CAUSE="UNKNOWN",
+    )
+
+
+def project_public_provider_error_evidence(
+    evidence: PrivateProviderErrorEvidence,
+) -> PublicProviderErrorProjection:
+    """Project private evidence to public-safe presence and classification flags."""
+    if evidence.CONTENT_TYPE_CLASS == "EMPTY" and evidence.RESPONSE_BODY_LENGTH == 0:
+        envelope_present = "NO"
+    elif evidence.PROVIDER_ERROR_ENVELOPE_PARSEABLE:
+        envelope_present = "YES"
+    elif evidence.CONTENT_TYPE_CLASS == "JSON":
+        envelope_present = "NO"
+    elif evidence.RESPONSE_BODY_LENGTH == 0:
+        envelope_present = "NO"
+    else:
+        envelope_present = "UNKNOWN"
+
+    return PublicProviderErrorProjection(
+        PROVIDER_HTTP_STATUS=evidence.PROVIDER_HTTP_STATUS,
+        PROVIDER_CONTENT_TYPE_CLASS=evidence.CONTENT_TYPE_CLASS,
+        PROVIDER_ERROR_ENVELOPE_PRESENT=envelope_present,
+        PROVIDER_ERROR_CODE_PRESENT=(
+            "YES" if evidence.PROVIDER_ERROR_CODE else "NO"
+        ),
+        PROVIDER_ERROR_MESSAGE_PRESENT=(
+            "YES" if evidence.PROVIDER_ERROR_MESSAGE else "NO"
+        ),
+        PROVIDER_REQUEST_ID_PRESENT=(
+            "YES" if evidence.PROVIDER_REQUEST_ID else "NO"
+        ),
+        PROVIDER_CORRELATION_ID_PRESENT=(
+            "YES" if evidence.PROVIDER_CORRELATION_ID else "NO"
+        ),
+        PROVIDER_ERROR_CLASS=evidence.PROVIDER_ERROR_CLASS,
+        PROVIDER_ERROR_CAUSE=evidence.PROVIDER_ERROR_CAUSE,
+    )
+
+
+def public_provider_error_projection_from_result(
+    result: LiveNoteHttpResult,
+) -> dict[str, Any]:
+    """Convenience: private derive + public project for one non-2xx result."""
+    private = derive_private_provider_error_evidence(result)
+    return project_public_provider_error_evidence(private).as_public_dict()
 
 
 class LiveNoteHttpClient(Protocol):
