@@ -89,12 +89,9 @@ PROPOSED_BINDING_SCOPE=PROJECT_ai-rolodex-to-crm
 ```text
 OBSERVATION_TIMESTAMP_UTC=2026-08-29T14:10:23Z
 OBSERVATION_TIMESTAMP_LOCAL=2026-08-29T10:10:23-0400
-ACTIVE_GCLOUD_ACCOUNT=themg@themiliare-group.com
 ACTIVE_GCLOUD_PROJECT=ai-rolodex-to-crm
-CLOUDSDK_METRICS_ENVIRONMENT=datacloud.vscode
 
 PROJECT=ai-rolodex-to-crm
-PROJECT_NUMBER=831270426395
 PROJECT_LIFECYCLE_STATE=ACTIVE
 
 SERVICE_ACCOUNT_ID=mg-guide-agent-runtime
@@ -106,8 +103,9 @@ PROPOSED_ROLE=roles/aiplatform.user
 PROPOSED_BINDING_SCOPE=PROJECT_ai-rolodex-to-crm
 ```
 
-No access token, refresh token, credential JSON, secret payload, or unrelated
-IAM member roster is recorded in this artifact.
+No access token, refresh token, credential JSON, secret payload, operator
+account identity, project number, metrics environment tag, or unrelated IAM
+member roster is recorded in this artifact.
 
 ## 3. Service-account existence classification
 
@@ -143,16 +141,11 @@ CREATE_ATTEMPTED_IN_THIS_UNIT=NO
 SERVICE_ACCOUNT_CREATES=0
 ```
 
-Near-name service accounts present in the same project (observed only to
-exclude identity collision with the exact target email; not alternate targets):
+Near-name collision screening was performed only to confirm the exact target
+email is free; near-name account emails are not published in this public proof
+and are not alternate authorized targets.
 
 ```text
-NEAR_NAME_EMAILS_OBSERVED=
-  mg-guide-sa@ai-rolodex-to-crm.iam.gserviceaccount.com
-  mg-guide-ingestion-sa@ai-rolodex-to-crm.iam.gserviceaccount.com
-  mg-guide-drive-discovery@ai-rolodex-to-crm.iam.gserviceaccount.com
-  mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
-
 EXACT_TARGET_EMAIL_COLLISION=NO
 ALTERNATE_SERVICE_ACCOUNT_ALLOWED_BY_AUTHORIZATION=NO
 NEAR_NAME_ACCOUNTS_ARE_NOT_SUBSTITUTES=YES
@@ -175,23 +168,19 @@ BIND_ATTEMPTED_IN_THIS_UNIT=NO
 IAM_BINDINGS_ADDED=0
 ```
 
-Sanitized project IAM policy probe (member-scoped only; unrelated members not
-dumped):
+Sanitized project IAM policy probe (exact-target classification only; policy
+etag, aggregate binding counts, and unrelated members are not published):
 
 ```text
 gcloud projects get-iam-policy ai-rolodex-to-crm --format=json
-# policy_etag=BwZZ-iZlSGI=
-# policy_version=3
-# binding_count=121 (aggregate size only; roster not published)
+# exact-target member/role classification only; no public policy dump
 
 EXACT_MEMBER=
   serviceAccount:mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
 EXACT_ROLE=roles/aiplatform.user
 
 EXACT_MEMBER_ROLE_UNCONDITIONAL_BINDING_PRESENT=NO
-MEMBER_BINDINGS_COUNT_FOR_EXACT_PRINCIPAL=0
-# ROLE_aiplatform.user exists as a role key in project policy with 7 members;
-# none of those members is the exact target principal (principal absent).
+# Exact target principal is absent, so no project binding can attach to it yet.
 ```
 
 When a later separately human-authorized execution creates the exact principal
@@ -208,20 +197,18 @@ Guide Agent Runtime using Vertex inference.
 LEAST_PRIVILEGE_ROLE_CANDIDATE=roles/aiplatform.user
 ROLE_TITLE=Agent Platform User
 ROLE_STAGE=GA
-ROLE_PERMISSION_COUNT_OBSERVED=446
 HAS_aiplatform.endpoints.predict=YES
 ```
 
-Comparative predefined-role evidence (read-only `gcloud iam roles describe`):
+Comparative predefined-role spot-checks (read-only `gcloud iam roles describe`;
+not an exhaustive least-privilege proof over the full role catalog):
 
 ```text
 roles/aiplatform.viewer
   HAS_aiplatform.endpoints.predict=NO
-  PERMISSION_COUNT=189
 
 roles/aiplatform.user
   HAS_aiplatform.endpoints.predict=YES
-  PERMISSION_COUNT=446
 
 roles/aiplatform.admin
   HAS_aiplatform.endpoints.predict=YES
@@ -233,21 +220,24 @@ roles/serviceusage.serviceUsageConsumer
 
 ```text
 LEAST_PRIVILEGE_ROLE_REVIEW=CANDIDATE_ACCEPTABLE
-NARROWER_PREDEFINED_ROLE_WITH_PREDICT_IDENTIFIED=NO
+CURRENTLY_AUTHORIZED_SUITABLE_GA_CANDIDATE=roles/aiplatform.user
+NARROWER_SUITABLE_GA_ROLE_FOR_EXACT_STANDARD_AGENT_RUNTIME_PATH_ESTABLISHED=NO
 BROADER_ROLE_SUBSTITUTION_AUTHORIZED=NO
 ALTERNATE_ROLE_ALLOWED_BY_AUTHORIZATION=NO
 CUSTOM_ROLE_DESIGN_IN_THIS_UNIT=NO
 ROLE_GRANT_PERFORMED_IN_THIS_UNIT=NO
 ```
 
-Evidence summary: `roles/aiplatform.user` is the narrowest common predefined
-Vertex role observed here that includes `aiplatform.endpoints.predict`.
-`roles/aiplatform.viewer` does not include predict. `roles/aiplatform.admin` is
-strictly broader. The candidate remains acceptable for the stated synthetic
-Vertex-inference purpose. This review does not authorize mutation, does not
-broaden permissions, and does not substitute another role. A future custom
-role could be narrower; any such change requires an updated authorization, not
-silent substitution.
+Evidence summary: `roles/aiplatform.user` remains the currently authorized
+suitable GA candidate for the stated synthetic Agent Runtime / Vertex inference
+purpose and includes `aiplatform.endpoints.predict`. Spot-checks show
+`roles/aiplatform.viewer` lacks predict and `roles/aiplatform.admin` is broader.
+This unit does **not** claim that `roles/aiplatform.user` is the absolute
+narrowest predefined role in the catalog merely because viewer lacks predict.
+No narrower suitable GA role for this exact standard Agent Runtime path was
+established here. This review does not authorize mutation, does not broaden
+permissions, and does not substitute another role. A future custom or alternate
+role would require an updated authorization, not silent substitution.
 
 ## 6. Ambiguity and conflict ledger
 
