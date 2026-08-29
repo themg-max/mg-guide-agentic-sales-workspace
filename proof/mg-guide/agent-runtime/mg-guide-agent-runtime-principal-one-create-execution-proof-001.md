@@ -1,0 +1,240 @@
+# MG Guide Agent Runtime Principal One-Create Execution Proof 001
+
+## 0. Identity and hard boundary
+
+```text
+ARTIFACT_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_ONE_CREATE_EXECUTION_PROOF_001
+ARTIFACT_PATH=
+  proof/mg-guide/agent-runtime/mg-guide-agent-runtime-principal-one-create-execution-proof-001.md
+CLASSIFICATION=IAM_ONE_CREATE_EXECUTION_PROOF
+PR_CLASS=PROOF
+MODE=AUTHORIZED_ONE_SHOT_SERVICE_ACCOUNT_CREATE_CONSUMER
+OWNER=VS_CODE_ORCHESTRATOR
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+BRANCH=
+  proof/mg-guide-agent-runtime-principal-one-create-execution-001
+BRANCH_IS_MAIN=NO
+```
+
+This unit consumed the merged one-create activation authorization and performed
+**at most one** exact service-account create for the MG Guide Agent Runtime
+principal. It did not add IAM bindings, mint user-managed keys, configure
+impersonation, mutate secrets, call HighLevel, access CRM, deploy Agent
+Runtime, or run ADK smoke/eval.
+
+## 1. Bound durable authority chain
+
+```text
+PARENT_EXECUTION_AUTHORIZATION_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_CREATION_EXECUTION_AUTHORIZATION_001
+PARENT_EXECUTION_AUTHORIZATION_PR=296
+PARENT_EXECUTION_AUTHORIZATION_MERGE_SHA=
+  ce4aaaa8a5bd3663248b00f42db913287d539301
+PARENT_EXECUTION_AUTHORIZATION_PRESENT_ON_ORIGIN_MAIN=YES
+
+READONLY_PREFLIGHT_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_IAM_READONLY_PREFLIGHT_001
+READONLY_PREFLIGHT_PR=297
+READONLY_PREFLIGHT_MERGE_SHA=
+  d2c8a2fe74e08e23d063228d02516e5b418fc713
+READONLY_PREFLIGHT_PRESENT_ON_ORIGIN_MAIN=YES
+
+ONE_CREATE_ACTIVATION_AUTHORIZATION_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_ONE_CREATE_ACTIVATION_AUTHORIZATION_001
+ONE_CREATE_ACTIVATION_AUTHORIZATION_PR=299
+ONE_CREATE_ACTIVATION_REVIEWED_HEAD=
+  d75c52558ae4e5dce06667cc637097e6028df940
+ONE_CREATE_ACTIVATION_MERGE_SHA=
+  bf329c5444dd87e32a7bbb6c79d8fc9976ff6856
+ONE_CREATE_ACTIVATION_BLOB_SHA=
+  3231131f2c15b30a33f7c34a0dc99c843fee88ee
+ONE_CREATE_ACTIVATION_MERGE_SHA_PRESENT_ON_ORIGIN_MAIN=YES
+ONE_CREATE_ACTIVATION_BLOB_SHA_MATCH_AT_ORIGIN_MAIN=YES
+
+AUTHORITY_CHAIN_VERIFICATION=PASS
+```
+
+```text
+EXECUTION_CEILING_MAX_SERVICE_ACCOUNT_CREATES=1
+EXECUTION_CEILING_MAX_IAM_BINDINGS=0
+EXECUTION_CEILING_MAX_SERVICE_ACCOUNT_KEYS=0
+NO_RETRY=YES
+NO_COMPENSATING_MUTATION=YES
+NO_ALTERNATE_PROJECT=YES
+NO_ALTERNATE_SERVICE_ACCOUNT=YES
+```
+
+## 2. Exact target
+
+```text
+PROJECT=ai-rolodex-to-crm
+SERVICE_ACCOUNT_ID=mg-guide-agent-runtime
+SERVICE_ACCOUNT_EMAIL=
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+SERVICE_ACCOUNT_DISPLAY_NAME=MG Guide Agent Runtime
+```
+
+## 3. Fresh pre-create observation
+
+```text
+PRECREATE_OBSERVATION_TIMESTAMP_UTC=2026-08-29T15:04:49Z
+
+gcloud iam service-accounts describe \
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com \
+  --project=ai-rolodex-to-crm
+# RESULT=NOT_FOUND
+# EXIT=1
+
+gcloud iam service-accounts list \
+  --project=ai-rolodex-to-crm \
+  --filter='email:mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com' \
+  --format=json
+# RESULT=[]
+
+PRECREATE_STATE=ABSENT_AND_CONFLICT_FREE
+```
+
+Immediate re-check immediately before create:
+
+```text
+IMMEDIATE_PRECREATE_RECHECK_UTC=2026-08-29T15:05:18Z
+IMMEDIATE_PRECREATE_RESULT=NOT_FOUND
+IMMEDIATE_PRECREATE_STILL_ABSENT=YES
+```
+
+## 4. One-shot authority consumption (before mutation)
+
+```text
+AUTHORITY_CONSUMED=YES
+AUTHORITY_CONSUMPTION_MODE=ONE_SHOT
+AUTHORITY_CONSUMED_AT_UTC=2026-08-29T15:05:18Z
+AUTHORITY_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_ONE_CREATE_ACTIVATION_AUTHORIZATION_001
+AUTHORITY_REUSABLE_AFTER_CONSUMPTION=NO
+AUTHORITY_TRANSFERABLE=NO
+```
+
+## 5. Create attempt and result
+
+```text
+CREATE_ATTEMPTED_AT_UTC=2026-08-29T15:05:18Z
+SERVICE_ACCOUNT_CREATE_ATTEMPTS=1
+CREATE_COMMAND=
+  gcloud iam service-accounts create mg-guide-agent-runtime
+  --project=ai-rolodex-to-crm
+  --display-name='MG Guide Agent Runtime'
+  --description='Dedicated MG Guide synthetic Agent Runtime principal for Vertex inference'
+
+CREATE_EXIT_CODE=0
+CREATE_PROVIDER_RESULT=Created service account [mg-guide-agent-runtime]
+SERVICE_ACCOUNT_CREATE_RESULT=PASS
+```
+
+No second create was attempted. No delete, recreate, or compensating mutation
+was performed.
+
+## 6. Exact create readback and metadata verification
+
+```text
+READBACK_AT_UTC=2026-08-29T15:05:19Z
+
+gcloud iam service-accounts describe \
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com \
+  --project=ai-rolodex-to-crm
+# EXIT=0
+
+SERVICE_ACCOUNT_EXISTS=YES
+SERVICE_ACCOUNT_EMAIL_MATCH=YES
+SERVICE_ACCOUNT_PROJECT_MATCH=YES
+SERVICE_ACCOUNT_DISPLAY_NAME_MATCH=YES
+SERVICE_ACCOUNT_DISABLED=NO
+READBACK_VERIFICATION=PASS
+```
+
+Safe observed identity (no unique IDs, OAuth client IDs, key material, or
+operator account identity published):
+
+```text
+READBACK_EMAIL=
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+READBACK_PROJECT=ai-rolodex-to-crm
+READBACK_DISPLAY_NAME=MG Guide Agent Runtime
+READBACK_DISABLED=NO
+```
+
+## 7. Non-mutation and zero-effect ledger
+
+```text
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SECRET_MUTATIONS=0
+LIVE_GHL_CALLS=0
+CRM_READS=0
+CRM_WRITES=0
+AGENT_RUNTIME_DEPLOYMENTS=0
+ADK_SMOKE_OR_EVAL_AS_TARGET_IDENTITY=0
+
+ROLE_BINDING_IN_THIS_EXECUTION=NO
+IMPERSONATION_CONFIGURED=NO
+NO_RETRY=YES
+NO_DELETE=YES
+NO_RECREATE=YES
+NO_COMPENSATION=YES
+```
+
+```text
+NO_IAM_BINDING_CHANGE=YES
+NO_SERVICE_ACCOUNT_KEY=YES
+NO_SERVICE_ACCOUNT_IMPERSONATION=YES
+NO_SECRET_MUTATION=YES
+NO_HIGHLEVEL_CALL=YES
+NO_CRM_ACCESS=YES
+NO_AGENT_RUNTIME_DEPLOYMENT=YES
+NO_ADK_SMOKE_OR_EVAL=YES
+```
+
+## 8. Classification return block
+
+```text
+PRECREATE_STATE=ABSENT_AND_CONFLICT_FREE
+AUTHORITY_CONSUMED=YES
+SERVICE_ACCOUNT_CREATE_RESULT=PASS
+SERVICE_ACCOUNT_CREATE_ATTEMPTS=1
+SERVICE_ACCOUNT_EXISTS=YES
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+AGENT_RUNTIME_DEPLOYMENTS=0
+ADK_SMOKE_OR_EVAL_AS_TARGET_IDENTITY=0
+
+NEXT=FRESH_BINDING_STATE_RECLASSIFICATION
+```
+
+## 9. Next governed action
+
+```text
+NEXT=FRESH_BINDING_STATE_RECLASSIFICATION
+ROLE_GRANT_DEFERRED=YES
+DO_NOT_ADD_ROLES_UNTIL_SEPARATE_ACTIVATION=YES
+LEAST_PRIVILEGE_CANDIDATE_REMAINS=roles/aiplatform.user
+```
+
+A later separately authorized unit must reclassify project IAM binding state for
+the exact member/role before any bind attempt. This proof does not authorize
+that bind.
+
+## 10. STOP
+
+```text
+STOP_CODE=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_ONE_CREATE_EXECUTION_PROOF_001_COMPLETE
+SERVICE_ACCOUNT_CREATE_RESULT=PASS
+SERVICE_ACCOUNT_CREATE_ATTEMPTS=1
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+NEXT=FRESH_BINDING_STATE_RECLASSIFICATION
+STOP
+```
