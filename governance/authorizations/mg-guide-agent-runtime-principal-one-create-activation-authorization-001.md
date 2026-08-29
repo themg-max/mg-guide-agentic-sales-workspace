@@ -1,0 +1,312 @@
+# MG Guide Agent Runtime Principal One-Create Activation Authorization 001
+
+## 1. Authorization identity and current state
+
+```text
+AUTHORIZATION_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_ONE_CREATE_ACTIVATION_AUTHORIZATION_001
+ARTIFACT_PATH=
+  governance/authorizations/mg-guide-agent-runtime-principal-one-create-activation-authorization-001.md
+CLASSIFICATION=IAM_EXECUTION_ACTIVATION_AUTHORIZATION
+PR_CLASS=AUTHORIZATION
+MODE=PROPOSED_ONE_CREATE_ACTIVATION_AUTHORIZATION_ONLY
+OWNER=VS_CODE_ORCHESTRATOR
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+STATUS=
+  PROPOSED_PENDING_INDEPENDENT_REVIEW_AND_HUMAN_EXECUTION_AUTHORITY
+AUTHORIZATION_EFFECTIVE=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+SELF_ACTIVATION=FORBIDDEN
+DO_NOT_MUTATE_IAM_IN_THIS_UNIT=YES
+MERGE_ALONE_AUTHORIZES_IAM_MUTATION=NO
+HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+```
+
+This artifact proposes a **bounded activation** that may later authorize
+**AT MOST ONE** creation of the exact MG Guide Agent Runtime service account.
+It does not create the service account, add an IAM binding, mint a key,
+impersonate any principal, mutate secrets, call HighLevel, access CRM, deploy
+Agent Runtime, or run ADK smoke/eval.
+
+```text
+SERVICE_ACCOUNT_CREATES=0
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+IAM_MUTATIONS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SECRET_MUTATIONS=0
+LIVE_GHL_CALLS=0
+AGENT_RUNTIME_DEPLOYMENTS=0
+ADK_SMOKE_OR_EVAL_AS_TARGET_IDENTITY=0
+```
+
+## 2. Durable authority chain (merged inputs)
+
+```text
+PARENT_EXECUTION_AUTHORIZATION_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_CREATION_EXECUTION_AUTHORIZATION_001
+PARENT_EXECUTION_AUTHORIZATION_PATH=
+  governance/authorizations/mg-guide-agent-runtime-principal-creation-execution-authorization-001.md
+PARENT_EXECUTION_AUTHORIZATION_MERGE_PR=296
+PARENT_EXECUTION_AUTHORIZATION_MERGE_SHA=
+  ce4aaaa8a5bd3663248b00f42db913287d539301
+PARENT_EXECUTION_AUTHORIZATION_BLOB_SHA=
+  e6907469f841250df71fe4469c5d004eb7e88531
+PARENT_EXECUTION_AUTHORIZATION_PRESENT_ON_ORIGIN_MAIN=YES
+
+PRINCIPAL_AUTHORIZATION_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_CREATION_AUTHORIZATION_001
+COUNTERSIGNATURE_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_CREATION_COUNTERSIGNATURE_001
+
+BOUND_READONLY_PREFLIGHT_ID=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_IAM_READONLY_PREFLIGHT_001
+BOUND_READONLY_PREFLIGHT_PATH=
+  proof/mg-guide/agent-runtime/mg-guide-agent-runtime-principal-iam-readonly-preflight-001.md
+BOUND_READONLY_PREFLIGHT_PR=297
+BOUND_READONLY_PREFLIGHT_MERGE_SHA=
+  d2c8a2fe74e08e23d063228d02516e5b418fc713
+BOUND_READONLY_PREFLIGHT_BLOB_SHA=
+  3de851dec3c37ef4a1f02fa5d1125abe9cb90d2f
+BOUND_READONLY_PREFLIGHT_PRESENT_ON_ORIGIN_MAIN=YES
+BOUND_READONLY_PREFLIGHT_BLOB_SHA_MATCH_AT_ORIGIN_MAIN=YES
+```
+
+Any durable-chain mismatch at consumption time fails closed and authorizes no
+mutation.
+
+## 3. Observed state bound from merged #297 preflight
+
+The following observed-state fields are bound from the merged read-only
+preflight. They are **inputs** to a later human-authorized consumer, not a
+fresh live re-observation performed by this authorization unit.
+
+```text
+PROJECT=ai-rolodex-to-crm
+SERVICE_ACCOUNT_ID=mg-guide-agent-runtime
+SERVICE_ACCOUNT_EMAIL=
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+SERVICE_ACCOUNT_DISPLAY_NAME=MG Guide Agent Runtime
+
+SERVICE_ACCOUNT_EXISTS=NO
+SERVICE_ACCOUNT_STATE=STATE_1
+SERVICE_ACCOUNT_STATE_1=
+  ABSENT_AND_EXACT_CREATION_PLAN_CONFLICT_FREE
+BINDING_STATE=NOT_YET_APPLICABLE_PRINCIPAL_ABSENT
+
+LEAST_PRIVILEGE_ROLE_CANDIDATE=roles/aiplatform.user
+LEAST_PRIVILEGE_ROLE_REVIEW=CANDIDATE_ACCEPTABLE
+
+IAM_PREFLIGHT_STATUS=READY_FOR_HUMAN_EXECUTION_REVIEW
+PREFLIGHT_IAM_MUTATIONS=0
+```
+
+```text
+THIS_UNIT_PERFORMED_FRESH_LIVE_IAM_OBSERVATION=NO
+THIS_UNIT_REASSERTS_LIVE_ABSENCE=NO
+CONSUMER_MUST_REVERIFY_ABSENCE_IMMEDIATELY_BEFORE_CREATE=YES
+```
+
+## 4. Exact next-execution bounds (narrower than parent ceiling)
+
+The parent execution authorization ceiling includes `MAX_IAM_BINDINGS=1`.
+**This activation deliberately narrows the next authorized execution** to
+service-account create only.
+
+```text
+EXACT_CREATE_TARGET_PROJECT=ai-rolodex-to-crm
+EXACT_CREATE_TARGET_SERVICE_ACCOUNT_ID=mg-guide-agent-runtime
+EXACT_CREATE_TARGET_SERVICE_ACCOUNT_EMAIL=
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+EXACT_CREATE_TARGET_DISPLAY_NAME=MG Guide Agent Runtime
+
+MAX_SERVICE_ACCOUNT_CREATES=1
+MAX_IAM_BINDINGS=0
+MAX_SERVICE_ACCOUNT_KEYS=0
+
+ROLE_BINDING_IN_THIS_EXECUTION=FORBIDDEN
+IAM_POLICY_CHANGE_IN_THIS_EXECUTION=FORBIDDEN
+SERVICE_ACCOUNT_KEY_CREATION_IN_THIS_EXECUTION=FORBIDDEN
+```
+
+```text
+NO_RETRY=YES
+NO_COMPENSATING_MUTATION=YES
+NO_ALTERNATE_PROJECT=YES
+NO_ALTERNATE_SERVICE_ACCOUNT=YES
+NO_ALTERNATE_DISPLAY_NAME_AS_IDENTITY_SUBSTITUTE=YES
+
+NO_SERVICE_ACCOUNT_IMPERSONATION=YES
+NO_SECRET_MUTATION=YES
+NO_GHL_ACCESS=YES
+NO_CRM_ACCESS=YES
+NO_AGENT_RUNTIME_DEPLOYMENT=YES
+NO_ADK_SMOKE_OR_EVAL=YES
+
+AUTOMATIC_RETRY=NO
+AUTOMATIC_COMPENSATING_MUTATION=NO
+AUTOMATIC_DELETE_ON_FAILURE=NO
+AUTOMATIC_RECREATE_ON_FAILURE=NO
+```
+
+An already-present exact service account must not be recreated. If the live
+pre-create observation shows the account already exists with acceptable
+metadata, the consumer must record create-already-satisfied and perform **zero**
+create attempts.
+
+## 5. Required future execution sequence
+
+A later human execution authority may activate mutation **only** after this
+exact artifact is independently reviewed and merged, and only by following the
+sequence below. This section is a future consumer contract, not permission to
+execute now.
+
+```text
+FUTURE_EXECUTION_AUTHORIZED_BY_THIS_ARTIFACT_ALONE=NO
+FUTURE_EXECUTION_REQUIRES_HUMAN_ACTIVATION=YES
+FUTURE_EXECUTION_ONE_SHOT=YES
+FUTURE_EXECUTION_REUSABLE=NO
+FUTURE_EXECUTION_TRANSFERABLE=NO
+```
+
+### Step sequence (consumer)
+
+1. Freshly verify the merged #297 preflight remains the applicable observed-state
+   input (merge SHA / blob SHA still present on the authorized base; no
+   superseding conflict proof).
+2. Freshly verify the exact service account remains **absent** immediately
+   before execution (`describe`/`list` read-only).
+3. If account state changed, is already present with conflicting metadata, or is
+   ambiguous:
+   ```text
+   FAIL_CLOSED
+   NO_CREATE
+   RETURN_FOR_REVIEW
+   ```
+4. Consume the finalized one-create authority **before** mutation (record
+   consumption; one-shot).
+5. Perform **at most one** exact service-account create for the exact project and
+   ID above.
+6. Perform exact create readback.
+7. Verify identity and safe metadata (email, project, display name as
+   authorized; disabled=false unless separately reviewed).
+8. **STOP.**
+
+```text
+SERVICE_ACCOUNT_CREATE_READBACK_REQUIRED=YES
+IAM_BINDING_IN_SAME_EXECUTION=FORBIDDEN
+ROLE_GRANT_DEFERRED=YES
+NEXT_AFTER_SUCCESSFUL_CREATE_READBACK=
+  FRESH_BINDING_STATE_RECLASSIFICATION
+```
+
+### Success return (future consumer only)
+
+```text
+SERVICE_ACCOUNT_EXISTS=YES
+SERVICE_ACCOUNT_CREATE_RESULT=PASS
+SERVICE_ACCOUNT_CREATE_ATTEMPTS=1
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+NEXT=FRESH_BINDING_STATE_RECLASSIFICATION
+```
+
+If the exact account was already present and metadata-acceptable before the
+create attempt:
+
+```text
+SERVICE_ACCOUNT_EXISTS=YES
+SERVICE_ACCOUNT_CREATE_RESULT=ALREADY_SATISFIED
+SERVICE_ACCOUNT_CREATE_ATTEMPTS=0
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+NEXT=FRESH_BINDING_STATE_RECLASSIFICATION
+```
+
+### Failure / ambiguity return (future consumer only)
+
+```text
+SERVICE_ACCOUNT_CREATE_RESULT=FAIL_OR_AMBIGUOUS
+NO_RETRY=YES
+NO_DELETE=YES
+NO_RECREATE=YES
+NO_COMPENSATION=YES
+RETURN_FOR_REVIEW=YES
+```
+
+## 6. Explicit non-authority of this unit
+
+```text
+AUTHORIZATION_EFFECTIVE=NO
+HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+IAM_MUTATION_EXECUTED=NO
+SERVICE_ACCOUNT_CREATED_IN_THIS_UNIT=NO
+IAM_BINDING_ADDED_IN_THIS_UNIT=NO
+SERVICE_ACCOUNT_KEY_CREATED_IN_THIS_UNIT=NO
+
+GHL_ACCESS=NO
+CRM_AUTHORITY=NO
+SECRET_ACCESS=NO
+SECRET_MUTATION=NO
+PRODUCTION_AUTHORITY=NO
+DEPLOYMENT_AUTHORITY=NO
+SERVICE_ACCOUNT_IMPERSONATION_AUTHORIZED=NO
+VERTEX_INFERENCE_EXECUTION_AUTHORIZED_NOW=NO
+```
+
+`roles/aiplatform.user` remains the least-privilege **candidate** recorded by
+the bound preflight. This activation does **not** authorize binding that role.
+Binding requires a separate later activation after fresh binding-state
+reclassification.
+
+## 7. Unit attestations
+
+```text
+LIVE_GHL_CALLS=0
+IAM_MUTATIONS=0
+SERVICE_ACCOUNT_CREATES=0
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SECRET_MUTATIONS=0
+AGENT_RUNTIME_DEPLOYMENTS=0
+ADK_SMOKE_OR_EVAL_AS_TARGET_IDENTITY=0
+
+NO_HIGHLEVEL_CALL=YES
+NO_IAM_MUTATION=YES
+NO_SERVICE_ACCOUNT_CREATE=YES
+NO_IAM_BINDING_CHANGE=YES
+NO_SERVICE_ACCOUNT_KEY=YES
+NO_SECRET_MUTATION=YES
+NO_AGENT_RUNTIME_DEPLOYMENT=YES
+NO_PIT_ROTATION=YES
+NO_GHL_SCOPE_EDIT=YES
+```
+
+## 8. Next governed action
+
+```text
+NEXT=
+  INDEPENDENT_REVIEW_THEN_HUMAN_EXECUTION_AUTHORITY_FOR_ONE_CREATE
+
+AFTER_SUCCESSFUL_FUTURE_CREATE_READBACK=
+  FRESH_BINDING_STATE_RECLASSIFICATION
+
+DO_NOT_ADD_ROLES_IN_THE_CREATE_EXECUTION=YES
+```
+
+## 9. STOP
+
+```text
+STOP_CODE=
+  MG_GUIDE_AGENT_RUNTIME_PRINCIPAL_ONE_CREATE_ACTIVATION_AUTHORIZATION_001_PREPARED
+AUTHORIZATION_EFFECTIVE=NO
+HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+SERVICE_ACCOUNT_CREATES=0
+IAM_BINDINGS_ADDED=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+IAM_MUTATIONS=0
+IAM_MUTATION_EXECUTED=NO
+STOP
+```
