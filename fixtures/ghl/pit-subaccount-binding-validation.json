@@ -1,0 +1,104 @@
+{
+  "source": "synthetic_only",
+  "network_enabled": false,
+  "ghl_live_client": false,
+  "secret_manager_access": false,
+  "target_sa_impersonation": false,
+  "binding": {
+    "private_validation_location_id": "synthetic-private-validation-location"
+  },
+  "cases": {
+    "exact_location_match": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "location": {
+          "id": "synthetic-private-validation-location"
+        }
+      }
+    },
+    "wrong_location_id": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "location": {
+          "id": "synthetic-wrong-location"
+        }
+      }
+    },
+    "missing_location_envelope": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "result": "synthetic"
+      }
+    },
+    "malformed_payload": {
+      "status_code": 200,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "raw_body": "{not-json"
+    },
+    "unauthenticated": {
+      "status_code": 401,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "synthetic authentication failure"
+      }
+    },
+    "unauthorized": {
+      "status_code": 403,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "synthetic authorization failure"
+      }
+    },
+    "not_found": {
+      "status_code": 404,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "synthetic not found"
+      }
+    },
+    "request_validation": {
+      "status_code": 422,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "synthetic validation failure"
+      }
+    },
+    "rate_limit": {
+      "status_code": 429,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "synthetic rate limit"
+      }
+    },
+    "provider_failure": {
+      "status_code": 503,
+      "headers": {
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "message": "synthetic provider failure"
+      }
+    }
+  }
+}
