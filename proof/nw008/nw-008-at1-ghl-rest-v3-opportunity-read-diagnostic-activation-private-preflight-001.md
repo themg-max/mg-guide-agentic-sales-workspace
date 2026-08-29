@@ -14,9 +14,10 @@ REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 
 BRANCH=
   proof/nw008-at1-ghl-rest-v3-opportunity-read-diagnostic-activation-private-preflight-001
-WORKTREE=
-  /Users/achandler/.copilot/session-state/a5e12e96-c0ea-449a-8676-811bb31da6bc/files/highlevel-opportunity-private-preflight
 BRANCH_IS_MAIN=NO
+LOCAL_WORKTREE_PATH_PUBLISHED=NO
+OPERATOR_USERNAME_PUBLISHED=NO
+WORKSTATION_PATH_PUBLISHED=NO
 
 RECORDED_AT_LOCAL=2026-08-29T10:09:24.572-04:00
 RECORDED_AT_UTC=2026-08-29T14:09:24.572Z
@@ -64,18 +65,28 @@ EXECUTION_WINDOW_INVENTED=NO
 
 The existing designated gitignored private metadata boundary was scanned using
 key names and fixed grant/operation identifiers only. Values, fragments,
-digests of values, and private file paths were not emitted.
+digests of values, and private file paths discovered during that metadata scan
+were not emitted into this public proof.
 
 ```text
 PRIVATE_METADATA_SCAN=PASS
 PRIVATE_METADATA_FILES_SCANNED=9148
 RAW_PRIVATE_VALUES_EMITTED=NO
 PRIVATE_FILE_PATHS_RECORDED=NO
+PRIVATE_FILE_PATHS_RECORDED_SCOPE=
+  PATHS_DISCOVERED_DURING_PRIVATE_METADATA_SCAN
+PRIVATE_FILE_PATHS_RECORDED_DOES_NOT_NEGATE=
+  INTENTIONAL_NON_SECRET_REPOSITORY_DESTINATION_CONVENTION
 
 CURRENT_GRANT_REFERENCE_FILES=0
 CURRENT_OPERATION_REFERENCE_FILES=0
 CURRENT_GRANT_COMPLETE_BINDING_FILES=0
 ```
+
+`PRIVATE_FILE_PATHS_RECORDED=NO` means no private filesystem paths found by the
+metadata scan were published here. It does **not** mean the intentional
+non-secret repository destination convention in section 6 is unpublished; that
+relative destination remains a repository-owned, gitignored public convention.
 
 Historical private packages containing opportunity, location, or credential
 metadata were not accepted as current bindings because none was bound to this
