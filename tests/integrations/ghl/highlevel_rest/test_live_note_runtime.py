@@ -1189,6 +1189,6 @@ def test_frozen_blocked_module_boundaries_remain_intact() -> None:
     assert 'BASE_URL = "https://services.leadconnectorhq.com"' in transport_source
     assert "_require_issued_verified_capability" in note_path_source
     assert "GoogleSecretManagerLiveNoteSecretAccessor" in provider_source
-    assert "versions/1" in provider_source
+    assert "versions/2" in provider_source
     assert "runtime.env" not in Path(runtime.__file__).read_text(encoding="utf-8")
     assert "AUTOMATIC_RETRY = False" in http_client_source

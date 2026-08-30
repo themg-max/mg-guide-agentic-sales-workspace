@@ -30,7 +30,7 @@ from .live_note_transport import BoundedLiveNoteTransport
 from .note_path import NotePathAdapter
 
 _SEALED_LIVE_NOTE_REST_RESOURCE_NAME = (
-    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
+    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/2"
 )
 _ROOT_OWNED_DB_CONFIG_KEY = "MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH"
 _ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY = (

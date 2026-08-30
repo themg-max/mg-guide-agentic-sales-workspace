@@ -68,7 +68,7 @@ class SyntheticLiveNoteSecretAccessor:
 
 
 DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE = (
-    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
+    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/2"
 )
 
 
