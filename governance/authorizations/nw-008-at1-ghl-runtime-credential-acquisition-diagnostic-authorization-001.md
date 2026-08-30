@@ -30,7 +30,9 @@ EXECUTION_PROOF_REQUIRED=YES
 This artifact defines a **bounded future authorization** that may later permit
 **AT MOST ONE** `iamcredentials.projects.serviceAccounts.generateAccessToken`
 diagnostic attempt from the dedicated GHL workflow identity to the dedicated GHL
-note-runtime identity. It does not activate that attempt, consume execution
+note-runtime identity, under a **frozen exact request envelope** (resource,
+method, zero delegates, single cloud-platform scope, 300s lifetime, and
+canonical request SHA-256). It does not activate that attempt, consume execution
 authority, mint tokens, read Secret Manager payloads, call HighLevel, access or
 mutate CRM, mutate IAM, create service-account keys, deploy, perform Lane A
 work, reuse prior Token Creator activations, or join Fleet and GHL authority.
@@ -149,6 +151,78 @@ The future consumer may attempt **at most one** `generateAccessToken` call from
 the exact source identity to the exact target identity. It may not substitute
 source, target, operation, project, or permission, expand the one-call budget,
 retry on failure, or perform compensating execution.
+
+## 4A. Exact generateAccessToken request envelope freeze
+
+The complete request envelope is frozen below. Future consumption and execution
+must reconstruct this exact contract, recompute its SHA-256, and require exact
+equality before any mint attempt.
+
+```text
+GENERATE_ACCESS_TOKEN_RESOURCE=
+  projects/-/serviceAccounts/mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+GENERATE_ACCESS_TOKEN_REQUEST_METHOD=POST
+
+GENERATE_ACCESS_TOKEN_DELEGATES_COUNT=0
+DELEGATION_CHAIN_ALLOWED=NO
+GENERATE_ACCESS_TOKEN_DELEGATES=
+
+GENERATE_ACCESS_TOKEN_SCOPE_COUNT=1
+GENERATE_ACCESS_TOKEN_SCOPE_1=
+  https://www.googleapis.com/auth/cloud-platform
+
+GENERATE_ACCESS_TOKEN_LIFETIME=300s
+
+ALTERNATE_RESOURCE_ALLOWED=NO
+ALTERNATE_SCOPE_ALLOWED=NO
+ADDITIONAL_SCOPE_ALLOWED=NO
+ALTERNATE_LIFETIME_ALLOWED=NO
+EXTENDED_LIFETIME_ALLOWED=NO
+ALTERNATE_DELEGATE_ALLOWED=NO
+ADDITIONAL_DELEGATE_ALLOWED=NO
+
+GENERATE_ACCESS_TOKEN_REQUEST_CONTRACT_FROZEN=YES
+REQUEST_HASH_MATCH_REQUIRED_BEFORE_EXECUTION=YES
+```
+
+### Canonical request contract (V1)
+
+Deterministic LF-separated form with a trailing newline. Field order is
+normative. Empty `DELEGATES=` means zero delegates (no delegation chain).
+
+```text
+GENERATE_ACCESS_TOKEN_REQUEST_CONTRACT_V1
+METHOD=POST
+RESOURCE=projects/-/serviceAccounts/mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+DELEGATES_COUNT=0
+DELEGATES=
+SCOPE_COUNT=1
+SCOPE_1=https://www.googleapis.com/auth/cloud-platform
+LIFETIME=300s
+```
+
+```text
+GENERATE_ACCESS_TOKEN_REQUEST_CONTRACT_VERSION=V1
+GENERATE_ACCESS_TOKEN_REQUEST_SHA256=
+  2e63007a600dd71a5092365f16b26090ec6d55a7f81da1d88b28532ad220da91
+CANONICAL_HASH_ALGORITHM=SHA-256
+CANONICAL_ENCODING=UTF-8_LF_TRAILING_NEWLINE
+```
+
+Recompute procedure for a future consumer (read-only verification; no mint):
+
+1. Emit the eight canonical lines above exactly, each terminated by LF, including
+   a final LF after `LIFETIME=300s`.
+2. SHA-256 the resulting bytes (no BOM; no CR).
+3. Require hex digest equality to
+   `2e63007a600dd71a5092365f16b26090ec6d55a7f81da1d88b28532ad220da91`.
+4. Fail closed on any mismatch; do not open consumption and do not mint.
+
+```text
+REQUEST_HASH_MISMATCH_DISPOSITION=FAIL_CLOSED
+REQUEST_HASH_MISMATCH_CONSUMPTION_ALLOWED=NO
+REQUEST_HASH_MISMATCH_MINT_ALLOWED=NO
+```
 
 ## 5. Token-value and secret non-disclosure freeze
 
@@ -273,31 +347,53 @@ FUTURE_EXECUTION_REQUIRES_EXECUTION_PROOF=YES
      mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
    ```
    Fail closed on any mismatch, alternate principal, or Fleet-runtime substitution.
-5. Confirm human activation is durable, effective only for this one shot, and that
-   the one-shot consumption record is opened **before** the mint attempt.
-6. Perform **at most one** `generateAccessToken` call:
+5. Reconstruct the frozen generateAccessToken request envelope and recompute
+   `GENERATE_ACCESS_TOKEN_REQUEST_SHA256`. Require:
    ```text
+   REQUEST_RESOURCE_MATCH=YES
+   REQUEST_SCOPE_MATCH=YES
+   REQUEST_DELEGATES_MATCH=YES
+   REQUEST_LIFETIME_MATCH=YES
+   REQUEST_HASH_MATCH=YES
+   GENERATE_ACCESS_TOKEN_REQUEST_SHA256=
+     2e63007a600dd71a5092365f16b26090ec6d55a7f81da1d88b28532ad220da91
+   ```
+   Fail closed on any envelope or hash mismatch; do not open consumption and do
+   not mint.
+6. Confirm human activation is durable, effective only for this one shot, and that
+   the one-shot consumption record is opened **before** the mint attempt.
+7. Perform **at most one** `generateAccessToken` call using **only** the frozen
+   envelope:
+   ```text
+   METHOD=POST
+   RESOURCE=
+     projects/-/serviceAccounts/mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+   DELEGATES_COUNT=0
+   SCOPE_COUNT=1
+   SCOPE_1=https://www.googleapis.com/auth/cloud-platform
+   LIFETIME=300s
    OPERATION=
      iamcredentials.projects.serviceAccounts.generateAccessToken
    REQUIRED_PERMISSION=
      iam.serviceAccounts.getAccessToken
    MAX_GENERATE_ACCESS_TOKEN_CALLS=1
    ```
-7. Do **not** publish, persist, log, echo, or export the token value.
-8. Do **not** read Secret Manager payloads, call GHL/CRM, mutate IAM, create
+8. Do **not** publish, persist, log, echo, or export the token value.
+9. Do **not** read Secret Manager payloads, call GHL/CRM, mutate IAM, create
    keys, deploy, perform Lane A work, or join Fleet/GHL authority.
-9. On any failure or ambiguity:
-   ```text
-   FAIL_CLOSED
-   NO_RETRY
-   NO_COMPENSATING_EXECUTION
-   RETURN_FOR_REVIEW
-   ```
-10. Record execution proof under the success or failure criteria below and
+10. On any failure or ambiguity:
+    ```text
+    FAIL_CLOSED
+    NO_RETRY
+    NO_COMPENSATING_EXECUTION
+    RETURN_FOR_REVIEW
+    ```
+11. Record execution proof under the success or failure criteria below and
     **STOP.**
 
 ```text
 IMMEDIATE_PRE_EXECUTION_REVALIDATION_REQUIRED=YES
+REQUEST_HASH_MATCH_REQUIRED_BEFORE_EXECUTION=YES
 ONE_SHOT_CONSUMPTION_BEFORE_MINT_REQUIRED=YES
 POST_EXECUTION_PROOF_REQUIRED=YES
 NO_SECOND_ATTEMPT=YES
@@ -312,6 +408,14 @@ TOKEN_MINT_SUCCEEDED=YES
 
 SOURCE_IDENTITY_MATCH=YES
 TARGET_IDENTITY_MATCH=YES
+
+REQUEST_RESOURCE_MATCH=YES
+REQUEST_SCOPE_MATCH=YES
+REQUEST_DELEGATES_MATCH=YES
+REQUEST_LIFETIME_MATCH=YES
+REQUEST_HASH_MATCH=YES
+GENERATE_ACCESS_TOKEN_REQUEST_SHA256=
+  2e63007a600dd71a5092365f16b26090ec6d55a7f81da1d88b28532ad220da91
 
 TOKEN_VALUE_PUBLISHED=NO
 TOKEN_VALUE_PERSISTED=NO
@@ -343,6 +447,12 @@ NO_COMPENSATING_EXECUTION=YES
 NO_ALTERNATE_SOURCE=YES
 NO_ALTERNATE_TARGET=YES
 NO_ALTERNATE_OPERATION=YES
+NO_ALTERNATE_RESOURCE=YES
+NO_ALTERNATE_SCOPE=YES
+NO_ADDITIONAL_SCOPE=YES
+NO_ALTERNATE_LIFETIME=YES
+NO_EXTENDED_LIFETIME=YES
+NO_DELEGATION_CHAIN=YES
 TOKEN_VALUE_PUBLISHED=NO
 TOKEN_VALUE_PERSISTED=NO
 TOKEN_VALUE_LOGGED=NO
@@ -350,6 +460,23 @@ SECRET_PAYLOAD_READS=0
 GHL_CALLS=0
 CRM_CALLS=0
 IAM_MUTATIONS=0
+RETURN_FOR_REVIEW=YES
+```
+
+### Request-envelope mismatch return (future consumer only)
+
+```text
+TOKEN_MINT_RESULT=REQUEST_CONTRACT_MISMATCH
+REQUEST_RESOURCE_MATCH=NO_OR_UNVERIFIED
+REQUEST_SCOPE_MATCH=NO_OR_UNVERIFIED
+REQUEST_DELEGATES_MATCH=NO_OR_UNVERIFIED
+REQUEST_LIFETIME_MATCH=NO_OR_UNVERIFIED
+REQUEST_HASH_MATCH=NO
+TOKEN_MINT_ATTEMPTS=0
+TOKEN_MINTS=0
+NO_RETRY=YES
+NO_COMPENSATING_EXECUTION=YES
+CONSUMPTION_OPENED=NO
 RETURN_FOR_REVIEW=YES
 ```
 
@@ -449,7 +576,7 @@ DO_NOT_JOIN_FLEET_AND_GHL_AUTHORITY=YES
 
 ```text
 STOP_CODE=
-  NW008_AT1_GHL_RUNTIME_CREDENTIAL_ACQUISITION_DIAGNOSTIC_AUTHORIZATION_001_PREPARED
+  NW008_AT1_GHL_RUNTIME_CREDENTIAL_ACQUISITION_DIAGNOSTIC_AUTHORIZATION_001_REQUEST_ENVELOPE_FROZEN
 STOP=FOR_INDEPENDENT_AUTHORIZATION_REVIEW
 
 AUTHORIZATION_EFFECTIVE=NO
@@ -458,6 +585,13 @@ MERGE_ALONE_AUTHORIZES_EXECUTION=NO
 SEPARATE_HUMAN_ACTIVATION_REQUIRED=YES
 SEPARATE_ONE_SHOT_CONSUMPTION_RECORD_REQUIRED=YES
 EXECUTION_PROOF_REQUIRED=YES
+
+GENERATE_ACCESS_TOKEN_REQUEST_CONTRACT_FROZEN=YES
+REQUEST_HASH_MATCH_REQUIRED_BEFORE_EXECUTION=YES
+GENERATE_ACCESS_TOKEN_REQUEST_SHA256=
+  2e63007a600dd71a5092365f16b26090ec6d55a7f81da1d88b28532ad220da91
+MAX_GENERATE_ACCESS_TOKEN_CALLS=1
+MAX_ACCESS_TOKENS_MINTED=1
 
 TOKEN_MINT_ATTEMPTS=0
 TOKEN_MINTS=0
