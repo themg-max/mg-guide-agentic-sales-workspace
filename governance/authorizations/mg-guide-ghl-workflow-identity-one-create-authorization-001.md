@@ -1,0 +1,339 @@
+# MG Guide GHL Workflow Identity One-Create Authorization 001
+
+## 1. Authorization identity and current boundary
+
+```text
+AUTHORIZATION_ID=
+  MG_GUIDE_GHL_WORKFLOW_IDENTITY_ONE_CREATE_AUTHORIZATION_001
+ARTIFACT_PATH=
+  governance/authorizations/mg-guide-ghl-workflow-identity-one-create-authorization-001.md
+CLASSIFICATION=SERVICE_ACCOUNT_ONE_CREATE_AUTHORIZATION_DEFINITION
+PR_CLASS=AUTHORIZATION
+MODE=DEFINITION_ONLY_NO_SERVICE_ACCOUNT_CREATE
+OWNER=VS_CODE_ORCHESTRATOR
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+STATUS_AT_AUTHORING=
+  PROPOSED_PENDING_INDEPENDENT_REVIEW_THEN_SEPARATE_HUMAN_ACTIVATION_AND_CREATE
+AUTHORIZATION_EFFECTIVE=NO
+SERVICE_ACCOUNT_CREATE_AUTHORIZED_NOW=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+SELF_ACTIVATION=FORBIDDEN
+MERGE_ALONE_AUTHORIZES_CREATE=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+```
+
+This artifact defines a **bounded future authorization** that may later permit
+**AT MOST ONE** creation of the exact dedicated GHL workflow service account
+designated by merged PR #309. It does not create the service account, write IAM
+(including Token Creator), create keys, mint tokens, read secret payloads, call
+HighLevel, access CRM, deploy, implement CI/CD identity, join Fleet and GHL
+authority, or make Lane B Token Creator execution effective.
+
+```text
+SERVICE_ACCOUNT_CREATES=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+IAM_MUTATIONS=0
+IAM_BINDINGS=0
+IAM_POLICY_WRITES=0
+PROJECT_LEVEL_TOKEN_CREATOR_GRANTS=0
+GENERATE_ACCESS_TOKEN_CALLS=0
+SECRET_MANAGER_PAYLOAD_READS=0
+LIVE_GHL_CALLS=0
+CRM_CALLS=0
+OPERATOR_ADC_SILENT_BIND=NO
+CI_CD_IDENTITY_CHANGE=NO
+DEPLOYMENTS=0
+```
+
+## 2. Durable designation chain (merged inputs)
+
+```text
+SOURCE_DESIGNATION_ID=
+  MG_GUIDE_GHL_WORKFLOW_IDENTITY_DESIGNATION_001
+SOURCE_DESIGNATION_PATH=
+  governance/authorizations/mg-guide-ghl-workflow-identity-designation-001.md
+SOURCE_DESIGNATION_PR=309
+SOURCE_DESIGNATION_MERGE_SHA=
+  9de58600ca0884033edad4d420ee2561c63a1e95
+SOURCE_DESIGNATION_REVIEWED_HEAD=
+  e3d08bae018101764fd7a4f3b9e1da18adf880e7
+SOURCE_DESIGNATION_BLOB_SHA=
+  fd697e62ea94ae132595f6f3f9f374dc1e4c3f98
+SOURCE_DESIGNATION_PRESENT_ON_ORIGIN_MAIN=YES
+SOURCE_DESIGNATION_BLOB_SHA_MATCH_AT_ORIGIN_MAIN=YES
+
+C1_HUMAN_DESIGNATION=COMPLETE_VIA_PR309
+C1_DESIGNATED_IDENTITY_EXISTS=NO
+DO_NOT_RETURN_TO_HUMAN_DESIGNATION_STEP_C1=YES
+
+LANE_B_DECISION_ID=
+  NW008_AT1_GHL_LANE_B_HUMAN_EXECUTION_APPROVAL_SUBJECT_TO_IDENTITY_CORRECTION_001
+LANE_B_CORRECTION_PLAN_ID=
+  NW008_AT1_GHL_LANE_B_DEDICATED_WORKFLOW_IDENTITY_CORRECTION_PLAN_001
+```
+
+Any durable-chain mismatch at later consumption fails closed and authorizes no
+create.
+
+## 3. Exact create target and ceilings
+
+```text
+PROJECT=ai-rolodex-to-crm
+SERVICE_ACCOUNT_ID=mg-guide-ghl-workflow
+SERVICE_ACCOUNT_EMAIL=
+  mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+SERVICE_ACCOUNT_MEMBER_FORM=
+  serviceAccount:mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+DISPLAY_NAME=MG Guide GHL Workflow
+DESCRIPTION=
+  Dedicated GHL workflow executor for bounded capability invocation.
+  May impersonate only mg-guide-ghl-note-runtime. Not CI. Not Fleet runtime.
+  Not operator user. Zero keys. No direct GHL secret access.
+
+MAX_SERVICE_ACCOUNT_CREATES=1
+MAX_SERVICE_ACCOUNT_KEYS=0
+MAX_IAM_BINDINGS=0
+MAX_IAM_POLICY_WRITES=0
+MAX_PROJECT_LEVEL_ROLES=0
+MAX_TOKEN_CREATOR_WRITES=0
+```
+
+```text
+NO_TOKEN_CREATOR_WRITE_IN_CREATE_UNIT=YES
+NO_SECRET_PAYLOAD_READ=YES
+NO_GHL_CALL=YES
+NO_CRM_CALL=YES
+NO_DEPLOYMENT=YES
+NO_CI_CD_IDENTITY_CHANGE=YES
+NO_OPERATOR_ADC_SILENT_BIND=YES
+NO_PROJECT_LEVEL_TOKEN_CREATOR=YES
+NO_SERVICE_ACCOUNT_KEY=YES
+NO_RETRY=YES
+NO_COMPENSATING_MUTATION=YES
+NO_ALTERNATE_PROJECT=YES
+NO_ALTERNATE_SERVICE_ACCOUNT_ID=YES
+NO_ALTERNATE_DISPLAY_NAME_AS_IDENTITY_SUBSTITUTE=YES
+NO_CROSS_LANE_FLEET_IAM_MUTATION=YES
+DO_NOT_JOIN_FLEET_AND_GHL_AUTHORITY=YES
+```
+
+The parent Lane B Token Creator ceilings remain separate and are **not** activated
+by this create authorization.
+
+## 4. Fresh preparation-time absence observation (read-only)
+
+```text
+FRESH_STATE_OBSERVATION_TIMESTAMP_UTC=2026-08-30T02:25:49Z
+FRESH_STATE_OBSERVATION_MODE=READ_ONLY
+OBSERVATION_PROJECT=ai-rolodex-to-crm
+OBSERVATION_COMMAND_CLASS=
+  gcloud.iam.service-accounts.describe
+IAM_MUTATION_ATTEMPTED=NO
+SERVICE_ACCOUNT_CREATE_ATTEMPTED=NO
+
+CANDIDATE_EMAIL=
+  mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+DESCRIBE_RESULT=NOT_FOUND
+EXISTS=NO
+DISABLED=NOT_APPLICABLE
+DISPLAY_NAME=NOT_APPLICABLE
+CLASSIFICATION=
+  ABSENT_CANDIDATE_FOR_ONE_CREATE_ZERO_KEY
+PREPARATION_ABSENCE_CHECKS=PASS
+```
+
+```text
+THIS_UNIT_PERFORMED_FRESH_LIVE_DESCRIBE=YES
+THIS_UNIT_REASSERTS_CREATE=NO
+CONSUMER_MUST_REVERIFY_ABSENCE_IMMEDIATELY_BEFORE_CREATE=YES
+```
+
+If a later immediate pre-create revalidation shows the exact account already
+exists with acceptable metadata:
+
+```text
+DISPOSITION=ALREADY_SATISFIED_NO_CREATE
+SERVICE_ACCOUNT_CREATES=0
+```
+
+If present with conflicting metadata or ambiguous observation:
+
+```text
+DISPOSITION=BLOCKED_RETURN_FOR_REVIEW
+SERVICE_ACCOUNT_CREATES=0
+NO_RETRY=YES
+```
+
+## 5. Required future execution sequence (consumer contract only)
+
+```text
+FUTURE_CREATE_AUTHORIZED_BY_THIS_ARTIFACT_ALONE=NO
+FUTURE_CREATE_REQUIRES=
+  INDEPENDENT_REVIEW_AND_MERGE_OF_THIS_ARTIFACT
+  + SEPARATE_HUMAN_ACTIVATION
+  + FRESH_ABSENCE_REVALIDATION
+  + ONE_SHOT_AUTHORITY_CONSUMPTION_RECORD
+  + EXPLICIT_HUMAN_CREATE_ACT
+FUTURE_CREATE_ONE_SHOT=YES
+FUTURE_CREATE_REUSABLE=NO
+FUTURE_CREATE_TRANSFERABLE=NO
+```
+
+### Consumer steps
+
+1. Verify designation chain (PR #309 merge SHA / designation blob) still intact.
+2. Verify this authorization is merged and a separate human activation is effective
+   inside its own window (not defined by this unit).
+3. Freshly verify the exact service account remains **absent** (`describe`/`list`
+   read-only).
+4. If already present and metadata acceptable → `ALREADY_SATISFIED_NO_CREATE`.
+5. If conflicting/ambiguous → fail closed; zero creates.
+6. Consume one-shot create authority **before** mutation.
+7. Perform **at most one** exact service-account create:
+   ```text
+   PROJECT=ai-rolodex-to-crm
+   SERVICE_ACCOUNT_ID=mg-guide-ghl-workflow
+   DISPLAY_NAME=MG Guide GHL Workflow
+   ```
+8. Perform exact create readback (see §6).
+9. **STOP.** Do not write Token Creator IAM in the same unit.
+
+```text
+SERVICE_ACCOUNT_CREATE_READBACK_REQUIRED=YES
+TOKEN_CREATOR_WRITE_IN_SAME_EXECUTION=FORBIDDEN
+IAM_BINDING_IN_SAME_EXECUTION=FORBIDDEN
+ROLE_GRANT_DEFERRED=YES
+KEY_CREATE_FORBIDDEN=YES
+```
+
+## 6. Required existence proof after separate create
+
+After separate reviewed human activation and successful create (or already-
+satisfied exact presence), the next public unit must be:
+
+```text
+NEXT_AFTER_CREATE=
+  MG_GUIDE_GHL_WORKFLOW_IDENTITY_EXISTENCE_PROOF_001
+```
+
+Exact readback required by that proof unit:
+
+```text
+SERVICE_ACCOUNT_EXISTS=YES
+SERVICE_ACCOUNT_EMAIL_MATCH=YES
+SERVICE_ACCOUNT_PROJECT_MATCH=YES
+SERVICE_ACCOUNT_DISPLAY_NAME_MATCH=YES
+SERVICE_ACCOUNT_DISABLED=NO
+SERVICE_ACCOUNT_KEYS_CREATED=0
+```
+
+## 7. Private binding package after existence proof (future; not this unit)
+
+After existence proof, create a **new** create-only private binding package.
+Do **not** overwrite:
+
+```text
+NW008_AT1_GHL_TOKEN_MINT_PERMISSION_ACTIVATION_PRIVATE_SOURCE_BINDING_001
+```
+
+New package must bind the exact dedicated workflow identity and preserve:
+
+```text
+SOURCE_KIND=serviceAccount
+SOURCE_PRINCIPAL=
+  serviceAccount:mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+TARGET_SERVICE_ACCOUNT=
+  mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+ROLE=roles/iam.serviceAccountTokenCreator
+REQUIRED_PERMISSION=iam.serviceAccounts.getAccessToken
+PROJECT_LEVEL_TOKEN_CREATOR_GRANT_ALLOWED=NO
+PACKAGE_CREATE_ONLY=YES
+PACKAGE_OVERWRITE_ALLOWED=NO
+```
+
+Then reissue Lane B activation with:
+
+```text
+NEW_RUN_ID=REQUIRED
+NEW_AUTHORIZATION_WINDOW=REQUIRED
+PRIVATE_SOURCE_MATCH=YES_REQUIRED
+OLD_RUN_ID_REUSE=NO
+OLD_WINDOW_REUSE=NO
+```
+
+None of the private-bind or Lane B reissue steps are authorized by this create
+definition unit.
+
+## 8. Explicit non-authority
+
+```text
+SERVICE_ACCOUNT_CREATE_AUTHORIZED_NOW=NO
+SERVICE_ACCOUNT_CREATED_IN_THIS_UNIT=NO
+IAM_BINDING_AUTHORIZED_NOW=NO
+TOKEN_CREATOR_WRITE_AUTHORIZED_NOW=NO
+SERVICE_ACCOUNT_KEY_CREATION_AUTHORIZED=NO
+SERVICE_ACCOUNT_IMPERSONATION_AUTHORIZED=NO
+SECRET_ACCESS_AUTHORIZED=NO
+LIVE_GHL_ACCESS=NO
+CRM_AUTHORITY=NO
+DEPLOYMENT_AUTHORITY=NO
+CI_CD_IDENTITY_AUTHORITY=NO
+LANE_A_FLEET_IAM_AUTHORITY=NO
+LANE_B_TOKEN_MINT_EXECUTION_EFFECTIVE=NO
+```
+
+```text
+MAX_SERVICE_ACCOUNT_CREATES_AUTHORIZED_BY_THIS_ARTIFACT_NOW=0
+MAX_IAM_POLICY_MUTATIONS_AUTHORIZED_BY_THIS_ARTIFACT_NOW=0
+MAX_SERVICE_ACCOUNT_KEYS_AUTHORIZED_BY_THIS_ARTIFACT_NOW=0
+```
+
+Historical `ai-rolodex-ci` identity remains retired and must not be reused.
+Future CI/CD designation remains a separate artifact
+`MG_GUIDE_FLEET_CICD_IDENTITY_DESIGNATION_001` and is out of scope here.
+
+## 9. Zero-effect ledger
+
+```text
+IAM_MUTATIONS=0
+IAM_POLICY_WRITES=0
+IAM_BINDINGS=0
+EXACT_MEMBER_ADDITIONS=0
+PROJECT_LEVEL_TOKEN_CREATOR_GRANTS=0
+SERVICE_ACCOUNT_CREATES=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+GENERATE_ACCESS_TOKEN_CALLS=0
+SECRET_MANAGER_PAYLOAD_READS=0
+SECRET_MUTATIONS=0
+LIVE_GHL_CALLS=0
+CRM_CALLS=0
+DEPLOYMENTS=0
+OPERATOR_ADC_MUTATIONS=0
+CI_CD_IDENTITY_CHANGES=0
+FLEET_AND_GHL_AUTHORITY_JOINED=NO
+LANE_B_EXECUTION_EFFECTIVE_NOW=NO
+```
+
+## 10. STOP
+
+```text
+STOP_CODE=
+  MG_GUIDE_GHL_WORKFLOW_IDENTITY_ONE_CREATE_AUTHORIZATION_001_DEFINED
+AUTHORIZATION_EFFECTIVE=NO
+SERVICE_ACCOUNT_CREATE_AUTHORIZED_NOW=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+MAX_SERVICE_ACCOUNT_CREATES=1
+MAX_SERVICE_ACCOUNT_KEYS=0
+MAX_IAM_BINDINGS=0
+NO_TOKEN_CREATOR_WRITE_IN_CREATE_UNIT=YES
+C1_HUMAN_DESIGNATION=COMPLETE_VIA_PR309
+DESIGNATED_IDENTITY_EXISTS=NO
+NEXT=
+  INDEPENDENT_REVIEW_AND_MERGE
+  THEN_SEPARATE_HUMAN_ACTIVATION_AND_ONE_CREATE
+  THEN_MG_GUIDE_GHL_WORKFLOW_IDENTITY_EXISTENCE_PROOF_001
+STOP
+```
