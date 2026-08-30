@@ -1,0 +1,383 @@
+# NW-008 AT1 GHL Runtime Impersonation Token-Mint Permission Authorization 001
+
+## 1. Authorization identity and current state
+
+```text
+AUTHORIZATION_ID=
+  NW008_AT1_GHL_RUNTIME_IMPERSONATION_TOKEN_MINT_PERMISSION_AUTHORIZATION_001
+ARTIFACT_PATH=
+  governance/authorizations/nw-008-at1-ghl-runtime-impersonation-token-mint-permission-authorization-001.md
+CLASSIFICATION=IAM_EXECUTION_AUTHORIZATION_DEFINITION
+PR_CLASS=AUTHORIZATION
+MODE=DEFINITION_ONLY
+OWNER=VS_CODE_ORCHESTRATOR
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+STATUS=
+  PROPOSED_PENDING_INDEPENDENT_REVIEW_THEN_SEPARATE_HUMAN_EXECUTION_ACTIVATION
+AUTHORIZATION_EFFECTIVE=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+SELF_ACTIVATION=FORBIDDEN
+DO_NOT_MUTATE_IAM_IN_THIS_UNIT=YES
+MERGE_ALONE_AUTHORIZES_IAM_MUTATION=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+```
+
+This artifact defines a **bounded future authorization** that may later permit
+**AT MOST ONE** exact target-service-account IAM member addition granting
+`roles/iam.serviceAccountTokenCreator` so the privately bound source principal
+can obtain `iam.serviceAccounts.getAccessToken` on the exact GHL runtime
+service account. It does not activate that write, consume execution authority,
+mutate IAM, mint tokens, read secret payloads, call HighLevel, access CRM,
+rotate PIT, edit GHL scopes, or transfer Fleet authority.
+
+```text
+IAM_MUTATIONS=0
+IAM_POLICY_WRITES=0
+EXACT_MEMBER_ADDITIONS=0
+PROJECT_LEVEL_TOKEN_CREATOR_GRANTS=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+SECRET_MANAGER_PAYLOAD_READS=0
+LIVE_GHL_CALLS=0
+CRM_CALLS=0
+GENERATE_ACCESS_TOKEN_CALLS=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+```
+
+## 2. Bound source proof authority
+
+```text
+SOURCE_PROOF_ID=
+  NW008_AT1_GHL_RUNTIME_IMPERSONATION_PERMISSION_PREFLIGHT_001
+SOURCE_PROOF_PATH=
+  proof/nw008/nw-008-at1-ghl-runtime-impersonation-permission-preflight-001.md
+SOURCE_PROOF_PR=305
+SOURCE_PROOF_MERGE_SHA=
+  44010fab63865da9e5f2c8dea217c4d6d633b3ef
+SOURCE_PROOF_BLOB_SHA=
+  6096b095b61d2b6950ab9986346b174318254d5f
+SOURCE_PROOF_PRESENT_ON_ORIGIN_MAIN=YES
+SOURCE_PROOF_BLOB_SHA_MATCH_AT_ORIGIN_MAIN=YES
+
+BOUND_TERMINAL_DIAGNOSTIC_PROOF_PR=303
+BOUND_TERMINAL_DIAGNOSTIC_PROOF_MERGE_SHA=
+  000c032dcf77efdabb33c7eb9c7285fa528280e8
+BOUND_TERMINAL_DIAGNOSTIC_FAILURE_PHASE=
+  IMPERSONATED_CREDENTIAL_ACQUISITION
+```
+
+Any durable-chain mismatch at later consumption time fails closed and authorizes
+no mutation.
+
+## 3. Observed input state bound from merged #305
+
+The following observed-state fields are bound from the merged impersonation
+permission preflight. They are **inputs** to a later human-authorized consumer,
+not a fresh live re-observation performed by this authorization unit.
+
+```text
+REQUIRED_PERMISSION=iam.serviceAccounts.getAccessToken
+SOURCE_PRINCIPAL=PRIVATE_EXACT_BOUND_SOURCE
+SOURCE_PRINCIPAL_PRIVATE_REF=REQUIRED_BEFORE_ACTIVATION
+SOURCE_PRINCIPAL_KIND=serviceAccount
+SOURCE_PRINCIPAL_VALUE_PUBLISHED=NO
+SOURCE_PRINCIPAL_VALUE_PERSISTED=NO
+
+TARGET_PRINCIPAL=
+  mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+TARGET_RESOURCE_SCOPE=EXACT_TARGET_SERVICE_ACCOUNT
+CANDIDATE_ROLE=roles/iam.serviceAccountTokenCreator
+
+EXACT_GET_ACCESS_TOKEN_PERMISSION_EFFECTIVE=NO
+EXACT_RELEVANT_BINDING_PRESENT=NO
+CONFLICTING_OR_AMBIGUOUS_STATE=NO
+
+GHL_IMPERSONATION_PREFLIGHT_STATUS=
+  READY_FOR_BOUNDED_PERMISSION_AUTHORIZATION
+```
+
+```text
+THIS_UNIT_PERFORMED_FRESH_LIVE_IAM_OBSERVATION=NO
+THIS_UNIT_REASSERTS_LIVE_PERMISSION_DENIAL=NO
+CONSUMER_MUST_REVERIFY_SOURCE_TARGET_AND_PERMISSION_BEFORE_WRITE=YES
+```
+
+## 4. Private source-binding requirement
+
+```text
+SOURCE_PRINCIPAL_PRIVATE_REF=REQUIRED_BEFORE_ACTIVATION
+FUTURE_DURABLE_SOURCE_BINDING_REQUIREMENT=
+  PRIVATE_ATTESTATION_OR_REFERENCE_REQUIRED
+FUTURE_DURABLE_SOURCE_BINDING_MAY_NOT_RELY_ON=
+  ADC_FILE_MODIFICATION_TIME
+FUTURE_PUBLIC_PROOF_MAY_PUBLISH_RAW_SOURCE_IDENTITY=NO
+RAW_SOURCE_PRINCIPAL_PUBLICATION_FORBIDDEN=YES
+```
+
+Human activation of any later execution packet is forbidden until a durable
+private exact-source attestation or reference is bound and available for
+in-process comparison. The public authorization and later public proof must
+omit the raw source principal when the non-disclosure boundary requires it to
+remain private.
+
+## 5. Exact future-execution ceilings
+
+```text
+EXACT_TARGET_PROJECT=ai-rolodex-to-crm
+EXACT_TARGET_SERVICE_ACCOUNT=
+  mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+TARGET_RESOURCE_SCOPE=EXACT_TARGET_SERVICE_ACCOUNT
+CANDIDATE_ROLE=roles/iam.serviceAccountTokenCreator
+REQUIRED_PERMISSION=iam.serviceAccounts.getAccessToken
+
+MAX_IAM_POLICY_WRITES=1
+MAX_EXACT_MEMBER_ADDITIONS=1
+PROJECT_LEVEL_TOKEN_CREATOR_GRANT_ALLOWED=NO
+MAX_SERVICE_ACCOUNT_KEYS=0
+MAX_SECRET_PAYLOAD_READS=0
+MAX_GHL_CALLS=0
+MAX_CRM_CALLS=0
+```
+
+```text
+NO_ALTERNATE_SOURCE=YES
+NO_ALTERNATE_TARGET=YES
+NO_ALTERNATE_ROLE=YES
+NO_PROJECT_LEVEL_ESCALATION=YES
+NO_RETRY=YES
+NO_COMPENSATING_MUTATION=YES
+NO_SERVICE_ACCOUNT_KEY=YES
+NO_SECRET_PAYLOAD_READ=YES
+NO_GENERATE_ACCESS_TOKEN_BEFORE_REMEDIATION_PROOF=YES
+NO_GHL_CALL=YES
+NO_CRM_CALL=YES
+NO_PIT_ROTATION=YES
+NO_GHL_SCOPE_EDIT=YES
+NO_CROSS_LANE_FLEET_IAM_MUTATION=YES
+```
+
+This authorization does **not** authorize Fleet IAM mutation, project-level
+Token Creator grants, secret payload reads, provider diagnostic execution, or
+Fleet/GHL convergence.
+
+## 6. Consumed diagnostic grant non-reuse
+
+```text
+CONSUMED_DIAGNOSTIC_GRANT_ID=
+  NW008_AT1_GHL_REST_V3_OPPORTUNITY_READ_DIAGNOSTIC_GRANT_001
+CONSUMED_DIAGNOSTIC_GRANT_REUSE_ALLOWED=NO
+CONSUMED_DIAGNOSTIC_HUMAN_ACTIVATION_REUSE_ALLOWED=NO
+CONSUMED_DIAGNOSTIC_RUN_ID_REUSE_ALLOWED=NO
+CONSUMED_DIAGNOSTIC_EXECUTION_WINDOW_REUSE_ALLOWED=NO
+NEW_PROVIDER_DIAGNOSTIC_GRANT_AUTHORIZED_BY_THIS_ARTIFACT=NO
+```
+
+After a successful future token-mint permission execution proof, the next
+governed step is a fresh read-only credential readiness recheck before any new
+GHL provider diagnostic grant is prepared.
+
+## 7. Required future execution sequence
+
+A later human execution authority may activate mutation **only** after this
+exact artifact is independently reviewed and merged, and only after a separate
+explicit human execution activation that also binds the durable private source
+reference. This section is a future consumer contract, not permission to
+execute now.
+
+```text
+FUTURE_EXECUTION_AUTHORIZED_BY_THIS_ARTIFACT_ALONE=NO
+FUTURE_EXECUTION_REQUIRES_HUMAN_ACTIVATION=YES
+FUTURE_EXECUTION_REQUIRES_PRIVATE_SOURCE_REF=YES
+FUTURE_EXECUTION_ONE_SHOT=YES
+FUTURE_EXECUTION_REUSABLE=NO
+FUTURE_EXECUTION_TRANSFERABLE=NO
+```
+
+### Step sequence (consumer)
+
+1. Reverify the PR #305 authority chain (merge SHA and blob SHA still present on
+   the authorized base; no superseding conflict proof).
+2. Resolve and compare the exact source principal against the durable private
+   binding reference. Fail closed if the private reference is absent, unbound,
+   mismatched, or if raw source identity would need to be published to proceed.
+3. Reverify the exact target service account:
+   `mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com`.
+4. Re-run a read-only effective permission check for
+   `iam.serviceAccounts.getAccessToken` on the exact target resource for the
+   exact source. Do not call `generateAccessToken` and do not use
+   `--impersonate-service-account` for the remediation write path itself beyond
+   the separately bounded read-only checks required by this contract.
+5. Require all of:
+   ```text
+   EXACT_GET_ACCESS_TOKEN_PERMISSION_EFFECTIVE=NO
+   EXACT_RELEVANT_BINDING_PRESENT=NO
+   CONFLICTING_OR_AMBIGUOUS_STATE=NO
+   ```
+6. If any required predicate fails:
+   ```text
+   FAIL_CLOSED
+   NO_IAM_POLICY_WRITE
+   RETURN_FOR_REVIEW
+   ```
+7. Consume one-shot execution authority **before** the write (record
+   consumption; one-shot; non-reusable; non-transferable).
+8. Perform **at most one** exact target-service-account IAM member addition of
+   the privately bound source to `roles/iam.serviceAccountTokenCreator` on the
+   exact target service account only.
+9. Do **NOT** add project-level Token Creator.
+10. Re-run Policy Troubleshooter for the exact source, exact target resource, and
+    `iam.serviceAccounts.getAccessToken`.
+11. Require:
+    ```text
+    POLICY_TROUBLESHOOTER_OVERALL_ACCESS_STATE=CAN_ACCESS
+    EXACT_GET_ACCESS_TOKEN_PERMISSION_EFFECTIVE=YES
+    ```
+12. Verify no unrelated IAM delta:
+    ```text
+    EXACT_MEMBER_ADDITIONS=1
+    PROJECT_LEVEL_TOKEN_CREATOR_GRANTS=0
+    OTHER_POLICY_DELTA=NONE
+    ```
+13. **STOP.**
+
+```text
+IMMEDIATE_PRE_WRITE_REVALIDATION_REQUIRED=YES
+POST_WRITE_POLICY_TROUBLESHOOTER_REQUIRED=YES
+EXACT_POST_WRITE_POLICY_DELTA_VERIFICATION_REQUIRED=YES
+NO_SECOND_WRITE=YES
+NO_COMPENSATING_WRITE=YES
+NO_PROJECT_LEVEL_TOKEN_CREATOR_GRANT=YES
+```
+
+### Success return (future consumer only)
+
+```text
+EXACT_MEMBER_ADDITIONS=1
+IAM_POLICY_WRITES=1
+PROJECT_LEVEL_TOKEN_CREATOR_GRANTS=0
+EXACT_GET_ACCESS_TOKEN_PERMISSION_EFFECTIVE=YES
+POLICY_TROUBLESHOOTER_OVERALL_ACCESS_STATE=CAN_ACCESS
+OTHER_POLICY_DELTA=NONE
+IAM_MUTATION_RESULT=PASS
+SECRET_MANAGER_PAYLOAD_READS=0
+LIVE_GHL_CALLS=0
+CRM_CALLS=0
+NEXT=
+  NW008_AT1_GHL_RUNTIME_CREDENTIAL_READINESS_RECHECK_001
+```
+
+### Already-satisfied return (future consumer only)
+
+If immediate pre-write revalidation shows effective
+`iam.serviceAccounts.getAccessToken=CAN_ACCESS` for the exact source on the
+exact target with no conflicting/ambiguous state:
+
+```text
+EXACT_MEMBER_ADDITIONS=0
+IAM_POLICY_WRITES=0
+EXACT_GET_ACCESS_TOKEN_PERMISSION_EFFECTIVE=YES
+IAM_MUTATION_RESULT=ALREADY_SATISFIED
+NO_RETRY=YES
+NEXT=
+  NW008_AT1_GHL_RUNTIME_CREDENTIAL_READINESS_RECHECK_001
+```
+
+### Failure / ambiguity return (future consumer only)
+
+```text
+IAM_MUTATION_RESULT=FAIL_OR_AMBIGUOUS
+NO_RETRY=YES
+NO_COMPENSATION=YES
+NO_ALTERNATE_SOURCE=YES
+NO_ALTERNATE_TARGET=YES
+NO_PROJECT_LEVEL_ESCALATION=YES
+RETURN_FOR_REVIEW=YES
+```
+
+## 8. Explicit non-authority of this unit
+
+```text
+AUTHORIZATION_EFFECTIVE=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+MERGE_ALONE_AUTHORIZES_IAM_MUTATION=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+IAM_MUTATION_EXECUTED=NO
+IAM_POLICY_WRITES=0
+EXACT_MEMBER_ADDITIONS=0
+PROJECT_LEVEL_TOKEN_CREATOR_GRANTS=0
+SERVICE_ACCOUNT_KEY_CREATED_IN_THIS_UNIT=NO
+
+GHL_PROVIDER_DISPATCH_AUTHORIZED=NO
+GHL_DIAGNOSTIC_GRANT_REUSE_AUTHORIZED=NO
+NEW_GHL_PROVIDER_GRANT_AUTHORIZED=NO
+FLEET_IAM_MUTATION_AUTHORIZED=NO
+CRM_AUTHORITY=NO
+SECRET_ACCESS=NO
+SECRET_MUTATION=NO
+PRODUCTION_AUTHORITY=NO
+DEPLOYMENT_AUTHORITY=NO
+SERVICE_ACCOUNT_IMPERSONATION_AUTHORIZED_NOW=NO
+FLEET_AND_GHL_EXECUTION_AUTHORITY_JOINED=NO
+CONVERGENCE_AUTHORIZED=NO
+```
+
+## 9. Unit attestations
+
+```text
+LIVE_GHL_CALLS=0
+CRM_CALLS=0
+IAM_MUTATIONS=0
+IAM_POLICY_WRITES=0
+EXACT_MEMBER_ADDITIONS=0
+PROJECT_LEVEL_TOKEN_CREATOR_GRANTS=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+GENERATE_ACCESS_TOKEN_CALLS=0
+SECRET_MANAGER_PAYLOAD_READS=0
+SECRET_MUTATIONS=0
+PIT_ROTATIONS=0
+GHL_SCOPE_EDITS=0
+
+NO_HIGHLEVEL_CALL=YES
+NO_IAM_MUTATION=YES
+NO_SERVICE_ACCOUNT_KEY=YES
+NO_SECRET_PAYLOAD_READ=YES
+NO_SECRET_MUTATION=YES
+NO_PIT_ROTATION=YES
+NO_GHL_SCOPE_EDIT=YES
+NO_CROSS_LANE_AUTHORITY_TRANSFER=YES
+NO_CONSUMED_DIAGNOSTIC_GRANT_REUSE=YES
+```
+
+## 10. Next governed action
+
+```text
+NEXT_AFTER_AUTHORIZATION_PR=
+  INDEPENDENT_REVIEW_THEN_SEPARATE_HUMAN_EXECUTION_ACTIVATION
+
+AFTER_SUCCESSFUL_FUTURE_TOKEN_MINT_PERMISSION_EXECUTION_PROOF=
+  NW008_AT1_GHL_RUNTIME_CREDENTIAL_READINESS_RECHECK_001
+
+CREDENTIAL_READINESS_RECHECK_MODE=READ_ONLY
+CREDENTIAL_READINESS_RECHECK_BEFORE_NEW_PROVIDER_GRANT=YES
+DO_NOT_REUSE_CONSUMED_DIAGNOSTIC_GRANT=YES
+DO_NOT_COMBINE_WITH_FLEET_IAM_EXECUTION=YES
+DO_NOT_JOIN_FLEET_AND_GHL_AUTHORITY=YES
+```
+
+## 11. STOP
+
+```text
+STOP_CODE=
+  NW008_AT1_GHL_RUNTIME_IMPERSONATION_TOKEN_MINT_PERMISSION_AUTHORIZATION_001_PREPARED
+AUTHORIZATION_EFFECTIVE=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+MERGE_ALONE_AUTHORIZES_IAM_MUTATION=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+IAM_MUTATIONS=0
+IAM_POLICY_WRITES=0
+EXACT_MEMBER_ADDITIONS=0
+LIVE_GHL_CALLS=0
+SECRET_MANAGER_PAYLOAD_READS=0
+STOP
+```
