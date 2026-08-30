@@ -329,14 +329,19 @@ def _project_packet_from_fixture(packet_name: str) -> Dict[str, Any]:
     return project_workflow_run_audit(packet, context)
 
 
-def emit_acceptance_demo_proof(summary: Mapping[str, Any]) -> Dict[str, Any]:
+def emit_acceptance_demo_proof(
+    summary: Mapping[str, Any], output_root: Optional[Path] = None
+) -> Dict[str, Any]:
     """Emit local proof artifacts under the frozen future-proof namespace.
+
+    An explicit output root supports isolated callers; production callers retain
+    the repository proof namespace by default.
 
     Proof emission occurs only after cleanup has been performed and verified,
     so cleanup success is never asserted before the documents are actually
     removed.
     """
-    proof_dir = _repo_root() / PROOF_NAMESPACE
+    proof_dir = output_root if output_root is not None else _repo_root() / PROOF_NAMESPACE
     proof_dir.mkdir(parents=True, exist_ok=True)
 
     cleanup_performed = bool(summary.get("cleanup_performed", False))
@@ -450,7 +455,7 @@ def _dict_to_yaml(data: Mapping[str, Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def simulate_acceptance_demo() -> Dict[str, Any]:
+def simulate_acceptance_demo(output_root: Optional[Path] = None) -> Dict[str, Any]:
     """Execute the offline four-run acceptance lifecycle without network access.
 
     Mirror the future exact lifecycle locally:
@@ -515,5 +520,5 @@ def simulate_acceptance_demo() -> Dict[str, Any]:
     summary["external_effects"] = 0
 
     # 8. Emit final cleanup proof only after cleanup is verified.
-    summary["proof_artifacts"] = emit_acceptance_demo_proof(summary)
+    summary["proof_artifacts"] = emit_acceptance_demo_proof(summary, output_root=output_root)
     return summary
