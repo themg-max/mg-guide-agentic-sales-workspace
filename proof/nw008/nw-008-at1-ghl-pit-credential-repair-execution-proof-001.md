@@ -3,90 +3,89 @@
 ## 0. Proof identity
 
 ```text
-PROOF_ID=
-  NW008_AT1_GHL_PIT_CREDENTIAL_REPAIR_EXECUTION_PROOF_001
-ARTIFACT_PATH=
-  proof/nw008/nw-008-at1-ghl-pit-credential-repair-execution-proof-001.md
+PROOF_ID=NW008_AT1_GHL_PIT_CREDENTIAL_REPAIR_EXECUTION_PROOF_001
+ARTIFACT_PATH=proof/nw008/nw-008-at1-ghl-pit-credential-repair-execution-proof-001.md
 CLASSIFICATION=CREDENTIAL_REPAIR_EXECUTION_RECONCILIATION_PROOF
 PR_CLASS=proof_only
 OWNER=HUMAN_HIGHLEVEL_OPERATOR + VS_CODE_MG_ORCHESTRATOR
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
-
 PROOF_RECORDED_AT_UTC=2026-08-30T23:15:00Z
-
-CONTROLLED_BY_AUTHORIZATION=
-  NW008_AT1_GHL_PIT_ROTATION_AUTHORIZATION_001
-CONTROLLED_BY_ACTIVATION=
-  NW008_AT1_GHL_PIT_ROTATION_HUMAN_ACTIVATION_001
 ```
 
-This proof reconciles the completed MG Guide PIT rotation into durable evidence.
-It records what occurred, not what was planned, and documents a sequencing
-deviation: the rotation was executed before the planned activation durability
-was established in the repository.
+This proof records the external state that actually occurred. It does not retroactively convert an unmerged activation into execution authority.
+
+## 1. Governance sequencing truth
 
 ```text
-SEQUENCING_TRUTH=
-  ROTATION_OCCURRED_BEFORE_ACTIVATION_PR_MERGE
-ACTIVATION_PR_368_USED=NO
-ACTIVATION_PR_368_MERGE_ALLOWED=NO
-AUTHORIZATION_PR_367_USED=YES
+AUTHORIZATION_PR_367_MERGED_BEFORE_EXECUTION=YES
+AUTHORIZATION_PR_367_MERGE_SHA=a181193bc33851b3667510d8d44b85acddfe0bb3
+
+REQUIRED_ACTIVATION_MERGED_BEFORE_EXECUTION=NO
+EFFECTIVE_ACTIVATION_AT_EXECUTION=NONE
+
+EXECUTION_OCCURRED_BEFORE_REQUIRED_ACTIVATION_DURABILITY=YES
+SEQUENCING_DEVIATION=YES
+DEVIATION_CLASS=EXTERNAL_EXECUTION_PRECEDED_PLANNED_ACTIVATION_DURABILITY
+
+PR_368_USED=NO
+PR_368_MERGED=NO
+PR_368_CLOSED=YES
+PR_368_MERGE_ALLOWED=NO
+SECOND_ROTATION_ALLOWED=NO
 ```
 
-The authorization (PR #367) is the controlling document. The activation (PR #368)
-exhibits sequencing drift and is preserved as evidence, not used for execution.
+Authorization PR #367 existed before the external actions. Its own contract required a separate activation before execution. PR #368 was never merged and therefore was not effective execution authority. This proof preserves that sequencing deviation rather than laundering it into a compliant activation chain.
 
-## 1. External rotation — human HighLevel operator
+## 2. HighLevel provider action
 
 ```text
-ROTATION_PERFORMED=YES
-ROTATION_ACTOR=HUMAN_HIGHLEVEL_OPERATOR
-ROTATION_SURFACE=HIGHLEVEL_OPERATOR_CONSOLE
-ROTATION_MODE=ROTATE_AND_EXPIRE_LATER
+HIGHLEVEL_PIT_ROTATION_PERFORMED=YES
+HIGHLEVEL_PIT_ROTATION_SURFACE=HIGHLEVEL_OPERATOR_CONSOLE
+HIGHLEVEL_PIT_ROTATION_ACTOR=HUMAN_HIGHLEVEL_OPERATOR
 ROTATION_INTEGRATION=MG_Guide
+ROTATION_MODE=ROTATE_AND_EXPIRE_LATER
+SECOND_ROTATION_PERFORMED=NO
 ```
 
-The human HighLevel operator rotated the MG_Guide private integration token
-in the HighLevel console under the mode `ROTATE_AND_EXPIRE_LATER`.
+The MG_Guide private-integration PIT was rotated by the human operator in the HighLevel console. No second rotation is authorized or required.
 
-## 2. Secret Manager state — observed after rotation
+## 3. Google Secret Manager action and observed state
 
 ```text
-SECRET_RESOURCE=
-  projects/831270426395/secrets/MG_GUIDE_PIT_GHL
+SECRET_RESOURCE=projects/831270426395/secrets/MG_GUIDE_PIT_GHL
+SECRET_MANAGER_VERSION_ADD_PERFORMED=YES
+SECRET_MANAGER_VERSION_ADD_SURFACE=GOOGLE_CLOUD_SECRET_MANAGER
+SECRET_VERSIONS_ADDED=1
 
 CURRENT_SECRET_VERSION_SET={1,2}
 CURRENT_ENABLED_VERSION_SET={2}
-TOTAL_VERSIONS_AFTER_REPAIR=2
-NEW_VERSIONS_CREATED=1
 
-VERSION_2_OBSERVED_STATE=ENABLED
-VERSION_2_CREATED=YES
-VERSION_2_CREATION_METHOD=HIGHLEVEL_ROTATION_CONSOLE
+MG_GUIDE_PIT_GHL_VERSION_2_CREATED=YES
+VERSION_2_STATE=ENABLED
 
-VERSION_1_OBSERVED_STATE=DISABLED
+VERSION_1_STATE=DISABLED
 VERSION_1_DESTROYED=NO
 VERSION_1_RETAINED_AS_EVIDENCE=YES
+VERSION_1_DISABLE_CAUSE=UNKNOWN
 ```
 
-Version 2 exists and is enabled. Version 1 remains intact but disabled, serving
-as the audit trail for the 403 root cause and the repair it necessitated.
+The observed Google Secret Manager state is two numeric versions, with version 2 enabled and version 1 disabled but not destroyed. The available evidence does not establish which exact actor or action disabled version 1, so no causal attribution is made here.
+
+## 4. Secret mutation ledger
 
 ```text
-DEVIATION_FROM_PLAN=
-  PLANNED: VERSION_1_STATE_UNCHANGED (enabled)
-  OBSERVED: VERSION_1_STATE=DISABLED
-  REASON: HighLevel_console_rotation_mode_behavior
+SECRET_MUTATIONS_OBSERVED=1
+SECRET_VERSIONS_ADDED=1
+SECRET_VERSIONS_DESTROYED=0
+SECRET_IAM_MUTATIONS=0
 
-DEVIATION_CLASS=SECRET_VERSION_STATE_CHANGE
-DEVIATION_HANDLED=HONEST_RECORDING_NO_REMEDIATION
+SECRET_MUTATIONS_DURING_PROOF_AUTHORING=0
+SECRET_PAYLOAD_READS_DURING_PROOF_AUTHORING=0
 ```
 
-The rotation mode selected by the human operator (`ROTATE_AND_EXPIRE_LATER`)
-disables the old token; this is intentional provider behavior, not a violation.
-No corrective action is taken; the deviation is recorded truthfully.
+The Secret Manager version add is an observed external mutation. Authoring this proof performs no Secret Manager mutation or payload read.
 
-## 3. Token disclosure — absolute
+## 5. Token disclosure boundary
 
 ```text
 TOKEN_VALUE_PUBLISHED=NO
@@ -102,155 +101,98 @@ PAYLOAD_ECHOED_DURING_PROOF=NO
 PAYLOAD_HASHED_DURING_PROOF=NO
 ```
 
-The new token value was captured by the human operator to private custody and
-has never been recorded, published, or accessed by any automation.
+No token material is published in this repository proof.
 
-## 4. Provider state unchanged
+## 6. Provider state after rotation
 
 ```text
 INTEGRATION_STILL_ACTIVE=YES
 BOUND_LOCATION_UNCHANGED=YES
 CONTACTS_READONLY_STILL_PRESENT=YES
 SCOPES_UNCHANGED=YES
-LOCATION_BINDING_VERIFIED=YES
-
-SCOPE_EDITS=0
-LOCATION_EDITS=0
-LOCATION_REBINDINGS=0
 
 HIGHLEVEL_API_CALLS_AFTER_ROTATION=0
-GHL_REST_CALLS=0
-MCP_CALLS=0
-CRM_READS=0
-CRM_MUTATIONS=0
+GHL_REST_CALLS_AFTER_ROTATION=0
+CRM_READS_AFTER_ROTATION=0
+CRM_MUTATIONS_AFTER_ROTATION=0
 ```
 
-The integration remains in the same state as attested: present, active, bound
-to the correct location, carrying the required `contacts.readonly` scope.
-No provider mutation occurred except the token rotation itself.
+The integration remains present, active, bound to the same location, with the required contact-read scope. This proof does not perform provider validation calls.
 
-## 5. Secret Manager effect ledger
+## 7. Runtime state
 
 ```text
-SECRET_VERSIONS_ADDED=1
-SECRET_VERSIONS_DISABLED=0
-SECRET_VERSIONS_DESTROYED=0
-SECRET_PAYLOAD_READS=0
-SECRET_IAM_MUTATIONS=0
+RUNTIME_PINNING_EXECUTED=NO
+GHL_SECRET_VERSION_USED_BY_CURRENT_RUNTIME=1
+TARGET_RUNTIME_SECRET_VERSION=2
 
-VERSIONS_ADDED=1
-VERSION_1_DISABLED_BY_HIGHLEVEL_ROTATION=YES
-VERSION_2_CREATED=YES
-VERSION_2_STATE=ENABLED
-```
-
-Exactly one secret version was added by the HighLevel rotation. The new version
-is enabled and ready for use by the runtime. The old version remains intact as
-evidence.
-
-## 6. Sequencing truth — deviation recorded
-
-```text
-PLANNED_ACTIVATION_DURABILITY_ORDER=
-  L1: AUTHORIZATION_PR_367 merge
-  L2: INDEPENDENT_REVIEW_OF_ACTIVATION_PR_368
-  L3: ACTIVATION_PR_368 merge -> window open
-  L4: HUMAN_OPERATOR_ROTATES_IN_HIGHLEVEL_CONSOLE
-  L5: HUMAN_OPERATOR_CREATES_EXECUTION_PROOF
-
-OBSERVED_EXECUTION_ORDER=
-  ROTATION_OCCURRED_AFTER_AUTHORIZATION_PR_367_MERGE
-  ROTATION_OCCURRED_BEFORE_ACTIVATION_PR_368_MERGE
-  ROTATION_EXECUTOR=HUMAN_HIGHLEVEL_OPERATOR
-  ROTATION_AUTHORIZATION=PR_367_MERGED
-  ROTATION_ACTIVATION_DURABILITY=NOT_ESTABLISHED_AT_TIME_OF_ROTATION
-```
-
-The human operator rotated the credential before the activation PR (PR #368)
-was merged and opened the execution window. This is a sequencing deviation from
-the planned governance flow, but the authorization (PR #367) was in effect and
-the rotation itself is valid and controlled.
-
-```text
-ACTIVATION_PR_368_STATE=OPEN
-ACTIVATION_PR_368_MERGE_ALLOWED=NO
-SECOND_ROTATION_ALLOWED=NO
-SECOND_ROTATION_PERFORMER=FORBIDDEN
-
-REASON_ACTIVATION_368_NOT_MERGED=
-  SEQUENCING_DRIFT_EVIDENCE;
-  ACTIVATION_ALREADY_SUPERSEDED_BY_COMPLETED_EXECUTION;
-  PRESERVE_AS_INCIDENT_RECORD
-```
-
-PR #368 is preserved as evidence of the sequencing deviation but is not merged.
-No second rotation is performed or authorized; the one rotation under PR #367
-is sufficient.
-
-## 7. Post-rotation validation
-
-```text
-POST_ROTATION_PROVIDER_VALIDATION=0
 GHL_CANARY_GET_PERFORMED=NO
 GHL_CANARY_GET_AUTHORIZED=NO
-
-REASON_CANARY_DEFERRED=
-  CANARY_PERFORMED_UNDER_SEPARATE_AUTHORIZATION_004
-  CANARY_RUNS_AFTER_RUNTIME_PINNING_MERGE
-  CANARY_ESTABLISHES_TRANSPORT_PATH_HEALTH_WITH_V2
 ```
 
-No provider validation is performed in this unit. The separate bounded-read
-Authorization 004 and Activation 004 will perform a fresh canary GET with the
-new version once the runtime is pinned to v2 and merged.
+The external credential repair is not sufficient by itself: current runtime source still points to the superseded version 1. A separate implementation PR must pin the active runtime to exact numeric version 2 before any new HighLevel canary.
 
-## 8. Effect ledger
+## 8. Current effect ledger
 
 ```text
 PIT_ROTATION_PERFORMED=YES
 MG_GUIDE_PIT_GHL_VERSION_2_CREATED=YES
-
-AUTHORIZATION_CONSUMED=YES
-ACTIVATION_USED=NO
-ACTIVATION_PR_MERGED=NO
-
-HIGHLEVEL_API_CALLS=0
-CRM_READS=0
-CRM_MUTATIONS=0
-SECRET_MUTATIONS=0
-SECRET_PAYLOAD_READS=0
-RUNTIME_SOURCE_EDITS=0
-TEST_EDITS=0
-DEPLOYMENTS=0
-IAM_MUTATIONS=0
-
-AUTHORITY_REUSABLE=NO
-SECOND_ROTATION_PERMITTED=NO
-```
-
-The authorization (PR #367) is fully consumed. No second rotation is permitted.
-The activation (PR #368) is not used and is not merged.
-
-## 9. Stop
-
-```text
-SEQUENCING_DEVIATION_RECORDED=YES
-AUTHORIZATION_CONTROLLING_DOCUMENT=PR_367_MERGED
-ACTIVATION_CONTROLLING_DOCUMENT=NONE
-ACTIVATION_PR_368_STATE=OPEN_NOT_MERGED
-
 VERSION_2_STATE=ENABLED
 VERSION_1_STATE=DISABLED
 VERSION_1_DESTROYED=NO
 
-CURRENT_SECRET_VERSION_SET={1,2}
-CURRENT_ENABLED_VERSION_SET={2}
+AUTHORIZATION_PR_367_MERGED_BEFORE_EXECUTION=YES
+REQUIRED_ACTIVATION_MERGED_BEFORE_EXECUTION=NO
+EFFECTIVE_ACTIVATION_AT_EXECUTION=NONE
+SEQUENCING_DEVIATION=YES
 
-NEXT=
-  REVIEW_AND_MERGE_THIS_PROOF_PR
-  THEN_CREATE_RUNTIME_PINNING_IMPLEMENTATION_PR
-  THEN_CREATE_AUTHORIZATION_004_CANARY
+SECOND_ROTATION_PERFORMED=NO
+SECOND_ROTATION_ALLOWED=NO
+
+SECRET_MUTATIONS_OBSERVED=1
+SECRET_MUTATIONS_DURING_PROOF_AUTHORING=0
+HIGHLEVEL_API_CALLS_AFTER_ROTATION=0
+CRM_MUTATIONS_AFTER_ROTATION=0
+
+RUNTIME_SOURCE_EDITS=0
+TEST_EDITS=0
+DEPLOYMENTS=0
+IAM_MUTATIONS=0
 ```
 
-The rotation is complete and reconciled. The next step is runtime pinning:
-the three source files that read the credential must be updated from v1 to v2.
+## 9. Successor gate
+
+```text
+NEXT_1=MERGE_THIS_RECONCILIATION_PROOF_AFTER_INDEPENDENT_REVIEW
+NEXT_2=CREATE_RUNTIME_EXACT_VERSION_PINNING_IMPLEMENTATION_PR
+NEXT_3=PIN_ACTIVE_GHL_SECRET_REFERENCES_FROM_VERSION_1_TO_VERSION_2
+NEXT_4=PRESERVE_EXACT_VERSION_FAIL_CLOSED_TESTS
+NEXT_5=CREATE_FRESH_BOUNDED_READ_AUTHORIZATION_004
+NEXT_6=CREATE_FRESH_ACTIVATION_004
+NEXT_7=EXECUTE_EXACTLY_ONE_SYNTHETIC_CONTACT_GET
+```
+
+Fresh bounded-read success requires:
+
+```text
+GHL_SECRET_VERSION_USED=2
+HTTP_2XX=YES
+CONTACT_ID_MATCH=YES
+LOCATION_ID_MATCH=YES
+NO_RETRY=YES
+NETWORK_CALL_COUNT=1
+CRM_MUTATIONS=0
+```
+
+Only after those predicates pass may the transport path be marked healthy and the separately authorized transcript -> note -> stage Agentic Fleet acceptance lane proceed.
+
+## 10. Stop
+
+```text
+PROOF_RECONCILIATION_STATUS=READY_FOR_INDEPENDENT_REVIEW
+PR_368_REUSED=NO
+SECOND_ROTATION_ALLOWED=NO
+RUNTIME_PINNING_EXECUTED=NO
+GHL_CANARY_GET_PERFORMED=NO
+STOP=AWAIT_INDEPENDENT_REVIEW_AND_MERGE
+```
