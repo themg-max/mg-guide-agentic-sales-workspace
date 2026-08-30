@@ -87,6 +87,18 @@ def _synthetic_accessor() -> SyntheticLiveNoteSecretAccessor:
     )
 
 
+def _fake_impersonated_source(principal: str) -> object:
+    credential_type = type(
+        "Credentials",
+        (),
+        {"__module__": "google.auth.impersonated_credentials"},
+    )
+    credentials = credential_type()
+    credentials.service_account_email = principal
+    credentials.refresh_calls = 0
+    return credentials
+
+
 def test_public_assembler_accepts_only_preexisting_opaque_reference() -> None:
     signature = inspect.signature(assemble_bound_live_note_runtime)
 
@@ -444,6 +456,197 @@ def test_missing_root_owned_config_fails_closed_before_runtime_construction(
     assert note_path_module._private_at8_binding_lease_state(reference) == "CONSUMED"
 
 
+def test_explicit_workflow_config_materializes_expected_source_without_ambient_adc(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    credential_config = tmp_path / "workflow-impersonation.json"
+    ambient_config = tmp_path / "unrelated-ambient-adc.json"
+    credentials = _fake_impersonated_source(runtime._EXPECTED_SOURCE_PRINCIPAL)
+    calls: dict[str, object] = {"loads": 0, "defaults": 0}
+
+    def _load_credentials_from_file(
+        filename: str,
+        *,
+        scopes: list[str],
+    ) -> tuple[object, str]:
+        calls["loads"] = int(calls["loads"]) + 1
+        calls["filename"] = filename
+        calls["scopes"] = scopes
+        return credentials, "ai-rolodex-to-crm"
+
+    def _default() -> tuple[object, str]:
+        calls["defaults"] = int(calls["defaults"]) + 1
+        raise AssertionError("ambient ADC must not be resolved")
+
+    fake_google_auth = types.SimpleNamespace(
+        default=_default,
+        load_credentials_from_file=_load_credentials_from_file,
+    )
+    real_import_module = runtime.importlib.import_module
+
+    def _import_module(name: str, package: str | None = None) -> object:
+        if name == "google.auth":
+            return fake_google_auth
+        return real_import_module(name, package)
+
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY,
+        str(credential_config),
+    )
+    monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", str(ambient_config))
+    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
+
+    source = runtime._resolve_source_application_credentials()
+
+    assert type(source) is runtime._MaterializedWorkflowSource
+    assert source.credentials is credentials
+    assert source.principal == runtime._EXPECTED_SOURCE_PRINCIPAL
+    assert calls == {
+        "loads": 1,
+        "defaults": 0,
+        "filename": str(credential_config),
+        "scopes": ["https://www.googleapis.com/auth/cloud-platform"],
+    }
+    assert credentials.refresh_calls == 0
+
+
+def test_wrong_source_fails_closed_before_target_or_secret_construction(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    wrong_principal = (
+        "baby-bumps-runtime-b@ai-rolodex-to-crm.iam.gserviceaccount.com"
+    )
+    credentials = _fake_impersonated_source(wrong_principal)
+    effects = {
+        "credential_loads": 0,
+        "credential_refreshes": 0,
+        "target_constructions": 0,
+        "secret_client_constructions": 0,
+        "secret_payload_reads": 0,
+        "ghl_rest_calls": 0,
+    }
+
+    def _load_credentials_from_file(
+        filename: str,
+        *,
+        scopes: list[str],
+    ) -> tuple[object, str]:
+        effects["credential_loads"] += 1
+        return credentials, "ai-rolodex-to-crm"
+
+    fake_google_auth = types.SimpleNamespace(
+        load_credentials_from_file=_load_credentials_from_file
+    )
+    real_import_module = runtime.importlib.import_module
+
+    def _import_module(name: str, package: str | None = None) -> object:
+        if name == "google.auth":
+            return fake_google_auth
+        return real_import_module(name, package)
+
+    def _unexpected_target(source: object) -> object:
+        effects["target_constructions"] += 1
+        raise AssertionError("source mismatch must stop target impersonation")
+
+    def _unexpected_secret_client(credentials: object) -> object:
+        effects["secret_client_constructions"] += 1
+        raise AssertionError("source mismatch must stop Secret Manager construction")
+
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_DB_CONFIG_KEY,
+        str(tmp_path / "root-owned.sqlite3"),
+    )
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY,
+        str(tmp_path / "wrong-source.json"),
+    )
+    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
+    monkeypatch.setattr(
+        runtime,
+        "_impersonate_target_runtime_credentials",
+        _unexpected_target,
+    )
+    monkeypatch.setattr(runtime, "_new_secret_manager_client", _unexpected_secret_client)
+
+    with pytest.raises(runtime.SourceIdentityGateError) as failure:
+        runtime._resolve_root_owned_runtime_dependencies()
+
+    assert failure.value.SOURCE_IDENTITY_GATE == "FAIL"
+    assert failure.value.TOKEN_MINT_ATTEMPTS == 0
+    assert failure.value.SECRET_PAYLOAD_READS == 0
+    assert failure.value.GHL_REST_CALLS == 0
+    assert failure.value.STOP == "SOURCE_PRINCIPAL_MISMATCH"
+    assert wrong_principal in str(failure.value)
+    assert effects == {
+        "credential_loads": 1,
+        "credential_refreshes": 0,
+        "target_constructions": 0,
+        "secret_client_constructions": 0,
+        "secret_payload_reads": 0,
+        "ghl_rest_calls": 0,
+    }
+
+
+def test_ambient_adc_cannot_replace_missing_explicit_workflow_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.delenv(
+        runtime._ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY,
+        raising=False,
+    )
+    monkeypatch.setenv(
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        str(tmp_path / "unrelated-ambient-adc.json"),
+    )
+
+    with pytest.raises(runtime.SourceIdentityGateError) as failure:
+        runtime._resolve_source_application_credentials()
+
+    assert failure.value.STOP == "SOURCE_CREDENTIAL_CONFIG_REQUIRED"
+    assert failure.value.TOKEN_MINT_ATTEMPTS == 0
+
+
+def test_service_account_key_credentials_are_rejected_without_refresh(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    credential_type = type(
+        "Credentials",
+        (),
+        {"__module__": "google.oauth2.service_account"},
+    )
+    credentials = credential_type()
+    credentials.service_account_email = runtime._EXPECTED_SOURCE_PRINCIPAL
+    credentials.refresh_calls = 0
+    fake_google_auth = types.SimpleNamespace(
+        load_credentials_from_file=lambda filename, scopes: (
+            credentials,
+            "ai-rolodex-to-crm",
+        )
+    )
+    real_import_module = runtime.importlib.import_module
+
+    def _import_module(name: str, package: str | None = None) -> object:
+        if name == "google.auth":
+            return fake_google_auth
+        return real_import_module(name, package)
+
+    monkeypatch.setenv(
+        runtime._ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY,
+        str(tmp_path / "forbidden-service-account-key.json"),
+    )
+    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
+
+    with pytest.raises(runtime.SourceIdentityGateError) as failure:
+        runtime._resolve_source_application_credentials()
+
+    assert failure.value.STOP == "SOURCE_CREDENTIAL_TYPE_REJECTED"
+    assert credentials.refresh_calls == 0
+
+
 def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -529,6 +732,10 @@ def test_impersonate_target_runtime_credentials_selects_sealed_principal(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     source_credentials = object()
+    materialized_source = runtime._MaterializedWorkflowSource(
+        credentials=source_credentials,
+        principal=runtime._EXPECTED_SOURCE_PRINCIPAL,
+    )
     captured: dict[str, object] = {
         "constructor_calls": 0,
         "network_calls": 0,
@@ -567,7 +774,7 @@ def test_impersonate_target_runtime_credentials_selects_sealed_principal(
 
     monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
 
-    result = runtime._impersonate_target_runtime_credentials(source_credentials)
+    result = runtime._impersonate_target_runtime_credentials(materialized_source)
 
     assert isinstance(result, _FakeImpersonatedCredentials)
     assert captured["constructor_calls"] == 1
@@ -582,6 +789,60 @@ def test_impersonate_target_runtime_credentials_selects_sealed_principal(
     assert captured["real_impersonation_attempts"] == 0
     assert captured["token_mints"] == 0
     assert captured["network_calls"] == 0
+
+
+def test_target_impersonation_rejects_an_ungated_credential_object(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    imports = 0
+
+    def _unexpected_import(name: str, package: str | None = None) -> object:
+        nonlocal imports
+        imports += 1
+        raise AssertionError("ungated credentials must fail before dependency import")
+
+    monkeypatch.setattr(runtime.importlib, "import_module", _unexpected_import)
+
+    with pytest.raises(runtime.SourceIdentityGateError) as failure:
+        runtime._impersonate_target_runtime_credentials(object())  # type: ignore[arg-type]
+
+    assert failure.value.STOP == "SOURCE_PRINCIPAL_MISMATCH"
+    assert failure.value.TOKEN_MINT_ATTEMPTS == 0
+    assert imports == 0
+
+
+def test_iam_scope_and_target_principal_remain_unchanged() -> None:
+    sources = "\n".join(
+        (
+            (SOURCE_ROOT / "live_note_runtime.py").read_text(encoding="utf-8"),
+            (SOURCE_ROOT / "live_note_credential_provider.py").read_text(
+                encoding="utf-8"
+            ),
+            (
+                REPO_ROOT
+                / "src"
+                / "integrations"
+                / "ghl"
+                / "at1_commitment_key_provider.py"
+            ).read_text(encoding="utf-8"),
+        )
+    )
+
+    assert runtime._EXPECTED_SOURCE_PRINCIPAL == (
+        "mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com"
+    )
+    assert runtime._TARGET_RUNTIME_SERVICE_ACCOUNT == (
+        "mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
+    )
+    assert "google_auth_module.default(" not in sources
+    for forbidden in (
+        "set_iam_policy",
+        "roles/iam.serviceAccountTokenCreator",
+        "create_service_account_key",
+        "projects.serviceAccounts.keys.create",
+        "subprocess",
+    ):
+        assert forbidden not in sources
 
 
 class _CloseTrackingConnection:

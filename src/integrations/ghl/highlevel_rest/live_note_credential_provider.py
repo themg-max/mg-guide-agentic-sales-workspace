@@ -7,7 +7,6 @@ inject a fake client and never access a real Secret Manager payload.
 
 from __future__ import annotations
 
-import importlib
 from typing import Any, Protocol
 
 from .live_note_transport import InjectedLiveNoteCredential, LiveNoteTransportError
@@ -15,6 +14,11 @@ from .live_note_transport import InjectedLiveNoteCredential, LiveNoteTransportEr
 
 class LiveNoteCredentialProviderError(ValueError):
     """Raised when credential acquisition is rejected before any secret access."""
+
+
+MAX_PROVIDER_CREDENTIAL_ATTEMPTS = 1
+MAX_SECRET_MANAGER_ATTEMPTS = 1
+AUTOMATIC_RETRY_DISABLED = True
 
 
 class LiveNoteSecretAccessor(Protocol):
@@ -68,16 +72,6 @@ DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE = (
 )
 
 
-def _new_secret_manager_client() -> Any:
-    try:
-        secretmanager_module = importlib.import_module("google.cloud.secretmanager")
-    except ModuleNotFoundError as exc:  # pragma: no cover - dependency is optional in offline mode
-        raise RuntimeError(
-            "google-cloud-secret-manager is required for production secret resolution"
-        ) from exc
-    return secretmanager_module.SecretManagerServiceClient()
-
-
 class GoogleSecretManagerLiveNoteSecretAccessor:
     """Production Secret Manager-backed accessor bound to the exact GHL PIT version."""
 
@@ -87,9 +81,14 @@ class GoogleSecretManagerLiveNoteSecretAccessor:
     def __init__(
         self,
         *,
-        client: Any | None = None,
+        client: Any,
     ) -> None:
+        if client is None or not hasattr(client, "access_secret_version"):
+            raise LiveNoteCredentialProviderError(
+                "an explicitly credentialed Secret Manager client is required"
+            )
         self._client = client
+        self._access_attempt_count = 0
         self.REAL_SECRET_READS = 0
         self.SECRET_PAYLOAD_READS_ARE_SYNTHETIC = False
 
@@ -101,14 +100,23 @@ class GoogleSecretManagerLiveNoteSecretAccessor:
     def version_resource(self) -> str:
         return DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
 
+    @property
+    def access_attempt_count(self) -> int:
+        return self._access_attempt_count
+
     def read_secret_payload(self, *, resource_name: str) -> str:
         if resource_name != DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE:
             raise LiveNoteCredentialProviderError(
                 "resource_name does not match the root-owned Secret Manager resource"
             )
-        client = self._client if self._client is not None else _new_secret_manager_client()
-        response = client.access_secret_version(
-            request={"name": DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE}
+        if self._access_attempt_count >= MAX_SECRET_MANAGER_ATTEMPTS:
+            raise LiveNoteCredentialProviderError(
+                "Secret Manager access attempt limit exceeded"
+            )
+        self._access_attempt_count += 1
+        response = self._client.access_secret_version(
+            request={"name": DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE},
+            retry=None,
         )
         payload = getattr(response, "payload", None)
         if payload is None:
@@ -132,6 +140,7 @@ class GoogleSecretManagerLiveNoteSecretAccessor:
         return (
             "GoogleSecretManagerLiveNoteSecretAccessor("
             f"resource_name={DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE!r}, "
+            f"access_attempts={self._access_attempt_count}, "
             f"real_reads={self.REAL_SECRET_READS})"
         )
 
@@ -203,6 +212,7 @@ class LiveNoteCredentialProvider:
             )
         self._accessor = accessor
         self._resource_name = resource_name
+        self._attempt_count = 0
         self._acquire_count = 0
 
     @property
@@ -214,8 +224,17 @@ class LiveNoteCredentialProvider:
     def acquire_count(self) -> int:
         return self._acquire_count
 
+    @property
+    def attempt_count(self) -> int:
+        return self._attempt_count
+
     def get_credential(self) -> InjectedLiveNoteCredential:
         """Acquire a credential through the injected accessor only."""
+        if self._attempt_count >= MAX_PROVIDER_CREDENTIAL_ATTEMPTS:
+            raise LiveNoteCredentialProviderError(
+                "credential provider attempt limit exceeded"
+            )
+        self._attempt_count += 1
         payload = self._accessor.read_secret_payload(resource_name=self._resource_name)
         if not isinstance(payload, str) or not payload.strip():
             raise LiveNoteCredentialProviderError(
@@ -233,6 +252,7 @@ class LiveNoteCredentialProvider:
             "LiveNoteCredentialProvider("
             "resource_name=<redacted>, "
             "accessor=<injected>, "
+            f"attempt_count={self._attempt_count}, "
             f"acquire_count={self._acquire_count}, "
             "real_secret_reads_authorized=False)"
         )

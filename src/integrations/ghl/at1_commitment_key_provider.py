@@ -7,7 +7,6 @@ clients and never access a real secret payload.
 
 from __future__ import annotations
 
-import importlib
 import re
 from typing import Any
 
@@ -19,6 +18,8 @@ _VERSION_RESOURCE_PATTERN = re.compile(
 DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE = (
     "projects/ai-rolodex-to-crm/secrets/MG_GUIDE_NW008_COMMITMENT_KEY/versions/1"
 )
+MAX_SECRET_MANAGER_ATTEMPTS = 1
+AUTOMATIC_RETRY_DISABLED = True
 
 
 def validate_version_resource(version_resource: str) -> str:
@@ -29,18 +30,6 @@ def validate_version_resource(version_resource: str) -> str:
     ):
         raise ValueError("version_resource must be an exact positive numeric version resource")
     return version_resource
-
-
-def _new_secret_manager_client() -> Any:
-    """Create a Secret Manager client only when production resolution is invoked."""
-
-    try:
-        secretmanager_module = importlib.import_module("google.cloud.secretmanager")
-    except ModuleNotFoundError as exc:  # pragma: no cover - dependency is optional in offline mode
-        raise RuntimeError(
-            "google-cloud-secret-manager is required for production commitment-key resolution"
-        ) from exc
-    return secretmanager_module.SecretManagerServiceClient()
 
 
 class CommitmentKeyProvider:
@@ -116,18 +105,28 @@ class SyntheticCommitmentKeyProvider:
 class GoogleSecretManagerCommitmentKeyProvider(CommitmentKeyProvider):
     """Resolve exact-version commitment-key material from Secret Manager."""
 
-    __slots__ = ("__client", "__secret_resource", "__version_resource")
+    __slots__ = (
+        "__client",
+        "__resolve_attempt_count",
+        "__secret_resource",
+        "__version_resource",
+    )
 
     def __init__(
         self,
         *,
-        client: Any | None = None,
+        client: Any,
     ) -> None:
+        if client is None or not hasattr(client, "access_secret_version"):
+            raise ValueError(
+                "an explicitly credentialed Secret Manager client is required"
+            )
         self.__secret_resource = DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE.rsplit(
             "/versions/", 1
         )[0]
         self.__version_resource = DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE
         self.__client = client
+        self.__resolve_attempt_count = 0
 
     @property
     def secret_resource(self) -> str:
@@ -137,11 +136,20 @@ class GoogleSecretManagerCommitmentKeyProvider(CommitmentKeyProvider):
     def version_resource(self) -> str:
         return self.__version_resource
 
+    @property
+    def resolve_attempt_count(self) -> int:
+        return self.__resolve_attempt_count
+
     def resolve(self) -> CommitmentKeyMaterial:
         """Fetch and bind the exact numeric Secret Manager version payload."""
 
-        client = self.__client if self.__client is not None else _new_secret_manager_client()
-        response = client.access_secret_version(request={"name": self.__version_resource})
+        if self.__resolve_attempt_count >= MAX_SECRET_MANAGER_ATTEMPTS:
+            raise RuntimeError("Secret Manager access attempt limit exceeded")
+        self.__resolve_attempt_count += 1
+        response = self.__client.access_secret_version(
+            request={"name": self.__version_resource},
+            retry=None,
+        )
         payload = getattr(response, "payload", None)
         if payload is None:
             raise ValueError("Secret Manager response did not include payload data")
@@ -160,7 +168,8 @@ class GoogleSecretManagerCommitmentKeyProvider(CommitmentKeyProvider):
     def __repr__(self) -> str:
         return (
             f"{type(self).__name__}(secret_resource={self.__secret_resource!r}, "
-            f"version_resource={self.__version_resource!r})"
+            f"version_resource={self.__version_resource!r}, "
+            f"resolve_attempts={self.__resolve_attempt_count})"
         )
 
     __str__ = __repr__

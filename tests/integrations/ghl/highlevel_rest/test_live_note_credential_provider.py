@@ -8,10 +8,13 @@ from pathlib import Path
 import pytest
 
 from integrations.ghl.highlevel_rest.live_note_credential_provider import (
+    AUTOMATIC_RETRY_DISABLED,
     DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE,
     GoogleSecretManagerLiveNoteSecretAccessor,
     LiveNoteCredentialProvider,
     LiveNoteCredentialProviderError,
+    MAX_PROVIDER_CREDENTIAL_ATTEMPTS,
+    MAX_SECRET_MANAGER_ATTEMPTS,
     RootOwnedLiveNoteCredentialInjection,
     SyntheticLiveNoteSecretAccessor,
 )
@@ -43,9 +46,16 @@ class _FakeSecretManagerClient:
     def __init__(self, payload: bytes = b"fake-production-token") -> None:
         self.payload = payload
         self.request_names: list[str] = []
+        self.retry_values: list[object] = []
 
-    def access_secret_version(self, *, request: dict[str, str]) -> SimpleNamespace:
+    def access_secret_version(
+        self,
+        *,
+        request: dict[str, str],
+        retry: object,
+    ) -> SimpleNamespace:
         self.request_names.append(request["name"])
+        self.retry_values.append(retry)
         return SimpleNamespace(payload=SimpleNamespace(data=self.payload))
 
 
@@ -147,7 +157,28 @@ def test_production_accessor_is_fixed_to_designated_version_and_uses_fake_client
         resource_name=DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
     ) == "fake-production-token"
     assert client.request_names == [DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE]
+    assert client.retry_values == [None]
+    assert accessor.access_attempt_count == 1
     assert accessor.REAL_SECRET_READS == 1
+
+
+def test_production_accessor_disables_retry_and_rejects_second_attempt() -> None:
+    client = _FakeSecretManagerClient()
+    accessor = GoogleSecretManagerLiveNoteSecretAccessor(client=client)
+
+    accessor.read_secret_payload(
+        resource_name=DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+    )
+    with pytest.raises(LiveNoteCredentialProviderError, match="attempt limit"):
+        accessor.read_secret_payload(
+            resource_name=DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+        )
+
+    assert AUTOMATIC_RETRY_DISABLED is True
+    assert MAX_SECRET_MANAGER_ATTEMPTS == 1
+    assert accessor.access_attempt_count == 1
+    assert client.request_names == [DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE]
+    assert client.retry_values == [None]
 
 
 @pytest.mark.parametrize(
@@ -224,6 +255,43 @@ def test_provider_rejects_empty_payload() -> None:
         provider.get_credential()
 
 
+def test_failed_provider_attempt_is_terminal_without_second_secret_read() -> None:
+    secret_value = "SECRET_MUST_NOT_BE_DISCLOSED"
+
+    class _FailingAccessor:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def read_secret_payload(self, *, resource_name: str) -> str:
+            self.calls += 1
+            raise RuntimeError(f"synthetic failure without payload: {len(secret_value)}")
+
+    accessor = _FailingAccessor()
+    provider = LiveNoteCredentialProvider(
+        accessor=accessor,
+        resource_name=SYNTHETIC_RESOURCE,
+    )
+
+    with pytest.raises(RuntimeError) as first_failure:
+        provider.get_credential()
+    with pytest.raises(LiveNoteCredentialProviderError, match="attempt limit") as retry:
+        provider.get_credential()
+
+    rendered = "\n".join(
+        (
+            str(first_failure.value),
+            str(retry.value),
+            repr(provider),
+            str(provider),
+        )
+    )
+    assert secret_value not in rendered
+    assert MAX_PROVIDER_CREDENTIAL_ATTEMPTS == 1
+    assert provider.attempt_count == 1
+    assert provider.acquire_count == 0
+    assert accessor.calls == 1
+
+
 def test_provider_requires_accessor_and_resource() -> None:
     accessor = SyntheticLiveNoteSecretAccessor(
         payloads={SYNTHETIC_RESOURCE: SYNTHETIC_TOKEN}
@@ -256,8 +324,8 @@ def test_provider_module_import_policy() -> None:
             assert not module.startswith("google")
             assert module.split(".", 1)[0] not in {"subprocess", "requests", "httpx"}
     source = PROVIDER_PATH.read_text(encoding="utf-8")
-    assert "importlib.import_module" in source
     assert "import google" not in source
+    assert "google.auth.default" not in source
 
 
 def test_private_target_boundary_unchanged() -> None:
