@@ -236,7 +236,7 @@ def test_static_workflow_contract_is_manual_and_identity_only() -> None:
             "mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com"
         ),
         "create_credentials_file": "true",
-        "cleanup_credentials": "true",
+        "cleanup_credentials": "false",
         "export_environment_variables": "false",
     }
 
@@ -252,11 +252,47 @@ def test_static_workflow_contract_is_manual_and_identity_only() -> None:
     ] == "${{ steps.auth.outputs.credentials_file_path }}"
     assert diagnostic_step["env"]["PYTHONPATH"] == "src"
 
-    assert [step["run"] for step in steps if "run" in step] == [
-        "python -m pip install --requirement requirements.txt",
-        "python -m integrations.ghl.highlevel_rest.workflow_identity_diagnostic",
-    ]
+    delete_index, delete_step = next(
+        (index, step)
+        for index, step in enumerate(steps)
+        if step.get("name") == "Delete auth credential file"
+    )
+    verify_index, verify_step = next(
+        (index, step)
+        for index, step in enumerate(steps)
+        if step.get("name") == "Verify auth credential file is absent"
+    )
+
+    assert auth_index < diagnostic_index < delete_index < verify_index
+    for cleanup_step in (delete_step, verify_step):
+        assert cleanup_step["if"] == "always()"
+        assert cleanup_step["shell"] == "bash"
+        assert cleanup_step["env"]["CREDENTIAL_FILE_PATH"] == (
+            "${{ steps.auth.outputs.credentials_file_path }}"
+        )
+
+    delete_script = delete_step["run"]
+    assert 'rm -- "$CREDENTIAL_FILE_PATH"' in delete_script
+    assert "rm -rf" not in delete_script
+    assert '[[ -L "$CREDENTIAL_FILE_PATH" ]]' in delete_script
+    assert '[[ ! -f "$CREDENTIAL_FILE_PATH" ]]' in delete_script
+    assert '"$GITHUB_WORKSPACE"/gha-creds-*.json' in delete_script
+    assert "CREDENTIAL_FILE_DELETE_ATTEMPTS=1" in delete_script
+    assert "EXPLICIT_CREDENTIAL_CLEANUP_PERFORMED=YES" in delete_script
+
+    verify_script = verify_step["run"]
+    assert '[[ -e "$CREDENTIAL_FILE_PATH" || -L "$CREDENTIAL_FILE_PATH" ]]' in (
+        verify_script
+    )
+    assert 'residual_files=("$GITHUB_WORKSPACE"/gha-creds-*.json)' in verify_script
+    assert "CREDENTIAL_FILE_ABSENT_AFTER_DELETE=YES" in verify_script
+    assert "RESIDUAL_GHA_CREDENTIAL_FILES=0" in verify_script
+    assert "RUNNER_DISPOSAL_RELIED_UPON=NO" in verify_script
+    assert "CREDENTIAL_CLEANUP_RESULT=PASS" in verify_script
+
     assert "secrets." not in raw_workflow
+    assert "GOOGLE_GHA_CREDS_PATH" not in raw_workflow
+    assert "GOOGLE_APPLICATION_CREDENTIALS" not in raw_workflow
 
 
 def test_harness_has_no_ambient_adc_or_downstream_operation_path() -> None:
