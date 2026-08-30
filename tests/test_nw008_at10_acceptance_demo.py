@@ -37,10 +37,6 @@ def _project_packet(packet_name: str):
     return project_workflow_run_audit(packet, context)
 
 
-def _proof_dir() -> Path:
-    return Path(__file__).resolve().parents[1] / "proof" / "nw008" / "at-10" / "acceptance-demo"
-
-
 def test_acceptance_demo_allowlist_is_exact() -> None:
     assert list(AT10_ACCEPTANCE_SET) == [
         "run_nw006_success_001",
@@ -196,19 +192,20 @@ def test_disposition_mapping_enforced_per_run_id() -> None:
         assert audit["final_disposition"] == disposition
 
 
-def test_cleanup_proof_only_emitted_after_cleanup() -> None:
-    result = simulate_acceptance_demo()
+def test_cleanup_proof_only_emitted_after_cleanup(tmp_path: Path) -> None:
+    result = simulate_acceptance_demo(output_root=tmp_path)
     assert result["cleanup_performed"] is True
     assert result["cleanup_verified_not_found"] is True
+    assert Path(result["proof_artifacts"]["proof_dir"]) == tmp_path
 
-    cleanup_evidence = json.loads((_proof_dir() / "at-10-cleanup-evidence.json").read_text())
+    cleanup_evidence = json.loads((tmp_path / "at-10-cleanup-evidence.json").read_text())
     assert cleanup_evidence["cleanup_performed"] is True
     assert cleanup_evidence["cleanup_verified_not_found"] is True
     assert set(cleanup_evidence["documents_deleted"]) == set(AT10_ACCEPTANCE_SET)
 
 
-def test_simulate_acceptance_demo_runs_zero_network_and_emits_proof_files() -> None:
-    result = simulate_acceptance_demo()
+def test_simulate_acceptance_demo_runs_zero_network_and_emits_proof_files(tmp_path: Path) -> None:
+    result = simulate_acceptance_demo(output_root=tmp_path)
     assert result["status"] == "PASS"
     assert result["acceptance_set_complete"] is True
     assert result["network_calls"] == 0
@@ -228,12 +225,12 @@ def test_simulate_acceptance_demo_runs_zero_network_and_emits_proof_files() -> N
         "proof-manifest.md",
         "proof-return.yaml",
     ):
-        assert (_proof_dir() / filename).exists()
+        assert (tmp_path / filename).exists()
 
 
-def test_proof_return_declares_at10_not_complete() -> None:
-    simulate_acceptance_demo()
-    yaml_text = (_proof_dir() / "proof-return.yaml").read_text()
+def test_proof_return_declares_at10_not_complete(tmp_path: Path) -> None:
+    simulate_acceptance_demo(output_root=tmp_path)
+    yaml_text = (tmp_path / "proof-return.yaml").read_text()
     assert "PROOF_CLASS: \"OFFLINE_IMPLEMENTATION_VALIDATION\"" in yaml_text
     assert "OFFLINE_VALIDATION_RESULT: \"PASS\"" in yaml_text
     assert "AT10_EXECUTION_OCCURRED: \"NO\"" in yaml_text
