@@ -9,9 +9,11 @@ from types import SimpleNamespace
 import pytest
 
 from integrations.ghl.at1_commitment_key_provider import (
+    AUTOMATIC_RETRY_DISABLED,
     CommitmentKeyMaterial,
     DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE,
     GoogleSecretManagerCommitmentKeyProvider,
+    MAX_SECRET_MANAGER_ATTEMPTS,
     SyntheticCommitmentKeyProvider,
 )
 from integrations.ghl.at1_execution_store import (
@@ -27,9 +29,16 @@ class _FakeSecretManagerClient:
     def __init__(self, payload: bytes = b"fake-production-commitment-key") -> None:
         self.payload = payload
         self.request_names: list[str] = []
+        self.retry_values: list[object] = []
 
-    def access_secret_version(self, *, request: dict[str, str]) -> SimpleNamespace:
+    def access_secret_version(
+        self,
+        *,
+        request: dict[str, str],
+        retry: object,
+    ) -> SimpleNamespace:
         self.request_names.append(request["name"])
+        self.retry_values.append(retry)
         return SimpleNamespace(payload=SimpleNamespace(data=self.payload))
 
 
@@ -131,7 +140,24 @@ def test_production_provider_is_fixed_to_designated_secret_version() -> None:
     )
     assert material.version_resource == DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE
     assert client.request_names == [DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE]
+    assert client.retry_values == [None]
+    assert provider.resolve_attempt_count == 1
     assert "fake-production-commitment-key" not in repr(material)
+
+
+def test_production_provider_disables_retry_and_rejects_second_attempt() -> None:
+    client = _FakeSecretManagerClient()
+    provider = GoogleSecretManagerCommitmentKeyProvider(client=client)
+
+    provider.resolve()
+    with pytest.raises(RuntimeError, match="attempt limit"):
+        provider.resolve()
+
+    assert AUTOMATIC_RETRY_DISABLED is True
+    assert MAX_SECRET_MANAGER_ATTEMPTS == 1
+    assert provider.resolve_attempt_count == 1
+    assert client.request_names == [DESIGNATED_COMMITMENT_KEY_VERSION_RESOURCE]
+    assert client.retry_values == [None]
 
 
 def test_production_provider_has_no_secret_or_version_override() -> None:

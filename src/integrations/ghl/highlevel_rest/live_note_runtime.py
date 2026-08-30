@@ -31,8 +31,14 @@ _SEALED_LIVE_NOTE_REST_RESOURCE_NAME = (
     "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
 )
 _ROOT_OWNED_DB_CONFIG_KEY = "MG_GUIDE_NW008_EXECUTION_STORE_DB_PATH"
+_ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY = (
+    "MG_GUIDE_NW008_GHL_WORKFLOW_CREDENTIAL_CONFIG"
+)
 _ROOT_OWNED_PRIVATE_ORIGIN_MODULE_KEY = (
     "MG_GUIDE_NW008_PRIVATE_OWNER_ORIGIN_MODULE"
+)
+_EXPECTED_SOURCE_PRINCIPAL = (
+    "mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com"
 )
 _TARGET_RUNTIME_SERVICE_ACCOUNT = (
     "mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
@@ -43,6 +49,32 @@ _TARGET_RUNTIME_CREDENTIAL_LIFETIME_SECONDS = 3600
 
 class LiveNoteRuntimeAssemblyError(RuntimeError):
     """Raised when assembly would exceed the authorized offline boundary."""
+
+
+class SourceIdentityGateError(LiveNoteRuntimeAssemblyError):
+    """Fail-closed source-identity result emitted before target impersonation."""
+
+    SOURCE_IDENTITY_GATE = "FAIL"
+    TOKEN_MINT_ATTEMPTS = 0
+    SECRET_PAYLOAD_READS = 0
+    GHL_REST_CALLS = 0
+
+    def __init__(self, *, stop: str, detail: str) -> None:
+        self.STOP = stop
+        super().__init__(
+            f"SOURCE_IDENTITY_GATE=FAIL; {detail}; TOKEN_MINT_ATTEMPTS=0; "
+            f"SECRET_PAYLOAD_READS=0; GHL_REST_CALLS=0; STOP={stop}"
+        )
+
+
+class _MaterializedWorkflowSource:
+    """Credential object that passed the exact workflow source-identity gate."""
+
+    __slots__ = ("credentials", "principal")
+
+    def __init__(self, *, credentials: object, principal: str) -> None:
+        self.credentials = credentials
+        self.principal = principal
 
 
 class _StoreOwnershipGuard:
@@ -90,20 +122,75 @@ class _RootOwnedLiveNoteRuntimeDependencies:
         self.execution_store = execution_store
 
 
-def _resolve_source_application_credentials() -> object:
-    """Resolve source ADC only when the production composition root is invoked."""
+def _resolve_source_application_credentials() -> _MaterializedWorkflowSource:
+    """Load and validate the explicit workflow credential configuration."""
+    os_module = importlib.import_module("os")
+    credential_config = os_module.environ.get(
+        _ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY
+    )
+    if (
+        not isinstance(credential_config, str)
+        or not credential_config.strip()
+        or not os_module.path.isabs(credential_config)
+    ):
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_CONFIG_REQUIRED",
+            detail="explicit absolute workflow credential config is required",
+        )
+
     try:
         google_auth_module = importlib.import_module("google.auth")
     except ModuleNotFoundError as exc:  # pragma: no cover - optional offline dependency
         raise LiveNoteRuntimeAssemblyError(
             "google-auth is required for production runtime credential resolution"
         ) from exc
-    credentials, _ = google_auth_module.default()
-    return credentials
+
+    credentials, _ = google_auth_module.load_credentials_from_file(
+        credential_config,
+        scopes=list(_TARGET_RUNTIME_SCOPES),
+    )
+    credential_type = type(credentials)
+    if (
+        credential_type.__module__ != "google.auth.impersonated_credentials"
+        or credential_type.__name__ != "Credentials"
+    ):
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_TYPE_REJECTED",
+            detail="explicit impersonated-service-account credentials are required",
+        )
+
+    observed_principal = getattr(credentials, "service_account_email", None)
+    if observed_principal != _EXPECTED_SOURCE_PRINCIPAL:
+        observed = (
+            observed_principal
+            if isinstance(observed_principal, str) and observed_principal
+            else "UNRESOLVED"
+        )
+        raise SourceIdentityGateError(
+            stop="SOURCE_PRINCIPAL_MISMATCH",
+            detail=(
+                f"OBSERVED_SOURCE_PRINCIPAL={observed}; "
+                f"EXPECTED_SOURCE_PRINCIPAL={_EXPECTED_SOURCE_PRINCIPAL}"
+            ),
+        )
+    return _MaterializedWorkflowSource(
+        credentials=credentials,
+        principal=observed_principal,
+    )
 
 
-def _impersonate_target_runtime_credentials(source_credentials: object) -> object:
+def _impersonate_target_runtime_credentials(
+    source: _MaterializedWorkflowSource,
+) -> object:
     """Create the one target-runtime credential used by Secret Manager."""
+    if (
+        type(source) is not _MaterializedWorkflowSource
+        or source.principal != _EXPECTED_SOURCE_PRINCIPAL
+    ):
+        raise SourceIdentityGateError(
+            stop="SOURCE_PRINCIPAL_MISMATCH",
+            detail="target impersonation requires the gated workflow source",
+        )
     try:
         impersonated_credentials_module = importlib.import_module(
             "google.auth.impersonated_credentials"
@@ -113,7 +200,7 @@ def _impersonate_target_runtime_credentials(source_credentials: object) -> objec
             "google-auth impersonation support is required for production runtime assembly"
         ) from exc
     return impersonated_credentials_module.Credentials(
-        source_credentials=source_credentials,
+        source_credentials=source.credentials,
         target_principal=_TARGET_RUNTIME_SERVICE_ACCOUNT,
         target_scopes=list(_TARGET_RUNTIME_SCOPES),
         lifetime=_TARGET_RUNTIME_CREDENTIAL_LIFETIME_SECONDS,
@@ -175,9 +262,9 @@ def _resolve_root_owned_runtime_dependencies() -> _RootOwnedLiveNoteRuntimeDepen
             "production live-note runtime assembly requires root-owned dependencies"
         )
 
-    source_credentials = _resolve_source_application_credentials()
+    materialized_source = _resolve_source_application_credentials()
     target_runtime_credentials = _impersonate_target_runtime_credentials(
-        source_credentials
+        materialized_source
     )
     secret_manager_client = _new_secret_manager_client(target_runtime_credentials)
     secret_accessor = GoogleSecretManagerLiveNoteSecretAccessor(
