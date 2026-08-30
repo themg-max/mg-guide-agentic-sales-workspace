@@ -182,7 +182,7 @@ def test_exact_access_order_uses_runtime_identity_chain_and_one_refresh(
         "mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
     )
     assert diagnostic.GHL_SECRET_VERSION_RESOURCE == (
-        "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
+        "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/2"
     )
     assert diagnostic.COMMITMENT_KEY_VERSION_RESOURCE == (
         "projects/ai-rolodex-to-crm/secrets/"

@@ -186,7 +186,7 @@ def test_production_accessor_disables_retry_and_rejects_second_attempt() -> None
     [
         "projects/831270426395/secrets/MG_GUIDE_PIT_GHL",
         "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/latest",
-        "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/2",
+        "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1",
         "projects/831270426395/secrets/OTHER/versions/1",
     ],
 )
@@ -199,6 +199,52 @@ def test_production_accessor_rejects_non_designated_resource(
 
     with pytest.raises(LiveNoteCredentialProviderError, match="root-owned"):
         accessor.read_secret_payload(resource_name=resource_name)
+
+
+def test_production_accessor_exact_version_accept_reject_matrix() -> None:
+    """Fail-closed exact-version matrix for the designated GHL PIT pin."""
+    assert DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE.endswith("/versions/2")
+
+    designated_accessor = GoogleSecretManagerLiveNoteSecretAccessor(
+        client=_FakeSecretManagerClient()
+    )
+    version_2_payload = designated_accessor.read_secret_payload(
+        resource_name=DESIGNATED_LIVE_NOTE_SECRET_VERSION_RESOURCE
+    )
+    VERSION_2_ACCEPTED = "YES" if version_2_payload == "fake-production-token" else "NO"
+    assert VERSION_2_ACCEPTED == "YES"
+
+    rejected = {
+        "VERSION_1_ACCEPTED": (
+            "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
+        ),
+        "LATEST_ACCEPTED": (
+            "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/latest"
+        ),
+        "UNVERSIONED_ACCEPTED": "projects/831270426395/secrets/MG_GUIDE_PIT_GHL",
+        "FOREIGN_SECRET_ACCEPTED": (
+            "projects/831270426395/secrets/OTHER/versions/1"
+        ),
+    }
+    outcomes: dict[str, str] = {"VERSION_2_ACCEPTED": VERSION_2_ACCEPTED}
+    for label, resource_name in rejected.items():
+        try:
+            GoogleSecretManagerLiveNoteSecretAccessor(
+                client=_FakeSecretManagerClient()
+            ).read_secret_payload(resource_name=resource_name)
+        except LiveNoteCredentialProviderError as exc:
+            assert "root-owned" in str(exc)
+            outcomes[label] = "NO"
+        else:
+            outcomes[label] = "YES"
+
+    assert outcomes == {
+        "VERSION_2_ACCEPTED": "YES",
+        "VERSION_1_ACCEPTED": "NO",
+        "LATEST_ACCEPTED": "NO",
+        "UNVERSIONED_ACCEPTED": "NO",
+        "FOREIGN_SECRET_ACCEPTED": "NO",
+    }
 
 
 def test_production_accessor_has_no_resource_or_version_override() -> None:

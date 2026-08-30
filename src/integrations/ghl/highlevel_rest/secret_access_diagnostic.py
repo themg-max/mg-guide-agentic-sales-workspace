@@ -21,7 +21,7 @@ from . import live_note_runtime
 EXPECTED_SOURCE_PRINCIPAL = live_note_runtime._EXPECTED_SOURCE_PRINCIPAL
 EXPECTED_TARGET_PRINCIPAL = live_note_runtime._TARGET_RUNTIME_SERVICE_ACCOUNT
 GHL_SECRET_VERSION_RESOURCE = (
-    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/1"
+    "projects/831270426395/secrets/MG_GUIDE_PIT_GHL/versions/2"
 )
 COMMITMENT_KEY_VERSION_RESOURCE = (
     "projects/ai-rolodex-to-crm/secrets/"
