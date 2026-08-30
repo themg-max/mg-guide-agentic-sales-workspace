@@ -32,7 +32,7 @@ jobs:
           workload_identity_provider: projects/831270426395/locations/global/workloadIdentityPools/github-actions-pool-v2/providers/mg-guide-github-provider-v1
           service_account: mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
           create_credentials_file: "true"
-          cleanup_credentials: "true"
+          cleanup_credentials: "false"
           export_environment_variables: "false"
 
       - name: Run the one-shot identity diagnostic
@@ -40,3 +40,66 @@ jobs:
           MG_GUIDE_NW008_GHL_WORKFLOW_CREDENTIAL_CONFIG: ${{ steps.auth.outputs.credentials_file_path }}
           PYTHONPATH: src
         run: python -m integrations.ghl.highlevel_rest.workflow_identity_diagnostic
+
+      - name: Delete auth credential file
+        if: always()
+        shell: bash
+        env:
+          CREDENTIAL_FILE_PATH: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CREDENTIAL_FILE_PATH:-}" ]]; then
+            echo "credential file path is required" >&2
+            exit 1
+          fi
+          case "$CREDENTIAL_FILE_PATH" in
+            "$GITHUB_WORKSPACE"/gha-creds-*.json) ;;
+            *)
+              echo "credential file path failed the workspace guard" >&2
+              exit 1
+              ;;
+          esac
+          if [[ -L "$CREDENTIAL_FILE_PATH" ]]; then
+            echo "credential file path must not be a symlink" >&2
+            exit 1
+          fi
+          if [[ ! -f "$CREDENTIAL_FILE_PATH" ]]; then
+            echo "credential file path must be a regular file" >&2
+            exit 1
+          fi
+          rm -- "$CREDENTIAL_FILE_PATH"
+          echo "CREDENTIAL_FILE_DELETE_ATTEMPTS=1"
+          echo "EXPLICIT_CREDENTIAL_CLEANUP_PERFORMED=YES"
+
+      - name: Verify auth credential file is absent
+        if: always()
+        shell: bash
+        env:
+          CREDENTIAL_FILE_PATH: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CREDENTIAL_FILE_PATH:-}" ]]; then
+            echo "credential file path is required" >&2
+            exit 1
+          fi
+          case "$CREDENTIAL_FILE_PATH" in
+            "$GITHUB_WORKSPACE"/gha-creds-*.json) ;;
+            *)
+              echo "credential file path failed the workspace guard" >&2
+              exit 1
+              ;;
+          esac
+          if [[ -e "$CREDENTIAL_FILE_PATH" || -L "$CREDENTIAL_FILE_PATH" ]]; then
+            echo "credential file remains after explicit cleanup" >&2
+            exit 1
+          fi
+          shopt -s nullglob
+          residual_files=("$GITHUB_WORKSPACE"/gha-creds-*.json)
+          if (( ${#residual_files[@]} != 0 )); then
+            echo "residual GitHub auth credential files remain" >&2
+            exit 1
+          fi
+          echo "CREDENTIAL_FILE_ABSENT_AFTER_DELETE=YES"
+          echo "RESIDUAL_GHA_CREDENTIAL_FILES=0"
+          echo "RUNNER_DISPOSAL_RELIED_UPON=NO"
+          echo "CREDENTIAL_CLEANUP_RESULT=PASS"
