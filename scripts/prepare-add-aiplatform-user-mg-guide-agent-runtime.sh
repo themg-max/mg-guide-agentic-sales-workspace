@@ -25,7 +25,8 @@ It does NOT:
   - execute projects add-iam-policy-binding
   - create role bindings, remove members, change conditions
   - create service accounts or keys
-  - consume issue #311 / authority ledger (CONSUMED remains NO)
+  - reuse consumed issue #311 or Activation 002
+  - create or consume a future one-shot authority ledger
 
 Governance ceilings for a later separate human execution act (not this script):
   MAX_PROJECT_IAM_POLICY_WRITES=1
@@ -62,7 +63,19 @@ gcloud projects get-iam-policy "$PROJECT" \
   --format=json >"$POLICY_FILE"
 
 echo
-echo "3) Checking whether role binding exists for $ROLE"
+echo "3) Classifying global policy conditions (read-only command contract gate)"
+TOTAL_POLICY_CONDITIONAL_BINDINGS="$(jq -r '[.bindings[]? | select(.condition != null)] | length' "$POLICY_FILE")"
+echo "TOTAL_POLICY_CONDITIONAL_BINDINGS=$TOTAL_POLICY_CONDITIONAL_BINDINGS"
+if [[ "$TOTAL_POLICY_CONDITIONAL_BINDINGS" -gt 0 ]]; then
+  echo "POLICY_CONTAINS_CONDITIONAL_BINDINGS=YES"
+  echo "EXPLICIT_UNCONDITIONAL_SELECTOR_REQUIRED=YES"
+else
+  echo "POLICY_CONTAINS_CONDITIONAL_BINDINGS=NO"
+  echo "EXPLICIT_UNCONDITIONAL_SELECTOR_REQUIRED=NO"
+fi
+
+echo
+echo "4) Checking whether role binding exists for $ROLE"
 ROLE_COUNT="$(jq -r --arg ROLE "$ROLE" '[.bindings[]? | select(.role==$ROLE)] | length' "$POLICY_FILE")"
 if [[ "$ROLE_COUNT" -ge 1 ]]; then
   echo "ROLE_BINDING_PRESENT=YES"
@@ -80,7 +93,7 @@ else
 fi
 
 echo
-echo "4) Checking whether exact member is present on $ROLE"
+echo "5) Checking whether exact member is present on $ROLE"
 MEMBER_COUNT="$(jq -r --arg ROLE "$ROLE" --arg MEMBER "$MEMBER" '[.bindings[]? | select(.role==$ROLE) | .members[]? | select(.==$MEMBER)] | length' "$POLICY_FILE")"
 if [[ "$MEMBER_COUNT" -ge 1 ]]; then
   echo "EXACT_MEMBER_PRESENT=YES"
@@ -106,7 +119,7 @@ fi
 echo "CONFLICTING_OR_AMBIGUOUS_STATE=$AMBIGUOUS"
 
 echo
-echo "5) Fail-closed gate evaluation (inspection only; no write)"
+echo "6) Fail-closed gate evaluation (inspection only; no write)"
 if [[ "$ROLE_COUNT" -eq 0 ]]; then
   cat <<-FAIL
 FAIL_CLOSED=YES
@@ -153,7 +166,9 @@ CONFLICTING_OR_AMBIGUOUS_STATE=NO
 PROJECT_IAM_POLICY_WRITES=0
 EXACT_MEMBER_ADDITIONS=0
 AUTHORIZATION_CONSUMED=NO
-ISSUE_311_OR_LEDGER_CONSUMED=NO
+ISSUE_311_REUSABLE=NO
+ACTIVATION_002_REUSABLE=NO
+NEW_CONSUMPTION_RECORD_REQUIRED=YES
 PASS
 
 cat <<-INSTR
@@ -174,7 +189,8 @@ outside this script's control flow.
   gcloud projects add-iam-policy-binding "${PROJECT}" \\
     --project="${PROJECT}" \\
     --member="${MEMBER}" \\
-    --role="${ROLE}"
+    --role="${ROLE}" \\
+    --condition=None
 
 Post-write verification reference (also non-executed here):
 
@@ -186,7 +202,9 @@ Post-write verification reference (also non-executed here):
 
 Until actual authority consumption by a separate human execution act:
   AUTHORIZATION_CONSUMED=NO
-  ISSUE_311_OR_LEDGER_CONSUMED=NO
+  ISSUE_311_REUSABLE=NO
+  ACTIVATION_002_REUSABLE=NO
+  NEW_CONSUMPTION_RECORD_REQUIRED=YES
 ============================================================
 INSTR
 
