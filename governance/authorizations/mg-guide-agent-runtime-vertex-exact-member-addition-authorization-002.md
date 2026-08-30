@@ -1,0 +1,279 @@
+# MG Guide Agent Runtime Vertex Exact Member Addition Authorization 002
+
+## 1. Authorization identity and current boundary
+
+```text
+AUTHORIZATION_ID=
+  MG_GUIDE_AGENT_RUNTIME_VERTEX_EXACT_MEMBER_ADDITION_AUTHORIZATION_002
+ARTIFACT_PATH=
+  governance/authorizations/mg-guide-agent-runtime-vertex-exact-member-addition-authorization-002.md
+CLASSIFICATION=IAM_EXECUTION_AUTHORIZATION_DEFINITION
+PR_CLASS=AUTHORIZATION
+MODE=DEFINITION_ONLY_NO_IAM_MUTATION
+OWNER=VS_CODE_ORCHESTRATOR
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+STATUS=
+  PROPOSED_PENDING_INDEPENDENT_REVIEW_THEN_FRESH_HUMAN_ACTIVATION_003
+AUTHORIZATION_EFFECTIVE=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+SELF_ACTIVATION=FORBIDDEN
+DO_NOT_MUTATE_IAM_IN_THIS_UNIT=YES
+MERGE_ALONE_AUTHORIZES_IAM_MUTATION=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+```
+
+This artifact defines a bounded future authorization that may later permit at
+most one exact member addition to the existing unconditional
+`roles/aiplatform.user` project binding. It repairs the command contract exposed
+by the terminal PR #315 proof by requiring the future gcloud command to select
+the unconditional binding explicitly with `--condition=None`.
+
+It does not activate or consume execution authority, mutate IAM, create a
+service account or key, impersonate a principal, read or mutate a secret, mint
+a token, call HighLevel, access CRM, deploy, perform Lane B work, or join Fleet
+and GHL authority.
+
+## 2. Bound terminal proof and consumed predecessor
+
+```text
+SOURCE_TERMINAL_PROOF_ID=
+  MG_GUIDE_AGENT_RUNTIME_VERTEX_EXACT_MEMBER_ADDITION_EXECUTION_PROOF_001
+SOURCE_TERMINAL_PROOF_PATH=
+  proof/mg-guide/agent-runtime/mg-guide-agent-runtime-vertex-exact-member-addition-execution-proof-001.md
+SOURCE_TERMINAL_PROOF_PR=315
+SOURCE_TERMINAL_PROOF_REVIEWED_HEAD=
+  671a31e32637e88cada632b98ba8fb10ab6c9b30
+SOURCE_TERMINAL_PROOF_MERGE_SHA=
+  8a0e8b1b6ba46f959d04782c8aa652862d4df954
+SOURCE_TERMINAL_PROOF_BLOB_SHA_AT_FINAL_MAIN=
+  ca82e9656abcfc5c79de9a7b7fa8b04bcabfbeab
+SOURCE_TERMINAL_PROOF_PRESENT_ON_ORIGIN_MAIN=YES
+SOURCE_TERMINAL_PROOF_BLOB_SHA_MATCH_AT_ORIGIN_MAIN=YES
+SOURCE_TERMINAL_PROOF_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+TERMINAL_PROOF_AUTHORITY_CONSUMED=YES
+TERMINAL_PROOF_EXECUTION_ATTEMPTS=1
+TERMINAL_PROOF_EXECUTION_RESULT=
+  FAILED_CLOSED_NO_POLICY_CHANGE
+TERMINAL_PROOF_EXACT_MEMBER_ADDITIONS=0
+TERMINAL_PROOF_POLICY_DELTA=NONE
+TERMINAL_PROOF_NO_RETRY=YES
+```
+
+```text
+OLD_SOURCE_ACTIVATION=
+  MG_GUIDE_AGENT_RUNTIME_VERTEX_EXACT_MEMBER_ADDITION_HUMAN_ACTIVATION_002
+OLD_SOURCE_ACTIVATION_PR=313
+OLD_SOURCE_ACTIVATION_MERGE_SHA=
+  532a400b351e1ba6ff1045bfdf96d595b30f4557
+OLD_AUTHORITY_REUSABLE=NO
+ACTIVATION_002_REUSABLE=NO
+ISSUE_311_REUSABLE=NO
+RETRY_NOW=NO
+```
+
+Authorization 002 is a new definition. It does not revive, retry, extend, or
+transfer any consumed authority from Activation 002 or issue #311.
+
+## 3. Exact target and preserved ceilings
+
+```text
+EXACT_TARGET_PROJECT=ai-rolodex-to-crm
+EXACT_TARGET_ROLE=roles/aiplatform.user
+EXACT_TARGET_MEMBER=
+  serviceAccount:mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+EXACT_BINDING_ACTION=
+  ADD_EXACT_MEMBER_TO_EXISTING_UNCONDITIONAL_ROLE_BINDING
+EXACT_FUTURE_COMMAND_SELECTOR=
+  --condition=None
+
+MAX_PROJECT_IAM_POLICY_WRITES=1
+MAX_EXACT_MEMBER_ADDITIONS=1
+MAX_ROLE_BINDINGS_CREATED=0
+MAX_MEMBER_REMOVALS=0
+MAX_CONDITION_CHANGES=0
+MAX_SERVICE_ACCOUNT_CREATES=0
+MAX_SERVICE_ACCOUNT_KEYS=0
+```
+
+```text
+NO_RETRY=YES
+NO_COMPENSATING_MUTATION=YES
+NO_ALTERNATE_PROJECT=YES
+NO_ALTERNATE_ROLE=YES
+NO_ALTERNATE_MEMBER=YES
+NO_ROLE_BINDING_CREATE=YES
+NO_MEMBER_REMOVAL=YES
+NO_CONDITION_CHANGE=YES
+NO_SERVICE_ACCOUNT_CREATE=YES
+NO_SERVICE_ACCOUNT_KEY=YES
+NO_SERVICE_ACCOUNT_IMPERSONATION=YES
+NO_SECRET_PAYLOAD_READ=YES
+NO_SECRET_MUTATION=YES
+NO_TOKEN_MINT=YES
+NO_GHL_CALL=YES
+NO_CRM_CALL=YES
+NO_DEPLOYMENT=YES
+NO_CROSS_LANE_GHL_IAM_MUTATION=YES
+DO_NOT_JOIN_FLEET_AND_GHL_AUTHORITY=YES
+```
+
+## 4. Fresh read-only target and global-policy classification
+
+```text
+FRESH_STATE_OBSERVATION_TIMESTAMP_UTC=2026-08-30T03:05:02Z
+FRESH_STATE_OBSERVATION_MODE=READ_ONLY
+PROJECT_IAM_POLICY_READ=YES
+PROJECT_IAM_POLICY_WRITE=NO
+
+TOTAL_POLICY_BINDINGS=121
+TOTAL_POLICY_CONDITIONAL_BINDINGS=4
+POLICY_CONTAINS_CONDITIONAL_BINDINGS=YES
+EXPLICIT_UNCONDITIONAL_SELECTOR_REQUIRED=YES
+
+TARGET_ROLE_BINDING_PRESENT=YES
+TARGET_ROLE_BINDING_COUNT=1
+TARGET_ROLE_CONDITION_CHECK=UNCONDITIONAL
+TARGET_ROLE_BINDING_HAS_CONDITION=NO
+EXISTING_UNCONDITIONAL_TARGET_BINDING=YES
+
+EXACT_MEMBER_PRESENT=NO
+EXACT_MEMBER_ROLE_BINDING_COUNT=0
+CONFLICTING_OR_AMBIGUOUS_STATE=NO
+FRESH_EXACT_MEMBER_ABSENCE=YES
+FRESH_STATE_CHECKS=PASS
+```
+
+Global conditional bindings do not authorize any condition change and do not
+make the uniquely existing target binding conditional. They require explicit
+selection of the unconditional binding in the future command contract.
+
+## 5. Repaired future command contract
+
+The following is specification text for a future separately activated human
+execution. It is not executed by this authorization unit.
+
+```text
+NON_EXECUTABLE_FUTURE_COMMAND_REFERENCE=
+  gcloud projects add-iam-policy-binding "ai-rolodex-to-crm"
+  --project="ai-rolodex-to-crm"
+  --member="serviceAccount:mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com"
+  --role="roles/aiplatform.user"
+  --condition=None
+
+FUTURE_COMMAND_EXPLICIT_UNCONDITIONAL_SELECTOR=YES
+FUTURE_COMMAND_TARGETS_EXISTING_UNCONDITIONAL_BINDING=YES
+FUTURE_COMMAND_CREATES_CONDITIONAL_BINDING=NO
+FUTURE_COMMAND_CHANGES_CONDITION=NO
+```
+
+The later execution consumer must fail closed before authority consumption if
+the target role binding is absent, duplicated, conditional, already contains
+the exact member, or is otherwise ambiguous.
+
+## 6. Required fresh Activation 003
+
+After independent review and merge of this exact authorization:
+
+```text
+NEXT=
+  MG_GUIDE_AGENT_RUNTIME_VERTEX_EXACT_MEMBER_ADDITION_HUMAN_ACTIVATION_003
+
+ACTIVATION_003_REQUIRES_NEW_RUN_ID=YES
+ACTIVATION_003_REQUIRES_NEW_AUTHORIZATION_WINDOW=YES
+ACTIVATION_003_REQUIRES_NEW_CONSUMPTION_RECORD=YES
+ACTIVATION_003_MAY_REUSE_ISSUE_311=NO
+ACTIVATION_003_MAY_REUSE_ACTIVATION_002_RUN_ID=NO
+ACTIVATION_003_MAY_REUSE_ACTIVATION_002_WINDOW=NO
+```
+
+Activation 003 must bind this exact merged authorization and freshly revalidate:
+
+```text
+ROLE_BINDING_PRESENT=YES
+ROLE_BINDING_COUNT=1
+ROLE_BINDING_HAS_CONDITION=NO
+EXACT_MEMBER_PRESENT=NO
+EXACT_MEMBER_ROLE_BINDING_COUNT=0
+POLICY_CONTAINS_CONDITIONAL_BINDINGS=OBSERVED
+EXPLICIT_UNCONDITIONAL_SELECTOR_REQUIRED=OBSERVED
+CONFLICTING_OR_AMBIGUOUS_STATE=NO
+```
+
+If the exact member is already present with acceptable non-conflicting state,
+the later disposition is `ALREADY_SATISFIED_NO_WRITE` and authority remains
+unconsumed.
+
+## 7. Future one-shot execution and verification contract
+
+Only after Authorization 002 is merged, Activation 003 is independently
+reviewed and merged, a new consumption record exists, and separate explicit
+human execution authority is present may a future consumer:
+
+1. freshly verify every gate;
+2. consume the new one-shot authority before mutation;
+3. perform at most one exact command with `--condition=None`;
+4. read back the complete exact policy delta;
+5. stop without retry or compensation.
+
+```text
+POST_WRITE_REQUIRED=
+  EXACT_MEMBER_PRESENT=YES
+  EXACT_MEMBER_ADDITIONS=1
+  ROLE_BINDINGS_CREATED=0
+  MEMBER_REMOVALS=0
+  CONDITION_CHANGES=0
+  TARGET_ROLE_BINDING_COUNT=1
+  TARGET_ROLE_BINDING_HAS_CONDITION=NO
+  OTHER_POLICY_DELTA=NONE
+
+NO_SECOND_WRITE=YES
+NO_RETRY=YES
+NO_COMPENSATING_WRITE=YES
+```
+
+## 8. Current non-authority and zero-effect ledger
+
+```text
+AUTHORIZATION_EFFECTIVE=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+AUTHORIZATION_CONSUMED=NO
+PROJECT_IAM_POLICY_WRITE_ATTEMPTS=0
+IAM_MUTATIONS=0
+PROJECT_IAM_POLICY_WRITES=0
+EXACT_MEMBER_ADDITIONS=0
+ROLE_BINDINGS_CREATED=0
+MEMBER_REMOVALS=0
+CONDITION_CHANGES=0
+SERVICE_ACCOUNT_CREATES=0
+SERVICE_ACCOUNT_KEYS_CREATED=0
+SERVICE_ACCOUNT_IMPERSONATION_ATTEMPTS=0
+SECRET_MANAGER_PAYLOAD_READS=0
+SECRET_MUTATIONS=0
+GENERATE_ACCESS_TOKEN_CALLS=0
+LIVE_GHL_CALLS=0
+CRM_CALLS=0
+DEPLOYMENTS=0
+
+LANE_B_WORK_EXECUTED_IN_THIS_UNIT=NO
+FLEET_AND_GHL_AUTHORITY_JOINED=NO
+```
+
+## 9. STOP
+
+```text
+STOP_CODE=
+  MG_GUIDE_AGENT_RUNTIME_VERTEX_EXACT_MEMBER_ADDITION_AUTHORIZATION_002_DEFINED
+AUTHORIZATION_EFFECTIVE=NO
+IAM_MUTATION_AUTHORIZED_NOW=NO
+MERGE_ALONE_AUTHORIZES_IAM_MUTATION=NO
+AUTHORIZATION_CONSUMED=NO
+EXACT_FUTURE_COMMAND_SELECTOR=
+  --condition=None
+NEXT=
+  INDEPENDENT_REVIEW_AND_MERGE
+  THEN_MG_GUIDE_AGENT_RUNTIME_VERTEX_EXACT_MEMBER_ADDITION_HUMAN_ACTIVATION_003
+STOP
+```
