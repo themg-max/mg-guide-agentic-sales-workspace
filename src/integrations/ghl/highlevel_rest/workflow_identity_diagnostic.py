@@ -56,6 +56,22 @@ class WorkflowIdentityDiagnosticResult:
             "TARGET_CREDENTIAL_REFRESH_RESULT": (
                 self.target_credential_refresh_result
             ),
+            "GITHUB_OIDC_EXCHANGE_ATTEMPTS": (
+                self.target_credential_refresh_attempts
+            ),
+            "NOTE_RUNTIME_IMPERSONATION_ATTEMPTS": (
+                self.target_credential_refresh_attempts
+            ),
+            "GITHUB_OIDC_TO_WORKFLOW": (
+                "PASS"
+                if self.target_credential_refresh_result == "PASS"
+                else "NOT_PROVEN"
+            ),
+            "TARGET_IMPERSONATION_SUCCEEDED": (
+                "YES"
+                if self.target_credential_refresh_result == "PASS"
+                else "NO"
+            ),
             "TOKEN_OR_CREDENTIAL_VALUE_PUBLISHED": "NO",
             "NO_UNEXPECTED_RETRY": "YES",
             "SECRET_MANAGER_CALLS": 0,
@@ -130,6 +146,17 @@ def run_workflow_identity_diagnostic(
 
     try:
         source = resolved_source_gate()
+    except live_note_runtime.SourceIdentityGateError as exc:
+        raise _failed_result(
+            source_identity_gate="FAIL",
+            source_principal_match=(
+                "NO" if exc.STOP == "SOURCE_PRINCIPAL_MISMATCH" else "NOT_CONFIRMED"
+            ),
+            target_principal_match="NOT_EVALUATED",
+            refresh_attempts=0,
+            refresh_result="NOT_ATTEMPTED",
+            stop=exc.STOP,
+        ) from None
     except (
         GoogleAuthError,
         OSError,
@@ -142,7 +169,7 @@ def run_workflow_identity_diagnostic(
             target_principal_match="NOT_EVALUATED",
             refresh_attempts=0,
             refresh_result="NOT_ATTEMPTED",
-            stop="SOURCE_IDENTITY_GATE_REJECTED",
+            stop="SOURCE_CREDENTIAL_MATERIALIZATION_FAILED",
         ) from None
 
     observed_source_principal = getattr(source, "principal", None)

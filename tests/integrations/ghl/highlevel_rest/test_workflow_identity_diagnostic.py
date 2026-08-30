@@ -100,6 +100,10 @@ def test_one_refresh_uses_existing_source_gate_target_constructor_and_request(
         diagnostic.EXPECTED_TARGET_PRINCIPAL
     )
     assert result.as_safe_metadata()["NO_UNEXPECTED_RETRY"] == "YES"
+    assert result.as_safe_metadata()["GITHUB_OIDC_EXCHANGE_ATTEMPTS"] == 1
+    assert result.as_safe_metadata()["NOTE_RUNTIME_IMPERSONATION_ATTEMPTS"] == 1
+    assert result.as_safe_metadata()["GITHUB_OIDC_TO_WORKFLOW"] == "PASS"
+    assert result.as_safe_metadata()["TARGET_IMPERSONATION_SUCCEEDED"] == "YES"
     assert diagnostic.EXPECTED_SOURCE_PRINCIPAL == (
         "mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com"
     )
@@ -135,6 +139,23 @@ def test_source_mismatch_fails_before_target_construction_or_refresh() -> None:
     assert failure.value.result.target_credential_refresh_attempts == 0
     assert failure.value.result.stop == "SOURCE_PRINCIPAL_MISMATCH"
     assert effects == {"target_constructions": 0, "request_constructions": 0}
+
+
+def test_source_gate_preserves_precise_safe_stop_code() -> None:
+    def rejected_source_gate() -> object:
+        raise live_note_runtime.SourceIdentityGateError(
+            stop="SOURCE_PROVIDER_MISMATCH",
+            detail="synthetic safe failure",
+        )
+
+    with pytest.raises(diagnostic.WorkflowIdentityDiagnosticError) as failure:
+        diagnostic.run_workflow_identity_diagnostic(
+            source_gate=rejected_source_gate,
+        )
+
+    assert failure.value.result.stop == "SOURCE_PROVIDER_MISMATCH"
+    assert failure.value.result.source_principal_match == "NOT_CONFIRMED"
+    assert failure.value.result.target_credential_refresh_attempts == 0
 
 
 def test_target_mismatch_fails_before_request_creation_or_refresh() -> None:

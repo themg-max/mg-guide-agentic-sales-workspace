@@ -8,8 +8,10 @@ test seam is limited to deterministic synthetic inputs.
 from __future__ import annotations
 
 import importlib
+import json
+from pathlib import Path
 import sqlite3
-from typing import Any
+from typing import Any, Mapping
 
 from integrations.ghl.at1_commitment_key_provider import (
     GoogleSecretManagerCommitmentKeyProvider,
@@ -45,6 +47,17 @@ _TARGET_RUNTIME_SERVICE_ACCOUNT = (
 )
 _TARGET_RUNTIME_SCOPES = ("https://www.googleapis.com/auth/cloud-platform",)
 _TARGET_RUNTIME_CREDENTIAL_LIFETIME_SECONDS = 3600
+_EXPECTED_WORKLOAD_IDENTITY_AUDIENCE = (
+    "//iam.googleapis.com/projects/831270426395/locations/global/"
+    "workloadIdentityPools/github-actions-pool-v2/"
+    "providers/mg-guide-github-provider-v1"
+)
+_EXPECTED_WORKFLOW_IMPERSONATION_URL = (
+    "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/"
+    f"{_EXPECTED_SOURCE_PRINCIPAL}:generateAccessToken"
+)
+_EXPECTED_SUBJECT_TOKEN_TYPE = "urn:ietf:params:oauth:token-type:jwt"
+_EXPECTED_STS_TOKEN_URL = "https://sts.googleapis.com/v1/token"
 
 
 class LiveNoteRuntimeAssemblyError(RuntimeError):
@@ -139,39 +152,114 @@ def _resolve_source_application_credentials() -> _MaterializedWorkflowSource:
         )
 
     try:
-        google_auth_module = importlib.import_module("google.auth")
+        credential_info = json.loads(
+            Path(credential_config).read_text(encoding="utf-8")
+        )
+    except (OSError, json.JSONDecodeError) as exc:
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_CONFIG_INVALID",
+            detail="explicit workflow credential config could not be read",
+        ) from exc
+    if not isinstance(credential_info, Mapping):
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_CONFIG_INVALID",
+            detail="explicit workflow credential config must be an object",
+        )
+    if credential_info.get("type") != "external_account":
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_TYPE_REJECTED",
+            detail="explicit workload identity credentials are required",
+        )
+    if credential_info.get("audience") != _EXPECTED_WORKLOAD_IDENTITY_AUDIENCE:
+        raise SourceIdentityGateError(
+            stop="SOURCE_PROVIDER_MISMATCH",
+            detail="workflow credential provider does not match the dedicated provider",
+        )
+    if (
+        credential_info.get("subject_token_type") != _EXPECTED_SUBJECT_TOKEN_TYPE
+        or credential_info.get("token_url") != _EXPECTED_STS_TOKEN_URL
+    ):
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_CONFIG_INVALID",
+            detail="workflow credential token exchange configuration is invalid",
+        )
+    if (
+        credential_info.get("service_account_impersonation_url")
+        != _EXPECTED_WORKFLOW_IMPERSONATION_URL
+    ):
+        raise SourceIdentityGateError(
+            stop="SOURCE_PRINCIPAL_MISMATCH",
+            detail="workflow credential target does not match the expected source principal",
+        )
+
+    credential_source = credential_info.get("credential_source")
+    if not isinstance(credential_source, Mapping):
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_CONFIG_INVALID",
+            detail="workflow credential source is invalid",
+        )
+    source_url = credential_source.get("url")
+    source_authority = (
+        source_url[len("https://") :].split("/", 1)[0]
+        if isinstance(source_url, str) and source_url.startswith("https://")
+        else ""
+    )
+    if (
+        not source_authority.endswith(".actions.githubusercontent.com")
+        or "@" in source_authority
+        or ":" in source_authority
+        or any(
+            key in credential_source
+            for key in ("file", "executable", "certificate")
+        )
+    ):
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_CONFIG_INVALID",
+            detail="workflow credential source is not the GitHub OIDC endpoint",
+        )
+    source_format = credential_source.get("format")
+    source_headers = credential_source.get("headers")
+    if (
+        source_format
+        != {
+            "type": "json",
+            "subject_token_field_name": "value",
+        }
+        or not isinstance(source_headers, Mapping)
+        or not isinstance(source_headers.get("Authorization"), str)
+        or not source_headers["Authorization"]
+    ):
+        raise SourceIdentityGateError(
+            stop="SOURCE_CREDENTIAL_CONFIG_INVALID",
+            detail="workflow credential source contract is invalid",
+        )
+
+    try:
+        identity_pool_module = importlib.import_module("google.auth.identity_pool")
     except ModuleNotFoundError as exc:  # pragma: no cover - optional offline dependency
         raise LiveNoteRuntimeAssemblyError(
             "google-auth is required for production runtime credential resolution"
         ) from exc
 
-    credentials, _ = google_auth_module.load_credentials_from_file(
-        credential_config,
+    credentials = identity_pool_module.Credentials.from_info(
+        credential_info,
         scopes=list(_TARGET_RUNTIME_SCOPES),
     )
     credential_type = type(credentials)
     if (
-        credential_type.__module__ != "google.auth.impersonated_credentials"
+        credential_type.__module__ != "google.auth.identity_pool"
         or credential_type.__name__ != "Credentials"
     ):
         raise SourceIdentityGateError(
             stop="SOURCE_CREDENTIAL_TYPE_REJECTED",
-            detail="explicit impersonated-service-account credentials are required",
+            detail="explicit workload identity credentials are required",
         )
 
     observed_principal = getattr(credentials, "service_account_email", None)
     if observed_principal != _EXPECTED_SOURCE_PRINCIPAL:
-        observed = (
-            observed_principal
-            if isinstance(observed_principal, str) and observed_principal
-            else "UNRESOLVED"
-        )
         raise SourceIdentityGateError(
             stop="SOURCE_PRINCIPAL_MISMATCH",
-            detail=(
-                f"OBSERVED_SOURCE_PRINCIPAL={observed}; "
-                f"EXPECTED_SOURCE_PRINCIPAL={_EXPECTED_SOURCE_PRINCIPAL}"
-            ),
+            detail="materialized principal does not match the expected workflow identity",
         )
     return _MaterializedWorkflowSource(
         credentials=credentials,

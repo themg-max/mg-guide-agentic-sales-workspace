@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import inspect
+import json
 import pickle
 import types
 from pathlib import Path
@@ -87,16 +88,29 @@ def _synthetic_accessor() -> SyntheticLiveNoteSecretAccessor:
     )
 
 
-def _fake_impersonated_source(principal: str) -> object:
-    credential_type = type(
-        "Credentials",
-        (),
-        {"__module__": "google.auth.impersonated_credentials"},
-    )
-    credentials = credential_type()
-    credentials.service_account_email = principal
-    credentials.refresh_calls = 0
-    return credentials
+def _github_workload_identity_config(principal: str) -> dict[str, object]:
+    return {
+        "type": "external_account",
+        "audience": runtime._EXPECTED_WORKLOAD_IDENTITY_AUDIENCE,
+        "subject_token_type": runtime._EXPECTED_SUBJECT_TOKEN_TYPE,
+        "token_url": runtime._EXPECTED_STS_TOKEN_URL,
+        "service_account_impersonation_url": (
+            "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/"
+            f"{principal}:generateAccessToken"
+        ),
+        "credential_source": {
+            "url": (
+                "https://pipelines.actions.githubusercontent.com/"
+                "synthetic/_apis/distributedtask/hubs/build/plans/synthetic/"
+                "jobs/synthetic/idtoken?api-version=2.0"
+            ),
+            "headers": {"Authorization": "Bearer synthetic-request-token"},
+            "format": {
+                "type": "json",
+                "subject_token_field_name": "value",
+            },
+        },
+    }
 
 
 def test_public_assembler_accepts_only_preexisting_opaque_reference() -> None:
@@ -462,53 +476,27 @@ def test_explicit_workflow_config_materializes_expected_source_without_ambient_a
 ) -> None:
     credential_config = tmp_path / "workflow-impersonation.json"
     ambient_config = tmp_path / "unrelated-ambient-adc.json"
-    credentials = _fake_impersonated_source(runtime._EXPECTED_SOURCE_PRINCIPAL)
-    calls: dict[str, object] = {"loads": 0, "defaults": 0}
-
-    def _load_credentials_from_file(
-        filename: str,
-        *,
-        scopes: list[str],
-    ) -> tuple[object, str]:
-        calls["loads"] = int(calls["loads"]) + 1
-        calls["filename"] = filename
-        calls["scopes"] = scopes
-        return credentials, "ai-rolodex-to-crm"
-
-    def _default() -> tuple[object, str]:
-        calls["defaults"] = int(calls["defaults"]) + 1
-        raise AssertionError("ambient ADC must not be resolved")
-
-    fake_google_auth = types.SimpleNamespace(
-        default=_default,
-        load_credentials_from_file=_load_credentials_from_file,
+    credential_config.write_text(
+        json.dumps(
+            _github_workload_identity_config(runtime._EXPECTED_SOURCE_PRINCIPAL)
+        ),
+        encoding="utf-8",
     )
-    real_import_module = runtime.importlib.import_module
-
-    def _import_module(name: str, package: str | None = None) -> object:
-        if name == "google.auth":
-            return fake_google_auth
-        return real_import_module(name, package)
 
     monkeypatch.setenv(
         runtime._ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY,
         str(credential_config),
     )
     monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", str(ambient_config))
-    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
 
     source = runtime._resolve_source_application_credentials()
 
     assert type(source) is runtime._MaterializedWorkflowSource
-    assert source.credentials is credentials
+    assert type(source.credentials).__module__ == "google.auth.identity_pool"
+    assert type(source.credentials).__name__ == "Credentials"
+    assert source.credentials.token is None
+    assert source.credentials.expiry is None
     assert source.principal == runtime._EXPECTED_SOURCE_PRINCIPAL
-    assert calls == {
-        "loads": 1,
-        "defaults": 0,
-        "filename": str(credential_config),
-        "scopes": ["https://www.googleapis.com/auth/cloud-platform"],
-    }
-    assert credentials.refresh_calls == 0
 
 
 def test_wrong_source_fails_closed_before_target_or_secret_construction(
@@ -518,33 +506,12 @@ def test_wrong_source_fails_closed_before_target_or_secret_construction(
     wrong_principal = (
         "baby-bumps-runtime-b@ai-rolodex-to-crm.iam.gserviceaccount.com"
     )
-    credentials = _fake_impersonated_source(wrong_principal)
     effects = {
-        "credential_loads": 0,
-        "credential_refreshes": 0,
         "target_constructions": 0,
         "secret_client_constructions": 0,
         "secret_payload_reads": 0,
         "ghl_rest_calls": 0,
     }
-
-    def _load_credentials_from_file(
-        filename: str,
-        *,
-        scopes: list[str],
-    ) -> tuple[object, str]:
-        effects["credential_loads"] += 1
-        return credentials, "ai-rolodex-to-crm"
-
-    fake_google_auth = types.SimpleNamespace(
-        load_credentials_from_file=_load_credentials_from_file
-    )
-    real_import_module = runtime.importlib.import_module
-
-    def _import_module(name: str, package: str | None = None) -> object:
-        if name == "google.auth":
-            return fake_google_auth
-        return real_import_module(name, package)
 
     def _unexpected_target(source: object) -> object:
         effects["target_constructions"] += 1
@@ -562,7 +529,10 @@ def test_wrong_source_fails_closed_before_target_or_secret_construction(
         runtime._ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY,
         str(tmp_path / "wrong-source.json"),
     )
-    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
+    (tmp_path / "wrong-source.json").write_text(
+        json.dumps(_github_workload_identity_config(wrong_principal)),
+        encoding="utf-8",
+    )
     monkeypatch.setattr(
         runtime,
         "_impersonate_target_runtime_credentials",
@@ -578,10 +548,8 @@ def test_wrong_source_fails_closed_before_target_or_secret_construction(
     assert failure.value.SECRET_PAYLOAD_READS == 0
     assert failure.value.GHL_REST_CALLS == 0
     assert failure.value.STOP == "SOURCE_PRINCIPAL_MISMATCH"
-    assert wrong_principal in str(failure.value)
+    assert wrong_principal not in str(failure.value)
     assert effects == {
-        "credential_loads": 1,
-        "credential_refreshes": 0,
         "target_constructions": 0,
         "secret_client_constructions": 0,
         "secret_payload_reads": 0,
@@ -613,38 +581,26 @@ def test_service_account_key_credentials_are_rejected_without_refresh(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    credential_type = type(
-        "Credentials",
-        (),
-        {"__module__": "google.oauth2.service_account"},
+    credential_config = tmp_path / "forbidden-service-account-key.json"
+    credential_config.write_text(
+        json.dumps(
+            {
+                "type": "service_account",
+                "client_email": runtime._EXPECTED_SOURCE_PRINCIPAL,
+                "private_key": "synthetic-never-loaded",
+            }
+        ),
+        encoding="utf-8",
     )
-    credentials = credential_type()
-    credentials.service_account_email = runtime._EXPECTED_SOURCE_PRINCIPAL
-    credentials.refresh_calls = 0
-    fake_google_auth = types.SimpleNamespace(
-        load_credentials_from_file=lambda filename, scopes: (
-            credentials,
-            "ai-rolodex-to-crm",
-        )
-    )
-    real_import_module = runtime.importlib.import_module
-
-    def _import_module(name: str, package: str | None = None) -> object:
-        if name == "google.auth":
-            return fake_google_auth
-        return real_import_module(name, package)
-
     monkeypatch.setenv(
         runtime._ROOT_OWNED_WORKFLOW_CREDENTIAL_CONFIG_KEY,
-        str(tmp_path / "forbidden-service-account-key.json"),
+        str(credential_config),
     )
-    monkeypatch.setattr(runtime.importlib, "import_module", _import_module)
 
     with pytest.raises(runtime.SourceIdentityGateError) as failure:
         runtime._resolve_source_application_credentials()
 
     assert failure.value.STOP == "SOURCE_CREDENTIAL_TYPE_REJECTED"
-    assert credentials.refresh_calls == 0
 
 
 def test_root_owned_resolver_uses_process_environment_and_fixed_dependencies(
