@@ -1,0 +1,164 @@
+# NW-008 AT1 GHL Runtime Credential Readiness Recheck 001
+
+## 0. Proof identity and strict read-only boundary
+
+```text
+ARTIFACT_ID=
+  NW008_AT1_GHL_RUNTIME_CREDENTIAL_READINESS_RECHECK_001
+ARTIFACT_PATH=
+  proof/nw008/nw-008-at1-ghl-runtime-credential-readiness-recheck-001.md
+ARTIFACT_KIND=READ_ONLY_CREDENTIAL_CONTROL_PLANE_VERIFICATION
+PR_CLASS=proof_only
+OWNER=VS_CODE_MG_ORCHESTRATOR
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+BRANCH=
+  proof/nw008-at1-ghl-runtime-credential-readiness-recheck-001
+BRANCH_IS_MAIN=NO
+AUTHORITATIVE_MERGED_BASE=
+  1ebada2c80f73b36aab8726e8e6c59e0ab9b5cfa
+READ_ONLY_CHECKED_AT_UTC=2026-08-30T05:00:09.000Z
+```
+
+This verification used only service-account describes, IAM policy reads,
+Policy Troubleshooter, project policy inspection, and service-account key
+metadata reads. It did not acquire credentials or dispatch business calls.
+
+## 1. Bound, terminal authority chain
+
+```text
+SOURCE_AUTHORIZATION_PR=308
+SOURCE_AUTHORIZATION_MERGE_SHA=
+  db719ef1d99f1a41137f6238e9ca3765ee650cde
+SOURCE_IDENTITY_EXISTENCE_PROOF_PR=323
+SOURCE_IDENTITY_EXISTENCE_PROOF_MERGE_SHA=
+  6ecb77e5820290cb5dc00d943348e1a20a8aa250
+SOURCE_ACTIVATION_PR=324
+SOURCE_ACTIVATION_MERGE_SHA=
+  782df6362553b455a3b5aa40d4ceb50a6781e6b8
+
+TOKEN_CREATOR_EXECUTION_PROOF=
+  NW008_AT1_GHL_RUNTIME_IMPERSONATION_TOKEN_MINT_PERMISSION_EXECUTION_PROOF_001
+TOKEN_CREATOR_EXECUTION_PROOF_PR=326
+PR_326_MERGED=YES
+PR_326_MERGE_SHA=
+  1ebada2c80f73b36aab8726e8e6c59e0ab9b5cfa
+PR_326_MERGE_PRESENT_ON_ORIGIN_MAIN=YES
+PR_326_MERGE_ANCESTOR_OF_CURRENT_HEAD=YES
+
+ACTIVATION_002_STATE=CONSUMED_TERMINAL_NON_REUSABLE
+ACTIVATION_002_REUSE_ALLOWED=NO
+CONSUMPTION_RECORD_ISSUE=325
+ISSUE_325_STATE=CLOSED_COMPLETED
+ISSUE_325_REUSE_ALLOWED=NO
+FURTHER_TOKEN_CREATOR_IAM_WRITE_AUTHORIZED=NO
+```
+
+## 2. Exact identity state
+
+```text
+PROJECT=ai-rolodex-to-crm
+
+SOURCE_EMAIL=
+  mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+SOURCE_MEMBER=
+  serviceAccount:mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+SOURCE_UNIQUE_ID=111825874706162850194
+SOURCE_EXISTS=YES
+SOURCE_DISABLED=NO
+
+TARGET_EMAIL=
+  mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+TARGET_UNIQUE_ID=109958193780365695003
+TARGET_EXISTS=YES
+TARGET_DISABLED=NO
+```
+
+## 3. Exact target service-account binding
+
+The target service-account IAM policy was read directly. Its sorted-key JSON
+SHA-256 was computed with `jq -S`, including its trailing newline.
+
+```text
+TARGET_IAM_POLICY_SHA256=
+  24abf60c2d7b764a1240d91d32af4c7387a2ad76e3e5132614a16f38fc0b938a
+TARGET_IAM_POLICY_ETAG=BwZaPFy2B8E=
+TARGET_IAM_POLICY_VERSION=1
+
+ROLE=roles/iam.serviceAccountTokenCreator
+EXACT_RELEVANT_BINDING_PRESENT=YES
+EXACT_RELEVANT_BINDING_COUNT=1
+EXACT_RELEVANT_BINDING_HAS_CONDITION=NO
+EXACT_RELEVANT_BINDING_SCOPE=EXACT_TARGET_SERVICE_ACCOUNT
+```
+
+```text
+EXACT_RELEVANT_BINDING_MEMBER=
+  serviceAccount:mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+EXACT_RELEVANT_BINDING_ROLE=roles/iam.serviceAccountTokenCreator
+EXACT_RELEVANT_BINDING_CONDITION=NONE
+```
+
+## 4. Effective permission check
+
+IAM Policy Troubleshooter was run for the exact workflow service-account
+principal, note-runtime service-account resource, and access-token permission.
+
+```text
+POLICY_TROUBLESHOOTER_RESOURCE=
+  //iam.googleapis.com/projects/ai-rolodex-to-crm/serviceAccounts/mg-guide-ghl-note-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+POLICY_TROUBLESHOOTER_PRINCIPAL=
+  mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+PERMISSION=iam.serviceAccounts.getAccessToken
+
+POLICY_TROUBLESHOOTER_ALLOW_STATE=ALLOW_ACCESS_STATE_GRANTED
+POLICY_TROUBLESHOOTER_DENY_STATE=DENY_ACCESS_STATE_NOT_DENIED
+POLICY_TROUBLESHOOTER_OVERALL_STATE=CAN_ACCESS
+POLICY_TROUBLESHOOTER_ACCESS=GRANTED
+EXACT_GET_ACCESS_TOKEN_PERMISSION_EFFECTIVE=YES
+```
+
+## 5. No project-level dependency and no user-managed keys
+
+```text
+PROJECT_LEVEL_TOKEN_CREATOR_HAS_SOURCE=NO
+PROJECT_LEVEL_TOKEN_CREATOR_GRANT_USED=NO
+
+WORKFLOW_USER_MANAGED_KEYS_PRESENT=0
+NOTE_RUNTIME_USER_MANAGED_KEYS_PRESENT=0
+USER_MANAGED_KEY_METADATA_ONLY=YES
+```
+
+## 6. Architecture separation and zero-effect ledger
+
+```text
+FLEET_RUNTIME_USED_AS_GHL_CALLER=NO
+FLEET_AND_GHL_AUTHORITY_JOINED=NO
+
+IAM_MUTATIONS=0
+IAM_POLICY_WRITES=0
+TOKEN_MINT_ATTEMPTS=0
+TOKEN_MINTS=0
+RUNTIME_CREDENTIAL_ACQUISITION_EXECUTED=NO
+SECRET_PAYLOAD_READS=0
+GHL_CALLS=0
+CRM_CALLS=0
+DEPLOYMENTS=0
+LANE_A_WORK=0
+```
+
+## 7. Readiness disposition
+
+```text
+IDENTITY_READY=YES
+IAM_BINDING_READY=YES
+IMPERSONATION_PERMISSION_READY=YES
+
+CREDENTIAL_CONTROL_PLANE_READY=YES
+GHL_RUNTIME_CREDENTIAL_READINESS=PASS
+RUNTIME_CREDENTIAL_ACQUISITION_EXECUTED=NO
+
+NEXT=
+  FRESH_GHL_REST_V3_RUNTIME_CREDENTIAL_DIAGNOSTIC_AUTHORIZATION
+STOP_FOR_INDEPENDENT_REVIEW=YES
+```
