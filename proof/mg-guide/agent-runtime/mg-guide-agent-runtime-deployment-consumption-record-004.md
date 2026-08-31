@@ -4,7 +4,7 @@
 RECORD_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_CONSUMPTION_RECORD_004
 RECORD_PATH=proof/mg-guide/agent-runtime/mg-guide-agent-runtime-deployment-consumption-record-004.md
 PR_CLASS=execution_proof
-MODE=PRE_APPLY_DURABLE_RESERVATION
+MODE=ONE_SHOT_AUTHORITY_CONSUMPTION
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 
 AUTHORIZATION_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_AUTHORIZATION_004
@@ -74,8 +74,8 @@ PYTHON_VERSION=3.12
 EFFECTIVE_RESOURCE_LOCATION_POLICY_RECHECK=PASS
 EFFECTIVE_POLICY_ALLOWS_US_EAST1=YES
 EFFECTIVE_POLICY_ALLOWS_GLOBAL=YES
-EFFECTIVE_POLICY_RECHECK_AT_UTC=2026-08-31T09:24:34Z
-EFFECTIVE_POLICY_EVIDENCE_SHA256=5355badb178619e25a366634f10c1a81666454c719a2fe177c12a335412fd436
+EFFECTIVE_POLICY_RECHECK_AT_UTC=2026-08-31T09:37:51Z
+EFFECTIVE_POLICY_EVIDENCE_SHA256=5d576e3dae406659da26fcece9e04aea72f198f4fb8d226c15d20f1c43ead25c
 
 TERRAFORM_VERSION=1.9.8
 GOOGLE_BETA_PROVIDER_VERSION=7.28.0
@@ -109,11 +109,16 @@ DEPLOYMENT_BYTES_COMMITTED=NO
 PREPARED_AT_UTC=2026-08-31T09:26:02Z
 CURRENT_TIME_INSIDE_ACTIVATION_WINDOW=YES
 
-EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=NO
-ACTIVATION_EFFECTIVE=NO
-CONSUMPTION_STATE=PREPARED_UNCONSUMED
-AUTHORITY_CONSUMED=NO
-APPLY_ATTEMPT_STARTED=NO
+FINAL_PRE_APPLY_VERIFIED_AT_UTC=2026-08-31T09:38:44Z
+FINAL_POLICY_EVIDENCE_SHA256=5d576e3dae406659da26fcece9e04aea72f198f4fb8d226c15d20f1c43ead25c
+PLAN_FILE_SHA256_MATCH=YES
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=YES
+ACTIVATION_EFFECTIVE=YES
+CONSUMPTION_STATE=CONSUMED
+AUTHORITY_CONSUMED=YES
+CONSUMED_AT_UTC=2026-08-31T09:38:44Z
+CONSUMPTION_TRIGGER=FIRST_TERRAFORM_APPLY_ATTEMPT
+APPLY_ATTEMPT_STARTED=YES
 TERRAFORM_APPLY_ATTEMPTS=0
 TERRAFORM_APPLY_EXECUTED=NO
 DEPLOYMENT_EXECUTED=NO
@@ -126,17 +131,11 @@ NO_FALLBACK_DEPLOYMENT=YES
 NO_COMPENSATING_MUTATION=YES
 CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
 
-STOP=WAITING_FOR_SEPARATE_EXPLICIT_HUMAN_EXECUTION_ACT
+STOP=AUTHORITY_CONSUMED_AWAITING_ONE_SHOT_APPLY
 ```
 
-This record reserves Attempt 004 under merged Authorization 004 and Human
-Activation 004 in `PREPARED_UNCONSUMED` state only. Final live drift gates for
-time, ancestry, resource-location policy, TAR_GZIP package digest, clean Python
-3.12 install/import, toolchain versions, and a fresh one-add Terraform plan with
-`python_spec` only (no `image_spec` regression) passed inside the fixed
-activation window.
-
-Authority remains unconsumed. No `terraform apply` has been started. A separate
-explicit human execution act is required before any consumption trigger or apply
-dispatch. Archive bytes, base64 payload, and the saved plan file remain outside
-the repository.
+This record durably consumes Attempt 004 authority under the separate explicit
+human execution act after all immediate final drift gates passed. Authority is
+consumed on the first Terraform apply attempt whether that attempt succeeds,
+fails, or is partial. The exact Attempt-004 saved plan has not yet been
+dispatched at the moment this consumed state is committed.
