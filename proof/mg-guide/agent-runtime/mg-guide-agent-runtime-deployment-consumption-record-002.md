@@ -75,9 +75,18 @@ AUTHORITY_CONSUMED=YES
 CONSUMED_AT_UTC=2026-08-31T05:36:55Z
 CONSUMPTION_TRIGGER=FIRST_TERRAFORM_APPLY_ATTEMPT
 APPLY_ATTEMPT_STARTED=YES
-TERRAFORM_APPLY_ATTEMPTS=0
-TERRAFORM_APPLY_EXECUTED=NO
+APPLY_DISPATCHED_AT_UTC=2026-08-31T05:37:14Z
+APPLY_COMPLETED_AT_UTC=2026-08-31T05:39:19Z
+TERRAFORM_APPLY_EXIT=1
+TERRAFORM_APPLY_ATTEMPTS=1
+TERRAFORM_APPLY_EXECUTED=YES
 DEPLOYMENT_EXECUTED=NO
+DEPLOYMENT_RESULT=FAILED_REASONING_ENGINE_BUILD
+TERRAFORM_STATE_RESOURCES=0
+AGENT_RUNTIME_RESOURCES_CREATED=0
+EXPECTED_RESOURCE_PRESENT=NO
+RETRY_AUTHORIZED=NO
+STOP=TERMINAL_ONE_SHOT_DEPLOYMENT_RESULT
 
 MAX_TERRAFORM_APPLY_ATTEMPTS=1
 NO_RETRY=YES
@@ -87,33 +96,7 @@ NO_COMPENSATING_MUTATION=YES
 CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
 ```
 
-This record is the durable pre-apply reservation for Attempt 002. It records
-the fresh effective-policy, source-package, and Terraform-plan gates but does
-not activate authority, consume authority, or authorize deployment.
-
-Before consumption, a separate explicit human execution act must establish:
-
-```text
-EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=YES
-CURRENT_TIME_INSIDE_ACTIVATION_WINDOW=YES
-EFFECTIVE_POLICY_ALLOWS_US_EAST1=YES
-EFFECTIVE_POLICY_ALLOWS_GLOBAL=YES
-SOURCE_PACKAGE_SHA256_MATCH=YES
-PLAN_FILE_SHA256_MATCH=YES
-EXPECTED_RESOURCE_ONLY=YES
-RUNTIME_SERVICE_ACCOUNT_MATCH=YES
-CONSUMPTION_STATE=PREPARED_UNCONSUMED
-```
-
-Only immediately before the first and only Terraform apply attempt may a
-subsequent execution unit transition this record to:
-
-```text
-CONSUMPTION_STATE=CONSUMED
-AUTHORITY_CONSUMED=YES
-CONSUMED_AT_UTC=<current UTC>
-```
-
-```text
-STOP=WAITING_FOR_SEPARATE_EXPLICIT_HUMAN_EXECUTION_ACT
-```
+This record is terminal. The first and only authorized apply attempt was
+dispatched after the separate human execution grant and returned exit code 1
+because the Reasoning Engine build failed. Authority remains consumed; retry,
+second apply, fallback deployment, and compensating mutation are prohibited.
