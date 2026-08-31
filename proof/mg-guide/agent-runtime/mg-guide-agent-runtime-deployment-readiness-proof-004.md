@@ -1,0 +1,242 @@
+# MG Guide Agent Runtime Deployment Readiness Proof 004
+
+## 1. Identity and boundary
+
+```text
+ARTIFACT_ID=
+  MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_READINESS_PROOF_004
+ARTIFACT_PATH=
+  proof/mg-guide/agent-runtime/mg-guide-agent-runtime-deployment-readiness-proof-004.md
+PR_CLASS=BOUNDED_PROOF
+MODE=PRE_AUTHORIZATION_READINESS_ONLY
+OWNER=VS_CODE_ORCHESTRATOR
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+
+MAIN_BASELINE=
+  912e8815c2531b0fd81b6940290d3d0596ae0c04
+CURRENT_ORIGIN_MAIN_SHA=
+  912e8815c2531b0fd81b6940290d3d0596ae0c04
+```
+
+This proof records non-mutating readiness evidence for a future Attempt 004
+authorization. It does not authorize deployment, create Human Activation 004,
+run `terraform apply`, run `agents-cli deploy`, mutate IAM/secrets/service
+accounts, or perform any cloud write.
+
+```text
+DEPLOYMENT_EXECUTED=NO
+TERRAFORM_APPLY_EXECUTED=NO
+AGENTS_CLI_DEPLOY_EXECUTED=NO
+HUMAN_ACTIVATION_004_CREATED=NO
+AUTHORIZATION_004_EFFECTIVE=NO
+IAM_MUTATION=NO
+SECRET_MUTATION=NO
+SERVICE_ACCOUNT_MUTATION=NO
+GHL_CALLS=0
+CRM_MUTATIONS=0
+```
+
+## 2. Durable merged baselines
+
+```text
+PR_392_MERGE_SHA=
+  73a571cb00bb05b32abeb898ef5de1b6c5b67b19
+PR_392_ROLE=
+  PYTHON_SPEC_SOURCE_ENTRYPOINT_REPAIR
+PR_392_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+PR_393_MERGE_SHA=
+  04eef52413e9aa383bdf48930fec667b7015ef37
+PR_393_ROLE=
+  ATTEMPT_003_BUILD_FAILURE_DIAGNOSIS_002
+PR_393_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+PR_394_MERGE_SHA=
+  912e8815c2531b0fd81b6940290d3d0596ae0c04
+PR_394_ROLE=
+  ATTEMPT_003_TERMINAL_DEPLOYMENT_RESULT
+PR_394_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+ALL_REQUIRED_MERGE_SHAS_ON_ORIGIN_MAIN=YES
+```
+
+## 3. Terminal history and Attempt 003 root cause
+
+```text
+ATTEMPT_001_TERMINAL=YES
+ATTEMPT_002_TERMINAL=YES
+ATTEMPT_003_TERMINAL=YES
+
+AUTHORIZATION_001_REUSABLE=NO
+AUTHORIZATION_002_REUSABLE=NO
+AUTHORIZATION_003_REUSABLE=NO
+ACTIVATION_001_REUSABLE=NO
+ACTIVATION_002_REUSABLE=NO
+ACTIVATION_003_REUSABLE=NO
+
+ATTEMPT_003_ROOT_CAUSE=
+  IMAGE_SPEC_SELECTED_DOCKERFILE_PATH
+ATTEMPT_003_EXACT_FAILURE=
+  MISSING_/workspace/user_code/Dockerfile
+ATTEMPT_003_DIAGNOSIS=
+  MG_GUIDE_AGENT_RUNTIME_REASONING_ENGINE_BUILD_FAILURE_DIAGNOSIS_002
+```
+
+## 4. Merged Terraform PythonSpec contract
+
+Inspected `infra/agent-runtime/service.tf` on current `origin/main`:
+
+```text
+SOURCE_CODE_SPEC_USES_PYTHON_SPEC=YES
+SOURCE_CODE_SPEC_USES_IMAGE_SPEC=NO
+ENTRYPOINT_MODULE=app.agent
+ENTRYPOINT_OBJECT=root_agent
+REQUIREMENTS_FILE=requirements.txt
+PYTHON_VERSION=3.12
+AGENT_FRAMEWORK=google-adk
+```
+
+## 5. Source package rebuild from current merged main
+
+Off-repository rebuild using
+`scripts/build_agent_runtime_source.py --source-commit <CURRENT_ORIGIN_MAIN_SHA>`:
+
+```text
+SOURCE_PACKAGE_FORMAT=TAR_GZIP
+CURRENT_MAIN_SOURCE_PACKAGE_SHA256=
+  1441bd961910be80c4f2d27483ca78ee0302b933c51b7c546309b79aa079b752
+EXPECTED_PREVIOUS_DETERMINISTIC_DIGEST=
+  1441bd961910be80c4f2d27483ca78ee0302b933c51b7c546309b79aa079b752
+SOURCE_PACKAGE_SHA256_MATCH=YES
+SOURCE_PACKAGE_SIZE_BYTES=67778
+SOURCE_PACKAGE_FILE_COUNT=54
+
+GZIP_TEST=PASS
+TAR_LIST=PASS
+TAR_EXTRACT=PASS
+HAS_REQUIREMENTS_TXT=YES
+HAS_APP_AGENT=YES
+HAS_DOCKERFILE=NO
+SOURCE_PACKAGE_COMMITTED_TO_REPOSITORY=NO
+SOURCE_PACKAGE_BASE64_COMMITTED_TO_REPOSITORY=NO
+```
+
+No post-merge package digest drift was observed.
+
+## 6. Clean Python 3.12 environment
+
+Off-repository temporary Python 3.12 venv. Installed only package
+`requirements.txt`. No GHL calls. No CRM calls.
+
+```text
+CLEAN_VENV_PIP_INSTALL=PASS
+ENTRYPOINT_IMPORT=PASS
+ROOT_AGENT_LOAD=PASS
+APP_LOAD=PASS
+ROOT_AGENT_TYPE=
+  google.adk.agents.sequential_agent.SequentialAgent
+APP_TYPE=
+  google.adk.apps.app.App
+ROOT_AGENT_NAME=
+  unit3_meeting_to_follow_up_packet
+GHL_CALLS=0
+CRM_MUTATIONS=0
+```
+
+## 7. Resource-location policy
+
+Read-only:
+
+```text
+gcloud org-policies describe gcp.resourceLocations
+  --project=ai-rolodex-to-crm
+  --effective
+```
+
+```text
+EFFECTIVE_RESOURCE_LOCATION_POLICY_RECHECK=PASS
+EFFECTIVE_POLICY_ALLOWS_US_EAST1=YES
+EFFECTIVE_POLICY_ALLOWS_GLOBAL=YES
+EFFECTIVE_POLICY_RECHECK_AT_UTC=2026-08-31T08:51:41Z
+EFFECTIVE_POLICY_EVIDENCE_SHA256=
+  9e62a83d2cb234fba19ea2a18b6218740a8728c0f13b34068e6fe50e55b4b947
+PROJECT=ai-rolodex-to-crm
+REGION=us-east1
+```
+
+## 8. Fresh non-mutating Terraform plan
+
+Commands against `AUTHORITATIVE_TERRAFORM_ROOT=infra/agent-runtime` with the
+exact current-main TAR_GZIP bytes supplied only through an ephemeral session
+tfvars file:
+
+```text
+terraform fmt -check
+terraform init -backend=false -input=false
+terraform validate
+terraform plan -refresh=false -input=false
+```
+
+```text
+TF_FMT=PASS
+TF_INIT_BACKEND_FALSE=PASS
+TF_VALIDATE=PASS
+TF_PLAN=PASS
+
+AUTHORIZATION_004_PLAN_FILE_SHA256=
+  a5c6d5e3e6383aeca6c34425d6bf0b007c01b90c93eb2c4502c0e03e6bad196f
+PLAN_SUMMARY=
+  1_TO_ADD_0_TO_CHANGE_0_TO_DESTROY
+EXPECTED_RESOURCE_ONLY=YES
+PLANNED_RESOURCE=
+  google_vertex_ai_reasoning_engine.mg_guide
+PLANNED_PROJECT=ai-rolodex-to-crm
+PLANNED_REGION=us-east1
+PLANNED_RUNTIME_SERVICE_ACCOUNT=
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+RUNTIME_SERVICE_ACCOUNT_MATCH=YES
+
+SOURCE_CODE_SPEC_USES_PYTHON_SPEC=YES
+SOURCE_CODE_SPEC_USES_IMAGE_SPEC=NO
+PLANNED_ENTRYPOINT_MODULE=app.agent
+PLANNED_ENTRYPOINT_OBJECT=root_agent
+PLANNED_REQUIREMENTS_FILE=requirements.txt
+PLANNED_PYTHON_VERSION=3.12
+
+PLAN_CREATES_NEW_RUNTIME_SA=NO
+PLAN_CREATES_SERVICE_ACCOUNT_KEY=NO
+PLAN_ADDS_IAM=NO
+PLAN_MUTATES_SECRET=NO
+PLAN_DESTROYS_RESOURCE=NO
+
+PLAN_FILE_COMMITTED_TO_REPOSITORY=NO
+DEPLOYMENT_BYTES_COMMITTED=NO
+TERRAFORM_APPLY_EXECUTED=NO
+DEPLOYMENT_EXECUTED=NO
+```
+
+## 9. Readiness conclusion
+
+```text
+READINESS_FOR_AUTHORIZATION_004=YES
+ATTEMPT_003_AUTHORITY_REUSED=NO
+REQUIREMENTS_TXT_CHANGED=NO
+HUMAN_ACTIVATION_004_CREATED=NO
+```
+
+All required merge SHAs are on `origin/main`, the Terraform contract uses
+`python_spec` only, the deterministic TAR_GZIP package rebuilds unchanged from
+current main, clean Python 3.12 import passes, resource locations still allow
+`us-east1` and `global`, and the fresh plan is exactly one add of
+`google_vertex_ai_reasoning_engine.mg_guide`.
+
+## 10. STOP / NEXT
+
+```text
+STOP=
+  READY_FOR_DEPLOYMENT_AUTHORIZATION_004_DEFINITION
+NEXT=
+  MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_AUTHORIZATION_004
+DO_NOT_CREATE_HUMAN_ACTIVATION_004_IN_THIS_UNIT=YES
+DO_NOT_RUN_TERRAFORM_APPLY=YES
+```
