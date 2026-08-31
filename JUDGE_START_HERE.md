@@ -76,7 +76,7 @@ three-agent graph.
 
 ## Judge account
 
-Email: `airolodex.judge@themiliare-group.com`
+Email: `mg_guide.judge@themiliare-group.com`
 
 This is a controlled competition Google Workspace account. Credentials are
 provided privately through the competition testing instructions and are
