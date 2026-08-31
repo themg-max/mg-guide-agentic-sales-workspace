@@ -15,7 +15,7 @@ resource "google_vertex_ai_reasoning_engine" "mg_guide" {
       }
       python_spec {
         entrypoint_module = "app.agent"
-        entrypoint_object = "root_agent"
+        entrypoint_object = "agent_runtime_app"
         requirements_file = "requirements.txt"
         version           = "3.12"
       }
