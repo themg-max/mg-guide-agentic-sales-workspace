@@ -5,12 +5,18 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from vertexai import init
+
 DEPLOYMENT_ROOT = (
     Path(__file__).resolve().parents[2] / "deployment" / "agent-runtime"
 )
 
 
 def test_agent_runtime_app_wraps_existing_sequential_graph() -> None:
+    # AdkApp reads Vertex global project configuration during construction.
+    # This synthetic test setting performs no credential lookup or network call.
+    init(project="mg-guide-agent-runtime-test", location="us-east1")
+
     if str(DEPLOYMENT_ROOT) not in sys.path:
         sys.path.insert(0, str(DEPLOYMENT_ROOT))
 

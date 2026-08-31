@@ -115,12 +115,17 @@ already returns a non-empty operation map including `async_stream_query`.
 ## 4. Offline registered-operations proof
 
 Clean off-repo Python 3.12 venv. Installed only
-`deployment/agent-runtime/requirements.txt`. No GHL or CRM calls.
+`deployment/agent-runtime/requirements.txt`. The focused test initializes only
+the synthetic Vertex project `mg-guide-agent-runtime-test` so `AdkApp` can read
+its required local project configuration. It performs no credential lookup,
+network call, GHL call, or CRM call.
 
 ```text
 PIP_INSTALL=PASS
 PIP_CHECK=PASS
 ENTRYPOINT_IMPORT=PASS
+SYNTHETIC_VERTEX_TEST_INIT=PASS
+ADC_REQUIRED=NO
 REGISTER_OPERATIONS_CALL=PASS
 REGISTERED_OPERATION_COUNT=13
 REGISTERED_OPERATION_COUNT_GT_ZERO=YES
