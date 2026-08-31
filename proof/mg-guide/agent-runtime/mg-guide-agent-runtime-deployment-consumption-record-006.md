@@ -1,46 +1,91 @@
 # MG Guide Agent Runtime Deployment Consumption Record 006
 
-This unit is PREPARATION ONLY. It does not consume authorization, record
-explicit human execution authority, run `terraform apply`, or deploy.
+This unit is EXECUTION PROOF ONLY. It reconciles Consumption Record 006 to
+the terminal SUCCESS state of the already-completed one-shot Attempt 006.
+It does not run `terraform apply`, retry, destroy, compensate, call GHL, or
+mutate CRM.
 
 ```text
 RECORD_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_CONSUMPTION_RECORD_006
 RECORD_PATH=
   proof/mg-guide/agent-runtime/mg-guide-agent-runtime-deployment-consumption-record-006.md
-PR_CLASS=execution_preparation
-MODE=PREPARED_UNCONSUMED_CONSUMPTION_RECORD
+PR_CLASS=execution_proof
+ARTIFACT_CLASS=terminal_consumption_reconciliation
+MODE=TERMINAL_CONSUMED_SUCCESS
 OWNER=VS_CODE_ORCHESTRATOR
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 TARGET_REMOTE_URL=
   https://github.com/themg-max/mg-guide-agentic-sales-workspace.git
-RECORDED_AT_UTC=2026-08-31T15:11:37Z
+RECORDED_AT_UTC=2026-08-31T15:45:00Z
 
-READINESS_WORKTREE=
-  /Users/achandler/Google_DevPost/mg-guide-agent-runtime-consumption-record-006
-READINESS_BRANCH=
-  proof/mg-guide-agent-runtime-deployment-consumption-record-006
+TERMINAL_BRANCH=
+  proof/mg-guide-agent-runtime-deployment-consumption-record-006-terminal
 BRANCH_IS_MAIN=NO
 WORKTREE_CLEAN_BEFORE_ARTIFACT=YES
 ```
 
-## 1. Repository preflight
+## 0. Current terminal state
+
+```text
+RUN_ID=mg-guide-agent-runtime-deploy-006-20260831T150305Z-1c2d
+CONSUMPTION_STATE=CONSUMED
+AUTHORITY_CONSUMED=YES
+AUTHORIZATION_CONSUMED=YES
+
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=YES
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_SCOPE=ATTEMPT_006_ONE_SHOT
+
+CONSUMPTION_TRIGGER=FIRST_TERRAFORM_APPLY_ATTEMPT
+CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
+CONSUMED_AT_UTC=2026-08-31T15:34:49Z
+
+APPLY_ATTEMPT_STARTED=YES
+TERRAFORM_APPLY_ATTEMPTS=1
+TERRAFORM_APPLY_EXECUTED=YES
+DEPLOYMENT_EXECUTED=YES
+DEPLOYMENT_RESULT=SUCCESS
+
+ATTEMPT_006_TERMINAL=YES
+NO_RETRY=YES
+NO_SECOND_APPLY=YES
+RETRY_AUTHORIZED=NO
+NO_COMPENSATING_MUTATION=YES
+EXECUTION_AUTHORIZED_NOW=NO
+DEPLOYMENT_AUTHORIZED_NOW=NO
+AUTHORITY_REUSABLE=NO
+ACTIVATION_REUSABLE=NO
+```
+
+Sections 1 through 8 preserve the pre-apply preparation evidence. That
+evidence is historical `PRE_APPLY_STATE` only. It is not the current
+consumption state.
+
+## 1. Repository preflight (PRE_APPLY_STATE)
 
 ```text
 TARGET_REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 ORIGIN=https://github.com/themg-max/mg-guide-agentic-sales-workspace.git
-BASE_MAIN_SHA=05930196059863c55952474ab60d323befd43174
-ORIGIN_MAIN=05930196059863c55952474ab60d323befd43174
-HEAD=05930196059863c55952474ab60d323befd43174
+PRE_APPLY_BASE_MAIN_SHA=05930196059863c55952474ab60d323befd43174
+TERMINAL_BASE_MAIN_SHA=3ea6ee2ef1f656db53d6c1fbb59720e79d328c34
+ORIGIN_MAIN=3ea6ee2ef1f656db53d6c1fbb59720e79d328c34
 ORIGIN_MAIN_MATCHES_EXPECTED=YES
 BRANCH_IS_MAIN=NO
 WORKTREE_CLEAN=YES
 ```
 
-Created from exact `origin/main`:
+Preparation worktree (historical):
 
 ```text
 git worktree add -b proof/mg-guide-agent-runtime-deployment-consumption-record-006
   /Users/achandler/Google_DevPost/mg-guide-agent-runtime-consumption-record-006
+  origin/main
+```
+
+Terminal reconciliation worktree:
+
+```text
+git worktree add -b proof/mg-guide-agent-runtime-deployment-consumption-record-006-terminal
+  /Users/achandler/Google_DevPost/mg-guide-agent-runtime-consumption-record-006-terminal
   origin/main
 ```
 
@@ -58,6 +103,9 @@ ACTIVATION_PR=412
 ACTIVATION_HEAD=6351748fe9293c8da52b18f5a8d333ae314281fb
 ACTIVATION_MERGE_SHA=05930196059863c55952474ab60d323befd43174
 
+CONSUMPTION_PREP_PR=413
+CONSUMPTION_MERGE_SHA=3ea6ee2ef1f656db53d6c1fbb59720e79d328c34
+
 RUN_ID=mg-guide-agent-runtime-deploy-006-20260831T150305Z-1c2d
 WINDOW_START_UTC=2026-08-31T15:03:05Z
 WINDOW_END_UTC=2026-08-31T15:58:05Z
@@ -66,24 +114,23 @@ ACTIVATION_REUSABLE=NO
 ACTIVATION_TRANSFERABLE=NO
 ```
 
-## 3. Ancestry and window gate
+## 3. Ancestry and window gate (PRE_APPLY_STATE)
 
 ```text
 AUTHORIZATION_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
 ACTIVATION_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
 READINESS_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+CONSUMPTION_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
 
 PREPARED_AT_UTC=2026-08-31T15:11:37Z
-CURRENT_TIME_INSIDE_ACTIVATION_WINDOW=YES
+CURRENT_TIME_INSIDE_ACTIVATION_WINDOW_AT_PREPARATION=YES
+CURRENT_TIME_INSIDE_ACTIVATION_WINDOW_AT_DISPATCH=YES
 ```
 
-Preparation evidence in this record was produced inside the activation
-window. This record does not extend timestamps and does not claim that
-apply occurred.
+## 4. Fresh source package (PRE_APPLY_STATE)
 
-## 4. Fresh source package
-
-Rebuilt off-repository from the exact approved current baseline:
+Rebuilt off-repository from the approved baseline then used unchanged at
+dispatch:
 
 ```text
 BUILD_COMMAND=
@@ -91,7 +138,6 @@ BUILD_COMMAND=
     --source-commit 05930196059863c55952474ab60d323befd43174
     --output <ephemeral>/mg-guide-agent-runtime-source.tar.gz
 
-SOURCE_BASE_COMMIT=05930196059863c55952474ab60d323befd43174
 SOURCE_PACKAGE_FORMAT=TAR_GZIP
 SOURCE_PACKAGE_FILE_COUNT=54
 SOURCE_PACKAGE_SIZE_BYTES=67890
@@ -115,10 +161,7 @@ SOURCE_PACKAGE_COMMITTED_TO_REPOSITORY=NO
 SOURCE_PACKAGE_BASE64_COMMITTED_TO_REPOSITORY=NO
 ```
 
-## 5. Fresh runtime lifecycle
-
-Fresh Python 3.12 venv from extracted package `requirements.txt` only.
-No pre-seeded `vertexai.init()`.
+## 5. Fresh runtime lifecycle (PRE_APPLY_STATE)
 
 ```text
 PYTHON_VERSION=Python 3.12.13
@@ -164,7 +207,7 @@ async_stream_query
 streaming_agent_run_with_events
 ```
 
-## 6. Policy and authentication
+## 6. Policy and authentication (PRE_APPLY_STATE)
 
 ```text
 POLICY_COMMAND=
@@ -188,30 +231,17 @@ IAM_MUTATION=NO
 SERVICE_ACCOUNT_KEY_CREATED=NO
 ```
 
-## 7. Fresh execution-time Terraform plan
+## 7. Fresh execution-time Terraform plan (PRE_APPLY_STATE)
 
-Authoritative root `infra/agent-runtime`. Non-mutating only. Backend false.
-Plan saved off-repository. Ephemeral tfvars substituted the rebuilt package
-bytes. Repository Terraform files and `environments/dev.tfvars` were not
-changed.
-
-This plan is a new execution-time plan. It is not the Readiness 006 plan.
+Authoritative root `infra/agent-runtime`. Plan saved off-repository.
+This was a new execution-time plan, not the Readiness 006 plan. The same
+bytes were hashed again immediately before dispatch and were not regenerated.
 
 ```text
 READINESS_006_PLAN_FILE_SHA256_NOT_REUSED=
   ba99d9820c88c42feadadff96128c1a9554349cde51f117922861a45329e9285
 READINESS_006_PLAN_JSON_SHA256_NOT_REUSED=
   72986aa98f736f0d05171124a27f39b725b711317e4113490ac58de86a89b58f
-```
-
-```text
-terraform fmt -check
-terraform init -backend=false -input=false
-terraform validate
-terraform plan -refresh=false -input=false
-  -var-file=<ephemeral-consumption006-tfvars>
-  -out=<ephemeral>/consumption006.tfplan
-python3 scripts/verify_agent_runtime_terraform_policy.py
 ```
 
 ```text
@@ -237,7 +267,7 @@ PLAN_JSON_COMMITTED_TO_REPOSITORY=NO
 DEPLOYMENT_BYTES_COMMITTED=NO
 ```
 
-Semantic gate:
+Semantic gate at preparation:
 
 ```text
 PLAN_SUMMARY=1_TO_ADD_0_TO_CHANGE_0_TO_DESTROY
@@ -262,36 +292,148 @@ PLAN_MUTATES_SECRET=NO
 PLAN_DESTROYS_RESOURCE=NO
 ```
 
-## 8. Prepared consumption state
+## 8. Historical pre-apply consumption snapshot (PRE_APPLY_STATE)
+
+The merged preparation record (PR 413) recorded this snapshot before the
+explicit human execution act. It is not current.
 
 ```text
-CONSUMPTION_STATE=PREPARED_UNCONSUMED
-AUTHORITY_CONSUMED=NO
-AUTHORIZATION_CONSUMED=NO
+PRE_APPLY_STATE=YES
+PRE_APPLY_CONSUMPTION_STATE_AT_PREPARATION=PREPARED_UNCONSUMED
+PRE_APPLY_AUTHORITY_CONSUMED=NO
+PRE_APPLY_AUTHORIZATION_CONSUMED=NO
+PRE_APPLY_EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=NO
+PRE_APPLY_APPLY_ATTEMPT_STARTED=NO
+PRE_APPLY_TERRAFORM_APPLY_ATTEMPTS=0
+PRE_APPLY_TERRAFORM_APPLY_EXECUTED=NO
+PRE_APPLY_DEPLOYMENT_EXECUTED=NO
+```
 
+## 9. Terminal authority and dispatch
+
+A separate explicit human execution act authorized exactly one
+`terraform apply` of the unaltered saved plan. Authority was consumed at
+dispatch, whether the apply succeeded or failed. The apply succeeded.
+
+```text
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=YES
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_SCOPE=ATTEMPT_006_ONE_SHOT
+EXECUTION_AUTHORIZED_NOW=NO
+
+CONSUMPTION_STATE=CONSUMED
+AUTHORITY_CONSUMED=YES
+AUTHORIZATION_CONSUMED=YES
 CONSUMPTION_TRIGGER=FIRST_TERRAFORM_APPLY_ATTEMPT
 CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
+CONSUMED_AT_UTC=2026-08-31T15:34:49Z
+APPLY_ATTEMPT_STARTED=YES
+TERRAFORM_APPLY_ATTEMPTS=1
 
-EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=NO
+SOURCE_PACKAGE_SHA256=
+  6dbd7e381f5a9e65990aca30611108f889e3cab97d8e66d296c46b89f2382dcf
+EXECUTION_PLAN_FILE_SHA256=
+  79a451c3c60a59552fc9da0e7619616b2a5e8ac4a95a45b64f4621e6ea310b51
+EXECUTION_PLAN_JSON_SHA256=
+  f49591323ce7fd4e9b85b1941d37baf3165bdcd0a5c425a0ffd71a924d921b62
+EXECUTION_PLAN_FILE_SHA256_MATCH_AT_DISPATCH=YES
+EXECUTION_PLAN_UNALTERED_SINCE_PREPARATION=YES
+NO_REGENERATED_EXECUTION_PLAN=YES
+CURRENT_TIME_INSIDE_ACTIVATION_WINDOW_AT_DISPATCH=YES
+```
 
-APPLY_ATTEMPT_STARTED=NO
-TERRAFORM_APPLY_ATTEMPTS=0
-TERRAFORM_APPLY_EXECUTED=NO
-DEPLOYMENT_EXECUTED=NO
+## 10. Apply result
 
+```text
+APPLY_COMMAND=
+  terraform apply -input=false /tmp/mg-guide-consumption-006-77118/consumption006.tfplan
+APPLY_DISPATCHED_AT_UTC=2026-08-31T15:34:49Z
+APPLY_COMPLETED_AT_UTC=2026-08-31T15:38:46Z
+TERRAFORM_APPLY_EXIT=0
+TERRAFORM_APPLY_ERROR=NONE
+APPLY_LOG_SHA256=
+  26e62dbc937acd0bbb7b24bdb0cb505ff53a376e229f12431c24377bcd74f925
+APPLY_LOG_COMMITTED_TO_REPOSITORY=NO
+DEPLOYMENT_EXECUTED=YES
+DEPLOYMENT_RESULT=SUCCESS
+```
+
+Apply log terminal lines:
+
+```text
+google_vertex_ai_reasoning_engine.mg_guide: Creation complete after 3m55s
+  [id=projects/ai-rolodex-to-crm/locations/us-east1/reasoningEngines/5719342828341952512]
+Apply complete! Resources: 1 added, 0 changed, 0 destroyed.
+```
+
+## 11. Observed resource
+
+```text
+OBSERVED_REASONING_ENGINE_ID=5719342828341952512
+OBSERVED_REASONING_ENGINE_RESOURCE=
+  projects/ai-rolodex-to-crm/locations/us-east1/reasoningEngines/5719342828341952512
+OBSERVED_DISPLAY_NAME=mg-guide-orchestrator
+OBSERVED_CREATE_TIME=2026-08-31T15:34:51.484167Z
+OBSERVED_UPDATE_TIME=2026-08-31T15:38:41.948052Z
+OBSERVED_AGENT_FRAMEWORK=google-adk
+OBSERVED_RUNTIME_SERVICE_ACCOUNT=
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+OBSERVED_ENTRYPOINT_MODULE=app.agent
+OBSERVED_ENTRYPOINT_OBJECT=agent_runtime_app
+OBSERVED_PYTHON_VERSION=3.12
+OBSERVED_REQUIREMENTS_FILE=requirements.txt
+SOURCE_CODE_SPEC_USES_PYTHON_SPEC=YES
+SOURCE_CODE_SPEC_USES_IMAGE_SPEC=NO
+```
+
+## 12. Post-apply ledger
+
+```text
+TERRAFORM_STATE_RESOURCES=1
+VERTEX_REASONING_ENGINE_LIST_HTTP_STATUS=200
+VERTEX_REASONING_ENGINES_RETURNED=1
+AGENT_RUNTIME_RESOURCES_CREATED=1
+EXPECTED_RESOURCE_PRESENT=YES
+
+SERVICE_ACCOUNTS_CREATED=0
 SERVICE_ACCOUNT_KEYS_CREATED=0
 IAM_MUTATIONS=0
 SECRET_MUTATIONS=0
 GHL_CALLS=0
 CRM_MUTATIONS=0
+DESTROYS=0
 ```
 
-This record does not consume the one-shot authorization. Authority remains
-unconsumed until a later explicit human execution act references this
-`RUN_ID`, the exact source package SHA256, and the exact saved execution
-plan SHA256.
+Local `terraform.tfstate` produced by apply is gitignored and was not
+committed.
 
-## 9. Canonical validation
+## 13. Completion boundary
+
+Terraform created the expected Agent Runtime resource. That is existence
+proof only. It does not prove end-to-end runtime acceptance.
+
+```text
+DEPLOYMENT_EXISTENCE_PROOF=PASS
+FUNCTIONAL_RUNTIME_ACCEPTANCE=NOT_YET_PROVEN
+```
+
+## 14. Terminal ceilings
+
+```text
+ATTEMPT_006_TERMINAL=YES
+NO_RETRY=YES
+NO_SECOND_APPLY=YES
+RETRY_AUTHORIZED=NO
+NO_COMPENSATING_MUTATION=YES
+NO_AGENTS_CLI_DEPLOY=YES
+NO_FALLBACK_DEPLOYMENT=YES
+
+EXECUTION_AUTHORIZED_NOW=NO
+DEPLOYMENT_AUTHORIZED_NOW=NO
+AUTHORITY_REUSABLE=NO
+ACTIVATION_REUSABLE=NO
+```
+
+## 15. Canonical validation
 
 ```text
 CANONICAL_VALIDATION=PASS
@@ -302,12 +444,14 @@ GIT_DIFF_CHECK=PASS
 CI_STATUS=PENDING
 ```
 
-## 10. Stop
+## 16. Stop
 
 ```text
-ATTEMPT_006_AUTHORIZED_FOR_APPLY_IN_THIS_UNIT=NO
-TERRAFORM_APPLY_EXECUTED=NO
-DEPLOYMENT_EXECUTED=NO
+CONSUMPTION_STATE=CONSUMED
+DEPLOYMENT_EXECUTED=YES
+DEPLOYMENT_RESULT=SUCCESS
+DEPLOYMENT_EXISTENCE_PROOF=PASS
+FUNCTIONAL_RUNTIME_ACCEPTANCE=NOT_YET_PROVEN
 
-STOP=INDEPENDENT_REVIEW_REQUIRED_BEFORE_EXPLICIT_HUMAN_EXECUTION_ACT
+STOP=INDEPENDENT_REVIEW_REQUIRED_BEFORE_RUNTIME_ACCEPTANCE
 ```
