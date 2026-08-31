@@ -1,3 +1,11 @@
+> **HISTORICAL / SUPERSEDED FOR CURRENT PR REVIEW**
+>
+> Current repository-local PR review authority:
+> [`governance/required-pr-checks.md`](required-pr-checks.md)
+>
+> This file remains as the earlier convention record. Do not treat it as
+> current merge-readiness authority when the two documents conflict.
+
 # Required PR Check Policy — Convention Record
 
 ```text

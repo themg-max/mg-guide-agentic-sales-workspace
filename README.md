@@ -1,61 +1,176 @@
-# MG Guide Agentic Sales Workspace
+# MG Guide | Agentic Sales Workspace
 
-**Competition:** Google All Things Agentic Hackathon  
-**Target track:** Fortified Enterprise Fleet  
-**Vertical slice:** `meeting_follow_up_v1`  
-**Competition acceptance branch:** `competition/meeting-follow-up-v1-acceptance-finalization-001`
+MG Guide turns a meeting transcript into structured relationship context and a
+governed follow-up plan so salespeople can move from conversation to action
+without rebuilding context manually.
 
-This repository is the standalone, competition-period home for the MG Guide
-Agentic Sales Workspace. It establishes durable provenance for the
-`meeting_follow_up_v1` vertical slice using **synthetic / test data only**.
+**Competition:** Google All Things Agentic Hackathon
+**Track:** Fortified Enterprise Fleet
+**Vertical slice:** `meeting_follow_up_v1`
 
-## Competition acceptance (current)
+Judges: start at [JUDGE_START_HERE.md](JUDGE_START_HERE.md).
 
-Governed hero workflow: synthetic transcript → Meeting Context (Gemini 3.5) →
-Relationship Context → Follow-Up Planning (Google ADK) → **OL3 deterministic
-policy gate** → MG Guide next-step card, with Cloud Run hosting and Firestore
-audit proof on Google Cloud project `mg-devpost`.
+---
 
-| Marker | Result |
-| --- | --- |
-| `GEMINI_EXECUTION` | **PASS** (`gemini-3.5-flash`, Vertex AI `global`) |
-| `ADK_EXECUTION` | **PASS** (`google-adk==1.18.0` Runner/SequentialAgent) |
-| `CLOUD_RUN_DEPLOYMENT` | **PASS** (`mg-guide-agentic-sales-workspace-judge`, `us-east4`) |
-| `FIRESTORE_AUDIT` | **PASS** (`devpost-google-contest` / `workflow_runs` Stage B smoke) |
-| `SUCCESS_SCENARIO` | **PASS** |
-| `FAIL_CLOSED_SCENARIO` | **PASS** (`AMBIGUOUS_CONTACT` → blocked) |
-| `UNAUTHORIZED_EXTERNAL_EFFECTS` | **0** |
+## Why we built it
 
-**Packet**
+Before COVID, much financial-services relationship work happened face to face.
+Today many conversations happen online.
 
-- Acceptance proof: [`proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md`](proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md)
-- Architecture: [`docs/architecture/meeting-follow-up-v1-competition-architecture.md`](docs/architecture/meeting-follow-up-v1-competition-architecture.md)
-- Demo script (~4 min): [`docs/demo/meeting-follow-up-v1-4min-demo-script.md`](docs/demo/meeting-follow-up-v1-4min-demo-script.md)
-- Devpost copy: [`docs/competition/DEVPOST_WRITEUP.md`](docs/competition/DEVPOST_WRITEUP.md)
-- Demo truth boundary: [`docs/demo/meeting-follow-up-demo-v1.md`](docs/demo/meeting-follow-up-demo-v1.md)
+The meeting is digital, but the work after the meeting is still fragmented:
 
-**Quick reproduce**
+- reviewing what was said
+- remembering personal and business context
+- finding the correct CRM relationship
+- documenting the conversation
+- determining the next step
+- preparing future follow-up
 
-```bash
-PYTHONPATH=src python -m pytest tests/agents/test_meeting_context_agent.py -q
-PYTHONPATH=src python -m agents.follow_up_planning \
-  --scenario SUCCESS --scenario AMBIGUOUS_CONTACT
-# Local judge: POST /demo/meeting-follow-up with {"scenario":"SUCCESS"|"AMBIGUOUS_CONTACT"}
-PYTHONPATH=src MEETING_CONTEXT_GEMINI_MODE=stub python -m mg_guide.judge_surface.server
+MG Guide is designed to close that gap. This competition slice is bounded and
+honest: agents understand and propose, policy decides, and live CRM effects
+remain separately governed. It does not claim production automation or a
+same-run transcript-to-live-CRM write.
+
+---
+
+## How it works
+
+```text
+Google Workspace meeting
+  -> transcript
+  -> MG Guide Orchestrator on Google Cloud Agent Runtime
+  -> Meeting Context Agent
+  -> Relationship Context Agent
+  -> Follow-Up Planning Agent
+  -> deterministic policy
+  -> MG Guide follow-up experience / audit state / bounded CRM boundary
 ```
 
-> Judge/demo paths do **not** perform live CRM/GHL mutation
-> (`JUDGE_DEMO_LIVE_GHL_MUTATION=NO`; synthetic fixtures). Historical one-shot
-> live synthetic note+stage under consumed Grant 008 is separate proof
-> (`GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; not reusable). Cloud Run is IAP-gated
-> (browser demo may need human 2FA). Firestore Stage B smoke is
-> create→read→verify→delete under existing authorization.
+A salesperson finishes a meeting. MG Guide reads the transcript, reconstructs
+what happened, connects it to relationship context, and recommends the next
+step. Deterministic policy then either permits the follow-up path or fail-closes
+when identity or permission is not trustworthy.
 
-### Historical merge baseline
+---
 
-Phase 3 Unit 1–3 and NW-006 card work are merged on `main` (Unit 3 PR #13;
-NW-006 PR #15). NW-005 Stage B smoke and NW-007 Cloud Run deployment evidence
-exist under governed packets. See [`competition/NEW_WORK_LEDGER.md`](competition/NEW_WORK_LEDGER.md).
+## Three specialized agents
+
+| Agent | Role |
+| --- | --- |
+| **Meeting Context Agent** | Understands what happened. |
+| **Relationship Context Agent** | Connects the meeting to the correct relationship context. |
+| **Follow-Up Planning Agent** | Turns that context into the recommended next steps. |
+
+These three agents run as an internal Google ADK `SequentialAgent` sequence
+inside one hosted orchestrator: `mg-guide-orchestrator`.
+
+Hosted sequence:
+
+```text
+meeting_context_agent
+relationship_context_agent
+follow_up_planning_agent
+```
+
+---
+
+## Google Cloud
+
+| Technology | Role |
+| --- | --- |
+| **Google Cloud Agent Runtime** | Hosts `mg-guide-orchestrator` |
+| **Google ADK** | `SequentialAgent` three-agent graph |
+| **Gemini 3.5 Flash** | Meeting-context extraction |
+| **Cloud Run** | Competition judge / Workspace adapter surface |
+| **Firestore** | Audit proof |
+
+Cloud Run is not the hosted three-agent runtime. Agent Runtime hosts the
+three-agent graph. Cloud Run serves the competition judge / Workspace adapter
+experience.
+
+---
+
+## Try MG Guide
+
+Judge competition Workspace account:
+
+`airolodex.judge@themiliare-group.com`
+
+The password / access secret is provided privately through the Devpost testing
+credentials / authorized judge instructions and is intentionally not committed
+to this public repository.
+
+### Shortest safe judge journey
+
+1. Sign into the provided Google Workspace account.
+2. Open Gmail or Calendar.
+3. Launch **MG Guide**.
+4. Run the Meeting Follow-Up demonstration.
+5. Review the completed and needs-review behaviors.
+
+| Demonstration | What to look for |
+| --- | --- |
+| SUCCESS | Completed follow-up plan |
+| AMBIGUOUS_CONTACT | Needs-review / fail-closed behavior |
+
+Access details: [docs/judges/JUDGE_ACCESS.md](docs/judges/JUDGE_ACCESS.md).
+
+The Workspace add-on is a thin presentation and routing adapter. It does not
+own policy, CRM mutation, agent reasoning, or workflow truth.
+
+---
+
+## What is proven
+
+| Capability | State |
+| --- | --- |
+| Gemini meeting-context extraction | Proven |
+| Google ADK three-agent workflow | Proven |
+| Hosted Agent Runtime deployment | Proven |
+| Hosted three-agent sequential execution | Proven |
+| Success scenario | Proven |
+| Ambiguous-contact fail-closed scenario | Proven |
+| Firestore audit proof | Proven |
+| HighLevel REST v3 exact synthetic contact read | Proven |
+| Current REST note create/readback | Pending |
+| Same-run transcript-to-live-CRM write | Not claimed |
+
+Exact current CRM language:
+
+```text
+LIVE_REST_V3_EXACT_CONTACT_READ=PASS
+NETWORK_CALL_COUNT=1
+MUTATION_CALL_COUNT=0
+CURRENT_REST_V3_NOTE_CREATE=PENDING
+CURRENT_REST_V3_NOTE_READBACK=PENDING
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
+HOSTED_GHL_CALLS=0
+HOSTED_CRM_MUTATIONS=0
+```
+
+Historical Grant 008 live synthetic note+stage proof is supporting evidence
+only. It is not the current transport centerpiece.
+
+---
+
+## Repository navigation
+
+**Judge path**
+
+- [JUDGE_START_HERE.md](JUDGE_START_HERE.md)
+- [docs/judges/README.md](docs/judges/README.md)
+- [docs/architecture/meeting-follow-up-v1-competition-architecture.md](docs/architecture/meeting-follow-up-v1-competition-architecture.md)
+- [docs/demo/meeting-follow-up-v1-4min-demo-script.md](docs/demo/meeting-follow-up-v1-4min-demo-script.md)
+- [docs/competition/DEVPOST_WRITEUP.md](docs/competition/DEVPOST_WRITEUP.md)
+
+**Best current proof**
+
+- [proof/mg-guide/agent-runtime/mg-guide-agent-runtime-runtime-acceptance-proof-006.md](proof/mg-guide/agent-runtime/mg-guide-agent-runtime-runtime-acceptance-proof-006.md)
+- [proof/nw008/nw-008-at8-ghl-rest-exact-synthetic-contact-live-read-execution-002.md](proof/nw008/nw-008-at8-ghl-rest-exact-synthetic-contact-live-read-execution-002.md)
+- [competition/NEW_WORK_LEDGER.md](competition/NEW_WORK_LEDGER.md)
+
+More evidence: [docs/judges/PROOF_INDEX.md](docs/judges/PROOF_INDEX.md) and
+[proof/README.md](proof/README.md).
 
 ---
 
@@ -75,176 +190,62 @@ See [`governance/README.md`](governance/README.md) and
 
 ---
 
-## Project goal
-
-After a sales meeting ends, turn a meeting transcript into a **governed CRM
-follow-up record** without the salesperson manually summarizing the
-conversation, finding the CRM contact, deciding the pipeline state, and
-documenting the next step.
-
-This repository now includes the merged competition-local NW-006 MG Guide
-Meeting Follow-Up card renderer/reference component with no mutation controls
-and zero external effects. NW-008 acceptance readiness is planning-only.
-
-**Target end-state defined by the original foundation:**
-
-one synthetic transcript in → one verified CRM note, at most one
-policy-permitted opportunity-stage change, one Firestore audit record, and one
-MG Guide next-step brief out.
-
-> **Evidence posture (do not collapse lanes):** Business-content ingestion via
-> live Gemini is proven (`BUSINESS_CONTENT_INGESTION_PROVEN=YES`). Provider
-> contract ingestion via HighLevel MCP operation metadata is proven
-> (`PROVIDER_CONTRACT_INGESTION_PROVEN=YES`). A one-shot human-authorized live
-> synthetic GoHighLevel note+stage with readback succeeded historically under
-> consumed Grant 008 (`GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; grant
-> **non-reusable**). Firestore Stage B audit smoke is proven on `mg-devpost`.
-> The judge / demo path remains deterministic and performs **no** live CRM
-> mutation (`JUDGE_DEMO_LIVE_GHL_MUTATION=NO`). The exact Gemini-derived note
-> content is **not** claimed as written to GoHighLevel in the same live
-> execution (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`;
-> `END_TO_END_LIVE_EVIDENCE_GAP_EXISTS=YES`). Any additional live GoHighLevel
-> execution requires a **new** authorization. Contest runtime code gap:
-> `CONTEST_RUNTIME_CODE_GAP_EXISTS=NO`.
-
----
-
-## `meeting_follow_up_v1` scope
-
-**In scope**
-
-- One workflow: `meeting_follow_up_v1`
-- Synthetic meeting transcript fixtures only
-- Unit 2 is offline synthetic only
-- CRM environment class: **business-active canonical CRM under synthetic-only
-  bounded execution controls** — no isolated GHL test location is available or
-  required (see
-  [`docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md`](docs/nw008/nw-008-active-crm-synthetic-only-normalization-001.md))
-- At most one contact note create and at most one opportunity-stage change per run
-- Read-back verification of every mutation
-- Firestore audit record per run
-- MG Guide Meeting Follow-Up card (success + needs-review)
-
-**Out of scope (blocked)**
-
-- Real-customer and non-allowlisted CRM mutation (forbidden). Bounded CRM
-  mutation against the privately allowlisted preverified synthetic records may
-  occur only under a separate human-reviewed execution authorization bound to
-  exact transport, credential, private IDs, allowed transition, operation
-  budget, and proof requirements. This repository does **not** authorize such
-  execution now (`LIVE_CRM_MUTATION_AUTHORIZED=NO`;
-  `SEPARATE_HUMAN_MUTATION_AUTHORIZATION_REQUIRED=YES`;
-  `REAL_CUSTOMER_RECORD_MUTATION_AUTHORIZED=NO`)
-- Real customer / CRM data
-- Email / SMS / calendar mutation
-- Contact or opportunity create/delete
-- Bulk CRM operations or arbitrary stage movement
-- Production activation, IAM, env, or secret provisioning in this foundation
-
----
-
-## Architecture (Phase 3 closeout state)
-
-Unit 1, Unit 2, and Unit 3 are implemented offline against synthetic fixtures
-and merged. NW-006 adds a bounded deterministic card module (mapper + text/html
-renderers + stdout-only CLI), is **MERGED_COMPLETE** on `main` via PR #15, and
-remains host-agnostic with no private authenticated integration.
+## Architecture (competition)
 
 | Layer | Role |
 | --- | --- |
+| **Google Cloud Agent Runtime** | Hosted `mg-guide-orchestrator` |
 | **Google ADK + Gemini 3.5 Flash** | Specialized reasoning agents (propose; never unilaterally decide) |
-| **OL3 workflow authority** | Deterministic state machine and mutation policy gate |
-| **MG MCP** | Trusted organizational context — **read-only** |
-| **CRM transport** | Current next planning direction is a governed HighLevel REST v3 adapter; historical GHL MCP evidence is preserved, but generic GHL MCP implementation is blocked |
-| **Firestore** | Runtime / audit state (`workflow_runs/{run_id}`) — Stage B smoke proven on `mg-devpost` |
-| **MG Guide** | Salesperson Meeting Follow-Up experience (application surface) |
-| **Cloud Run** | Judge/demo service `mg-guide-agentic-sales-workspace-judge` (`us-east4`, IAP) |
+| **Deterministic policy** | State machine and mutation policy gate |
+| **HighLevel REST v3 bounded adapter** | Current CRM boundary |
+| **Firestore** | Runtime / audit state |
+| **MG Guide** | Salesperson Meeting Follow-Up experience |
+| **Cloud Run** | Judge / Workspace adapter surface |
+| **Google Workspace add-on** | Thin presentation and routing adapter |
 
-Authority rule: agents propose facts and actions; deterministic policy and
-workflow state decide whether a GHL mutation is allowed.
+Authority rule: agents propose facts and actions; deterministic policy decides
+whether an external effect is allowed.
 
 ### CRM transport boundary
 
 ```text
 Agent
   ↓
-OL3 authorization / policy gate
+deterministic policy gate
   ↓
-HighLevel REST v3 adapter (planning next; not implemented or authorized here)
+HighLevel REST v3 bounded adapter
   ↓
-Canonical GoHighLevel location (business-active; exact allowlisted synthetic IDs only)
+allowlisted synthetic CRM records only
 ```
 
-Read-side GHL MCP identifiers were discovered and governed in Phase 2A / NW-013.
-That evidence remains historical and does not require GHL MCP as the future
-implementation transport. Generic GHL MCP implementation is blocked; the next
-planning lane is HighLevel REST v3 adapter architecture only. REST adapter
-implementation, REST execution, live GHL reads, and live GHL writes remain
-unauthorized. The canonical location is not a test environment, and any live
-canonical synthetic access is separately governed. This repository must **not**
-invent operation contracts or request bodies without a new architecture
-decision.
+Current REST posture:
+
+```text
+LIVE_REST_V3_EXACT_CONTACT_READ=PASS
+CURRENT_REST_V3_NOTE_CREATE=PENDING
+CURRENT_REST_V3_NOTE_READBACK=PENDING
+INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
+```
+
+Historical HighLevel MCP evidence is preserved as supporting history. Generic
+GHL MCP implementation is not the current transport.
 
 ---
 
 ## Safety posture
 
 - Synthetic and fixture identities only (see [`fixtures/`](fixtures/))
-- No real-customer or non-allowlisted CRM mutation; any separately
-  human-authorized competition CRM mutation may target only the privately
-  allowlisted preverified synthetic records in the canonical business-active
-  location using the exact operation budget
-- No real customer or contact information
+- No real-customer CRM mutation
 - No secrets committed (see [`.env.example`](.env.example) and [`docs/SECURITY.md`](docs/SECURITY.md))
 - Fail-closed on ambiguous contact resolution and policy denial
-
----
-
-## Repository layout
-
-```text
-README.md
-LICENSE
-.gitignore
-.env.example
-pyproject.toml
-requirements.txt
-.python-version
-docs/
-  COMPETITION_BASELINE.md
-  MEETING_FOLLOW_UP_FOUNDATION.md
-  SECURITY.md
-contracts/
-  meeting_follow_up_packet.schema.json
-  follow_up_proposal.schema.json
-  workflow_states.yaml
-  ghl_tool_manifest.yaml
-  failure_codes.yaml
-fixtures/
-  transcript-*.txt
-  transcript-*.expected.json
-src/orchestration/
-src/agents/
-src/integrations/
-tests/
-  contracts/
-  workflow/
-  acceptance/
-  agents/
-  integrations/
-proof/phase1/
-competition/
-  NEW_WORK_LEDGER.md
-  AI_COLLABORATION_LOG.md
-governance/
-```
+- Judge/demo path does not perform live CRM mutation
 
 ---
 
 ## Reproducible setup (currently valid steps only)
 
 These steps are valid **today**. Live GHL, GCP, Firestore, and deployment
-setup remain intentionally omitted until later governed phases.
+setup remain separately governed.
 
 ```bash
 # 1. Clone
@@ -272,44 +273,39 @@ PYTHONPATH=src python3 -m agents.follow_up_planning
 # 7. NW-006 Meeting Follow-Up card (stdout-only; synthetic packet in → text/html out)
 PYTHONPATH=src python3 -m mg_guide.meeting_follow_up_card \
   fixtures/nw006/packets/packet-success.completed.json
+
+# 8. Local judge surface (stub Gemini; no live CRM mutation)
+PYTHONPATH=src MEETING_CONTEXT_GEMINI_MODE=stub python -m mg_guide.judge_surface.server
+# POST /demo/meeting-follow-up with {"scenario":"SUCCESS"|"AMBIGUOUS_CONTACT"}
 ```
-
-**Available today:**
-
-- Contract/schema validation (including `meeting_context_v1`, `relationship_context_v1`, and `follow_up_proposal_v1`)
-- Deterministic state machine + policy tests
-- Acceptance tests for three synthetic fixture packages
-- Local fixture runner (sidecar test doubles only)
-- Phase 2B offline GHL read adapter (synthetic fixtures; no live CRM)
-- Phase 3 unit 1 Meeting Context Agent fixture harness — **merged** (PR #10; Gemini provider surface; default CI offline)
-- Phase 3 unit 2 Google ADK package runtime orchestration (actual `google-adk` Runner/SequentialAgent/session primitives; fail-closed, no local fallback) + Relationship Context Agent — **merged** (PR #11; synthetic CRM only)
-- Phase 3 unit 3 Follow-Up Planning Agent — **merged** (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / final exact-head CI 31623771005 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; synthetic only; deterministic policy gate invoked; intent-only packet assembly; EXTERNAL_EFFECTS=0)
-- NW-006 MG Guide Meeting Follow-Up card — **MERGED_COMPLETE** (PR #15 final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627` / exact-head CI 31630399411 SUCCESS / merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; host-agnostic renderer only; no mutation controls; EXTERNAL_EFFECTS=0)
-- NW-008 readiness matrix + planning packet — planning + historical AT1 live
-  synthetic execution proof under consumed Grant 008
-  (`proof/nw008/nw-008-at1-live-execution-result-008.md`;
-  `GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; AT-2…AT-10 not claimed complete from
-  card tests alone)
-
-**Not yet available / not claimed (do not invent):**
-
-- Judge/demo live CRM note/stage writes — agents + policy record intents;
-  `JUDGE_DEMO_LIVE_GHL_MUTATION=NO` (historical Grant 008 AT1 is separate and
-  **non-reusable**)
-- Single-run transcript→Gemini→live-GHL evidence join
-  (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`)
-- GHL credential configuration or live CRM calls against customer data
-- Unauthenticated public hosted demo (Cloud Run judge is **IAP-gated**)
-- Marketplace/source reconciliation writes (R4 closed read-only for competition)
 
 Copy [`.env.example`](.env.example) only as a **placeholder catalog**. Do not
 populate production values. Do not commit a real `.env`.
 
 ---
 
+## Repository layout
+
+```text
+README.md
+JUDGE_START_HERE.md
+docs/judges/          Judge navigation
+docs/architecture/    Architecture
+docs/demo/            Demo script and truth boundary
+docs/competition/     Devpost write-up
+competition/          Competition Delta and AI collaboration log
+proof/                Durable proof (do not relocate)
+workspace_addon/      Thin Workspace presentation adapter
+src/                  Runtime source
+tests/                Tests
+governance/           Public sanitized governance
+```
+
+---
+
 ## Governance for contributors
 
-- Do **not** implement features directly on `main` after this bootstrap commit.
+- Do **not** implement features directly on `main`.
 - Create subsequent work on bounded topic branches.
 - Stage **exact paths only** — never `git add .`.
 - Keep competition-period claims honest: see [`docs/COMPETITION_BASELINE.md`](docs/COMPETITION_BASELINE.md)
@@ -320,31 +316,3 @@ populate production values. Do not commit a real `.env`.
 ## License
 
 Apache License 2.0 — see [`LICENSE`](LICENSE).
-
----
-
-## Status
-
-| Item | State |
-| --- | --- |
-| Foundation docs / contracts / fixtures | Present |
-| Phase 1 deterministic engine + tests | Present |
-| Phase 2B offline GHL read adapter | Present (synthetic only) |
-| Gemini / ADK — Meeting Context Agent (unit 1) | **Merged** (PR #10; fixture harness green; live model optional) |
-| Google ADK runtime + Relationship Context Agent (unit 2) | **Merged** (PR #11 / `a3d5a5731d7342463fe365e597e5d974d3420d08`) |
-| Follow-Up Planning Agent (unit 3) | **Merged** (PR #13 final reviewed head `32f13b6db0bfd9964001133d05f33d6ed294d0ba` / CI 31623771005 / merge `91927e4cfeb5010cf399ae870ad0897156dff03e`; merged `2026-08-12T17:47:49Z`) |
-| MG Guide Meeting Follow-Up card (NW-006) | **MERGED_COMPLETE** — PR #15; final reviewed head `c7d25b447db0a961c17ae26e326ada230b7e4627`; exact-head CI **31630399411** SUCCESS; merge `e22eb861442a37be0797d6d7aec8bb17001fb7a3`; merged `2026-08-12T19:12:33Z`; closeout [`proof/nw006/nw-006-merge-closeout.md`](proof/nw006/nw-006-merge-closeout.md); no mutation controls; zero external effects; no private host wiring |
-| Competition acceptance (`meeting_follow_up_v1`) | **Packet complete on branch** — see [`proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md`](proof/competition/meeting-follow-up-v1-acceptance-finalization-001.md); SUCCESS + FAIL-CLOSED proven; Gemini/ADK/Cloud Run/Firestore markers PASS |
-| Acceptance tests AT-1…AT-10 historical matrix (NW-008) | Readiness docs remain under [`proof/nw008/`](proof/nw008/); do not mark every historical AT complete from card tests alone |
-| Live GHL / CRM writes (current grants) | Forbidden now (`LIVE_CRM_MUTATION_AUTHORIZED=NO`); historical Grant 008 AT1 synthetic note+stage **proven and consumed** (`GHL_LIVE_SYNTHETIC_WRITE_PROVEN=YES`; judge path still non-mutating) |
-| Ingestion→live-GHL single run | **Not proven** (`INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO`; evidence gap only — `CONTEST_RUNTIME_CODE_GAP_EXISTS=NO`) |
-| Firestore audit writer (NW-005) | Stage A merged; Stage B smoke **PASS** on `mg-devpost` / `devpost-google-contest` |
-| Cloud Run deployment (NW-007) | Judge service **Ready** on `mg-devpost` `us-east4` (IAP-gated) |
-| Real-customer / non-allowlisted CRM mutation | Forbidden; allowlisted synthetic-only mutation requires separate human execution authorization |
-| Unauthorized external effects (demo/harness paths) | **0** |
-
-**Closeout state:** Competition acceptance finalization proves the
-`meeting_follow_up_v1` vertical slice with Gemini 3.5+, Google ADK, Cloud Run,
-and Firestore audit markers. Agents still propose only; the deterministic
-policy gate still evaluates/authorizes; live CRM mutation and private host
-production activation remain separate governed units.
