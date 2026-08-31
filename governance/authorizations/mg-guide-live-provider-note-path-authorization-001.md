@@ -1,0 +1,227 @@
+# MG Guide Live Provider NOTE_PATH Authorization 001
+
+## 1. Authorization identity and boundary
+
+```text
+AUTHORIZATION_ID=MG_GUIDE_LIVE_PROVIDER_NOTE_PATH_AUTHORIZATION_001
+ARTIFACT_PATH=governance/authorizations/mg-guide-live-provider-note-path-authorization-001.md
+PR_CLASS=authorization
+MODE=DEFINITION_ONLY
+OWNER=VS_CODE_ORCHESTRATOR
+GOVERNANCE_OWNER=HUMAN_GOVERNANCE
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+RECORDED_AT_UTC=2026-08-31T16:39:25Z
+BASE_MAIN_SHA=5dcc308d66e27a93119d6f8f4eb44be3f5242e9b
+
+STATUS_AT_AUTHORING=PROPOSED_PENDING_INDEPENDENT_REVIEW_THEN_FRESH_HUMAN_ACTIVATION
+AUTHORIZATION_EFFECTIVE=NO
+ACTIVATION_EFFECTIVE=NO
+MERGE_ALONE_AUTHORIZES_EXECUTION=NO
+SELF_ACTIVATION_ALLOWED=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_REQUIRED=YES
+LIVE_PROVIDER_EXECUTION_AUTHORIZED_NOW=NO
+GHL_CALLS_AUTHORIZED_NOW=NO
+CRM_MUTATIONS_AUTHORIZED_NOW=NO
+AUTHORIZATION_CONSUMED=NO
+```
+
+This artifact defines, but does not activate or execute, one future bounded live-provider NOTE_PATH_ONLY validation through the already-deployed MG Guide Reasoning Engine. It grants no current GHL or CRM execution authority.
+
+## 2. Upstream plan and closed deployment binding
+
+```text
+LIVE_PROVIDER_E2E_PLAN_PR=417
+LIVE_PROVIDER_E2E_PLAN_HEAD=b35353f2cc7d2e65b9a562f4e7ca1076b2f337a0
+LIVE_PROVIDER_E2E_PLAN_MERGE_SHA=5dcc308d66e27a93119d6f8f4eb44be3f5242e9b
+PLAN_MERGE_SHA_EQUALS_BASE_MAIN=YES
+
+ATTEMPT_006_CLOSED=YES
+ATTEMPT_006_AUTHORITY_CONSUMED=YES
+ATTEMPT_006_AUTHORITY_REUSABLE=NO
+ATTEMPT_006_AUTHORITY_MAY_BE_REUSED=NO
+
+REASONING_ENGINE_ID=5719342828341952512
+REASONING_ENGINE_RESOURCE=projects/ai-rolodex-to-crm/locations/us-east1/reasoningEngines/5719342828341952512
+DEPLOYMENT_ACCEPTANCE=PASS
+FUNCTIONAL_RUNTIME_ACCEPTANCE=PASS
+```
+
+Attempt 006 deployment authority is historical and non-reusable. This is a new provider-validation authority lane only.
+
+## 3. Exact authorized future slice
+
+```text
+FUTURE_AUTHORIZABLE_SLICE=NOTE_PATH_ONLY
+PROVIDER=HighLevel REST v3
+PROVIDER_CONTRACT=contracts/highlevel_rest_adapter_v1.yaml
+INPUT=fixtures/transcript-success.txt
+INPUT_CLASS=SYNTHETIC_APPROVED_FIXTURE
+PRIVATE_CLIENT_OR_CUSTOMER_DATA=NO
+
+AUTHORIZED_OPERATION_SEQUENCE=
+  1. get_contact
+  2. create_note
+  3. get_note
+
+AUTHORIZED_PROVIDER_CALLS_MAX=3
+MAX_CONTACT_MUTATIONS=0
+MAX_NOTE_CREATIONS=1
+MAX_OPPORTUNITY_STAGE_TRANSITIONS=0
+MAX_TOTAL_GHL_MUTATIONS=1
+
+MAX_GET_CONTACT_ATTEMPTS=1
+MAX_CREATE_NOTE_ATTEMPTS=1
+MAX_GET_NOTE_ATTEMPTS=1
+```
+
+The future NOTE_PATH run may read exactly one privately allowlisted synthetic contact, create at most one note on that same exact contact, and read back that same-run note by its returned exact note ID.
+
+## 4. Private target and payload boundary
+
+```text
+CRM_ENVIRONMENT_CLASS=ACTIVE_CANONICAL_BUSINESS_CRM
+SYNTHETIC_ONLY=YES
+PRIVATE_ALLOWLIST_REQUIRED=YES
+EXACT_ID_TARGETING_REQUIRED=YES
+PRIVATE_BINDING_PUBLICATION=NO
+
+PRIVATE_LOCATION_ID_REQUIRED=YES
+PRIVATE_CONTACT_ID_REQUIRED=YES
+PRIVATE_PROVIDER_CREDENTIAL_SOURCE_REQUIRED=YES
+CALLER_MAY_OVERRIDE_LOCATION_ID=NO
+CALLER_MAY_OVERRIDE_CONTACT_ID=NO
+
+CREATE_NOTE_ALLOWED_BODY_FIELDS=body
+CREATE_NOTE_DENIED_BODY_FIELDS=userId,title,color,pinned
+NOTE_BODY_SOURCE=adapter-internal note_contract derived only from fixtures/transcript-success.txt
+NOTE_BODY_DIGEST_MUST_BE_FROZEN_BEFORE_EXECUTION=YES
+```
+
+Private location/contact IDs and credential values must not be committed or published. A later unconsumed consumption record must bind the private target readiness and freeze the normalized expected note-body SHA256 without disclosing secret or customer data.
+
+## 5. Hard prohibitions
+
+```text
+NO_SEARCH=YES
+NO_LIST=YES
+NO_PAGINATION=YES
+NO_RETRY=YES
+NO_FALLBACK_OPERATION=YES
+NO_ALTERNATE_OPERATION=YES
+NO_AUTOMATIC_CLEANUP=YES
+NO_COMPENSATING_MUTATION=YES
+NO_BATCH=YES
+NO_GENERIC_EXECUTE=YES
+NO_ARBITRARY_URL=YES
+NO_ARBITRARY_METHOD=YES
+
+CONTACT_CREATE_ALLOWED=NO
+CONTACT_DELETE_ALLOWED=NO
+OPPORTUNITY_CREATE_ALLOWED=NO
+OPPORTUNITY_DELETE_ALLOWED=NO
+EMAIL_SMS_ALLOWED=NO
+CALENDAR_MUTATION_ALLOWED=NO
+
+GET_OPPORTUNITY_ALLOWED=NO
+UPDATE_OPPORTUNITY_STAGE_ALLOWED=NO
+STAGE_PATH_AUTHORIZED=NO
+STAGE_PATH_BLOCKER=MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+
+TERRAFORM_APPLY_ALLOWED=NO
+DEPLOYMENT_ALLOWED=NO
+IAM_MUTATION_ALLOWED=NO
+SECRET_MUTATION_ALLOWED=NO
+SECRET_PAYLOAD_READ_ALLOWED=NO
+RESOURCE_DESTROY_ALLOWED=NO
+```
+
+## 6. One-shot consumption semantics
+
+If and only if a separate Human Activation 001 is independently reviewed and merged, a fresh unconsumed Consumption Record 001 exists, and a separate explicit human execution act is present, the future execution ceiling is:
+
+```text
+CONSUMPTION_TRIGGER=FIRST_LIVE_PROVIDER_DISPATCH
+EXPECTED_FIRST_DISPATCH=get_contact
+AUTHORITY_CONSUMED_ON_FIRST_DISPATCH=YES
+CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
+AUTHORIZATION_REUSABLE=NO
+ACTIVATION_REUSABLE=NO
+NO_SECOND_RUN=YES
+NO_RETRY=YES
+NO_COMPENSATING_MUTATION=YES
+```
+
+If `get_contact` fails, `create_note` must not execute. If `create_note` fails, no retry or compensating mutation is authorized. `get_note` may use only a valid note ID returned by the same successful create operation; it may never search or list for a note.
+
+## 7. Future Human Activation requirement
+
+This authorization definition does not choose a RUN_ID or activation window.
+
+```text
+HUMAN_ACTIVATION_REQUIRED=YES
+HUMAN_ACTIVATION_CREATED_IN_THIS_UNIT=NO
+CONSUMPTION_RECORD_CREATED_IN_THIS_UNIT=NO
+EXPLICIT_HUMAN_EXECUTION_ACT_REQUIRED=YES
+
+FUTURE_ACTIVATION_MUST_BIND=
+  - this exact authorization artifact and merged PR/head/merge SHA
+  - PR 417 plan merge SHA 5dcc308d66e27a93119d6f8f4eb44be3f5242e9b
+  - Reasoning Engine 5719342828341952512
+  - fresh unique RUN_ID
+  - fixed UTC execution window of at most 60 minutes
+  - private exact-ID location/contact allowlist readiness
+  - exact operation sequence get_contact -> create_note -> get_note
+  - MAX_TOTAL_GHL_MUTATIONS=1
+  - NOTE_BODY_SHA256 frozen before explicit execution
+  - CONSUMPTION_TRIGGER=FIRST_LIVE_PROVIDER_DISPATCH
+  - CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
+  - NO_RETRY=YES
+  - explicit human execution authority after consumption preparation
+```
+
+## 8. Future success contract
+
+A later authorized one-shot run may report PASS only if all predicates hold:
+
+```text
+GET_CONTACT_STATUS=PASS
+CONTACT_ID_MATCH=YES
+LOCATION_ID_MATCH=YES
+CREATE_NOTE_STATUS=PASS
+NOTE_ID_RETURNED=YES
+NOTE_CONTACT_ID_MATCH=YES
+GET_NOTE_STATUS=PASS
+READBACK_NOTE_ID_MATCH=YES
+READBACK_CONTACT_ID_MATCH=YES
+READBACK_BODY_SHA256_MATCH=YES
+GHL_MUTATIONS=1
+NOTE_CREATIONS=1
+STAGE_TRANSITIONS=0
+END_TO_END_NOTE_PATH_ACCEPTANCE=PASS
+```
+
+Any mismatch fails closed and authorizes no retry, second run, alternate target, search, cleanup, or compensation.
+
+## 9. Current zero-effect ledger
+
+```text
+AUTHORIZATION_ARTIFACT_CREATED=YES
+AUTHORIZATION_EFFECTIVE=NO
+ACTIVATION_EFFECTIVE=NO
+AUTHORIZATION_CONSUMED=NO
+LIVE_PROVIDER_EXECUTION_AUTHORIZED_NOW=NO
+GHL_CALLS=0
+CRM_MUTATIONS=0
+TERRAFORM_APPLY_EXECUTED=NO
+DEPLOYMENT_EXECUTED=NO
+IAM_MUTATIONS=0
+SECRET_MUTATIONS=0
+DESTROYS=0
+```
+
+## 10. Stop
+
+```text
+NEXT=INDEPENDENT_REVIEW_BEFORE_HUMAN_ACTIVATION_001
+STOP=AUTHORIZATION_DEFINITION_ONLY_NO_EXECUTION
+```
