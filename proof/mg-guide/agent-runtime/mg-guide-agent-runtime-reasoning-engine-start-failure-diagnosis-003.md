@@ -187,8 +187,16 @@ File /code/app/api/factory/python_file_api_builder.py
 
 No `ModuleNotFoundError`, `ImportError`, `PermissionDenied`,
 `resourcemanager.projects.get`, VPC/egress, or credentials failures appear in
-the retrieved build/stderr/stdout set. `app.agent` import itself succeeded far
-enough for the control plane to inspect class `SequentialAgent`.
+the retrieved build/stderr/stdout set. The module import and entrypoint-object
+resolution both succeeded far enough for the control plane to inspect class
+`SequentialAgent`; default registered-operation discovery then failed.
+
+```text
+MODULE_IMPORT=PASS
+ENTRYPOINT_OBJECT_RESOLUTION=PASS
+FAILED_ENTRYPOINT_TYPE=SequentialAgent
+REGISTERED_OPERATION_DISCOVERY=FAIL
+```
 
 ## 6. Bound Attempt-004 entrypoint contract
 
@@ -217,6 +225,16 @@ The deployed object selected by `ENTRYPOINT_OBJECT=root_agent` is
 `async_stream_query`. `SequentialAgent` defines none of those methods. That
 matches the first stderr exception exactly.
 
+The exported `google.adk.apps.App` object was not the Attempt 004 entrypoint,
+and this diagnosis did not execute its Agent Runtime operation-registration
+contract. It is therefore not proof that `App` is a valid Agent Runtime serving
+object.
+
+```text
+GOOGLE_ADK_APP_RUNTIME_CONTRACT_PROVEN=NO
+EXPECTED_REPAIR_WRAPPER=vertexai.agent_engines.AdkApp
+```
+
 ## 7. High-priority upstream correlation (not proof)
 
 Public ADK issues remain correlation-only unless stderr matches:
@@ -237,14 +255,14 @@ AGENT_PY_SHIM_AUTHORIZED=NO
 Attempt 004 stderr does not show a missing-module import of `app.agent` or a
 generic 1.18.0 installer crash. It shows a successful import of a
 `SequentialAgent` object that the control plane then rejects for missing query
-operations. That is an entrypoint-object compatibility failure under the
-current `python_spec`, not a proven need to upgrade `google-adk` or add a
+operations. That is an Agent Runtime entrypoint-object contract failure under
+the current `python_spec`, not a proven need to upgrade `google-adk` or add a
 top-level `agent.py` shim.
 
 ## 8. Classification
 
 ```text
-ROOT_CAUSE_CLASS=ADK_ENTRYPOINT_IMPORT_COMPATIBILITY
+ROOT_CAUSE_CLASS=AGENT_RUNTIME_ENTRYPOINT_OBJECT_CONTRACT
 EVIDENCE_SOURCE=
   reasoning_engine_build
   reasoning_engine_stderr
@@ -263,11 +281,11 @@ NOT_PLATFORM_RUNTIME=YES
 NOT_UNKNOWN=YES
 ```
 
-`ADK_ENTRYPOINT_IMPORT_COMPATIBILITY` is selected because the first exception
-is the Agent Runtime control plane rejecting `Class SequentialAgent` as the
-entrypoint object bound by `app.agent:root_agent`. Import of the module
-occurred; the imported object type is incompatible with default registered
-operations.
+`AGENT_RUNTIME_ENTRYPOINT_OBJECT_CONTRACT` is selected because module import
+and `app.agent:root_agent` resolution succeeded, then the Agent Runtime control
+plane rejected the resolved `SequentialAgent` during default registered-
+operation discovery. The failure is the serving-object contract, not module
+import compatibility.
 
 IAM/network classes are excluded: no `PermissionDenied` / `403` /
 `resourcemanager.projects.get` / VPC/egress/credentials hits. Platform
@@ -308,9 +326,9 @@ REPAIR_REQUIRED=YES
 NEXT=BOUNDED_RUNTIME_START_REPAIR_003
 ```
 
-A future bounded repair must make the Agent Runtime entrypoint object satisfy
-default registered operations (for example by binding the already-exported
-`App` object rather than `SequentialAgent` `root_agent`) under new
-independently reviewed authority. It must not reuse Attempt 004 authority,
-must not upgrade `google-adk` or add an `agent.py` shim unless a later proof
-requires that exact change, and must not apply Terraform under this diagnosis.
+A future bounded repair must preserve the existing `SequentialAgent` graph and
+expose it through `vertexai.agent_engines.AdkApp` as the Agent Runtime serving
+object. The existing `google.adk.apps.App` object may remain for local use, but
+its Agent Runtime serving contract is not proven by this diagnosis. The repair
+must not reuse Attempt 004 authority, upgrade `google-adk`, add an `agent.py`
+shim, or apply Terraform under this diagnosis.
