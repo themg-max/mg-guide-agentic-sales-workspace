@@ -4,8 +4,8 @@
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
+from typing import Optional
 
 
 ROOT = Path(__file__).resolve().parents[1] / "infra" / "agent-runtime"
@@ -25,6 +25,22 @@ def terraform_sources() -> str:
         for path in sorted(ROOT.rglob("*.tf"))
         if ".terraform" not in path.parts
     )
+
+
+def variable_block(sources: str, name: str) -> Optional[str]:
+    match = re.search(rf'variable\s+"{re.escape(name)}"\s*\{{', sources)
+    if match is None:
+        return None
+
+    depth = 0
+    for index in range(match.end() - 1, len(sources)):
+        if sources[index] == "{":
+            depth += 1
+        elif sources[index] == "}":
+            depth -= 1
+            if depth == 0:
+                return sources[match.end() : index]
+    return None
 
 
 def require_absent(sources: str, pattern: str, label: str) -> None:
@@ -62,12 +78,8 @@ def main() -> None:
     )
     require_absent(sources, r"mg-guide-orchestrator-app", "NO_MG_GUIDE_ORCHESTRATOR_APP")
 
-    variable = re.search(
-        r'variable\s+"runtime_service_account_email"\s*\{(?P<body>.*?)^\}',
-        sources,
-        re.DOTALL | re.MULTILINE,
-    )
-    if variable is None or re.search(r"^\s*default\s*=", variable.group("body"), re.MULTILINE):
+    variable = variable_block(sources, "runtime_service_account_email")
+    if variable is None or re.search(r"^\s*default\s*=", variable, re.MULTILINE):
         fail("RUNTIME_SA_VARIABLE_REQUIRED")
     print("RUNTIME_SA_VARIABLE_REQUIRED=PASS")
 
