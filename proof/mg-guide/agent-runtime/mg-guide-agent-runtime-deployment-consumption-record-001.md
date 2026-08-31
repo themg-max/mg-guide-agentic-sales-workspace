@@ -4,7 +4,7 @@
 RECORD_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_CONSUMPTION_RECORD_001
 RECORD_PATH=proof/mg-guide/agent-runtime/mg-guide-agent-runtime-deployment-consumption-record-001.md
 PR_CLASS=execution_proof
-MODE=PRE_APPLY_DURABLE_RESERVATION
+MODE=TERMINAL_ONE_SHOT_CONSUMPTION_RECORD
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 
 AUTHORIZATION_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_AUTHORIZATION_001
@@ -77,6 +77,6 @@ CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
 NEXT=RETURN_FOR_ORG_POLICY_REVIEW_NEW_AUTHORIZATION_REQUIRED_FOR_ANY_FUTURE_ATTEMPT
 ```
 
-This record is the durable pre-apply reservation required by Human Activation 001. It records only evidence already returned by the authenticated execution lane. It does not consume authority and does not authorize a second attempt.
+This record preserves the terminal consumption truth for Human Activation 001. Authority was consumed at `2026-08-31T04:12:01Z` immediately before the first and only Terraform apply attempt. The apply failed under the project resource-location Organization Policy, and the consumed authority is non-reusable.
 
-The next writer may change `CONSUMPTION_STATE` to `CONSUMED` only immediately before dispatch of the first and only Terraform apply attempt, after rechecking that current UTC remains inside the fixed activation window and that the exact saved plan remains the authorized one-resource create shape.
+No second apply, retry, fallback deployment, or compensating mutation is authorized by this record. Any future deployment attempt requires a new independently reviewed authorization and activation after the Organization Policy constraint is resolved or an approved deployment region is selected.
