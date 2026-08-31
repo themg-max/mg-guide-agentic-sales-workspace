@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import copy
 import json
 from pathlib import Path
 
@@ -278,3 +279,161 @@ def test_render_stages_html_ambiguous_fail_closed():
     )
     assert "NEEDS_REVIEW" in text
     assert "EXTERNAL_EFFECTS=0" in text
+
+
+# --- T-DRAFT: deterministic follow-up draft projection (UX v2) ---
+
+
+def _ux_for(fixture_name: str):
+    result, card = _run(fixture_name)
+    ux = project_ux_experience(
+        result.packet, card, workflow_status=result.final_state
+    )
+    return ux, result, card
+
+
+def test_t_draft_01_success_projects_safe_follow_up_draft():
+    ux, _, _ = _ux_for("transcript-success.expected.json")
+    draft = ux["follow_up_draft"]
+    assert draft["status"] == "READY"
+    assert draft["recipient_name"] == "Taylor Morgan"
+    assert draft["recipient_email"] == "taylor.morgan@example-demo.test"
+    assert draft["subject"] == "Follow-up: Taylor Morgan - Discovery Meeting"
+    assert draft["source"] == "meeting_follow_up_v1"
+    assert draft["requires_human_send"] is True
+    body = draft["body_text"]
+    assert body.startswith("Hi Taylor,")
+    assert "Thank you for your time today." in body
+    assert ux["summary"] in body
+    assert "Next step:\n" in body
+    assert ux["salesperson_next_step"] in body
+    assert "Please let me know if I missed anything" in body
+    assert body.rstrip().endswith("Alex")
+
+
+def test_t_draft_02_recipient_only_from_resolved_participant_context():
+    ux, result, _ = _ux_for("transcript-success.expected.json")
+    draft = ux["follow_up_draft"]
+    prospect = next(
+        p for p in result.packet["participants"] if p["role"] == "prospect"
+    )
+    assert draft["recipient_email"] == prospect["email"]
+    assert draft["recipient_name"] == prospect["name"]
+    # The agent participant is never the recipient.
+    agent = next(p for p in result.packet["participants"] if p["role"] == "agent")
+    assert draft["recipient_email"] != agent["email"]
+
+
+def test_t_draft_03_missing_recipient_means_not_available():
+    result, card = _run("transcript-success.expected.json")
+    packet = copy.deepcopy(result.packet)
+    for participant in packet["participants"]:
+        if participant.get("role") == "prospect":
+            participant["email"] = ""
+    ux = project_ux_experience(
+        packet, card, workflow_status=result.final_state
+    )
+    assert ux["ux_state"] == UX_COMPLETED
+    draft = ux["follow_up_draft"]
+    assert draft["status"] == "NOT_AVAILABLE"
+    assert draft["recipient_email"] is None
+    assert draft["subject"] is None
+    assert draft["body_text"] is None
+    assert draft["requires_human_send"] is True
+
+
+def test_t_draft_04_ambiguous_contact_means_not_available():
+    ux, _, _ = _ux_for("transcript-ambiguous-contact.expected.json")
+    assert ux["ux_state"] == UX_NEEDS_REVIEW
+    draft = ux["follow_up_draft"]
+    assert draft["status"] == "NOT_AVAILABLE"
+    assert draft["recipient_name"] is None
+    assert draft["recipient_email"] is None
+    assert draft["subject"] is None
+    assert draft["body_text"] is None
+
+
+def test_t_draft_15_no_raw_crm_ids_in_draft():
+    ux, result, _ = _ux_for("transcript-success.expected.json")
+    serialized = json.dumps(ux["follow_up_draft"])
+    crm = result.packet["crm_resolution"]
+    for raw_id in (crm.get("contact_id"), crm.get("opportunity_id")):
+        assert raw_id  # fixture carries synthetic raw IDs
+        assert raw_id not in serialized
+    assert "contact_demo" not in serialized
+    assert "opp_demo" not in serialized
+
+
+def test_t_draft_16_draft_body_is_deterministic_from_approved_fields():
+    ux1, result, card = _ux_for("transcript-success.expected.json")
+    ux2 = project_ux_experience(
+        result.packet, card, workflow_status=result.final_state
+    )
+    assert ux1["follow_up_draft"] == ux2["follow_up_draft"]
+    draft = ux1["follow_up_draft"]
+    # Body is composed only from approved fields: summary + next step + names.
+    assert draft["body_text"] == (
+        "Hi Taylor,\n\n"
+        "Thank you for your time today.\n\n"
+        f"{ux1['summary']}\n\n"
+        "Next step:\n"
+        f"{ux1['salesperson_next_step']}\n\n"
+        "Please let me know if I missed anything or if you would like to "
+        "adjust the next step.\n\n"
+        "Best,\n"
+        "Alex"
+    )
+
+
+def test_t_draft_17_crm_verified_wording_impossible_without_live_execution():
+    for fixture in (
+        "transcript-success.expected.json",
+        "transcript-ambiguous-contact.expected.json",
+        "transcript-no-stage-change.expected.json",
+    ):
+        ux, _, _ = _ux_for(fixture)
+        status = ux["crm_note_status"]
+        assert ux["permitted_action_result"]["LIVE_CRM_EXECUTION"] == "NOT_PERFORMED"
+        assert status["state"] != "VERIFIED"
+        assert "CRM note verified" not in json.dumps(ux)
+
+    ux, result, card = _ux_for("transcript-success.expected.json")
+    assert ux["crm_note_status"] == {
+        "state": "NOT_EXECUTED",
+        "display": "CRM note not executed in competition mode",
+    }
+    # Even a forged verified-effect marker cannot produce VERIFIED while
+    # LIVE_CRM_EXECUTION remains NOT_PERFORMED.
+    forged_card = copy.deepcopy(card)
+    forged_card["crm_effect"] = {"verified": True, "evidence": "provider_readback"}
+    ux_forged = project_ux_experience(
+        result.packet, forged_card, workflow_status=result.final_state
+    )
+    assert ux_forged["crm_note_status"]["state"] != "VERIFIED"
+    assert "CRM note verified" not in json.dumps(ux_forged["crm_note_status"])
+
+    ux_amb, _, _ = _ux_for("transcript-ambiguous-contact.expected.json")
+    assert ux_amb["crm_note_status"]["state"] == "BLOCKED"
+    assert "No change performed" in ux_amb["crm_note_status"]["display"]
+
+
+def test_t_draft_18_existing_backend_behavior_unchanged():
+    # SUCCESS core contract
+    ux, result, _ = _ux_for("transcript-success.expected.json")
+    assert result.final_state == "completed"
+    assert ux["ux_state"] == UX_COMPLETED
+    assert ux["policy_decision"]["note_write"] == "allowed"
+    assert ux["policy_decision"]["stage_write"] == "allowed"
+    assert ux["policy_decision"]["reason_codes"] == []
+    assert ux["permitted_action_result"]["external_effects"] == 0
+    assert ux["permitted_action_result"]["crm_changes_made"] is False
+    assert ux["audit_status"]["final_disposition"] == "completed"
+    # AMBIGUOUS_CONTACT core contract
+    ux_amb, result_amb, _ = _ux_for("transcript-ambiguous-contact.expected.json")
+    assert result_amb.final_state == "blocked"
+    assert ux_amb["ux_state"] == UX_NEEDS_REVIEW
+    assert ux_amb["policy_decision"]["note_write"] == "not_attempted"
+    assert ux_amb["policy_decision"]["stage_write"] == "not_attempted"
+    assert ux_amb["policy_decision"]["reason_codes"] == ["AMBIGUOUS_CONTACT"]
+    assert ux_amb["needs_review"]["zero_unauthorized_effects"] is True
+    assert ux_amb["permitted_action_result"]["external_effects"] == 0

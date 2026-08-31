@@ -13,6 +13,22 @@ JSONType = Dict[str, Any]
 UX_COMPLETED = "COMPLETED"
 UX_NEEDS_REVIEW = "NEEDS_REVIEW"
 
+# Deterministic follow-up draft projection (UX v2). Derived only from already
+# approved ux_experience fields; no model invocation, no CRM identifiers.
+DRAFT_READY = "READY"
+DRAFT_NOT_AVAILABLE = "NOT_AVAILABLE"
+FOLLOW_UP_DRAFT_SOURCE = "meeting_follow_up_v1"
+
+# Narrow CRM note display contract. VERIFIED requires explicit durable
+# verified-effect evidence from a future live backend response; policy
+# permission (note_write=allowed) is never execution proof.
+CRM_NOTE_STATUS_DISPLAY: Dict[str, str] = {
+    "NOT_EXECUTED": "CRM note not executed in competition mode",
+    "BLOCKED": "CRM update blocked. No change performed.",
+    "VERIFIED": "CRM note verified",
+    "UNKNOWN": "CRM note status unavailable. No CRM change confirmed.",
+}
+
 STAGE_SPECS: Sequence[Dict[str, Any]] = (
     {"stage_number": 1, "stage_id": "meeting_ready", "title": "Meeting ready"},
     {"stage_number": 2, "stage_id": "meeting_context", "title": "Meeting Context"},
@@ -363,6 +379,14 @@ def project_ux_experience(
         "proposed_follow_up": proposed_follow_up,
         "policy_decision": policy_decision,
         "permitted_action_result": permitted_action_result,
+        "crm_note_status": _crm_note_status(card, ux_state),
+        "follow_up_draft": _project_follow_up_draft(
+            ux_state=ux_state,
+            meeting_context=meeting_context,
+            summary=summary,
+            proposed_follow_up=proposed_follow_up,
+            salesperson_next_step=salesperson_next_step,
+        ),
         "audit_status": audit_status,
         "salesperson_next_step": salesperson_next_step,
         "extraction_confidence": evidence.get("extraction_confidence"),
@@ -418,6 +442,120 @@ def project_demo_payload(
             packet, card, workflow_status=workflow_status
         ),
     }
+
+
+def _crm_note_status(card: Mapping[str, Any], ux_state: str) -> JSONType:
+    """Narrow CRM note display state for the add-on.
+
+    VERIFIED is reachable only when a future live backend response carries
+    explicit durable verified-effect evidence (provider readback) AND live
+    execution was performed. Competition mode always resolves to NOT_EXECUTED
+    (completed) or BLOCKED (needs review); anything else fails closed to
+    UNKNOWN without verified wording.
+    """
+    effect = _mapping(card.get("crm_effect"))
+    live = str(effect.get("LIVE_CRM_EXECUTION") or DEMO_TRUTH["LIVE_CRM_EXECUTION"])
+    verified_evidence = (
+        effect.get("verified") is True
+        and effect.get("evidence") == "provider_readback"
+    )
+    if live == "PERFORMED" and verified_evidence:
+        state = "VERIFIED"
+    elif ux_state == UX_NEEDS_REVIEW:
+        state = "BLOCKED"
+    elif live == "NOT_PERFORMED":
+        state = "NOT_EXECUTED"
+    else:
+        state = "UNKNOWN"
+    return {"state": state, "display": CRM_NOTE_STATUS_DISPLAY[state]}
+
+
+def _project_follow_up_draft(
+    *,
+    ux_state: str,
+    meeting_context: Mapping[str, Any],
+    summary: Any,
+    proposed_follow_up: Mapping[str, Any],
+    salesperson_next_step: Any,
+) -> JSONType:
+    """Deterministic Gmail follow-up draft from approved UX fields only.
+
+    Permitted inputs: prospect name/email, agent name, meeting title, summary,
+    proposed follow-up summary, salesperson next step. Never raw CRM IDs,
+    provider responses, secrets, or private reasoning. The human sender is
+    always the only sender (requires_human_send=True); the add-on compose
+    action only ever creates an editable draft.
+    """
+    draft: JSONType = {
+        "status": DRAFT_NOT_AVAILABLE,
+        "recipient_name": None,
+        "recipient_email": None,
+        "subject": None,
+        "body_text": None,
+        "source": FOLLOW_UP_DRAFT_SOURCE,
+        "requires_human_send": True,
+    }
+    # A blocked or ambiguous relationship never gets a draft.
+    if ux_state != UX_COMPLETED:
+        return draft
+    prospect = _mapping(meeting_context.get("prospect"))
+    agent = _mapping(meeting_context.get("agent"))
+    recipient_email = str(prospect.get("email") or "").strip()
+    if not recipient_email:
+        return draft
+    recipient_name = str(prospect.get("name") or "").strip()
+    draft["recipient_name"] = recipient_name or None
+    draft["recipient_email"] = recipient_email
+    title = str(meeting_context.get("title") or "").strip() or "Meeting Follow-Up"
+    draft["subject"] = _draft_subject(title)
+    paragraph = str(proposed_follow_up.get("summary") or summary or "").strip()
+    if not paragraph:
+        paragraph = "It was a pleasure connecting with you."
+    next_step = str(salesperson_next_step or "").strip()
+    if not next_step:
+        next_step = "We will confirm the next step offline."
+    draft["body_text"] = _draft_body(
+        recipient_first_name=_first_name(recipient_name),
+        paragraph=paragraph,
+        next_step=next_step,
+        agent_first_name=_first_name(str(agent.get("name") or "").strip())
+        or "MG Guide",
+    )
+    draft["status"] = DRAFT_READY
+    return draft
+
+
+def _draft_subject(title: str) -> str:
+    clean = " ".join(str(title).split())[:120].strip() or "Meeting Follow-Up"
+    return f"Follow-up: {clean}"
+
+
+def _draft_body(
+    *,
+    recipient_first_name: str,
+    paragraph: str,
+    next_step: str,
+    agent_first_name: str,
+) -> str:
+    greeting = recipient_first_name or "there"
+    return (
+        f"Hi {greeting},\n\n"
+        "Thank you for your time today.\n\n"
+        f"{paragraph}\n\n"
+        "Next step:\n"
+        f"{next_step}\n\n"
+        "Please let me know if I missed anything or if you would like to "
+        "adjust the next step.\n\n"
+        "Best,\n"
+        f"{agent_first_name}"
+    )
+
+
+def _first_name(name: Optional[str]) -> str:
+    if not name:
+        return ""
+    parts = str(name).strip().split()
+    return parts[0] if parts else ""
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
