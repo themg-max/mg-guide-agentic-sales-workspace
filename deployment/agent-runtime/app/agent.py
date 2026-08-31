@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from google.adk.apps import App
+from vertexai import agent_engines
 
 
 SOURCE_ROOT = Path(__file__).resolve().parents[1] / "src"
@@ -17,3 +18,6 @@ from agents.follow_up_planning import build_unit3_root_agent  # noqa: E402
 
 root_agent = build_unit3_root_agent()
 app = App(root_agent=root_agent, name="app")
+# Agent Runtime serving object. SequentialAgent remains the graph; AdkApp
+# exposes Agent Engine registered operations around that existing root.
+agent_runtime_app = agent_engines.AdkApp(agent=root_agent)
