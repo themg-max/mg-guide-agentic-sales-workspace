@@ -22,6 +22,19 @@ ERROR_SCENARIO_BLOCKED = "SCENARIO_BLOCKED"
 PRIMARY_SCENARIOS = ("SUCCESS", "AMBIGUOUS_CONTACT")
 OPTIONAL_SCENARIOS = ("STAGE_CHANGE_DENIED",)
 
+# Narrow CRM note display contract (mirrors the backend truth emitted in
+# ux_experience.crm_note_status). VERIFIED wording is only ever rendered when
+# the backend reports live execution with durable verified-effect evidence.
+CRM_NOTE_STATUS_DISPLAY = {
+    "NOT_EXECUTED": "CRM note not executed in competition mode",
+    "BLOCKED": "CRM update blocked. No change performed.",
+    "VERIFIED": "CRM note verified",
+    "UNKNOWN": "CRM note status unavailable. No CRM change confirmed.",
+}
+
+DRAFT_COMPOSE_FUNCTION = "createFollowUpDraft"
+DRAFT_COMPOSE_BUTTON_TEXT = "Open Draft in Gmail"
+
 STAGE_TITLES = (
     "Meeting ready",
     "Meeting Context",
@@ -33,7 +46,11 @@ STAGE_TITLES = (
 
 
 def project_cardservice_home() -> JSONType:
-    """Homepage card model: branding + scenario selectors."""
+    """Homepage card model: product-first Meeting Follow-Up experience.
+
+    The primary call to action is the salesperson journey; judge-only
+    fail-closed scenarios live in a separate secondary section.
+    """
     return {
         "card_id": "mg_guide_home",
         "header": {
@@ -42,56 +59,56 @@ def project_cardservice_home() -> JSONType:
         },
         "sections": [
             {
-                "header": PRODUCT_NAME,
-                "widgets": [
-                    {"type": "text", "text": f"<b>{PRODUCT_NAME}</b>"},
-                    {"type": "text", "text": PRODUCT_ATTRIBUTION},
-                    {
-                        "type": "text",
-                        "text": (
-                            f"Primary experience: <b>{PRIMARY_CAPABILITY}</b>. "
-                            "Synthetic competition scenarios only. "
-                            "LIVE_CRM_EXECUTION=NOT_PERFORMED."
-                        ),
-                    },
-                ],
-            },
-            {
                 "header": PRIMARY_CAPABILITY,
                 "widgets": [
                     {
+                        "type": "text",
+                        "text": (
+                            f"<b>{PRIMARY_CAPABILITY}</b><br>"
+                            "Turn a completed meeting into relationship context, "
+                            "CRM-ready documentation, and a follow-up draft."
+                        ),
+                    },
+                    {
+                        "type": "text",
+                        "text": (
+                            "<b>Competition mode</b><br>"
+                            "Approved synthetic transcript · governed CRM boundary"
+                        ),
+                    },
+                    {
                         "type": "button",
-                        "text": "Run SUCCESS",
+                        "text": "Process Meeting Follow-Up",
                         "action": "runScenario",
                         "parameters": {"scenario": "SUCCESS"},
                         "style": "filled",
                     },
-                    {
-                        "type": "button",
-                        "text": "Run AMBIGUOUS_CONTACT",
-                        "action": "runScenario",
-                        "parameters": {"scenario": "AMBIGUOUS_CONTACT"},
-                        "style": "filled",
-                    },
-                    {
-                        "type": "button",
-                        "text": "Run STAGE_CHANGE_DENIED (optional)",
-                        "action": "runScenario",
-                        "parameters": {"scenario": "STAGE_CHANGE_DENIED"},
-                        "style": "text",
-                    },
                 ],
             },
             {
-                "header": "Truth boundary",
+                "header": "Judge test scenarios",
                 "widgets": [
                     {
                         "type": "text",
                         "text": (
-                            "No live CRM writes. external_effects stay 0 on this "
-                            "judge path. CRM mutations are not performed."
+                            "Fail-closed test scenarios for judges. "
+                            "No CRM writes on this path."
                         ),
-                    }
+                    },
+                    {
+                        "type": "button",
+                        "text": "Ambiguous contact",
+                        "action": "runScenario",
+                        "parameters": {"scenario": "AMBIGUOUS_CONTACT"},
+                        "style": "text",
+                    },
+                    {
+                        "type": "button",
+                        "text": "Policy guardrail",
+                        "action": "runScenario",
+                        "parameters": {"scenario": "STAGE_CHANGE_DENIED"},
+                        "style": "text",
+                    },
                 ],
             },
         ],
@@ -195,35 +212,27 @@ def project_cardservice_result(judge_response: Mapping[str, Any]) -> JSONType:
         or _mapping(ux.get("permitted_action_result")).get("LIVE_CRM_EXECUTION")
         or "NOT_PERFORMED"
     )
+    crm_note_status = _crm_note_status_view(ux)
+    draft = _mapping(ux.get("follow_up_draft"))
+    draft_ready = ux_state == "COMPLETED" and str(draft.get("status")) == "READY"
 
-    sections: List[JSONType] = [
-        {
-            "header": f"{PRODUCT_NAME} · {PRIMARY_CAPABILITY}",
-            "widgets": [
-                {"type": "text", "text": f"<b>{PRODUCT_NAME}</b>"},
-                {"type": "text", "text": PRODUCT_ATTRIBUTION},
-                {
-                    "type": "key_value",
-                    "top_label": "Scenario",
-                    "content": scenario,
-                },
-                {
-                    "type": "key_value",
-                    "top_label": "UX_STATE",
-                    "content": ux_state,
-                },
-                {
-                    "type": "key_value",
-                    "top_label": "workflow_status",
-                    "content": workflow_status,
-                },
-            ],
-        }
-    ]
-
-    sections.extend(_stage_sections(stages))
-    sections.append(_result_section(ux, policy, audit, ux_audit, external_effects, live_crm))
-    sections.append(_truth_section(external_effects, live_crm, ux_state))
+    sections: List[JSONType] = []
+    if ux_state == "NEEDS_REVIEW":
+        sections.append(_needs_review_overview_section(ux, crm_note_status))
+    else:
+        sections.append(_follow_up_ready_section(ux, draft, crm_note_status))
+    sections.append(_processing_status_section(ux_state, workflow_status, stages))
+    sections.append(_what_we_heard_section(ux))
+    sections.append(_relationship_section(ux))
+    sections.append(_crm_section(ux, crm_note_status))
+    if draft_ready:
+        sections.append(_draft_preview_section(draft))
+        sections.append(_compose_action_section(scenario))
+    sections.append(
+        _audit_integrity_section(
+            ux, policy, audit, ux_audit, stages, external_effects, live_crm, ux_state
+        )
+    )
 
     return {
         "card_id": "mg_guide_meeting_follow_up_result",
@@ -238,6 +247,8 @@ def project_cardservice_result(judge_response: Mapping[str, Any]) -> JSONType:
         },
         "external_effects": external_effects,
         "LIVE_CRM_EXECUTION": live_crm,
+        "crm_note_status": crm_note_status,
+        "follow_up_draft": _draft_card_model(draft),
         "salesperson_next_step": ux.get("salesperson_next_step"),
         "audit_status": ux_audit.get("display") or ux_audit.get("final_disposition"),
         "sections": sections,
@@ -251,250 +262,282 @@ def project_cardservice_result(judge_response: Mapping[str, Any]) -> JSONType:
     }
 
 
-def _stage_sections(stages: Sequence[Any]) -> List[JSONType]:
-    out: List[JSONType] = []
-    for index, raw in enumerate(stages):
-        stage = _mapping(raw)
-        title = str(stage.get("title") or STAGE_TITLES[index])
-        # Normalize optional "result card" suffix for display contract.
-        display_title = title.replace(" result card", "").strip()
-        if index == 5 and display_title == "Meeting Follow-Up":
-            display_title = "Meeting Follow-Up result"
-        evidence = _mapping(stage.get("evidence"))
-        widgets: List[JSONType] = [
-            {
-                "type": "key_value",
-                "top_label": "Stage status",
-                "content": str(stage.get("status") or ""),
-            }
-        ]
-        widgets.extend(_evidence_widgets(index, evidence))
-        out.append(
-            {
-                "header": f"{index + 1}. {display_title}",
-                "stage_number": index + 1,
-                "stage_id": stage.get("stage_id"),
-                "title": display_title,
-                "widgets": widgets,
-            }
-        )
-    return out
+def _kv(label: str, value: Any) -> JSONType:
+    text = "" if value is None else str(value)
+    return {
+        "type": "key_value",
+        "top_label": label,
+        "content": text if text.strip() else "—",
+    }
 
 
-def _evidence_widgets(index: int, evidence: Mapping[str, Any]) -> List[JSONType]:
-    widgets: List[JSONType] = []
-
-    def kv(label: str, value: Any) -> None:
-        if value is None or value == "" or value == []:
-            return
-        if isinstance(value, (list, dict)):
-            content = _compact(value)
-        else:
-            content = str(value)
-        widgets.append({"type": "key_value", "top_label": label, "content": content})
-
-    if index == 0:
-        kv("title", evidence.get("title"))
-        kv("source", evidence.get("source"))
-        kv("participants", evidence.get("participants"))
-    elif index == 1:
-        kv("summary", evidence.get("summary"))
-        kv("needs", evidence.get("needs"))
-        kv("next_step", evidence.get("next_step"))
-        kv("extraction_confidence", evidence.get("extraction_confidence"))
-    elif index == 2:
-        kv("resolution_status", evidence.get("resolution_status"))
-        kv("match_basis", evidence.get("match_basis"))
-        kv("candidate_count", evidence.get("candidate_count"))
-        kv("current_stage", evidence.get("current_stage"))
-    elif index == 3:
-        kv("note_intents", evidence.get("note_intents"))
-        kv("stage_intents", evidence.get("stage_intents"))
-        kv("note_execution_attempted", evidence.get("note_execution_attempted"))
-        kv("stage_execution_attempted", evidence.get("stage_execution_attempted"))
-    elif index == 4:
-        kv("note_write", evidence.get("note_write"))
-        kv("stage_write", evidence.get("stage_write"))
-        kv("reason_codes", evidence.get("reason_codes"))
-    else:
-        framing = _mapping(evidence.get("framing"))
-        brief = _mapping(evidence.get("brief"))
-        kv("card_state", evidence.get("card_state"))
-        kv("workflow_status", evidence.get("workflow_status"))
-        kv("headline", framing.get("headline") or brief.get("headline"))
-        kv("body", framing.get("body"))
-        kv("next_action", brief.get("next_action"))
-        kv("no_crm_changes_made", framing.get("no_crm_changes_made"))
-        kv("external_effects", _mapping(evidence.get("integrity")).get("external_effects"))
-        kv("LIVE_CRM_EXECUTION", evidence.get("LIVE_CRM_EXECUTION"))
-    return widgets
+def _relationship_display(status: Any) -> str:
+    raw = str(status or "").strip()
+    return {
+        "matched": "Matched",
+        "ambiguous": "Ambiguous",
+        "not_found": "Not found",
+    }.get(raw, raw or "—")
 
 
-def _result_section(
+def _crm_note_status_view(ux: Mapping[str, Any]) -> JSONType:
+    """Presentation-layer guard over the backend CRM note status.
+
+    Fail closed: only the four contract states render, and VERIFIED wording
+    can never appear unless the backend reports live execution performed.
+    Policy permission is never execution proof.
+    """
+    raw = _mapping(ux.get("crm_note_status"))
+    state = str(raw.get("state") or "")
+    display = str(raw.get("display") or "")
+    live = str(
+        _mapping(ux.get("permitted_action_result")).get("LIVE_CRM_EXECUTION")
+        or "NOT_PERFORMED"
+    )
+    if state == "VERIFIED" and live != "PERFORMED":
+        state = "UNKNOWN"
+        display = ""
+    if state not in CRM_NOTE_STATUS_DISPLAY:
+        state = "UNKNOWN"
+        display = ""
+    if not display:
+        display = CRM_NOTE_STATUS_DISPLAY[state]
+    return {"state": state, "display": display}
+
+
+def _follow_up_ready_section(
     ux: Mapping[str, Any],
-    policy: Mapping[str, Any],
-    audit: Mapping[str, Any],
-    ux_audit: Mapping[str, Any],
-    external_effects: int,
-    live_crm: str,
+    draft: Mapping[str, Any],
+    crm_note_status: Mapping[str, Any],
 ) -> JSONType:
-    widgets: List[JSONType] = [
-        {
-            "type": "key_value",
-            "top_label": "UX_STATE",
-            "content": str(ux.get("ux_state") or ""),
-        },
-        {
-            "type": "key_value",
-            "top_label": "Meeting summary",
-            "content": str(ux.get("summary") or ""),
-        },
-    ]
     rel = _mapping(ux.get("relationship_context"))
-    widgets.extend(
-        [
-            {
-                "type": "key_value",
-                "top_label": "Relationship status",
-                "content": str(rel.get("resolution_status") or ""),
-            },
-            {
-                "type": "key_value",
-                "top_label": "match_basis",
-                "content": str(rel.get("match_basis") or ""),
-            },
-            {
-                "type": "key_value",
-                "top_label": "candidate_count",
-                "content": str(rel.get("candidate_count")),
-            },
-        ]
-    )
-    proposed = _mapping(ux.get("proposed_follow_up"))
-    widgets.append(
-        {
-            "type": "key_value",
-            "top_label": "Proposed follow-up",
-            "content": str(
-                proposed.get("headline")
-                or proposed.get("summary")
-                or "See stage evidence"
-            ),
-        }
-    )
-    widgets.extend(
-        [
-            {
-                "type": "key_value",
-                "top_label": "policy.note_write",
-                "content": str(policy.get("note_write") or ""),
-            },
-            {
-                "type": "key_value",
-                "top_label": "policy.stage_write",
-                "content": str(policy.get("stage_write") or ""),
-            },
-            {
-                "type": "key_value",
-                "top_label": "policy.reason_codes",
-                "content": _compact(_list(policy.get("reason_codes"))),
-            },
-            {
-                "type": "key_value",
-                "top_label": "Salesperson next step",
-                "content": str(ux.get("salesperson_next_step") or ""),
-            },
-            {
-                "type": "key_value",
-                "top_label": "Audit status",
-                "content": str(
-                    ux_audit.get("display")
-                    or ux_audit.get("final_disposition")
-                    or audit.get("final_disposition")
-                    or ""
-                ),
-            },
-            {
-                "type": "key_value",
-                "top_label": "external_effects",
-                "content": str(external_effects),
-            },
-            {
-                "type": "key_value",
-                "top_label": "LIVE_CRM_EXECUTION",
-                "content": live_crm,
-            },
-        ]
-    )
+    relationship_word = "Matched" if rel.get("contact_resolved") else "Needs review"
+    meeting_word = "Understood" if ux.get("summary") else "Not available"
+    draft_word = "Ready" if str(draft.get("status")) == "READY" else "Not available"
+    return {
+        "header": "Follow-up ready",
+        "widgets": [
+            {"type": "text", "text": "<b>FOLLOW-UP READY</b>"},
+            _kv("Transcript", "Processed"),
+            _kv("Meeting", meeting_word),
+            _kv("Relationship", relationship_word),
+            _kv("CRM note", crm_note_status.get("display")),
+            _kv("Follow-up draft", draft_word),
+        ],
+    }
 
+
+def _needs_review_overview_section(
+    ux: Mapping[str, Any],
+    crm_note_status: Mapping[str, Any],
+) -> JSONType:
+    needs = _mapping(ux.get("needs_review"))
+    rel = _mapping(ux.get("relationship_context"))
+    return {
+        "header": "Needs review",
+        "widgets": [
+            {"type": "text", "text": "<b>NEEDS REVIEW</b>"},
+            _kv("Relationship", _relationship_display(rel.get("resolution_status"))),
+            _kv("CRM", crm_note_status.get("display")),
+            _kv("Draft", "Not created"),
+            {
+                "type": "text",
+                "text": f"<b>Why:</b> {needs.get('reason') or 'Follow-up requires review.'}",
+            },
+            {
+                "type": "text",
+                "text": str(needs.get("explicit_next_action") or ""),
+            },
+        ],
+    }
+
+
+def _processing_status_section(
+    ux_state: str,
+    workflow_status: str,
+    stages: Sequence[Any],
+) -> JSONType:
+    recorded = sum(1 for raw in stages if _mapping(raw).get("status"))
+    return {
+        "header": "Processing status",
+        "widgets": [
+            _kv("UX_STATE", ux_state),
+            _kv("Workflow", workflow_status),
+            _kv("Stages recorded", f"{recorded} of {len(list(stages))}"),
+        ],
+    }
+
+
+def _what_we_heard_section(ux: Mapping[str, Any]) -> JSONType:
+    proposed = _mapping(ux.get("proposed_follow_up"))
+    widgets: List[JSONType] = [_kv("Summary", ux.get("summary"))]
+    needs = _list(proposed.get("needs"))
+    if needs:
+        widgets.append(_kv("Key needs", _compact(needs)))
+    objections = _list(proposed.get("objections"))
+    if objections:
+        widgets.append(_kv("Objections", _compact(objections)))
+    widgets.append(_kv("Salesperson next step", ux.get("salesperson_next_step")))
+    return {"header": "What we heard", "widgets": widgets}
+
+
+def _relationship_section(ux: Mapping[str, Any]) -> JSONType:
+    rel = _mapping(ux.get("relationship_context"))
+    return {
+        "header": "Relationship",
+        "widgets": [
+            _kv("Status", _relationship_display(rel.get("resolution_status"))),
+            _kv("Match basis", rel.get("match_basis")),
+            _kv("candidate_count", rel.get("candidate_count")),
+        ],
+    }
+
+
+def _crm_section(
+    ux: Mapping[str, Any], crm_note_status: Mapping[str, Any]
+) -> JSONType:
+    widgets: List[JSONType] = [_kv("CRM note", crm_note_status.get("display"))]
     if str(ux.get("ux_state")) == "NEEDS_REVIEW":
         needs = _mapping(ux.get("needs_review"))
-        widgets.extend(
-            [
-                {
-                    "type": "text",
-                    "text": f"<b>Needs review:</b> {needs.get('reason') or ''}",
-                },
-                {
-                    "type": "text",
-                    "text": str(
-                        needs.get("zero_unauthorized_effects_message")
-                        or "No CRM changes were made."
-                    ),
-                },
-                {
-                    "type": "text",
-                    "text": (
-                        "Resolve contact identity before any CRM write."
-                        if "AMBIGUOUS_CONTACT"
-                        in [
-                            str(c)
-                            for c in _list(
-                                _mapping(needs.get("block_context")).get("reason_codes")
-                            )
-                        ]
-                        else str(needs.get("explicit_next_action") or "")
-                    ),
-                },
-            ]
-        )
-    else:
-        completed = _mapping(ux.get("completed"))
         widgets.append(
             {
                 "type": "text",
                 "text": str(
-                    completed.get("body")
-                    or "Governed follow-up intents are prepared. No live CRM write was performed."
+                    needs.get("zero_unauthorized_effects_message")
+                    or "No CRM changes were made."
                 ),
             }
         )
+    else:
+        widgets.append(
+            {
+                "type": "text",
+                "text": (
+                    "Policy permission is not execution proof. "
+                    "No live CRM write was performed."
+                ),
+            }
+        )
+    return {"header": "CRM", "widgets": widgets}
 
-    widgets.append(
-        {
-            "type": "button",
-            "text": "Back to MG Guide home",
-            "action": "showHome",
-            "parameters": {},
-            "style": "text",
-        }
-    )
-    return {"header": "Meeting Follow-Up result", "widgets": widgets}
+
+def _body_preview(text: Any, limit: int = 240) -> str:
+    body = str(text or "").strip()
+    if len(body) <= limit:
+        return body
+    return body[: limit - 1].rstrip() + "…"
 
 
-def _truth_section(external_effects: int, live_crm: str, ux_state: str) -> JSONType:
+def _draft_preview_section(draft: Mapping[str, Any]) -> JSONType:
+    recipient = str(draft.get("recipient_email") or "")
+    if draft.get("recipient_name"):
+        recipient = f"{draft['recipient_name']} <{draft['recipient_email']}>"
     return {
-        "header": "Integrity",
+        "header": "Follow-up draft",
+        "widgets": [
+            _kv("To", recipient),
+            _kv("Subject", draft.get("subject")),
+            {"type": "text", "text": _body_preview(draft.get("body_text"))},
+            {
+                "type": "text",
+                "text": (
+                    "Human review and send required. "
+                    "MG Guide never sends automatically."
+                ),
+            },
+        ],
+    }
+
+
+def _compose_action_section(scenario: str) -> JSONType:
+    return {
+        "header": "Send follow-up",
         "widgets": [
             {
                 "type": "text",
                 "text": (
-                    f"UX_STATE={ux_state} · external_effects={external_effects} · "
-                    f"LIVE_CRM_EXECUTION={live_crm} · CRM_MUTATIONS_PERFORMED=NO"
+                    "Opens an editable Gmail draft. "
+                    "You review it and decide whether to send."
                 ),
-            }
+            },
+            {
+                "type": "button",
+                "text": DRAFT_COMPOSE_BUTTON_TEXT,
+                "action": DRAFT_COMPOSE_FUNCTION,
+                "action_type": "compose",
+                "composed_email_type": "STANDALONE_DRAFT",
+                "parameters": {"scenario": scenario},
+                "style": "filled",
+            },
         ],
     }
+
+
+def _draft_card_model(draft: Mapping[str, Any]) -> JSONType:
+    if not draft:
+        return {
+            "status": "NOT_AVAILABLE",
+            "source": "meeting_follow_up_v1",
+            "requires_human_send": True,
+        }
+    return {
+        "status": str(draft.get("status") or "NOT_AVAILABLE"),
+        "recipient_name": draft.get("recipient_name"),
+        "recipient_email": draft.get("recipient_email"),
+        "subject": draft.get("subject"),
+        "body_preview": _body_preview(draft.get("body_text")),
+        "source": draft.get("source") or "meeting_follow_up_v1",
+        "requires_human_send": True,
+    }
+
+
+def _audit_integrity_section(
+    ux: Mapping[str, Any],
+    policy: Mapping[str, Any],
+    audit: Mapping[str, Any],
+    ux_audit: Mapping[str, Any],
+    stages: Sequence[Any],
+    external_effects: int,
+    live_crm: str,
+    ux_state: str,
+) -> JSONType:
+    widgets: List[JSONType] = []
+    for index, raw in enumerate(stages):
+        stage = _mapping(raw)
+        title = str(stage.get("title") or STAGE_TITLES[index])
+        display_title = title.replace(" result card", "").strip()
+        if index == 5 and display_title == "Meeting Follow-Up":
+            display_title = "Meeting Follow-Up result"
+        widgets.append(_kv(f"{index + 1}. {display_title}", stage.get("status")))
+    widgets.extend(
+        [
+            _kv("policy.note_write", policy.get("note_write")),
+            _kv("policy.stage_write", policy.get("stage_write")),
+            _kv("policy.reason_codes", _compact(_list(policy.get("reason_codes")))),
+            _kv(
+                "Audit status",
+                ux_audit.get("display")
+                or ux_audit.get("final_disposition")
+                or audit.get("final_disposition"),
+            ),
+            {
+                "type": "text",
+                "text": (
+                    f"UX_STATE={ux_state} · external_effects={external_effects} · "
+                    f"LIVE_CRM_EXECUTION={live_crm} · CRM_MUTATIONS_PERFORMED=NO · "
+                    "EMAIL_AUTO_SEND=FORBIDDEN"
+                ),
+            },
+            {
+                "type": "button",
+                "text": "Back to MG Guide home",
+                "action": "showHome",
+                "parameters": {},
+                "style": "text",
+            },
+        ]
+    )
+    return {"header": "Audit and integrity", "widgets": widgets}
 
 
 def _visible_field_index(
@@ -506,6 +549,12 @@ def _visible_field_index(
     ux_audit: Mapping[str, Any],
 ) -> JSONType:
     rel = _mapping(ux.get("relationship_context"))
+    draft = _mapping(ux.get("follow_up_draft"))
+    crm_note_status = _crm_note_status_view(ux)
+    draft_ready = (
+        str(ux.get("ux_state")) == "COMPLETED"
+        and str(draft.get("status")) == "READY"
+    )
     return {
         "ux_state": ux.get("ux_state"),
         "summary_present": bool(ux.get("summary")),
@@ -522,6 +571,9 @@ def _visible_field_index(
         ),
         "external_effects": external_effects,
         "LIVE_CRM_EXECUTION": live_crm,
+        "crm_note_status": crm_note_status["state"],
+        "follow_up_draft_status": str(draft.get("status") or "NOT_AVAILABLE"),
+        "compose_action_count": 1 if draft_ready else 0,
         "stage_count": len(list(stages)),
         "stage_titles": [
             str(_mapping(s).get("title") or "").replace(" result card", "").strip()
