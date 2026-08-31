@@ -88,7 +88,7 @@ See [docs/judges/JUDGE_ACCESS.md](docs/judges/JUDGE_ACCESS.md).
 
 Use only the provided competition Workspace account.
 
-1. Sign into `airolodex.judge@themiliare-group.com`.
+1. Sign into `mg_guide.judge@themiliare-group.com`.
 2. Open Gmail or Calendar in Google Workspace.
 3. Launch **MG Guide**.
 4. Run **Meeting Follow-Up**.
