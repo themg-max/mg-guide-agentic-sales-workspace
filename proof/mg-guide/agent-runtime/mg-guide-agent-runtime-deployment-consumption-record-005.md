@@ -3,8 +3,8 @@
 ```text
 RECORD_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_CONSUMPTION_RECORD_005
 RECORD_PATH=proof/mg-guide/agent-runtime/mg-guide-agent-runtime-deployment-consumption-record-005.md
-PR_CLASS=proof_only
-MODE=PREPARED_CONSUMPTION_RECORD_NO_APPLY
+PR_CLASS=execution_proof
+MODE=TERMINAL_ONE_SHOT_CONSUMPTION_RECORD
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 
 AUTHORIZATION_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_AUTHORIZATION_005
@@ -30,16 +30,14 @@ AUTHORIZATION_405_PRESENT_ON_ORIGIN_MAIN=YES
 AUTHORIZATION_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
 ACTIVATION_406_PRESENT_ON_ORIGIN_MAIN=YES
 ACTIVATION_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
-AUTHORIZATION_CONSUMED=NO
 
 PREPARED_AT_UTC=2026-08-31T13:22:48Z
 CURRENT_TIME_INSIDE_ACTIVATION_WINDOW=YES
 ```
 
-This record prepares Attempt 005 evidence only. It does not run
-`terraform apply`, does not deploy, does not consume Authorization 005 or
-Human Activation 005, and does not mutate IAM, secrets, service accounts,
-GHL, or CRM state.
+Sections 1 through 6 record the preparation evidence produced before the
+separate explicit human execution act. Section 7 records the human execution
+act and the terminal one-shot consumption outcome.
 
 ## 1. Fresh source package
 
@@ -159,23 +157,55 @@ PLAN_MUTATES_SECRET=NO
 PLAN_DESTROYS_RESOURCE=NO
 ```
 
-## 7. Terminal state
+## 7. Human execution act and terminal one-shot outcome
 
-The plan file was not altered after its SHA256 was computed. No apply was
-dispatched. Authority remains fully unconsumed and waiting on a separate
-explicit human execution act inside the activation window.
+A separate explicit human execution act was received inside the activation
+window. It referenced this record's exact RUN_ID, the exact source package
+SHA256, and the exact saved plan SHA256, and authorized exactly one
+`terraform apply` attempt with consumption on the attempt, whether successful
+or failed, with no retry, fallback, IAM change, secret mutation,
+service-account-key creation, GHL call, or CRM mutation.
 
 ```text
-CONSUMPTION_STATE=PREPARED_UNCONSUMED
-AUTHORITY_CONSUMED=NO
-AUTHORIZATION_CONSUMED=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=YES
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_RECEIVED_AT_UTC=2026-08-31T13:48:28Z
+ACTIVATION_EFFECTIVE=YES
 
-EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=NO
+FINAL_PRE_APPLY_VERIFIED_AT_UTC=2026-08-31T13:50:15Z
+PLAN_FILE_SHA256_MATCH=YES
+PLAN_FILE_UNALTERED_SINCE_PREPARATION=YES
+CURRENT_TIME_INSIDE_ACTIVATION_WINDOW_AT_DISPATCH=YES
 
-APPLY_ATTEMPT_STARTED=NO
-TERRAFORM_APPLY_ATTEMPTS=0
-TERRAFORM_APPLY_EXECUTED=NO
+CONSUMPTION_STATE=CONSUMED
+AUTHORITY_CONSUMED=YES
+AUTHORIZATION_CONSUMED=YES
+CONSUMED_AT_UTC=2026-08-31T13:50:15Z
+CONSUMPTION_TRIGGER=FIRST_TERRAFORM_APPLY_ATTEMPT
+
+APPLY_COMMAND=terraform apply -input=false <ephemeral>/mg-guide-agent-runtime-attempt-005.tfplan
+APPLY_ATTEMPT_STARTED=YES
+APPLY_DISPATCHED_AT_UTC=2026-08-31T13:50:15Z
+APPLY_COMPLETED_AT_UTC=2026-08-31T13:54:42Z
+TERRAFORM_APPLY_EXIT=1
+TERRAFORM_APPLY_ATTEMPTS=1
+TERRAFORM_APPLY_EXECUTED=YES
 DEPLOYMENT_EXECUTED=NO
+DEPLOYMENT_RESULT=FAILED_REASONING_ENGINE_START
+TERRAFORM_APPLY_ERROR=REASONING_ENGINE_FAILED_TO_START
+TERRAFORM_APPLY_ERROR_CODE=3
+OBSERVED_REASONING_ENGINE_ID=6699297959760101376
+APPLY_LOG_SHA256=fe06dc790928a62c1c16fcdd3a01876e8d83a22d9bacf3d4318e28c180ac30be
+APPLY_LOG_COMMITTED_TO_REPOSITORY=NO
+
+TERRAFORM_STATE_RESOURCES=0
+VERTEX_REASONING_ENGINE_LIST_HTTP_STATUS=200
+VERTEX_REASONING_ENGINES_RETURNED=0
+AGENT_RUNTIME_RESOURCES_CREATED=0
+EXPECTED_RESOURCE_PRESENT=NO
+POST_APPLY_VERIFIED_AT_UTC=2026-08-31T13:55:23Z
+
+RETRY_AUTHORIZED=NO
+AGENTS_CLI_DEPLOY_EXECUTED=NO
 
 SERVICE_ACCOUNTS_CREATED=0
 SERVICE_ACCOUNT_KEYS_CREATED=0
@@ -185,10 +215,22 @@ GHL_CALLS=0
 CRM_MUTATIONS=0
 DESTROYS=0
 
-STOP=WAITING_FOR_SEPARATE_EXPLICIT_HUMAN_EXECUTION_ACT
+MAX_TERRAFORM_APPLY_ATTEMPTS=1
+NO_RETRY=YES
+NO_SECOND_APPLY=YES
+NO_FALLBACK_DEPLOYMENT=YES
+NO_COMPENSATING_MUTATION=YES
+CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
+
+STOP=TERMINAL_ONE_SHOT_DEPLOYMENT_RESULT
 ```
 
-This record is preparation evidence only. Consumption Record 005 remains
-`PREPARED_UNCONSUMED`; any apply attempt requires a separate explicit human
-execution act referencing this record, the saved plan SHA256 values above,
-and the unexpired activation window.
+This record is terminal. The first and only authorized apply attempt was
+dispatched after the separate explicit human execution act and returned exit
+code 1 because Reasoning Engine resource
+`projects/831270426395/locations/us-east1/reasoningEngines/6699297959760101376`
+failed to start and could not serve traffic. Post-apply read-only checks
+confirmed zero Terraform state resources and zero Vertex AI Reasoning Engines
+in `us-east1`. Authority for Attempt 005 is consumed; retry, second apply,
+fallback deployment, and compensating mutation are prohibited. Any further
+deployment attempt requires fresh authorization and fresh human activation.
