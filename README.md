@@ -94,7 +94,7 @@ experience.
 
 Judge competition Workspace account:
 
-`airolodex.judge@themiliare-group.com`
+`mg_guide.judge@themiliare-group.com`
 
 The password / access secret is provided privately through the Devpost testing
 credentials / authorized judge instructions and is intentionally not committed
