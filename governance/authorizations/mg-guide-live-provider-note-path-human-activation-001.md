@@ -1,0 +1,207 @@
+# MG Guide Live Provider NOTE_PATH Human Activation 001
+
+## 1. Activation identity and boundary
+
+```text
+AUTHORIZATION_ID=MG_GUIDE_LIVE_PROVIDER_NOTE_PATH_AUTHORIZATION_001
+AUTHORIZATION_PR=418
+AUTHORIZATION_HEAD=16b23e9e051233dfd9262aed7d583ce973031423
+AUTHORIZATION_MERGE_SHA=bfec783b2fd25e09c09540664866c2c5c7bd4c2d
+
+ACTIVATION_ID=MG_GUIDE_LIVE_PROVIDER_NOTE_PATH_HUMAN_ACTIVATION_001
+ARTIFACT_PATH=governance/authorizations/mg-guide-live-provider-note-path-human-activation-001.md
+PR_CLASS=authorization
+MODE=ACTIVATION_PREPARATION_ONLY
+OWNER=VS_CODE_ORCHESTRATOR+HUMAN_GOVERNANCE
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+RECORDED_AT_UTC=2026-08-31T16:43:24Z
+BASE_MAIN_SHA=bfec783b2fd25e09c09540664866c2c5c7bd4c2d
+STATUS_AT_AUTHORING=PROPOSED_PENDING_INDEPENDENT_REVIEW
+```
+
+This artifact finalizes a fresh bounded human activation identity for the merged NOTE_PATH Authorization 001. It does not invoke HighLevel, mutate CRM, consume authority, or constitute the separate explicit human execution act.
+
+## 2. Upstream bindings
+
+```text
+LIVE_PROVIDER_E2E_PLAN_PR=417
+LIVE_PROVIDER_E2E_PLAN_MERGE_SHA=5dcc308d66e27a93119d6f8f4eb44be3f5242e9b
+
+AUTHORIZATION_PR=418
+AUTHORIZATION_HEAD=16b23e9e051233dfd9262aed7d583ce973031423
+AUTHORIZATION_MERGE_SHA=bfec783b2fd25e09c09540664866c2c5c7bd4c2d
+AUTHORIZATION_ARTIFACT=governance/authorizations/mg-guide-live-provider-note-path-authorization-001.md
+AUTHORIZATION_ARTIFACT_ON_MAIN=YES
+
+ATTEMPT_006_CLOSED=YES
+ATTEMPT_006_AUTHORITY_REUSABLE=NO
+REASONING_ENGINE_ID=5719342828341952512
+```
+
+## 3. Fresh activation identity
+
+```text
+RUN_ID=mg-guide-live-provider-note-path-001-20260831T164324Z-a1c9
+RUN_ID_FINALIZED=YES
+RUN_ID_REUSES_ATTEMPT_006=NO
+RUN_ID_REUSES_PRIOR_PROVIDER_AUTHORITY=NO
+
+WINDOW_START_UTC=2026-08-31T16:43:24Z
+WINDOW_END_UTC=2026-08-31T17:38:24Z
+WINDOW_DURATION_MINUTES=55
+WINDOW_DURATION_MINUTES_LE_60=YES
+WINDOW_START_BEFORE_END=YES
+WINDOW_EXTENDABLE=NO
+ACTIVATION_REUSABLE=NO
+ACTIVATION_TRANSFERABLE=NO
+```
+
+The window is fixed and non-extendable. If it expires before first provider dispatch, this activation cannot be reused or extended; a new governed activation is required.
+
+## 4. Exact NOTE_PATH scope
+
+```text
+ACTIVATED_SLICE=NOTE_PATH_ONLY
+PROVIDER=HighLevel REST v3
+INPUT=fixtures/transcript-success.txt
+INPUT_CLASS=SYNTHETIC_APPROVED_FIXTURE
+PRIVATE_CLIENT_OR_CUSTOMER_DATA=NO
+
+ACTIVATED_OPERATION_SEQUENCE=
+  1. get_contact
+  2. create_note
+  3. get_note
+
+MAX_PROVIDER_CALLS=3
+MAX_GET_CONTACT_ATTEMPTS=1
+MAX_CREATE_NOTE_ATTEMPTS=1
+MAX_GET_NOTE_ATTEMPTS=1
+MAX_CONTACT_MUTATIONS=0
+MAX_NOTE_CREATIONS=1
+MAX_OPPORTUNITY_STAGE_TRANSITIONS=0
+MAX_TOTAL_GHL_MUTATIONS=1
+```
+
+## 5. Private target and payload predicates
+
+```text
+CRM_ENVIRONMENT_CLASS=ACTIVE_CANONICAL_BUSINESS_CRM
+SYNTHETIC_ONLY=YES
+PRIVATE_ALLOWLIST_REQUIRED=YES
+EXACT_ID_TARGETING_REQUIRED=YES
+PRIVATE_BINDING_PUBLICATION=NO
+
+PRIVATE_LOCATION_ID_MUST_BE_BOUND_BEFORE_EXECUTION=YES
+PRIVATE_CONTACT_ID_MUST_BE_BOUND_BEFORE_EXECUTION=YES
+PRIVATE_PROVIDER_CREDENTIAL_SOURCE_MUST_BE_BOUND_BEFORE_EXECUTION=YES
+CALLER_ID_OVERRIDE_ALLOWED=NO
+
+NOTE_BODY_SOURCE=adapter-internal note_contract derived only from fixtures/transcript-success.txt
+NOTE_BODY_SHA256_MUST_BE_FROZEN_IN_CONSUMPTION_RECORD=YES
+NOTE_BODY_SHA256_FINALIZED_IN_THIS_UNIT=NO
+SECRET_PAYLOAD_READ_ALLOWED=NO
+```
+
+The fresh Consumption Record 001 must verify these predicates without publishing private IDs, credentials, tokens, or secret payloads.
+
+## 6. Authority semantics
+
+```text
+HUMAN_ACTIVATION_FINALIZED=YES
+ACTIVATION_EFFECTIVE=NO
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=NO
+LIVE_PROVIDER_EXECUTION_AUTHORIZED_NOW=NO
+GHL_CALLS_AUTHORIZED_NOW=NO
+CRM_MUTATIONS_AUTHORIZED_NOW=NO
+AUTHORIZATION_CONSUMED=NO
+AUTHORITY_CONSUMED_INITIAL=NO
+ACTIVATION_MERGE_ALONE_EXECUTES=NO
+SELF_ACTIVATION=FORBIDDEN
+HUMAN_EXECUTION_ACT_REQUIRED=YES
+```
+
+The activation becomes eligible for use only after independent review and merge, a fresh unconsumed Consumption Record 001 is prepared and reviewed, and the human user separately gives explicit execution authority while the fixed window is still current.
+
+## 7. One-shot consumption contract
+
+```text
+PROPOSED_CONSUMPTION_STATE=PREPARED_UNCONSUMED
+CONSUMPTION_RECORD_001_CREATED_IN_THIS_UNIT=NO
+CONSUMPTION_TRIGGER=FIRST_LIVE_PROVIDER_DISPATCH
+EXPECTED_FIRST_DISPATCH=get_contact
+AUTHORITY_CONSUMED_ON_FIRST_DISPATCH=YES
+CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
+NO_SECOND_RUN=YES
+NO_RETRY=YES
+NO_COMPENSATING_MUTATION=YES
+```
+
+If `get_contact` fails or mismatches the exact private contact/location binding, the run stops with zero mutations. If `create_note` fails, no retry or cleanup is authorized. `get_note` can only use the same-run returned note ID.
+
+## 8. Hard prohibitions
+
+```text
+NO_SEARCH=YES
+NO_LIST=YES
+NO_PAGINATION=YES
+NO_RETRY=YES
+NO_FALLBACK_OPERATION=YES
+NO_ALTERNATE_OPERATION=YES
+NO_AUTOMATIC_CLEANUP=YES
+NO_COMPENSATING_MUTATION=YES
+NO_BATCH=YES
+NO_GENERIC_EXECUTE=YES
+
+GET_OPPORTUNITY_ALLOWED=NO
+UPDATE_OPPORTUNITY_STAGE_ALLOWED=NO
+STAGE_PATH_AUTHORIZED=NO
+STAGE_PATH_BLOCKER=MINIMUM_VALID_UPDATE_OPPORTUNITY_BODY_UNRESOLVED
+
+TERRAFORM_APPLY_ALLOWED=NO
+DEPLOYMENT_ALLOWED=NO
+IAM_MUTATION_ALLOWED=NO
+SECRET_MUTATION_ALLOWED=NO
+RESOURCE_DESTROY_ALLOWED=NO
+```
+
+## 9. Preconditions for any future first dispatch
+
+Before any live provider call, require all of:
+
+```text
+- PR 417 plan merge SHA is ancestor of current main
+- PR 418 authorization merge SHA is ancestor of current main
+- this activation is independently reviewed and merged
+- fixed UTC window is current and unexpired
+- fresh Consumption Record 001 exists and remains PREPARED_UNCONSUMED
+- current main has not drifted beyond an explicitly accepted baseline
+- private exact-ID location/contact bindings are present and caller-non-overridable
+- provider credential source is available without publishing or reading secret payload into proof
+- get_contact/create_note/get_note remain runtime-enabled in the frozen provider contract
+- deterministic NOTE_BODY_SHA256 is frozen in the Consumption Record
+- separate explicit human execution authority is present
+```
+
+## 10. Current zero-effect ledger
+
+```text
+HUMAN_ACTIVATION_ARTIFACT_CREATED=YES
+CONSUMPTION_RECORD_001_CREATED=NO
+AUTHORIZATION_CONSUMED=NO
+LIVE_PROVIDER_EXECUTION_AUTHORIZED_NOW=NO
+GHL_CALLS=0
+CRM_MUTATIONS=0
+TERRAFORM_APPLY_EXECUTED=NO
+DEPLOYMENT_EXECUTED=NO
+IAM_MUTATIONS=0
+SECRET_MUTATIONS=0
+DESTROYS=0
+```
+
+## 11. Stop
+
+```text
+STOP=INDEPENDENT_REVIEW_REQUIRED_BEFORE_CONSUMPTION_RECORD_001
+DO_NOT_INVOKE_GHL=YES
+DO_NOT_CONSUME_AUTHORITY=YES
+```
