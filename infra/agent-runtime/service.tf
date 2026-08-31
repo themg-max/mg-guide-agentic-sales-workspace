@@ -13,7 +13,12 @@ resource "google_vertex_ai_reasoning_engine" "mg_guide" {
       inline_source {
         source_archive = var.agent_source_archive_b64
       }
-      image_spec {}
+      python_spec {
+        entrypoint_module = "app.agent"
+        entrypoint_object = "root_agent"
+        requirements_file = "requirements.txt"
+        version           = "3.12"
+      }
     }
   }
 }
