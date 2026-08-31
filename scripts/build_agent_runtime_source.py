@@ -4,16 +4,20 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
+import io
 import re
 import subprocess
-import zipfile
+import tarfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
 
-FIXED_ZIP_TIMESTAMP = (1980, 1, 1, 0, 0, 0)
+FIXED_TAR_MTIME = 315532800  # 1980-01-01T00:00:00Z
+GZIP_MTIME = 0
+GZIP_COMPRESSLEVEL = 9
 SYNTHETIC_CRM_FIXTURE = "fixtures/ghl/relationship-context-crm.json"
 
 EXACT_PATHS = (
@@ -137,16 +141,33 @@ def manifest_bytes(files: Sequence[PackageFile]) -> bytes:
 
 
 def write_archive(output: Path, files: Sequence[PackageFile]) -> None:
+    """Write a deterministic gzip-compressed USTAR archive."""
     output.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_STORED) as archive:
+    tar_buf = io.BytesIO()
+    with tarfile.open(fileobj=tar_buf, mode="w", format=tarfile.USTAR_FORMAT) as archive:
         entries = [(item.archive_path, item.content) for item in files]
         entries.append(("SOURCE_MANIFEST.sha256", manifest_bytes(files)))
         for path, content in sorted(entries):
-            info = zipfile.ZipInfo(path, date_time=FIXED_ZIP_TIMESTAMP)
-            info.compress_type = zipfile.ZIP_STORED
-            info.create_system = 3
-            info.external_attr = 0o100644 << 16
-            archive.writestr(info, content)
+            info = tarfile.TarInfo(name=path)
+            info.size = len(content)
+            info.mtime = FIXED_TAR_MTIME
+            info.mode = 0o644
+            info.type = tarfile.REGTYPE
+            info.uid = 0
+            info.gid = 0
+            info.uname = ""
+            info.gname = ""
+            archive.addfile(info, io.BytesIO(content))
+
+    with output.open("wb") as raw:
+        with gzip.GzipFile(
+            filename="",
+            mode="wb",
+            fileobj=raw,
+            mtime=GZIP_MTIME,
+            compresslevel=GZIP_COMPRESSLEVEL,
+        ) as gz:
+            gz.write(tar_buf.getvalue())
 
 
 def main() -> None:
@@ -162,6 +183,7 @@ def main() -> None:
     write_archive(args.output, files)
     digest = hashlib.sha256(args.output.read_bytes()).hexdigest()
     print(f"SOURCE_BASE_COMMIT={source_commit}")
+    print("SOURCE_PACKAGE_FORMAT=TAR_GZIP")
     print(f"SOURCE_PACKAGE_SHA256={digest}")
     print(f"SOURCE_PACKAGE_SIZE_BYTES={args.output.stat().st_size}")
     print(f"SOURCE_PACKAGE_FILE_COUNT={len(files) + 1}")

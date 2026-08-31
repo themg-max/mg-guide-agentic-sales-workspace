@@ -4,16 +4,15 @@
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
-import json
 import os
 import subprocess
 import sys
+import tarfile
 import tempfile
-import zipfile
 from pathlib import Path
 from pathlib import PurePosixPath, PureWindowsPath
-from stat import S_ISLNK
 from typing import Sequence
 
 
@@ -34,13 +33,23 @@ FORBIDDEN_PATH_TERMS = (
     ".pytest_cache",
     "artifacts/traces",
 )
+GZIP_MAGIC = b"\x1f\x8b"
+ZIP_MAGIC = b"PK"
 
 
-def validate_archive_members(members: Sequence[zipfile.ZipInfo]) -> list[str]:
-    """Reject unsafe ZIP members before any candidate source is extracted."""
+def require_tar_gzip_bytes(archive_bytes: bytes) -> None:
+    """Reject ZIP or non-gzip bytes before any extraction."""
+    if archive_bytes.startswith(ZIP_MAGIC):
+        raise ValueError("archive is ZIP; expected gzip-compressed TAR")
+    if not archive_bytes.startswith(GZIP_MAGIC):
+        raise ValueError("archive is not gzip-compressed TAR")
+
+
+def validate_archive_members(members: Sequence[tarfile.TarInfo]) -> list[str]:
+    """Reject unsafe TAR members before any candidate source is extracted."""
     names: list[str] = []
     for member in members:
-        name = member.filename
+        name = member.name
         posix_path = PurePosixPath(name)
         windows_path = PureWindowsPath(name)
         if (
@@ -51,8 +60,10 @@ def validate_archive_members(members: Sequence[zipfile.ZipInfo]) -> list[str]:
             raise ValueError(f"absolute archive path: {name}")
         if ".." in posix_path.parts or ".." in windows_path.parts:
             raise ValueError(f"archive path traversal: {name}")
-        if S_ISLNK(member.external_attr >> 16):
+        if member.issym() or member.islnk():
             raise ValueError(f"archive symlink entry: {name}")
+        if not member.isfile():
+            raise ValueError(f"archive non-file entry: {name}")
 
         lowered = name.lower()
         if any(term in lowered for term in FORBIDDEN_PATH_TERMS):
@@ -187,14 +198,25 @@ def main() -> None:
             f"archive digest mismatch: expected {args.sha256}, got {actual_digest}"
         )
 
-    with zipfile.ZipFile(args.archive) as archive:
+    try:
+        require_tar_gzip_bytes(archive_bytes)
+        gzip.decompress(archive_bytes)
+    except ValueError as error:
+        raise SystemExit(str(error)) from error
+    except OSError as error:
+        raise SystemExit(f"gzip integrity check failed: {error}") from error
+
+    with tarfile.open(args.archive, mode="r:gz") as archive:
         try:
-            validate_archive_members(archive.infolist())
+            validate_archive_members(archive.getmembers())
         except ValueError as error:
             raise SystemExit(str(error)) from error
 
         with tempfile.TemporaryDirectory(prefix="mg-guide-source-") as temp_dir:
-            archive.extractall(temp_dir)
+            extract_kwargs = {"path": temp_dir}
+            if sys.version_info >= (3, 12):
+                extract_kwargs["filter"] = "data"
+            archive.extractall(**extract_kwargs)
             env = {
                 "PATH": os.environ.get("PATH", ""),
                 "PYTHONPATH": f"{temp_dir}:{temp_dir}/src",
@@ -209,6 +231,7 @@ def main() -> None:
 
     print(f"ROOT_AGENT_MODULE={EXPECTED_ROOT_MODULE}")
     print(f"ROOT_AGENT_FACTORY={EXPECTED_ROOT_FACTORY}")
+    print("SOURCE_PACKAGE_FORMAT=TAR_GZIP")
     print(f"SOURCE_PACKAGE_SHA256={actual_digest}")
     print("SECRETS_INCLUDED=NO")
     print("PRIVATE_DATA_INCLUDED=NO")
