@@ -12,7 +12,7 @@ MODE=BOUNDED_RUNTIME_START_REPAIR
 OWNER=VS_CODE_ORCHESTRATOR
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
 IMPLEMENTATION_COMMIT=
-  c3795d2dad07293ba44a0dfdbaf4387e6b006a26
+  eb0a9234b6dfbe88f17a3bb0b5dc5cd4e654af95
 ```
 
 This unit wraps the existing Unit 3 SequentialAgent graph in the installed
@@ -122,7 +122,7 @@ PIP_INSTALL=PASS
 PIP_CHECK=PASS
 ENTRYPOINT_IMPORT=PASS
 REGISTER_OPERATIONS_CALL=PASS
-REGISTERED_OPERATION_COUNT=20
+REGISTERED_OPERATION_COUNT=13
 REGISTERED_OPERATION_COUNT_GT_ZERO=YES
 ASYNC_STREAM_QUERY_REGISTERED=YES
 AGENT_RUNTIME_ENTRYPOINT_OBJECT_CONTRACT=PASS
@@ -137,11 +137,7 @@ run):
 ```text
 "" -> get_session, list_sessions, create_session, delete_session
 async -> async_get_session, async_list_sessions, async_create_session,
-         async_delete_session, async_add_session_to_memory,
-         async_search_memory, async_save_artifact, async_load_artifact,
-         async_list_artifact_keys, async_delete_artifact,
-         async_list_versions, async_list_artifact_versions,
-         async_get_artifact_version
+         async_delete_session, async_add_session_to_memory, async_search_memory
 stream -> stream_query
 async_stream -> async_stream_query, streaming_agent_run_with_events
 ```
@@ -156,8 +152,8 @@ Off-repository rebuild from `IMPLEMENTATION_COMMIT`:
 ```text
 SOURCE_PACKAGE_FORMAT=TAR_GZIP
 SOURCE_PACKAGE_SHA256=
-  57b87eeac6f737a11cc4fd13322c22476594bcd8bf716fa845ccb020dbac972d
-SOURCE_PACKAGE_SIZE_BYTES=67895
+  4fd2a46facbb7aa6b29e343d3476ef60573f388759a50363caa23cb2f05c0c57
+SOURCE_PACKAGE_SIZE_BYTES=67896
 SOURCE_PACKAGE_FILE_COUNT=54
 GZIP_TEST=PASS
 TAR_LIST=PASS
@@ -170,8 +166,8 @@ SOURCE_PACKAGE_BASE64_COMMITTED_TO_REPOSITORY=NO
 
 Digest changed from Attempt 004
 `1441bd961910be80c4f2d27483ca78ee0302b933c51b7c546309b79aa079b752` because the
-entrypoint module now constructs `agent_runtime_app`. That change is expected
-and bounded to the serving wrapper.
+entrypoint module now constructs `agent_runtime_app` from the installed Vertex
+SDK surface. That change is expected and bounded to the serving wrapper.
 
 ## 6. Fresh non-mutating Terraform plan
 
