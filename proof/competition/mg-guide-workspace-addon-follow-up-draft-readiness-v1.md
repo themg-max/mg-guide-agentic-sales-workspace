@@ -74,8 +74,8 @@ CALENDAR_EVENT_CONTENT_READS=NO
 DRIVE_SCOPE=NO
 ```
 
-`workspace_addon/README.md` and `…-judge-ux-v1.md` were intentionally not in
-the allowed write paths; README button-label wording now differs from the v2
+`workspace_addon/README.md` and
+`…-judge-ux-v1.md` were intentionally not in the allowed write paths; README button-label wording now differs from the v2
 home card and should be refreshed in a follow-up documentation unit.
 
 ## 4. Screen / user journey
@@ -217,7 +217,7 @@ the compose callback reuses the existing authenticated fetch path.
 ## 12. Security scan (changed paths)
 
 ```text
-Bearer/access_token/refresh_token/client_secret/private_key=0_HITS
+SENSITIVE_TOKEN_PATTERN_HITS=0 (Bearer, access_token, refresh_token, client_secret, private_key markers)
 GHL_TOKEN_OR_PROVIDER_IDS=0_HITS
 RAW_CONTACT_IDS_IN_RUNTIME_PATHS=0_HITS (only synthetic fixture IDs inside negative test assertions)
 RAW_LOCATION_IDS=0_HITS
