@@ -1,0 +1,228 @@
+name: MG Guide live provider NOTE_PATH execution
+
+# Manual-only, fail-closed shell for the future NOTE_PATH live note write.
+#
+# CURRENT STATUS: LIVE_NOTE_WRITE=PENDING
+#
+# This file is a mechanism, not a permission. Merging it authorizes nothing:
+# MERGE_OF_HARNESS_ALONE_AUTHORIZES_EXECUTION=NO and SELF_ACTIVATION=FORBIDDEN.
+#
+# As committed, this workflow cannot reach authentication, secret access, a
+# provider call, or the executor entrypoint. Three independent layers refuse:
+#
+#   Layer 1  Job `preparation-gate` refuses unconditionally and exits non-zero.
+#   Layer 2  Job `live-note-execution` carries the literal job condition
+#            `if: ${{ false }}` and also `needs: preparation-gate`.
+#   Layer 3  The first step of `live-note-execution` refuses unconditionally,
+#            before checkout, before authentication, and before the executor.
+#
+# None of the three layers reads a workflow input, an environment value, a
+# repository or organization variable, a secret, or any other run-time value.
+# No dispatch can satisfy them, and `workflow_dispatch` deliberately declares
+# no inputs, so there is no bypass input and no raw identifier may be supplied
+# at dispatch time (RAW_IDS_AS_WORKFLOW_INPUTS_ALLOWED=NO).
+#
+# There is deliberately no mutable status/sentinel configuration block in this
+# file. Live execution must not become reachable by editing text values in a
+# non-executable configuration block; enabling it requires deleting the
+# refusal layers above in a later, separately authorized and independently
+# reviewed change to this file.
+#
+# This file also deliberately does not define, name, carry, or imply any
+# authorization, activation, consumption, human-act, or R5 binding value or
+# binding format. Those bindings live in governance artifacts outside this
+# workflow. The external gate chain that a future authorized change must
+# satisfy first is recorded in
+# docs/runbooks/mg-guide-live-provider-note-path-operator-runbook.md.
+
+on:
+  workflow_dispatch: {}
+
+# Least privilege by default. The OIDC permission required by the pinned,
+# already-merged Workload Identity Federation chain is scoped to the executor
+# job alone, so the preparation gate cannot mint a token.
+permissions:
+  contents: read
+
+# Exactly one run at a time. A queued run is never cancelled, and no run is
+# ever automatically retried.
+concurrency:
+  group: mg-guide-live-provider-note-path
+  cancel-in-progress: false
+
+jobs:
+  preparation-gate:
+    name: Fail-closed preparation gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+
+    steps:
+      # Unconditional refusal. This step evaluates no run-time value, so it
+      # cannot be satisfied, weakened, or bypassed by any dispatch.
+      - name: Refuse live execution (unconditional, fail closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "PREPARATION_GATE=FAIL_CLOSED"
+          echo "LIVE_NOTE_WRITE=PENDING"
+          echo "LIVE_EXECUTION_DISPOSITION=BLOCKED"
+          echo "R5_SAME_PROCESS_MATERIALIZATION=UNRESOLVED"
+          echo "AUTHENTICATION_REACHED=NO"
+          echo "SECRET_PAYLOAD_READS=0"
+          echo "PROVIDER_CALLS=0"
+          echo "CRM_MUTATIONS=0"
+          echo "EXECUTOR_INVOKED=NO"
+          echo "TERMINAL=YES"
+          echo "RETRY_PERMITTED=NO"
+          echo "BYPASS_INPUT_PRESENT=NO"
+          echo "Live execution is not authorized by this workflow. See docs/runbooks/mg-guide-live-provider-note-path-operator-runbook.md."
+
+          exit 1
+
+  live-note-execution:
+    name: Execute the one-shot NOTE_PATH live note write
+    needs: preparation-gate
+
+    # Structurally unsatisfiable job condition. `false` is a literal in the
+    # workflow source: it references no input, context value, environment
+    # value, variable, or secret, so no dispatch can make this job run. Only a
+    # later, separately authorized edit to this file can change it.
+    if: ${{ false }}
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      # Layer 3. Unconditional refusal before checkout, authentication, and the
+      # executor, so the live path stays unreachable even if the job condition
+      # or the gate job above were ever removed in isolation.
+      - name: Refuse before authentication (unconditional, fail closed)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "PREPARATION_GATE=FAIL_CLOSED"
+          echo "LIVE_NOTE_WRITE=PENDING"
+          echo "AUTHENTICATION_REACHED=NO"
+          echo "SECRET_PAYLOAD_READS=0"
+          echo "PROVIDER_CALLS=0"
+          echo "CRM_MUTATIONS=0"
+          echo "TERMINAL=YES"
+          echo "RETRY_PERMITTED=NO"
+
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install repository dependencies
+        run: python -m pip install --requirement requirements.txt
+
+      # Preserved verbatim from the existing merged NW-008 AT1 diagnostic
+      # workflows: same pinned Workload Identity Federation provider, same
+      # dedicated source workflow service account, same credentials-file mode,
+      # no exported environment credentials, no action-managed cleanup. No new
+      # identifier, audience, principal, or credential mechanism is introduced
+      # here, and none is parameterized or overridable.
+      - name: Authenticate as the dedicated GHL workflow identity
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/831270426395/locations/global/workloadIdentityPools/github-actions-pool-v2/providers/mg-guide-github-provider-v1
+          service_account: mg-guide-ghl-workflow@ai-rolodex-to-crm.iam.gserviceaccount.com
+          create_credentials_file: "true"
+          cleanup_credentials: "false"
+          export_environment_variables: "false"
+
+      # Single terminal attempt of the authorized entrypoint. There is exactly
+      # one invocation step: no retry, no fallback, no alternate operation, no
+      # second transport, no stage action, and no compensating mutation. The
+      # ordered gates, the frozen three-call provider sequence, the at-most-one
+      # mutation limit, and the sanitized terminal report are the executor's
+      # responsibility and are not re-implemented in this workflow. Ambient
+      # application default credentials are not used: the credential
+      # configuration file path is passed explicitly to this step only.
+      - name: Run the one-shot NOTE_PATH live note execution
+        env:
+          MG_GUIDE_NW008_GHL_WORKFLOW_CREDENTIAL_CONFIG: ${{ steps.auth.outputs.credentials_file_path }}
+          PYTHONPATH: src
+        run: python -m integrations.ghl.highlevel_rest.live_note_execution
+
+      # Explicit, guarded credential destruction. Preserved verbatim from the
+      # proven merged cleanup step: path guard, symlink guard, regular-file
+      # assertion, explicit delete. Runner disposal is never relied upon.
+      - name: Delete auth credential file
+        if: always()
+        shell: bash
+        env:
+          CREDENTIAL_FILE_PATH: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CREDENTIAL_FILE_PATH:-}" ]]; then
+            echo "credential file path is required" >&2
+            exit 1
+          fi
+          case "$CREDENTIAL_FILE_PATH" in
+            "$GITHUB_WORKSPACE"/gha-creds-*.json) ;;
+            *)
+              echo "credential file path failed the workspace guard" >&2
+              exit 1
+              ;;
+          esac
+          if [[ -L "$CREDENTIAL_FILE_PATH" ]]; then
+            echo "credential file path must not be a symlink" >&2
+            exit 1
+          fi
+          if [[ ! -f "$CREDENTIAL_FILE_PATH" ]]; then
+            echo "credential file path must be a regular file" >&2
+            exit 1
+          fi
+          rm -- "$CREDENTIAL_FILE_PATH"
+          echo "CREDENTIAL_FILE_DELETE_ATTEMPTS=1"
+          echo "EXPLICIT_CREDENTIAL_CLEANUP_PERFORMED=YES"
+
+      # Residual-absence verification. Preserved verbatim from the proven
+      # merged step: post-delete absence assertion plus a residual scan.
+      - name: Verify auth credential file is absent
+        if: always()
+        shell: bash
+        env:
+          CREDENTIAL_FILE_PATH: ${{ steps.auth.outputs.credentials_file_path }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CREDENTIAL_FILE_PATH:-}" ]]; then
+            echo "credential file path is required" >&2
+            exit 1
+          fi
+          case "$CREDENTIAL_FILE_PATH" in
+            "$GITHUB_WORKSPACE"/gha-creds-*.json) ;;
+            *)
+              echo "credential file path failed the workspace guard" >&2
+              exit 1
+              ;;
+          esac
+          if [[ -e "$CREDENTIAL_FILE_PATH" || -L "$CREDENTIAL_FILE_PATH" ]]; then
+            echo "credential file remains after explicit cleanup" >&2
+            exit 1
+          fi
+          shopt -s nullglob
+          residual_files=("$GITHUB_WORKSPACE"/gha-creds-*.json)
+          if (( ${#residual_files[@]} != 0 )); then
+            echo "residual GitHub auth credential files remain" >&2
+            exit 1
+          fi
+          echo "CREDENTIAL_FILE_ABSENT_AFTER_DELETE=YES"
+          echo "RESIDUAL_GHA_CREDENTIAL_FILES=0"
+          echo "RUNNER_DISPOSAL_RELIED_UPON=NO"
+          echo "CREDENTIAL_CLEANUP_RESULT=PASS"
