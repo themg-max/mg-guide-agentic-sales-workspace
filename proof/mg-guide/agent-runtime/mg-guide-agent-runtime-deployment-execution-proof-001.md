@@ -109,51 +109,27 @@ RESOURCES_CHANGED=0
 RESOURCES_DESTROYED=0
 ```
 
-## 5. Required terminal update
+## 5. Terminal execution evidence
 
-Immediately before the first and only apply attempt, revalidate current UTC and the exact authorized plan, then durably update the consumption record to:
+The pre-apply gate passed at `2026-08-31T04:12:01Z`. Human execution authority was present, the one-shot authority was consumed, and the exact saved plan was dispatched once. The provider returned a terminal Organization Policy error before the Agent Runtime resource was created.
 
 ```text
 CONSUMPTION_STATE=CONSUMED
 AUTHORITY_CONSUMED=YES
-CONSUMED_AT_UTC=<exact UTC>
-```
-
-After the single apply attempt, update this proof with:
-
-```text
-APPLY_DISPATCHED_AT_UTC=<exact UTC>
-APPLY_COMPLETED_AT_UTC=<exact UTC>
-TERRAFORM_APPLY_EXIT=<exact exit code>
+CONSUMED_AT_UTC=2026-08-31T04:12:01Z
+APPLY_DISPATCHED_AT_UTC=2026-08-31T04:12:09Z
+APPLY_COMPLETED_AT_UTC=2026-08-31T04:12:11Z
+TERRAFORM_APPLY_EXIT=1
 TERRAFORM_APPLY_ATTEMPTS=1
-AUTHORITY_CONSUMED=YES
 RETRY_AUTHORIZED=NO
-```
-
-If successful, additionally require:
-
-```text
-AGENT_RUNTIME_RESOURCES_CREATED=1
-EXPECTED_RESOURCE_PRESENT=YES
-RUNTIME_SERVICE_ACCOUNT_MATCH=YES
-SERVICE_ACCOUNTS_CREATED=0
-SERVICE_ACCOUNT_KEYS_CREATED=0
-IAM_MUTATIONS=0
-SECRET_MUTATIONS=0
-GHL_CALLS=0
-CRM_MUTATIONS=0
-DESTROYS=0
-```
-
-If the first apply fails or is partial, preserve the exact terminal truth and do not retry.
-
-```text
 CURRENT_STOP=TERMINAL_ONE_SHOT_DEPLOYMENT_RESULT_NO_RETRY_AUTHORIZED
 EXACT_PROVIDER_ERROR=GOOGLE_API_ERROR_400
 ORG_POLICY_CONSTRAINT=constraints/gcp.resourceLocations
 ORG_POLICY_PROJECT_NUMBER=831270426395
 APPLY_LOG_SHA256=9c496efd8135bb0ab84e599d0ff593dd840fe3414efb9b12cdbc13c20c0c1acd
 POST_FAILURE_TERRAFORM_STATE=NO_STATE_FILE
+AGENT_RUNTIME_RESOURCES_CREATED=0
+EXPECTED_RESOURCE_PRESENT=NO
 SERVICE_ACCOUNTS_CREATED=0
 SERVICE_ACCOUNT_KEYS_CREATED=0
 IAM_MUTATIONS=0
@@ -162,3 +138,5 @@ GHL_CALLS=0
 CRM_MUTATIONS=0
 DESTROYS=0
 ```
+
+The failed attempt consumed Human Activation 001. No retry, second apply, fallback deployment, or compensating mutation is authorized. A future deployment attempt requires Organization Policy review followed by a new independently reviewed deployment authorization and activation.
