@@ -16,15 +16,15 @@ def test_agent_runtime_app_wraps_existing_sequential_graph() -> None:
 
     import app.agent as entrypoint
 
-    obj = entrypoint.agent_runtime_app
-    assert type(obj).__name__ == "AdkApp"
-    assert obj.__class__.__module__.startswith("agentplatform.agent_engines")
-    assert hasattr(obj, "register_operations")
-    assert hasattr(obj, "async_stream_query")
+    agent_runtime_app = entrypoint.agent_runtime_app
+    assert type(agent_runtime_app).__name__ == "AdkApp"
+    assert agent_runtime_app.__class__.__module__.startswith("vertexai.agent_engines")
+    assert hasattr(agent_runtime_app, "register_operations")
+    assert hasattr(agent_runtime_app, "async_stream_query")
 
-    operations = obj.register_operations()
-    assert operations
-    flat = {name for names in operations.values() for name in names}
+    ops = agent_runtime_app.register_operations()
+    assert ops
+    flat = {name for names in ops.values() for name in names}
     assert "async_stream_query" in flat
 
     assert entrypoint.root_agent.name == "unit3_meeting_to_follow_up_packet"
@@ -34,4 +34,4 @@ def test_agent_runtime_app_wraps_existing_sequential_graph() -> None:
         "follow_up_planning_agent",
     ]
     assert type(entrypoint.root_agent).__name__ == "SequentialAgent"
-    assert getattr(obj, "_tmpl_attrs", {}).get("runner") is None
+    assert getattr(agent_runtime_app, "_tmpl_attrs", {}).get("runner") is None

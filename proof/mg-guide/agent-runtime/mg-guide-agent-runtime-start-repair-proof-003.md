@@ -15,8 +15,9 @@ IMPLEMENTATION_COMMIT=
   c3795d2dad07293ba44a0dfdbaf4387e6b006a26
 ```
 
-This unit wraps the existing Unit 3 SequentialAgent graph in an Agent Platform
-`AdkApp` serving object and retargets Terraform `python_spec` at that object.
+This unit wraps the existing Unit 3 SequentialAgent graph in the installed
+Vertex AI `agent_engines.AdkApp` serving object and retargets Terraform
+`python_spec` at that object.
 It does not redesign domain agents, nest a local Runner at import time, change
 GHL/CRM/IAM, upgrade `google-adk`, add a top-level `agent.py` shim, create
 Authorization 005, or deploy.
@@ -31,6 +32,7 @@ IAM_MUTATION=NO
 SECRET_MUTATION=NO
 SERVICE_ACCOUNT_MUTATION=NO
 GOOGLE_ADK_UPGRADED=NO
+AGENTPLATFORM_DEPENDENCY_ADDED=NO
 AGENT_PY_SHIM_ADDED=NO
 GHL_CALLS=0
 CRM_MUTATIONS=0
@@ -47,7 +49,7 @@ ATTEMPT_004_AUTHORITY_CONSUMED=YES
 ATTEMPT_004_RETRY_AUTHORIZED=NO
 
 ROOT_CAUSE_CLASS=
-  AGENT_RUNTIME_ENTRYPOINT_CONTRACT
+  AGENT_RUNTIME_ENTRYPOINT_OBJECT_CONTRACT
 FAILED_ENTRYPOINT_MODULE=app.agent
 FAILED_ENTRYPOINT_OBJECT=root_agent
 FAILED_ENTRYPOINT_TYPE=SequentialAgent
@@ -83,11 +85,11 @@ runtime service account
 IAM / secrets / GHL / CRM
 ```
 
-Exact import resolved in a clean Python 3.12 environment with only deployment
-requirements:
+Exact import resolved from the installed public Vertex SDK surface in a clean
+Python 3.12 environment with only deployment requirements:
 
 ```text
-from agentplatform.agent_engines import AdkApp
+from vertexai import agent_engines
 ```
 
 Serving contract:
@@ -95,7 +97,7 @@ Serving contract:
 ```python
 root_agent = build_unit3_root_agent()
 app = App(root_agent=root_agent, name="app")
-agent_runtime_app = AdkApp(agent=root_agent)
+agent_runtime_app = agent_engines.AdkApp(agent=root_agent)
 ```
 
 ```text
@@ -107,8 +109,8 @@ HAS_ASYNC_STREAM_QUERY=YES
 NO_TERRAFORM_CLASS_METHODS=YES
 ```
 
-`class_methods` was not added. `AdkApp.register_operations()` already returns a
-non-empty operation map including `async_stream_query`.
+`class_methods` was not added. `agent_engines.AdkApp.register_operations()`
+already returns a non-empty operation map including `async_stream_query`.
 
 ## 4. Offline registered-operations proof
 
@@ -123,7 +125,7 @@ REGISTER_OPERATIONS_CALL=PASS
 REGISTERED_OPERATION_COUNT=20
 REGISTERED_OPERATION_COUNT_GT_ZERO=YES
 ASYNC_STREAM_QUERY_REGISTERED=YES
-AGENT_RUNTIME_ENTRYPOINT_CONTRACT=PASS
+AGENT_RUNTIME_ENTRYPOINT_OBJECT_CONTRACT=PASS
 ROOT_AGENT_TYPE=SequentialAgent
 GHL_CALLS=0
 CRM_MUTATIONS=0
