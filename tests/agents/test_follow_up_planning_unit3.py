@@ -17,6 +17,7 @@ from agents.follow_up_planning import (
     FollowUpPlanningRequest,
     Unit3FollowUpHarness,
     Unit3FollowUpRuntime,
+    build_unit3_root_agent,
     run_unit3_harness,
 )
 from agents.follow_up_planning.harness import DEFAULT_SCENARIOS
@@ -64,6 +65,30 @@ def test_unit3_runtime_graph_extends_unit2():
     unit3_ids = [a.agent_id for a in UNIT3_AGENT_GRAPH]
     assert unit3_ids[:2] == unit2_ids
     assert unit3_ids[-1] == "follow_up_planning_agent"
+
+
+def test_shared_root_factory_builds_real_graph_without_runner(monkeypatch):
+    import agents.follow_up_planning.runtime as runtime_mod
+
+    primitives = runtime_mod._import_google_adk_primitives()
+
+    class RunnerMustNotStart:
+        def __init__(self, *args, **kwargs):
+            raise AssertionError("shared root factory must not construct a Runner")
+
+    primitives["Runner"] = RunnerMustNotStart
+    monkeypatch.setattr(
+        runtime_mod, "_import_google_adk_primitives", lambda: primitives
+    )
+
+    root_agent = build_unit3_root_agent()
+
+    assert root_agent.name == "unit3_meeting_to_follow_up_packet"
+    assert [agent.name for agent in root_agent.sub_agents] == [
+        "meeting_context_agent",
+        "relationship_context_agent",
+        "follow_up_planning_agent",
+    ]
 
 
 def test_unit3_runtime_starts_on_google_adk_package():
