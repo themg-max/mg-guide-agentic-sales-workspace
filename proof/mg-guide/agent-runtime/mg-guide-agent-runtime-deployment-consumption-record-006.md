@@ -1,0 +1,313 @@
+# MG Guide Agent Runtime Deployment Consumption Record 006
+
+This unit is PREPARATION ONLY. It does not consume authorization, record
+explicit human execution authority, run `terraform apply`, or deploy.
+
+```text
+RECORD_ID=MG_GUIDE_AGENT_RUNTIME_DEPLOYMENT_CONSUMPTION_RECORD_006
+RECORD_PATH=
+  proof/mg-guide/agent-runtime/mg-guide-agent-runtime-deployment-consumption-record-006.md
+PR_CLASS=execution_preparation
+MODE=PREPARED_UNCONSUMED_CONSUMPTION_RECORD
+OWNER=VS_CODE_ORCHESTRATOR
+REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+TARGET_REMOTE_URL=
+  https://github.com/themg-max/mg-guide-agentic-sales-workspace.git
+RECORDED_AT_UTC=2026-08-31T15:11:37Z
+
+READINESS_WORKTREE=
+  /Users/achandler/Google_DevPost/mg-guide-agent-runtime-consumption-record-006
+READINESS_BRANCH=
+  proof/mg-guide-agent-runtime-deployment-consumption-record-006
+BRANCH_IS_MAIN=NO
+WORKTREE_CLEAN_BEFORE_ARTIFACT=YES
+```
+
+## 1. Repository preflight
+
+```text
+TARGET_REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
+ORIGIN=https://github.com/themg-max/mg-guide-agentic-sales-workspace.git
+BASE_MAIN_SHA=05930196059863c55952474ab60d323befd43174
+ORIGIN_MAIN=05930196059863c55952474ab60d323befd43174
+HEAD=05930196059863c55952474ab60d323befd43174
+ORIGIN_MAIN_MATCHES_EXPECTED=YES
+BRANCH_IS_MAIN=NO
+WORKTREE_CLEAN=YES
+```
+
+Created from exact `origin/main`:
+
+```text
+git worktree add -b proof/mg-guide-agent-runtime-deployment-consumption-record-006
+  /Users/achandler/Google_DevPost/mg-guide-agent-runtime-consumption-record-006
+  origin/main
+```
+
+## 2. Upstream governance bindings
+
+```text
+READINESS_PR=410
+READINESS_MERGE_SHA=7e1e597dd115a6470e116ab231bf317423e24402
+
+AUTHORIZATION_PR=411
+AUTHORIZATION_HEAD=ea1645b4d462d814ef516058b2069f667d9963e0
+AUTHORIZATION_MERGE_SHA=4225c68e6047b5158a70b4392b214ad6d678ba61
+
+ACTIVATION_PR=412
+ACTIVATION_HEAD=6351748fe9293c8da52b18f5a8d333ae314281fb
+ACTIVATION_MERGE_SHA=05930196059863c55952474ab60d323befd43174
+
+RUN_ID=mg-guide-agent-runtime-deploy-006-20260831T150305Z-1c2d
+WINDOW_START_UTC=2026-08-31T15:03:05Z
+WINDOW_END_UTC=2026-08-31T15:58:05Z
+WINDOW_EXTENDABLE=NO
+ACTIVATION_REUSABLE=NO
+ACTIVATION_TRANSFERABLE=NO
+```
+
+## 3. Ancestry and window gate
+
+```text
+AUTHORIZATION_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+ACTIVATION_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+READINESS_MERGE_SHA_ANCESTOR_OF_ORIGIN_MAIN=YES
+
+PREPARED_AT_UTC=2026-08-31T15:11:37Z
+CURRENT_TIME_INSIDE_ACTIVATION_WINDOW=YES
+```
+
+Preparation evidence in this record was produced inside the activation
+window. This record does not extend timestamps and does not claim that
+apply occurred.
+
+## 4. Fresh source package
+
+Rebuilt off-repository from the exact approved current baseline:
+
+```text
+BUILD_COMMAND=
+  python3.12 scripts/build_agent_runtime_source.py
+    --source-commit 05930196059863c55952474ab60d323befd43174
+    --output <ephemeral>/mg-guide-agent-runtime-source.tar.gz
+
+SOURCE_BASE_COMMIT=05930196059863c55952474ab60d323befd43174
+SOURCE_PACKAGE_FORMAT=TAR_GZIP
+SOURCE_PACKAGE_FILE_COUNT=54
+SOURCE_PACKAGE_SIZE_BYTES=67890
+SOURCE_PACKAGE_SHA256=
+  6dbd7e381f5a9e65990aca30611108f889e3cab97d8e66d296c46b89f2382dcf
+EXPECTED_SOURCE_PACKAGE_SHA256=
+  6dbd7e381f5a9e65990aca30611108f889e3cab97d8e66d296c46b89f2382dcf
+SOURCE_PACKAGE_SHA256_MATCH=YES
+
+GZIP_TEST=PASS
+TAR_LIST=PASS
+TAR_EXTRACT=PASS
+PACKAGE_VERIFICATION=PASS
+PACKAGE_IMPORT=PASS
+ROOT_AGENT_LOAD=PASS
+SYNTHETIC_SMOKE=PASS
+LIVE_GHL_ADAPTER_ENABLED=NO
+SECRETS_INCLUDED=NO
+PRIVATE_DATA_INCLUDED=NO
+SOURCE_PACKAGE_COMMITTED_TO_REPOSITORY=NO
+SOURCE_PACKAGE_BASE64_COMMITTED_TO_REPOSITORY=NO
+```
+
+## 5. Fresh runtime lifecycle
+
+Fresh Python 3.12 venv from extracted package `requirements.txt` only.
+No pre-seeded `vertexai.init()`.
+
+```text
+PYTHON_VERSION=Python 3.12.13
+PIP_INSTALL=PASS
+PIP_CHECK=PASS
+GOOGLE_ADK_VERSION=1.23.0
+GOOGLE_CLOUD_AIPLATFORM_VERSION=1.165.1
+RUNNER_AUTO_CREATE_SESSION_PARAMETER_PRESENT=YES
+
+VERTEXAI_INIT_PRESEEDED=NO
+GOOGLE_CLOUD_PROJECT=ai-rolodex-to-crm
+GOOGLE_CLOUD_REGION=us-east1
+
+COLD_IMPORT_APP_AGENT=PASS
+AGENT_RUNTIME_APP_CONSTRUCTION=PASS
+ENTRYPOINT_OBJECT_TYPE=AdkApp
+ROOT_AGENT_TYPE=SequentialAgent
+
+REGISTER_OPERATIONS_CALL=PASS
+REGISTERED_OPERATION_COUNT=13
+ASYNC_STREAM_QUERY_REGISTERED=YES
+
+ADKAPP_SET_UP_CALL=EXECUTED
+ADKAPP_SET_UP=PASS
+ADKAPP_SET_UP_EXCEPTION=NONE
+```
+
+Flattened registered operations (13):
+
+```text
+get_session
+list_sessions
+create_session
+delete_session
+async_get_session
+async_list_sessions
+async_create_session
+async_delete_session
+async_add_session_to_memory
+async_search_memory
+stream_query
+async_stream_query
+streaming_agent_run_with_events
+```
+
+## 6. Policy and authentication
+
+```text
+POLICY_COMMAND=
+  gcloud org-policies describe gcp.resourceLocations
+    --project=ai-rolodex-to-crm --effective --format=yaml
+
+EFFECTIVE_RESOURCE_LOCATION_POLICY_RECHECK=PASS
+EFFECTIVE_POLICY_ALLOWS_US_EAST1=YES
+EFFECTIVE_POLICY_ALLOWS_GLOBAL=YES
+EFFECTIVE_POLICY_RECHECK_AT_UTC=2026-08-31T15:11:01Z
+EFFECTIVE_POLICY_EVIDENCE_SHA256=
+  3d7a70777d541fff40cddeb0787135c41ba7cc4ebcaf22778ced855e2c08c382
+
+LOCAL_SDK_AUTHENTICATION_AVAILABLE=YES
+ADC_CREDENTIAL_CLASS=Credentials
+ADC_PROJECT_DETECTED=ai-rolodex-to-crm
+ADC_TOKEN_PRINTED=NO
+LOCAL_ADC_PRINCIPAL_EQUALS_RUNTIME_SERVICE_ACCOUNT=NOT_REQUIRED
+
+IAM_MUTATION=NO
+SERVICE_ACCOUNT_KEY_CREATED=NO
+```
+
+## 7. Fresh execution-time Terraform plan
+
+Authoritative root `infra/agent-runtime`. Non-mutating only. Backend false.
+Plan saved off-repository. Ephemeral tfvars substituted the rebuilt package
+bytes. Repository Terraform files and `environments/dev.tfvars` were not
+changed.
+
+This plan is a new execution-time plan. It is not the Readiness 006 plan.
+
+```text
+READINESS_006_PLAN_FILE_SHA256_NOT_REUSED=
+  ba99d9820c88c42feadadff96128c1a9554349cde51f117922861a45329e9285
+READINESS_006_PLAN_JSON_SHA256_NOT_REUSED=
+  72986aa98f736f0d05171124a27f39b725b711317e4113490ac58de86a89b58f
+```
+
+```text
+terraform fmt -check
+terraform init -backend=false -input=false
+terraform validate
+terraform plan -refresh=false -input=false
+  -var-file=<ephemeral-consumption006-tfvars>
+  -out=<ephemeral>/consumption006.tfplan
+python3 scripts/verify_agent_runtime_terraform_policy.py
+```
+
+```text
+AUTHORITATIVE_TERRAFORM_ROOT=infra/agent-runtime
+TERRAFORM_VERSION=1.9.8
+GOOGLE_BETA_PROVIDER_VERSION=7.28.0
+TF_FMT=PASS
+TF_INIT_BACKEND_FALSE=PASS
+TF_VALIDATE=PASS
+TF_PLAN=PASS
+CHECKED_IN_DEV_TFVARS_MODIFIED=NO
+EPHEMERAL_TFVARS_OUTSIDE_REPOSITORY=YES
+EPHEMERAL_TFVARS_COMMITTED=NO
+
+EXECUTION_PLAN_CREATED_AT_UTC=2026-08-31T15:11:20Z
+EXECUTION_PLAN_CREATED_INSIDE_ACTIVATION_WINDOW=YES
+EXECUTION_PLAN_FILE_SHA256=
+  79a451c3c60a59552fc9da0e7619616b2a5e8ac4a95a45b64f4621e6ea310b51
+EXECUTION_PLAN_JSON_SHA256=
+  f49591323ce7fd4e9b85b1941d37baf3165bdcd0a5c425a0ffd71a924d921b62
+PLAN_FILE_COMMITTED_TO_REPOSITORY=NO
+PLAN_JSON_COMMITTED_TO_REPOSITORY=NO
+DEPLOYMENT_BYTES_COMMITTED=NO
+```
+
+Semantic gate:
+
+```text
+PLAN_SUMMARY=1_TO_ADD_0_TO_CHANGE_0_TO_DESTROY
+EXPECTED_RESOURCE_ONLY=YES
+PLANNED_RESOURCE=google_vertex_ai_reasoning_engine.mg_guide
+PLANNED_PROJECT=ai-rolodex-to-crm
+PLANNED_REGION=us-east1
+PLANNED_RUNTIME_SERVICE_ACCOUNT=
+  mg-guide-agent-runtime@ai-rolodex-to-crm.iam.gserviceaccount.com
+RUNTIME_SERVICE_ACCOUNT_MATCH=YES
+PLANNED_AGENT_FRAMEWORK=google-adk
+SOURCE_CODE_SPEC_USES_PYTHON_SPEC=YES
+SOURCE_CODE_SPEC_USES_IMAGE_SPEC=NO
+PLANNED_ENTRYPOINT_MODULE=app.agent
+PLANNED_ENTRYPOINT_OBJECT=agent_runtime_app
+PLANNED_REQUIREMENTS_FILE=requirements.txt
+PLANNED_PYTHON_VERSION=3.12
+PLAN_CREATES_NEW_RUNTIME_SA=NO
+PLAN_CREATES_SERVICE_ACCOUNT_KEY=NO
+PLAN_ADDS_IAM=NO
+PLAN_MUTATES_SECRET=NO
+PLAN_DESTROYS_RESOURCE=NO
+```
+
+## 8. Prepared consumption state
+
+```text
+CONSUMPTION_STATE=PREPARED_UNCONSUMED
+AUTHORITY_CONSUMED=NO
+AUTHORIZATION_CONSUMED=NO
+
+CONSUMPTION_TRIGGER=FIRST_TERRAFORM_APPLY_ATTEMPT
+CONSUMED_ON_ATTEMPT_NOT_SUCCESS=YES
+
+EXPLICIT_HUMAN_EXECUTION_AUTHORITY_PRESENT=NO
+
+APPLY_ATTEMPT_STARTED=NO
+TERRAFORM_APPLY_ATTEMPTS=0
+TERRAFORM_APPLY_EXECUTED=NO
+DEPLOYMENT_EXECUTED=NO
+
+SERVICE_ACCOUNT_KEYS_CREATED=0
+IAM_MUTATIONS=0
+SECRET_MUTATIONS=0
+GHL_CALLS=0
+CRM_MUTATIONS=0
+```
+
+This record does not consume the one-shot authorization. Authority remains
+unconsumed until a later explicit human execution act references this
+`RUN_ID`, the exact source package SHA256, and the exact saved execution
+plan SHA256.
+
+## 9. Canonical validation
+
+```text
+CANONICAL_VALIDATION=PASS
+LOCAL_PHASE1_DETERMINISTIC=PASS
+PYTEST=PASS
+PYTEST_EXIT=0
+GIT_DIFF_CHECK=PASS
+CI_STATUS=PENDING
+```
+
+## 10. Stop
+
+```text
+ATTEMPT_006_AUTHORIZED_FOR_APPLY_IN_THIS_UNIT=NO
+TERRAFORM_APPLY_EXECUTED=NO
+DEPLOYMENT_EXECUTED=NO
+
+STOP=INDEPENDENT_REVIEW_REQUIRED_BEFORE_EXPLICIT_HUMAN_EXECUTION_ACT
+```
