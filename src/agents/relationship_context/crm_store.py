@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from integrations.ghl import OfflineGhlReadAdapter
+from integrations.ghl.read_adapter import OfflineGhlReadAdapter
 
 
 def _repo_root() -> Path:

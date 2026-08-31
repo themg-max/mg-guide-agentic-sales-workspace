@@ -453,6 +453,22 @@ def _build_unit3_adk_agents(
     )
 
 
+def build_unit3_root_agent(
+    *,
+    meeting_agent: Optional[MeetingContextAgent] = None,
+    relationship_agent: Optional[RelationshipContextAgent] = None,
+    follow_up_agent: Optional[FollowUpPlanningAgent] = None,
+    _primitives: Optional[Dict[str, Any]] = None,
+) -> Any:
+    """Build the shared Unit 3 ADK graph without constructing a Runner."""
+    return _build_unit3_adk_agents(
+        _primitives or _import_google_adk_primitives(),
+        meeting_agent=meeting_agent or MeetingContextAgent.for_fixture_mode(),
+        relationship_agent=relationship_agent or RelationshipContextAgent(),
+        follow_up_agent=follow_up_agent or FollowUpPlanningAgent(),
+    )
+
+
 @dataclass
 class Unit3RunResult:
     ok: bool
@@ -535,11 +551,11 @@ class Unit3FollowUpRuntime(GoogleAdkRuntime):
     def start(self) -> "Unit3FollowUpRuntime":
         """Bind the google-adk package and construct the Unit 3 agent graph."""
         prim = _import_google_adk_primitives()
-        root_agent = _build_unit3_adk_agents(
-            prim,
+        root_agent = build_unit3_root_agent(
             meeting_agent=self.meeting_agent,
             relationship_agent=self.relationship_agent,
             follow_up_agent=self.follow_up_agent,
+            _primitives=prim,
         )
         session_service = prim["InMemorySessionService"]()
         runner = prim["Runner"](
