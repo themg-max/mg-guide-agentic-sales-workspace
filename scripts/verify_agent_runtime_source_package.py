@@ -12,6 +12,9 @@ import sys
 import tempfile
 import zipfile
 from pathlib import Path
+from pathlib import PurePosixPath, PureWindowsPath
+from stat import S_ISLNK
+from typing import Sequence
 
 
 EXPECTED_ROOT_MODULE = "app.agent"
@@ -31,6 +34,37 @@ FORBIDDEN_PATH_TERMS = (
     ".pytest_cache",
     "artifacts/traces",
 )
+
+
+def validate_archive_members(members: Sequence[zipfile.ZipInfo]) -> list[str]:
+    """Reject unsafe ZIP members before any candidate source is extracted."""
+    names: list[str] = []
+    for member in members:
+        name = member.filename
+        posix_path = PurePosixPath(name)
+        windows_path = PureWindowsPath(name)
+        if (
+            posix_path.is_absolute()
+            or windows_path.is_absolute()
+            or name.startswith(("/", "\\"))
+        ):
+            raise ValueError(f"absolute archive path: {name}")
+        if ".." in posix_path.parts or ".." in windows_path.parts:
+            raise ValueError(f"archive path traversal: {name}")
+        if S_ISLNK(member.external_attr >> 16):
+            raise ValueError(f"archive symlink entry: {name}")
+
+        lowered = name.lower()
+        if any(term in lowered for term in FORBIDDEN_PATH_TERMS):
+            raise ValueError(f"forbidden archive path: {name}")
+        names.append(name)
+
+    if len(names) != len(set(names)):
+        raise ValueError("archive contains duplicate paths")
+    if "SOURCE_MANIFEST.sha256" not in names:
+        raise ValueError("archive source manifest is missing")
+    return names
+
 
 SMOKE_PROGRAM = r"""
 import asyncio
@@ -154,15 +188,10 @@ def main() -> None:
         )
 
     with zipfile.ZipFile(args.archive) as archive:
-        names = archive.namelist()
-        for name in names:
-            lowered = name.lower()
-            if any(term in lowered for term in FORBIDDEN_PATH_TERMS):
-                raise SystemExit(f"forbidden archive path: {name}")
-        if len(names) != len(set(names)):
-            raise SystemExit("archive contains duplicate paths")
-        if "SOURCE_MANIFEST.sha256" not in names:
-            raise SystemExit("archive source manifest is missing")
+        try:
+            validate_archive_members(archive.infolist())
+        except ValueError as error:
+            raise SystemExit(str(error)) from error
 
         with tempfile.TemporaryDirectory(prefix="mg-guide-source-") as temp_dir:
             archive.extractall(temp_dir)
