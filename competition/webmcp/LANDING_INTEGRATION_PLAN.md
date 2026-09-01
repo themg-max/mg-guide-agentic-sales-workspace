@@ -1,11 +1,13 @@
 # A.I. Rolodex Landing Integration Plan (HOST_INTEGRATION_ONLY)
 
 ```text
-STATUS=PLAN_READY_NOT_EXECUTED
+STATUS=EXECUTED_AND_PROVEN
 PUBLIC_CANONICAL_REPO=themg-max/mg-guide-agentic-sales-workspace
 PRIVATE_HOST_REPO=themg-max/A.I-Rolodex---Context
 PRODUCT_PATH=/mg-guide/
 BACKEND_SERVICE=mg-guide-webmcp
+LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
+PRODUCTION_ACCEPTANCE_PROOF=proof/webmcp/mg-guide-webmcp-production-acceptance-001.md
 ```
 
 ## Constraints

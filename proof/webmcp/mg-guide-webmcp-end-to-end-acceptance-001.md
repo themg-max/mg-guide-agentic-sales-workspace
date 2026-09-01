@@ -8,16 +8,16 @@ RECORDED_AT=2026-09-01T15:00:00-04:00
 ENVIRONMENT=local (Python 3.12.x, Playwright-driven Chromium where noted)
 ```
 
-## Claim honesty (required correction)
+## Claim honesty (reconciled in production acceptance)
 
 | Claim | Status |
 | --- | --- |
 | `MOCKED_WEBMCP_REGISTRATION` | PASS — Playwright injected `document.modelContext.registerTool` mock; 3 tools registered |
 | `MOCKED_WEBMCP_TOOL_EXECUTION` | PASS — `execute()` invoked SUCCESS / state / draft against live local backend; page updated |
-| `ACTUAL_WEBMCP_BROWSER_DISCOVERY` | **PENDING** — requires Chrome with WebMCP enabled or ChatGPT in-app browser on live `/mg-guide/` |
-| `ACTUAL_WEBMCP_AGENT_INVOCATION` | **PENDING** — same |
+| `ACTUAL_WEBMCP_BROWSER_DISCOVERY` | **PASS** — verified on live `/mg-guide/` using Google Chrome with native WebMCP flag (see `mg-guide-webmcp-production-acceptance-001.md`) |
+| `ACTUAL_WEBMCP_AGENT_INVOCATION` | **PASS** — verified on live `/mg-guide/` via `document.modelContext.executeTool` |
 
-A mocked `document.modelContext` is **not** actual WebMCP browser proof.
+A mocked `document.modelContext` was used for initial local test validation. Final production acceptance was verified against the real native API without mocks.
 
 ## Stateless backend + browser state
 

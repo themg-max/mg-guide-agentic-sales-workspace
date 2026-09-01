@@ -82,12 +82,44 @@ is not a build, runtime, or deploy dependency for this competition slice.
 - `competition/webmcp/` — this delta, the brief, architecture note, judge
   testing guide, submission checklist, and landing host-integration plan
 - `proof/webmcp/mg-guide-webmcp-end-to-end-acceptance-001.md` — acceptance
-  evidence with mocked WebMCP registration clearly distinguished from pending
+  evidence with mocked WebMCP registration clearly distinguished from
   actual WebMCP browser proof
+- `proof/webmcp/mg-guide-webmcp-live-backend-deployment-acceptance-001.md` —
+  acceptance evidence for the live deployed Cloud Run backend
+- `proof/webmcp/mg-guide-webmcp-production-acceptance-001.md` — full production
+  acceptance proof on the live product URL (`/mg-guide/`) with native WebMCP
+  discovery and agent invocation verified
 
 No prior MG Guide work is claimed as new WebMCP work. The WebMCP adapter is
 strictly additive: it does not modify `src/mg_guide/judge_surface/*`,
 `src/orchestration/*`, `src/agents/*`, or any authentication contract.
+
+## PRODUCTION_HOST_INTEGRATION_AND_ACCEPTANCE (verified this submission period)
+
+```text
+STATUS=PROVEN_IN_PRODUCTION
+LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
+BACKEND_URL=https://mg-guide-webmcp-831270426395.us-east4.run.app
+```
+
+- **Live Host Surface**: The static WebMCP assets are served directly at
+  `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/` with
+  `window.MG_GUIDE_WEBMCP_API_BASE` pointing to the dedicated `mg-guide-webmcp`
+  backend.
+- **Native WebMCP Discovery**: Verified with a real WebMCP-capable browser
+  (Google Chrome with native WebMCP testing flag enabled; `document.modelContext`
+  native `ModelContext` instance). Exactly three tools discovered:
+  1. `process_meeting_follow_up`
+  2. `get_current_follow_up_state`
+  3. `get_follow_up_draft`
+- **Agent Invocation**: Verified via `document.modelContext.executeTool(...)`.
+- **SUCCESS flow**: Produces `ux_state=COMPLETED`, `follow_up_draft_status=READY`,
+  populates visible page state with meeting summary, matched relationship context,
+  and follow-up draft marked `requires_human_send: true`.
+- **AMBIGUOUS_CONTACT fail-closed flow**: Produces `ux_state=NEEDS_REVIEW`,
+  `follow_up_draft_status=NOT_AVAILABLE`, `reason=RELATIONSHIP_REVIEW_REQUIRED`,
+  blocking all CRM and draft actions.
+- **Effect Counters**: 0 HighLevel calls, 0 CRM mutations, 0 emails sent, 0 real customer data.
 
 ## ADDED_AFTER_INITIAL_PR_432_CORRECTION (same submission period)
 

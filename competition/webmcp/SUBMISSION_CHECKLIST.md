@@ -1,22 +1,24 @@
 # WebMCP Challenge — Submission Checklist
 
 ```text
-STATUS=IN_PROGRESS
+STATUS=VERIFIED_AND_READY_FOR_SUBMISSION
 LAST_UPDATED=2026-09-01
 LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
+BACKEND_URL=https://mg-guide-webmcp-831270426395.us-east4.run.app
 ```
 
 ## Required assets
 
 - [x] `WEB_APP_POWERED_BY_WEBMCP` — `webmcp/static/app.js` registers 3 tools
-- [ ] `WORKING_LIVE_URL` — pending landing `/mg-guide/` + backend deploy
+- [x] `WORKING_LIVE_URL` — `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/`
 - [x] `PUBLIC_CODE_REPO` — `https://github.com/themg-max/mg-guide-agentic-sales-workspace`
 - [x] `OPEN_SOURCE_LICENSE` — Apache-2.0
 - [x] `WEBMCP_IMPLEMENTATION_VISIBLE_IN_REPO`
-- [ ] `DEMO_VIDEO_UNDER_3_MINUTES` — pending
-- [ ] `DEMO_VIDEO_AUDIO` — pending
-- [ ] `YOUTUBE_PUBLIC_VIDEO` — pending
+- [ ] `DEMO_VIDEO_UNDER_3_MINUTES` — recording in progress
+- [ ] `DEMO_VIDEO_AUDIO` — recording in progress
+- [ ] `YOUTUBE_PUBLIC_VIDEO` — pending upload
 - [x] `TESTING_INSTRUCTIONS` — `competition/webmcp/JUDGE_TESTING.md`
+- [x] `PRODUCTION_PROOF` — `proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`
 
 ## Architecture gates
 
@@ -31,21 +33,30 @@ PRIVATE_REPO_BUILD_DEPENDENCY=NO
 PRIVATE_REPO_RUNTIME_DEPENDENCY=NO
 SECRET_DEPENDENCY=NO
 CRM_CREDENTIAL_DEPENDENCY=NO
+LIVE_PRODUCT_HOST_INTEGRATED=YES
+ACTUAL_WEBMCP_NATIVE_DISCOVERY=PASS
+ACTUAL_WEBMCP_AGENT_INVOCATION=PASS
+SUCCESS_FLOW=PASS
+AMBIGUOUS_CONTACT_FAIL_CLOSED=PASS
+ZERO_LIVE_CRM_MUTATIONS=YES
+ZERO_EMAILS_SENT=YES
 ```
 
-## Validation completed (source)
+## Validation completed
 
 - [x] Stateless backend (no `_last_state`)
 - [x] Browser `currentWebMCPState`
 - [x] Configurable `MG_GUIDE_WEBMCP_API_BASE`
-- [x] CORS allowlist (no `*`)
+- [x] CORS allowlist (production origin only)
 - [x] Focused WebMCP tests
-- [x] Corrected acceptance claims: mocked ≠ actual WebMCP browser proof
+- [x] Dedicated backend deployed and accepted
+- [x] Production host integration at `/mg-guide/` completed and serving
+- [x] Native WebMCP discovery (3 tools) verified on real Chrome
+- [x] Agent invocation and fail-closed flow verified on real Chrome
+- [x] Sanitized public proof recorded
 
-## Remaining
+## Remaining (submission operations)
 
-1. Independent review + merge of PR 432 (after this correction commit)
-2. Backend deploy preflight → dedicated runtime identity if needed
-3. Landing integration branch: host `webmcp/static` at `/mg-guide/`
-4. Actual WebMCP browser discovery + agent invocation on live URL
-5. Demo video + Devpost form
+1. Finalize demo video recording (<3 minutes, with voiceover)
+2. Upload public YouTube video link
+3. Complete Devpost submission form
