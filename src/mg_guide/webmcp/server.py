@@ -6,6 +6,9 @@ Serves:
 
 Uses only the Python standard library, matching the existing judge_surface
 server pattern.
+
+Local default: WEBMCP_CORS_MODE=local (unless already set). Production Cloud
+Run images should set WEBMCP_CORS_MODE=production explicitly.
 """
 
 from __future__ import annotations
@@ -53,7 +56,9 @@ class StaticAndAPIApp:
             start_response("404 Not Found", [("Content-Type", "text/plain")])
             return [b"not found"]
         body = candidate.read_bytes()
-        content_type = mimetypes.guess_type(str(candidate))[0] or "application/octet-stream"
+        content_type = (
+            mimetypes.guess_type(str(candidate))[0] or "application/octet-stream"
+        )
         start_response(
             "200 OK",
             [
@@ -66,6 +71,9 @@ class StaticAndAPIApp:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    # Local server defaults to local CORS so same-machine browser testing works.
+    # Production containers set WEBMCP_CORS_MODE=production in the Dockerfile.
+    os.environ.setdefault("WEBMCP_CORS_MODE", "local")
     port = int(os.environ.get("PORT", "8080"))
     app = StaticAndAPIApp()
     server = make_server("0.0.0.0", port, app)

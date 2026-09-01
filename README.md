@@ -38,9 +38,10 @@ introducing any new live CRM effect.
 
 | | |
 | --- | --- |
-| **Live URL** | _pending deployment — see [`competition/webmcp/SUBMISSION_CHECKLIST.md`](competition/webmcp/SUBMISSION_CHECKLIST.md)_ |
+| **Live product URL** | `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/` (host integration pending) |
+| **Backend** | Separate bounded `mg-guide-webmcp` service (stateless synthetic API) |
 | **Browser testing steps** | [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md) |
-| **WebMCP enablement** | Test in Chrome with WebMCP testing enabled, per current [WebMCP developer documentation](https://developer.chrome.com/) |
+| **WebMCP enablement** | Test in a real WebMCP-capable browser (Chrome with WebMCP enabled per current docs, or ChatGPT in-app browser). Mocked `modelContext` is not claimed as actual discovery. |
 | **Local setup** | `PYTHONPATH=src python -m mg_guide.webmcp.server`, then open `http://localhost:8080/` |
 | **Architecture** | [`competition/webmcp/WEBMCP_ARCHITECTURE.md`](competition/webmcp/WEBMCP_ARCHITECTURE.md) |
 | **Competition delta** | [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md) |

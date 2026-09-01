@@ -2,16 +2,21 @@
 
 Covers registration boundary contract items WEBMCP-05..09 (schema/security
 boundary enforced server-side) plus WEBMCP-11..15 behavioral acceptance
-(state transitions across SUCCESS / AMBIGUOUS_CONTACT) at the HTTP layer.
-Frontend-only items (WEBMCP-01..04, 10, 20) are validated by
-tests/webmcp/test_tool_registration_source.py via static source inspection.
+(SUCCESS / AMBIGUOUS_CONTACT payload shape) at the HTTP layer.
+
+The adapter is intentionally *stateless*: POST /webmcp/meeting-follow-up
+returns the full safe projected payload (including draft). There are no
+server-side GET /webmcp/state or /webmcp/follow-up-draft routes — those
+tools are client-side readers of browser memory.
 """
 
 from __future__ import annotations
 
 import json
+import os
 from io import BytesIO
 from typing import Any, Dict, List, Tuple
+from unittest import mock
 
 import pytest
 
@@ -22,12 +27,14 @@ from mg_guide.webmcp.scenarios import webmcp_scenario_names
 class _TestClient:
     def __init__(self, app) -> None:
         self.app = app
+        self.last_headers: List[Tuple[str, str]] = []
 
     def request(
         self,
         method: str,
         path: str,
         body: Dict[str, Any] | None = None,
+        origin: str | None = None,
     ) -> Tuple[int, Dict[str, Any]]:
         payload = b""
         if body is not None:
@@ -43,6 +50,8 @@ class _TestClient:
             "SERVER_NAME": "localhost",
             "SERVER_PORT": "8080",
         }
+        if origin is not None:
+            environ["HTTP_ORIGIN"] = origin
         status_info: List[str] = []
         headers_info: List[Tuple[str, str]] = []
 
@@ -52,6 +61,7 @@ class _TestClient:
             return lambda x: None
 
         response_body = b"".join(self.app(environ, start_response))
+        self.last_headers = headers_info
         code = int(status_info[0].split(" ", 1)[0])
         data = json.loads(response_body.decode("utf-8")) if response_body else {}
         return code, data
@@ -70,41 +80,36 @@ def test_health(client: _TestClient) -> None:
     assert body["live_ghl_calls"] == 0
     assert body["live_crm_mutations"] == 0
     assert body["real_emails_sent"] == 0
+    assert body["server_session_state_required"] is False
+    assert body["webmcp_browser_state"] is True
     assert set(webmcp_scenario_names()) == {"SUCCESS", "AMBIGUOUS_CONTACT"}
 
 
-def test_state_not_processed_before_any_run(client: _TestClient) -> None:
+def test_state_and_draft_routes_removed(client: _TestClient) -> None:
+    """Server is stateless — former session routes must 404."""
     code, body = client.request("GET", "/webmcp/state")
-    assert code == 200
-    assert body["status"] == "NOT_PROCESSED"
-
-
-def test_draft_not_processed_before_any_run(client: _TestClient) -> None:
+    assert code == 404
+    assert body["error"] == "not_found"
     code, body = client.request("GET", "/webmcp/follow-up-draft")
-    assert code == 200
-    assert body["status"] == "NOT_PROCESSED"
+    assert code == 404
+    assert body["error"] == "not_found"
 
 
-def test_success_flow_updates_state_and_draft(client: _TestClient) -> None:
+def test_success_flow_returns_full_safe_payload(client: _TestClient) -> None:
     code, body = client.request(
         "POST", "/webmcp/meeting-follow-up", {"scenario": "SUCCESS"}
     )
     assert code == 200
+    assert body["status"] == "PROCESSED"
     assert body["ux_state"] == "COMPLETED"
     assert body["crm_note_status"] in {"NOT_EXECUTED", "UNKNOWN"}
     assert body["follow_up_draft_status"] == "READY"
-
-    code, state = client.request("GET", "/webmcp/state")
-    assert code == 200
-    assert state["status"] == "PROCESSED"
-    assert state["ux_state"] == "COMPLETED"
-    assert state["cloud_mutation"] == "NONE"
-
-    code, draft = client.request("GET", "/webmcp/follow-up-draft")
-    assert code == 200
+    assert body["cloud_mutation"] == "NONE"
+    draft = body["follow_up_draft"]
     assert draft["status"] == "READY"
     assert draft["requires_human_send"] is True
     assert "subject" in draft
+    assert "body_preview" in draft
 
 
 def test_ambiguous_contact_fails_closed(client: _TestClient) -> None:
@@ -114,9 +119,7 @@ def test_ambiguous_contact_fails_closed(client: _TestClient) -> None:
     assert code == 200
     assert body["ux_state"] == "NEEDS_REVIEW"
     assert body["follow_up_draft_status"] == "NOT_AVAILABLE"
-
-    code, draft = client.request("GET", "/webmcp/follow-up-draft")
-    assert code == 200
+    draft = body["follow_up_draft"]
     assert draft["status"] == "NOT_AVAILABLE"
     assert draft["reason"] == "RELATIONSHIP_REVIEW_REQUIRED"
 
@@ -171,7 +174,47 @@ def test_no_secret_values_in_any_response(client: _TestClient) -> None:
     for banned in ("secret", "token", "api_key", "password", "authorization"):
         assert banned not in serialized
 
-    code, state = client.request("GET", "/webmcp/state")
-    serialized = json.dumps(state).lower()
-    for banned in ("secret", "token", "api_key", "password", "authorization"):
-        assert banned not in serialized
+
+def test_cors_allows_landing_origin(client: _TestClient) -> None:
+    origin = "https://ai-rolodex-landing-831270426395.us-east4.run.app"
+    code, _body = client.request(
+        "POST",
+        "/webmcp/meeting-follow-up",
+        {"scenario": "SUCCESS"},
+        origin=origin,
+    )
+    assert code == 200
+    headers = dict(client.last_headers)
+    assert headers.get("Access-Control-Allow-Origin") == origin
+    assert headers.get("Vary") == "Origin"
+
+
+def test_cors_rejects_unknown_origin_in_production(client: _TestClient) -> None:
+    with mock.patch.dict(os.environ, {"WEBMCP_CORS_MODE": "production"}, clear=False):
+        code, _body = client.request(
+            "POST",
+            "/webmcp/meeting-follow-up",
+            {"scenario": "SUCCESS"},
+            origin="https://evil.example",
+        )
+        assert code == 200  # request still succeeds
+        headers = dict(client.last_headers)
+        assert "Access-Control-Allow-Origin" not in headers
+
+
+def test_cors_local_mode_allows_localhost(client: _TestClient) -> None:
+    with mock.patch.dict(os.environ, {"WEBMCP_CORS_MODE": "local"}, clear=False):
+        code, _body = client.request(
+            "GET",
+            "/health",
+            origin="http://localhost:8092",
+        )
+        assert code == 200
+        headers = dict(client.last_headers)
+        assert headers.get("Access-Control-Allow-Origin") == "http://localhost:8092"
+
+
+def test_no_wildcard_cors_header(client: _TestClient) -> None:
+    client.request("GET", "/health", origin="https://ai-rolodex-landing-831270426395.us-east4.run.app")
+    headers = dict(client.last_headers)
+    assert headers.get("Access-Control-Allow-Origin") != "*"

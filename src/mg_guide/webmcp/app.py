@@ -1,11 +1,9 @@
-"""Public, bounded WSGI adapter for the WebMCP Challenge competition slice.
+"""Public, bounded, *stateless* WSGI adapter for the WebMCP Challenge slice.
 
 Contract (see competition/webmcp/WEBMCP_ARCHITECTURE.md):
 
   GET  /health                      -- liveness / provenance
   POST /webmcp/meeting-follow-up    -- {"scenario": "SUCCESS"|"AMBIGUOUS_CONTACT"}
-  GET  /webmcp/state                -- last processed state for this process
-  GET  /webmcp/follow-up-draft      -- deterministic draft for last processed run
 
 This route is intentionally UNAUTHENTICATED and public: it is a synthetic,
 fixture-only, read-mostly demo surface with a fixed two-value scenario
@@ -15,10 +13,20 @@ reuses the existing meeting_follow_up_v1 WorkflowRunner and the existing
 judge_surface projection helpers (map_packet_to_card, project_demo_payload)
 without modifying either.
 
-State is held in-process only (no Firestore, no external persistence) and is
-reset on every new process. This mirrors the judge_surface stub posture and
-keeps the WebMCP demo bounded to a single Cloud Run instance / min-instances=1
-deployment for demo determinism.
+STATELESSNESS
+-------------
+This adapter holds **no server-side session state**. Every POST returns the
+full safe projected payload (including the bounded draft projection when
+READY). The browser page holds ``currentWebMCPState`` in JavaScript memory;
+``get_current_follow_up_state`` and ``get_follow_up_draft`` are pure
+client-side WebMCP tools that read that browser state. No Firestore, no
+cookies, no session database, no sticky routing, no min-instances
+requirement.
+
+CORS
+----
+Production allowlist is explicit (see ``WEBMCP_CORS_ORIGINS``). Local/dev
+mode (``WEBMCP_CORS_MODE=local``) additionally permits localhost origins.
 """
 
 from __future__ import annotations
@@ -26,7 +34,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import threading
 import time
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 from uuid import uuid4
@@ -44,7 +51,16 @@ WSGIEnv = Dict[str, Any]
 LOGGER = logging.getLogger("mg_guide.webmcp")
 LOGGER.setLevel(logging.INFO)
 
-NOT_PROCESSED = "NOT_PROCESSED"
+# Production allowlist for the A.I. Rolodex host surface. Additional origins
+# may be supplied via WEBMCP_CORS_ORIGINS (comma-separated) without code change.
+DEFAULT_PRODUCTION_ORIGINS = (
+    "https://ai-rolodex-landing-831270426395.us-east4.run.app",
+)
+
+LOCAL_ORIGIN_PREFIXES = (
+    "http://localhost:",
+    "http://127.0.0.1:",
+)
 
 
 class _JSONError(RuntimeError):
@@ -55,47 +71,44 @@ class _JSONError(RuntimeError):
 
 
 class WebMCPSurfaceApp:
-    """WSGI application for the public WebMCP competition adapter."""
+    """WSGI application for the public WebMCP competition adapter.
+
+    Stateless: no ``_last_state``, no locks, no server session.
+    """
 
     def __init__(self, runner: Optional[WorkflowRunner] = None) -> None:
-        # A fresh isolated registry per process avoids duplicate-run-id
-        # rejection across repeated demo invocations of the same fixture.
+        # A fresh isolated registry per request (via factory) avoids
+        # duplicate-run-id rejection across repeated demo invocations of the
+        # same fixture, without retaining any cross-request state.
         self._runner_factory = (lambda: runner) if runner is not None else WorkflowRunner
         self._service_name = "mg-guide-webmcp-competition"
-        self._version = "0.1.0"
+        self._version = "0.2.0"
         self._commit = os.environ.get("GIT_COMMIT", "unknown")
-        self._lock = threading.Lock()
-        self._last_state: Optional[JSONType] = None
 
     def __call__(
         self, environ: WSGIEnv, start_response: StartResponse
     ) -> Iterable[bytes]:
         started_at = time.monotonic()
         request_id = uuid4().hex
+        origin = str(environ.get("HTTP_ORIGIN") or "")
         try:
+            if environ.get("REQUEST_METHOD") == "OPTIONS":
+                return _send_preflight(start_response, origin)
             response = self._handle(environ)
         except _JSONError as exc:
             self._log(environ, request_id, started_at, exc.status, exc.body)
-            return _send(start_response, exc.status, exc.body, cors=True)
+            return _send(start_response, exc.status, exc.body, origin=origin)
         self._log(environ, request_id, started_at, "200 OK", response)
-        return _send(start_response, "200 OK", response, cors=True)
+        return _send(start_response, "200 OK", response, origin=origin)
 
     def _handle(self, environ: WSGIEnv) -> JSONType:
         method = environ.get("REQUEST_METHOD", "GET")
         path = environ.get("PATH_INFO", "/")
-        if method == "OPTIONS":
-            return {}
         if method == "GET" and path in ("/health", "/healthz"):
             return self._health()
         if method == "POST" and path == "/webmcp/meeting-follow-up":
             return self._process(environ)
-        if method == "GET" and path == "/webmcp/state":
-            return self._state()
-        if method == "GET" and path == "/webmcp/follow-up-draft":
-            return self._draft()
         raise _JSONError("404 Not Found", {"error": "not_found", "path": path})
-
-    # -- routes ---------------------------------------------------------
 
     def _health(self) -> JSONType:
         return {
@@ -109,6 +122,8 @@ class WebMCPSurfaceApp:
             "live_ghl_calls": 0,
             "live_crm_mutations": 0,
             "real_emails_sent": 0,
+            "server_session_state_required": False,
+            "webmcp_browser_state": True,
         }
 
     def _process(self, environ: WSGIEnv) -> JSONType:
@@ -126,8 +141,6 @@ class WebMCPSurfaceApp:
             )
 
         sidecar_path = WEBMCP_SCENARIOS[selector]
-        # A fresh run_id per invocation lets the same fixture replay across
-        # repeated demo/judge/agent invocations without duplicate rejection.
         run_id_override = f"webmcp-{selector.lower()}-{uuid4().hex[:12]}"
         runner = self._runner_factory()
         result = runner.run_fixture(sidecar_path, run_id_override=run_id_override)
@@ -149,8 +162,10 @@ class WebMCPSurfaceApp:
             packet, card, workflow_status=result.final_state
         )
         ux = demo_payload["ux_experience"]
+        draft = ux.get("follow_up_draft") or {}
 
-        state_snapshot = {
+        return {
+            "status": "PROCESSED",
             "scenario": selector,
             "workflow_status": result.final_state,
             "ux_state": ux.get("ux_state"),
@@ -160,65 +175,11 @@ class WebMCPSurfaceApp:
             ),
             "salesperson_next_step": ux.get("salesperson_next_step"),
             "crm_note_status": (ux.get("crm_note_status") or {}).get("state"),
-            "follow_up_draft_status": (ux.get("follow_up_draft") or {}).get("status"),
-            "follow_up_draft": ux.get("follow_up_draft"),
+            "follow_up_draft_status": draft.get("status"),
+            "follow_up_draft": _safe_draft_projection(draft),
             "external_effects": result.external_effects,
             "cloud_mutation": "NONE",
         }
-        with self._lock:
-            self._last_state = state_snapshot
-
-        # Public tool-facing response: narrow field set only, per boundary.
-        return {
-            "workflow_status": state_snapshot["workflow_status"],
-            "ux_state": state_snapshot["ux_state"],
-            "meeting_summary": state_snapshot["meeting_summary"],
-            "relationship_status": state_snapshot["relationship_status"],
-            "salesperson_next_step": state_snapshot["salesperson_next_step"],
-            "crm_note_status": state_snapshot["crm_note_status"],
-            "follow_up_draft_status": state_snapshot["follow_up_draft_status"],
-        }
-
-    def _state(self) -> JSONType:
-        with self._lock:
-            snapshot = self._last_state
-        if snapshot is None:
-            return {
-                "status": NOT_PROCESSED,
-                "message": "No meeting has been processed yet in this session.",
-            }
-        return {
-            "status": "PROCESSED",
-            "workflow_status": snapshot["workflow_status"],
-            "ux_state": snapshot["ux_state"],
-            "meeting_summary": snapshot["meeting_summary"],
-            "relationship_status": snapshot["relationship_status"],
-            "salesperson_next_step": snapshot["salesperson_next_step"],
-            "crm_note_status": snapshot["crm_note_status"],
-            "follow_up_draft_status": snapshot["follow_up_draft_status"],
-            "cloud_mutation": "NONE",
-        }
-
-    def _draft(self) -> JSONType:
-        with self._lock:
-            snapshot = self._last_state
-        if snapshot is None:
-            return {"status": NOT_PROCESSED}
-        draft = snapshot.get("follow_up_draft") or {}
-        if draft.get("status") != "READY":
-            return {
-                "status": "NOT_AVAILABLE",
-                "reason": "RELATIONSHIP_REVIEW_REQUIRED",
-            }
-        return {
-            "status": "READY",
-            "recipient_name": draft.get("recipient_name"),
-            "subject": draft.get("subject"),
-            "body_preview": _preview(draft.get("body_text")),
-            "requires_human_send": True,
-        }
-
-    # -- helpers ----------------------------------------------------------
 
     @staticmethod
     def _log(
@@ -252,6 +213,24 @@ _DENYLIST_FIELDS = {
     "instructions",
     "transcript",
 }
+
+
+def _safe_draft_projection(draft: JSONType) -> JSONType:
+    status = draft.get("status")
+    if status != "READY":
+        return {
+            "status": "NOT_AVAILABLE",
+            "reason": "RELATIONSHIP_REVIEW_REQUIRED",
+            "requires_human_send": True,
+        }
+    body_text = draft.get("body_text")
+    return {
+        "status": "READY",
+        "recipient_name": draft.get("recipient_name"),
+        "subject": draft.get("subject"),
+        "body_preview": _preview(body_text),
+        "requires_human_send": True,
+    }
 
 
 def _reject_unexpected_fields(body: JSONType) -> None:
@@ -298,21 +277,61 @@ def _read_json_body(environ: WSGIEnv) -> JSONType:
     return parsed
 
 
+def _allowed_origins() -> List[str]:
+    extra = os.environ.get("WEBMCP_CORS_ORIGINS", "").strip()
+    origins = list(DEFAULT_PRODUCTION_ORIGINS)
+    if extra:
+        origins.extend(o.strip() for o in extra.split(",") if o.strip())
+    return origins
+
+
+def _cors_mode() -> str:
+    return (os.environ.get("WEBMCP_CORS_MODE") or "production").strip().lower()
+
+
+def _origin_allowed(origin: str) -> bool:
+    if not origin:
+        return False
+    if origin in _allowed_origins():
+        return True
+    if _cors_mode() == "local":
+        return any(origin.startswith(p) for p in LOCAL_ORIGIN_PREFIXES)
+    return False
+
+
+def _cors_headers(origin: str) -> List[Tuple[str, str]]:
+    if not _origin_allowed(origin):
+        return []
+    return [
+        ("Access-Control-Allow-Origin", origin),
+        ("Access-Control-Allow-Methods", "GET, POST, OPTIONS"),
+        ("Access-Control-Allow-Headers", "Content-Type"),
+        ("Vary", "Origin"),
+    ]
+
+
+def _send_preflight(start_response: StartResponse, origin: str) -> Iterable[bytes]:
+    headers = _cors_headers(origin)
+    headers.append(("Content-Length", "0"))
+    if _origin_allowed(origin):
+        start_response("204 No Content", headers)
+    else:
+        start_response("403 Forbidden", [("Content-Length", "0")])
+    return [b""]
+
+
 def _send(
     start_response: StartResponse,
     status: str,
     body: JSONType,
     *,
-    cors: bool = False,
+    origin: str = "",
 ) -> Iterable[bytes]:
     payload = json.dumps(body, sort_keys=True).encode("utf-8")
     headers = [
         ("Content-Type", "application/json"),
         ("Content-Length", str(len(payload))),
     ]
-    if cors:
-        headers.append(("Access-Control-Allow-Origin", "*"))
-        headers.append(("Access-Control-Allow-Methods", "GET, POST, OPTIONS"))
-        headers.append(("Access-Control-Allow-Headers", "Content-Type"))
+    headers.extend(_cors_headers(origin))
     start_response(status, headers)
     return [payload]

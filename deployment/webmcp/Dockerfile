@@ -9,13 +9,18 @@
 # judge_surface add-on adapter (see ../../Dockerfile). It reuses the same
 # meeting_follow_up_v1 orchestration package but exposes only the bounded
 # /webmcp/* routes plus the static frontend under webmcp/static/.
+#
+# Production topology: A.I. Rolodex landing hosts /mg-guide/ frontend;
+# this service is the bounded backend (and can also serve static for local
+# same-origin testing). Stateless: no server session, no sticky routing.
 
 FROM python:3.11-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8080 \
-    MEETING_CONTEXT_GEMINI_MODE=stub
+    MEETING_CONTEXT_GEMINI_MODE=stub \
+    WEBMCP_CORS_MODE=production
 
 WORKDIR /app
 

@@ -77,3 +77,24 @@ is not a build, runtime, or deploy dependency for this competition slice.
 No prior MG Guide work is claimed as new WebMCP work. The WebMCP adapter is
 strictly additive: it does not modify `src/mg_guide/judge_surface/*`,
 `src/orchestration/*`, `src/agents/*`, or any authentication contract.
+
+
+## ADDED_AFTER_INITIAL_PR_432_CORRECTION (same submission period)
+
+```text
+CORRECTION_ID=STATELESS_BROWSER_STATE_CORRECTION
+HOST_TOPOLOGY=A.I. Rolodex /mg-guide/ + separate bounded backend
+```
+
+- Backend made **stateless**: removed process-memory `_last_state`; removed
+  server `GET /webmcp/state` and `GET /webmcp/follow-up-draft`
+- `POST /webmcp/meeting-follow-up` now returns full safe payload including
+  bounded `follow_up_draft` projection
+- Frontend holds `currentWebMCPState` in page JS; state/draft tools are
+  client-only readers
+- Configurable `window.MG_GUIDE_WEBMCP_API_BASE` (same-origin default)
+- CORS tightened: explicit allowlist for
+  `https://ai-rolodex-landing-831270426395.us-east4.run.app`; no `*`;
+  localhost only when `WEBMCP_CORS_MODE=local`
+- Acceptance claims corrected: mocked modelContext ≠ actual WebMCP browser proof
+- Architecture artifacts updated for A.I. Rolodex host surface reuse

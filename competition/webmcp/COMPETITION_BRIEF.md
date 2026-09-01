@@ -5,6 +5,10 @@ COMPETITION=The WebMCP Challenge
 OWNER=VS Code / MG Orchestrator
 PUBLIC_REPO=themg-max/mg-guide-agentic-sales-workspace
 STATUS=EXISTING_PROJECT_WITH_NEW_WEBMCP_DELTA
+LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
+SEPARATE_WEB_SURFACE_REQUIRED=NO
+EXISTING_AI_ROLODEX_SURFACE_REUSED=YES
+SEPARATE_WEBMCP_BACKEND_BOUNDARY=YES
 ```
 
 ## What this is
@@ -16,49 +20,48 @@ the same experience can expose structured capabilities directly to a user's
 browser agent — without weakening the existing authenticated judge/add-on
 surface, and without any new live CRM effect.
 
+The **product page** lives on the existing A.I. Rolodex website at
+`/mg-guide/`. A separate bounded backend (`mg-guide-webmcp`) runs the
+synthetic workflow. The public MG Guide repository remains the canonical
+source of WebMCP code.
+
 See [`COMPETITION_DELTA.md`](COMPETITION_DELTA.md) for the exact pre-existing
 vs. newly-added-for-WebMCP boundary with commit SHAs.
 
 ## The story for judges
 
-1. A human opens the MG Guide WebMCP page and sees a synthetic meeting.
+1. A human opens `…/mg-guide/` on the A.I. Rolodex site and sees a synthetic meeting.
 2. A browser agent discovers three structured WebMCP tools on the page.
 3. The agent invokes `process_meeting_follow_up({scenario: "SUCCESS"})`.
 4. The same page visibly updates: Meeting Context, Relationship Context, and
-   Follow-Up Planning move from empty to populated, and Follow-Up Draft
-   becomes `READY`.
+   Follow-Up Planning populate; Follow-Up Draft becomes `READY`.
 5. The agent inspects state (`get_current_follow_up_state`) and reads the
-   deterministic draft (`get_follow_up_draft`) — a human must still review
-   and send it.
+   deterministic draft (`get_follow_up_draft`) from **browser memory** — a
+   human must still review and send it.
 6. The agent then invokes `process_meeting_follow_up({scenario:
    "AMBIGUOUS_CONTACT"})`. The page moves to `NEEDS_REVIEW`, and
-   `get_follow_up_draft` now returns `NOT_AVAILABLE` /
-   `RELATIONSHIP_REVIEW_REQUIRED`. No draft, no CRM effect, no email —
-   identity ambiguity fails closed.
+   `get_follow_up_draft` returns `NOT_AVAILABLE` /
+   `RELATIONSHIP_REVIEW_REQUIRED`. No draft, no CRM effect, no email.
 
-People retain judgment. Agents gain structured, schema-bounded access to a
-real product capability instead of scraping the DOM or guessing at hidden
-form fields.
+People retain judgment. Agents gain structured, schema-bounded access.
 
-## Boundary (what this demo will never do)
+## Boundary
 
 - No live HighLevel/CRM calls, no CRM mutations, no email sends.
-- No arbitrary transcript, raw CRM identifier, live-mode selector, or
-  credential ever accepted by the public API or tool schemas.
+- No arbitrary transcript, raw CRM identifier, live-mode selector, or credential.
 - Ambiguous relationship identity always fails closed.
-- The existing authenticated `/demo/meeting-follow-up` judge/add-on route is
-  untouched and remains authenticated.
+- Backend is **stateless**; browser holds `currentWebMCPState`.
+- Existing authenticated `/demo/meeting-follow-up` remains authenticated and untouched.
 
 ## Judging-dimension evidence map
 
 | Dimension | Evidence |
 | --- | --- |
-| WebMCP leverage | Real `document.modelContext.registerTool` tools, narrow JSON Schemas, actual agent invocation updating visible page state, fail-closed tool behavior |
-| Execution | Live URL, complete page (7 sections), both SUCCESS and AMBIGUOUS_CONTACT flows working, browser acceptance evidence |
-| Potential impact | Solves the real meeting-to-follow-up administrative gap; a browser agent removes manual navigation while the human keeps sign-off |
-| Creativity & ambition | The same relationship-intelligence workspace serves both a human and a browser agent through structured, standards-based capabilities rather than UI scraping |
+| WebMCP leverage | Real `document.modelContext.registerTool` tools, narrow JSON Schemas, page-visible agent actions, fail-closed tool behavior |
+| Execution | Live product URL on existing A.I. Rolodex site, complete page (7 sections), SUCCESS + AMBIGUOUS flows |
+| Potential impact | Meeting-to-follow-up administrative gap; agent removes navigation; human keeps sign-off |
+| Creativity & ambition | Same relationship-intelligence workspace for human + browser agent via standards-based tools, hosted on the existing brand surface |
 
-See [`WEBMCP_ARCHITECTURE.md`](WEBMCP_ARCHITECTURE.md) for the technical
-design, [`JUDGE_TESTING.md`](JUDGE_TESTING.md) for testing instructions, and
-[`SUBMISSION_CHECKLIST.md`](SUBMISSION_CHECKLIST.md) for the packaging
-checklist.
+See [`WEBMCP_ARCHITECTURE.md`](WEBMCP_ARCHITECTURE.md),
+[`JUDGE_TESTING.md`](JUDGE_TESTING.md),
+[`SUBMISSION_CHECKLIST.md`](SUBMISSION_CHECKLIST.md).
