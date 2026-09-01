@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MG Guide | Agentic Sales Workspace — WebMCP</title>
+<link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <header class="hero">
+    <p class="eyebrow">Powered by A.I. Rolodex</p>
+    <h1>MG Guide | Agentic Sales Workspace</h1>
+    <p class="tagline">
+      Turn a meeting into relationship context and a governed follow-up plan —
+      and let your browser agent help you work with the result.
+    </p>
+    <p class="webmcp-status" id="webmcp-status">Checking WebMCP support…</p>
+  </header>
+
+  <main>
+    <section class="panel" id="section-meeting">
+      <h2>1. Meeting</h2>
+      <p>Choose a synthetic scenario. A human can run these directly, or a
+      browser agent can invoke the same capability through WebMCP.</p>
+      <div class="controls">
+        <button id="btn-success" data-scenario="SUCCESS">Run SUCCESS demo</button>
+        <button id="btn-ambiguous" data-scenario="AMBIGUOUS_CONTACT">Run AMBIGUOUS_CONTACT demo</button>
+      </div>
+    </section>
+
+    <section class="panel" id="section-processing">
+      <h2>2. MG Guide processing state</h2>
+      <p id="processing-state">NOT_PROCESSED — no meeting has been run yet.</p>
+    </section>
+
+    <section class="panel" id="section-meeting-context">
+      <h2>3. Meeting Context</h2>
+      <p id="meeting-summary">—</p>
+    </section>
+
+    <section class="panel" id="section-relationship-context">
+      <h2>4. Relationship Context</h2>
+      <p id="relationship-status">—</p>
+    </section>
+
+    <section class="panel" id="section-follow-up-planning">
+      <h2>5. Follow-Up Planning</h2>
+      <p id="next-step">—</p>
+    </section>
+
+    <section class="panel" id="section-draft">
+      <h2>6. Follow-Up Draft</h2>
+      <div id="draft-body">
+        <p>—</p>
+      </div>
+    </section>
+
+    <section class="panel trust" id="section-trust">
+      <h2>7. Trust / action boundary</h2>
+      <ul>
+        <li>Synthetic fixture data only — no real customer data.</li>
+        <li>No live CRM writes. No live HighLevel calls. No emails sent.</li>
+        <li>Ambiguous relationship identity always fails closed — no draft, no action.</li>
+        <li>A human must review and send any follow-up. Agents can process and inspect only.</li>
+      </ul>
+    </section>
+
+    <section class="panel" id="section-tools">
+      <h2>WebMCP tools registered on this page</h2>
+      <ul id="tool-list"><li>—</li></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>MG Guide is a bounded agentic sales workspace. This page is a WebMCP Challenge
+    competition adapter and does not perform live CRM mutations.</p>
+  </footer>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
