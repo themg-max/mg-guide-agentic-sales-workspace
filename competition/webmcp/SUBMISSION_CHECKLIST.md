@@ -1,7 +1,7 @@
 # WebMCP Challenge — Submission Checklist
 
 ```text
-STATUS=VERIFIED_AND_READY_FOR_SUBMISSION
+STATUS=TECHNICAL_ACCEPTANCE_COMPLETE_SUBMISSION_ASSETS_PENDING
 LAST_UPDATED=2026-09-01
 LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
 BACKEND_URL=https://mg-guide-webmcp-831270426395.us-east4.run.app
@@ -55,8 +55,12 @@ ZERO_EMAILS_SENT=YES
 - [x] Agent invocation and fail-closed flow verified on real Chrome
 - [x] Sanitized public proof recorded
 
-## Remaining (submission operations)
+## Remaining (submission operations only — final submission is human-controlled)
 
-1. Finalize demo video recording (<3 minutes, with voiceover)
-2. Upload public YouTube video link
-3. Complete Devpost submission form
+1. Finalize demo video (<3 minutes, with audio) — not yet recorded
+2. Upload public YouTube video — pending video completion
+3. Complete Devpost submission form — pending final asset upload
+
+All technical acceptance gates above are complete. No runtime, backend, or
+host-integration work remains. Final submission action remains a
+human-controlled step.

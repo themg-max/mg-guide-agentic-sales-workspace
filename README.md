@@ -8,7 +8,10 @@ without rebuilding context manually.
 **Track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
 
-Judges: start at [JUDGE_START_HERE.md](JUDGE_START_HERE.md).
+This repository serves two competition submissions from one codebase:
+
+- **Google All Things Agentic judges:** start at [JUDGE_START_HERE.md](JUDGE_START_HERE.md).
+- **WebMCP Challenge judges:** start at [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md).
 
 ---
 

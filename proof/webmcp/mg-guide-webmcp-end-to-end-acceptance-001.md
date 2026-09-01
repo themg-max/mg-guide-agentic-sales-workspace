@@ -47,7 +47,7 @@ $ PYTHONPATH=src python -m pytest tests/
 | --- | --- |
 | WEBMCP-01..06, 10, 20 | PASS — static source tests |
 | WEBMCP-05..09, 16..19 | PASS — HTTP boundary tests |
-| WEBMCP-11..15 | PASS at HTTP payload + local UI level; **actual** agent path PENDING live WebMCP client |
+| WEBMCP-11..15 | PASS at HTTP payload + local UI level (historical); **production** native-agent acceptance also PASS — see [`proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](mg-guide-webmcp-production-acceptance-001.md) |
 | CORS | PASS — landing origin allowed; `*` absent; unknown origin gets no ACAO header |
 | Stateless routes | PASS — former session GETs return 404 |
 
@@ -72,9 +72,24 @@ EMAILS_SENT=0
 R5_STATE=UNCHANGED / OUT_OF_SCOPE
 ```
 
-## Outstanding
+## Current terminal acceptance status
 
-- Backend deploy preflight / authorization
-- Landing `/mg-guide/` host integration from public SHA
-- Actual WebMCP browser discovery + agent invocation
-- Demo video
+```text
+ACTUAL_WEBMCP_BROWSER_DISCOVERY=PASS
+ACTUAL_WEBMCP_AGENT_INVOCATION=PASS
+ACTUAL_WEBMCP_SUCCESS_FLOW=PASS
+ACTUAL_WEBMCP_AMBIGUOUS_FAIL_CLOSED=PASS
+```
+
+Full production evidence: [`proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](mg-guide-webmcp-production-acceptance-001.md).
+
+## Remaining (submission operations only)
+
+- Finalize demo video (<3 minutes, with audio)
+- Upload public YouTube video
+- Complete Devpost submission form
+
+Backend deployment, landing `/mg-guide/` host integration, and actual native
+WebMCP browser discovery/agent invocation are complete and proven — see
+[`proof/webmcp/mg-guide-webmcp-live-backend-deployment-acceptance-001.md`](mg-guide-webmcp-live-backend-deployment-acceptance-001.md)
+and [`proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](mg-guide-webmcp-production-acceptance-001.md).

@@ -6,7 +6,10 @@ OWNER=VS Code / MG Orchestrator
 PUBLIC_REPO=themg-max/mg-guide-agentic-sales-workspace
 STATUS=EXISTING_PROJECT_WITH_NEW_WEBMCP_DELTA
 TARGET_LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
-LIVE_PRODUCT_URL_STATE=HOST_INTEGRATION_PENDING
+LIVE_PRODUCT_URL_STATE=LIVE_ACCEPTED
+PRODUCTION_HOST_INTEGRATION=PASS
+NATIVE_WEBMCP_DISCOVERY=PASS
+NATIVE_WEBMCP_AGENT_INVOCATION=PASS
 SEPARATE_WEB_SURFACE_REQUIRED=NO
 EXISTING_AI_ROLODEX_SURFACE_REUSED=YES
 SEPARATE_WEBMCP_BACKEND_BOUNDARY=YES
@@ -21,18 +24,18 @@ the same experience can expose structured capabilities directly to a user's
 browser agent — without weakening the existing authenticated judge/add-on
 surface, and without any new live CRM effect.
 
-The target product page will reuse the existing A.I. Rolodex website at
-`/mg-guide/`. A separate bounded backend (`mg-guide-webmcp`) will run the
+The target product page reuses the existing A.I. Rolodex website at
+`/mg-guide/`. A separate bounded backend (`mg-guide-webmcp`) runs the
 synthetic workflow. The public MG Guide repository remains the canonical
-source of WebMCP code. Deployment and host integration remain separately
-governed and must be proven before the target URL is described as live.
+source of WebMCP code. Deployment and host integration are complete and
+proven; the target URL is live and accepted.
 
 See [`COMPETITION_DELTA.md`](COMPETITION_DELTA.md) for the exact pre-existing
 vs. newly-added-for-WebMCP boundary with commit SHAs.
 
 ## The story for judges
 
-After deployment and live acceptance:
+On the live production URL:
 
 1. A human opens `…/mg-guide/` on the A.I. Rolodex site and sees a synthetic meeting.
 2. A browser agent discovers three structured WebMCP tools on the page.
@@ -62,7 +65,7 @@ People retain judgment. Agents gain structured, schema-bounded access.
 | Dimension | Evidence |
 | --- | --- |
 | WebMCP leverage | Real `document.modelContext.registerTool` tools, narrow JSON Schemas, page-visible agent actions, fail-closed tool behavior |
-| Execution | Target A.I. Rolodex `/mg-guide/` product surface, complete page design, SUCCESS + AMBIGUOUS flows; live execution evidence remains pending deployment |
+| Execution | Live A.I. Rolodex `/mg-guide/` product surface, complete page design, SUCCESS + AMBIGUOUS flows; native WebMCP discovery and agent invocation verified on the live production URL — see [`../../proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](../../proof/webmcp/mg-guide-webmcp-production-acceptance-001.md) |
 | Potential impact | Meeting-to-follow-up administrative gap; agent removes navigation; human keeps sign-off |
 | Creativity & ambition | Same relationship-intelligence workspace for human + browser agent via standards-based tools, hosted on the existing brand surface |
 
