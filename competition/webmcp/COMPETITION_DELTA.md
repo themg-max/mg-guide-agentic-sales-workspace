@@ -56,6 +56,11 @@ is not a build, runtime, or deploy dependency for this competition slice.
     - `index.html`, `style.css`: human-operable page with seven required
       sections (Meeting, processing state, Meeting Context, Relationship
       Context, Follow-Up Planning, Follow-Up Draft, Trust boundary)
+    - `index.html` uses relative `./style.css`, `./config.js`, and `./app.js`
+      so the same frontend can be hosted below the A.I. Rolodex `/mg-guide/`
+      path without root-asset collisions
+    - `config.js`: runtime configuration shim with same-origin default; the
+      private host integration may set only the approved public backend URL
     - `app.js`: real `document.modelContext.registerTool(...)` registration
       of three tools (`process_meeting_follow_up`,
       `get_current_follow_up_state`, `get_follow_up_draft`); feature-detects
@@ -69,8 +74,8 @@ is not a build, runtime, or deploy dependency for this competition slice.
       and no-secret-leak checks
     - `test_tool_registration_source.py`: static-source checks for the
       required registration API call, feature-detection guard, tool naming,
-      schema shape, bounded scenario enum, browser-held state, and API-base
-      configuration
+      schema shape, bounded scenario enum, browser-held state, API-base
+      configuration, and subpath-safe host assets
 - `deployment/webmcp/Dockerfile` — new competition-only container image,
   built entirely from this public repository, serving the bounded WebMCP
   backend plus optional static frontend for local same-origin testing
@@ -103,3 +108,5 @@ HOST_TOPOLOGY=A.I. Rolodex /mg-guide/ + separate bounded backend
   localhost only when `WEBMCP_CORS_MODE=local`
 - Acceptance claims corrected: mocked modelContext ≠ actual WebMCP browser proof
 - Architecture artifacts updated for A.I. Rolodex host surface reuse
+- Subpath-hosting bug repaired: frontend assets now use relative paths and
+  load a bounded runtime `config.js` before `app.js`
