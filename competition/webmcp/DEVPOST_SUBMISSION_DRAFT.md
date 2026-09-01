@@ -44,9 +44,8 @@ without requiring a separate agent-specific integration.
 
 WebMCP lets a page expose a small number of narrow, typed, discoverable
 tools instead of forcing an agent to infer meaning from arbitrary DOM or
-navigation, or requiring a bespoke agent-only API. The human and the agent
-share one browser-held state (`currentWebMCPState`) on one page, so nothing
-is hidden from the human and nothing the agent does is invisible.
+navigation, or requiring a bespoke agent-only API. DEVPOST_SUBMISSION_DRAFT.md. The agent reads and updates the same browser-held workflow state the human
+sees; there is no separate server-side session or agent-only state store.
 
 ## How people and agents work together
 
