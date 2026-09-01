@@ -41,9 +41,8 @@ is not a build, runtime, or deploy dependency for this competition slice.
 
 - `src/mg_guide/webmcp/` — new public, unauthenticated, synthetic-only WebMCP
   competition adapter package (`app.py`, `scenarios.py`, `server.py`)
-    - `WebMCPSurfaceApp`: WSGI app exposing `/health`, `POST
-      /webmcp/meeting-follow-up`, `GET /webmcp/state`, `GET
-      /webmcp/follow-up-draft`
+    - `WebMCPSurfaceApp`: stateless WSGI app exposing `/health` and `POST
+      /webmcp/meeting-follow-up` only
     - Reuses the existing `WorkflowRunner` and existing judge_surface
       `map_packet_to_card` / `project_demo_payload` projections without
       modification
@@ -51,6 +50,8 @@ is not a build, runtime, or deploy dependency for this competition slice.
       rejects any additional/authority field (`live`, `crm_write`,
       `send_email`, `provider`, `contact_id`, `location_id`, `url`,
       `credentials`, `instructions`, `transcript`)
+    - Returns the complete safe projected result needed by the browser; no
+      server-side session/state endpoint is required
 - `webmcp/static/` — new browser-native WebMCP frontend
     - `index.html`, `style.css`: human-operable page with seven required
       sections (Meeting, processing state, Meeting Context, Relationship
@@ -59,25 +60,29 @@ is not a build, runtime, or deploy dependency for this competition slice.
       of three tools (`process_meeting_follow_up`,
       `get_current_follow_up_state`, `get_follow_up_draft`); feature-detects
       WebMCP support and does not polyfill or emulate it
+    - Holds `currentWebMCPState` in browser memory; state/draft tools are
+      client-only readers
+    - Supports configurable `window.MG_GUIDE_WEBMCP_API_BASE`
 - `tests/webmcp/` — new test suite
-    - `test_webmcp_app.py`: HTTP-layer acceptance for health, state,
-      SUCCESS/AMBIGUOUS_CONTACT flows, authority-field rejection, and
-      no-secret-leak checks
+    - `test_webmcp_app.py`: HTTP-layer acceptance for health, stateless route
+      rejection, SUCCESS/AMBIGUOUS_CONTACT, authority-field rejection, CORS,
+      and no-secret-leak checks
     - `test_tool_registration_source.py`: static-source checks for the
       required registration API call, feature-detection guard, tool naming,
-      schema shape, and scenario enum bound
+      schema shape, bounded scenario enum, browser-held state, and API-base
+      configuration
 - `deployment/webmcp/Dockerfile` — new competition-only container image,
-  built entirely from this public repository, serving both the static
-  frontend and the bounded WebMCP JSON API
-- `competition/webmcp/` — this delta, the brief, the architecture note, the
-  judge testing guide, and the submission checklist
-- `proof/webmcp/mg-guide-webmcp-end-to-end-acceptance-001.md` — end-to-end
-  acceptance evidence
+  built entirely from this public repository, serving the bounded WebMCP
+  backend plus optional static frontend for local same-origin testing
+- `competition/webmcp/` — this delta, the brief, architecture note, judge
+  testing guide, submission checklist, and landing host-integration plan
+- `proof/webmcp/mg-guide-webmcp-end-to-end-acceptance-001.md` — acceptance
+  evidence with mocked WebMCP registration clearly distinguished from pending
+  actual WebMCP browser proof
 
 No prior MG Guide work is claimed as new WebMCP work. The WebMCP adapter is
 strictly additive: it does not modify `src/mg_guide/judge_surface/*`,
 `src/orchestration/*`, `src/agents/*`, or any authentication contract.
-
 
 ## ADDED_AFTER_INITIAL_PR_432_CORRECTION (same submission period)
 
