@@ -8,7 +8,10 @@ without rebuilding context manually.
 **Track:** Fortified Enterprise Fleet
 **Vertical slice:** `meeting_follow_up_v1`
 
-Judges: start at [JUDGE_START_HERE.md](JUDGE_START_HERE.md).
+This repository serves two competition submissions from one codebase:
+
+- **Google All Things Agentic judges:** start at [JUDGE_START_HERE.md](JUDGE_START_HERE.md).
+- **WebMCP Challenge judges:** start at [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md).
 
 ---
 
@@ -38,13 +41,14 @@ introducing any new live CRM effect.
 
 | | |
 | --- | --- |
-| **Live product URL** | `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/` (host integration pending) |
+| **Live product URL** | `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/` (production host integration complete) |
 | **Backend** | Separate bounded `mg-guide-webmcp` service (stateless synthetic API) |
 | **Browser testing steps** | [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md) |
-| **WebMCP enablement** | Test in a real WebMCP-capable browser (Chrome with WebMCP enabled per current docs, or ChatGPT in-app browser). Mocked `modelContext` is not claimed as actual discovery. |
+| **WebMCP enablement** | Test in a real WebMCP-capable browser (Chrome with WebMCP enabled per current docs, or ChatGPT in-app browser). Native discovery of exactly 3 tools verified. |
 | **Local setup** | `PYTHONPATH=src python -m mg_guide.webmcp.server`, then open `http://localhost:8080/` |
 | **Architecture** | [`competition/webmcp/WEBMCP_ARCHITECTURE.md`](competition/webmcp/WEBMCP_ARCHITECTURE.md) |
 | **Competition delta** | [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md) |
+| **Production proof** | [`proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](proof/webmcp/mg-guide-webmcp-production-acceptance-001.md) |
 
 ---
 
@@ -168,6 +172,8 @@ own policy, CRM mutation, agent reasoning, or workflow truth.
 | Ambiguous-contact fail-closed scenario | Proven |
 | Firestore audit proof | Proven |
 | HighLevel REST v3 exact synthetic contact read | Proven |
+| WebMCP live host integration & native tool discovery | Proven |
+| WebMCP agent invocation & fail-closed flow | Proven |
 | Current REST note create/readback | Pending |
 | Same-run transcript-to-live-CRM write | Not claimed |
 
