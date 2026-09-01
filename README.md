@@ -12,6 +12,41 @@ Judges: start at [JUDGE_START_HERE.md](JUDGE_START_HERE.md).
 
 ---
 
+## MG Guide + WebMCP
+
+MG Guide already helps turn meetings into relationship-aware follow-up. For
+**The WebMCP Challenge** we added a new browser-native agent interface so the
+same web experience can expose structured capabilities directly to a user's
+agent, without weakening the existing authenticated judge/add-on surface or
+introducing any new live CRM effect.
+
+**Tools registered via `document.modelContext.registerTool`:**
+
+| Tool | Purpose |
+| --- | --- |
+| `process_meeting_follow_up` | Runs `meeting_follow_up_v1` against a bounded synthetic scenario (`SUCCESS` or `AMBIGUOUS_CONTACT`) |
+| `get_current_follow_up_state` | Reads the current visible state without rerunning the workflow |
+| `get_follow_up_draft` | Reads the deterministic follow-up draft already produced by the existing projection |
+
+- The human remains in control — every tool call visibly updates the same
+  page a human sees, and any follow-up draft requires a human to send it.
+- The agent can process and inspect — but never mutate CRM, send email, or
+  call HighLevel.
+- Ambiguous relationship identity always fails closed: no draft, no action.
+- No live CRM effect is required for the WebMCP demo — it runs entirely on
+  synthetic fixture data.
+
+| | |
+| --- | --- |
+| **Live URL** | _pending deployment — see [`competition/webmcp/SUBMISSION_CHECKLIST.md`](competition/webmcp/SUBMISSION_CHECKLIST.md)_ |
+| **Browser testing steps** | [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md) |
+| **WebMCP enablement** | Test in Chrome with WebMCP testing enabled, per current [WebMCP developer documentation](https://developer.chrome.com/) |
+| **Local setup** | `PYTHONPATH=src python -m mg_guide.webmcp.server`, then open `http://localhost:8080/` |
+| **Architecture** | [`competition/webmcp/WEBMCP_ARCHITECTURE.md`](competition/webmcp/WEBMCP_ARCHITECTURE.md) |
+| **Competition delta** | [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md) |
+
+---
+
 ## Why we built it
 
 Before COVID, much financial-services relationship work happened face to face.
