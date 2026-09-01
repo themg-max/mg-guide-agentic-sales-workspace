@@ -72,11 +72,22 @@ and proof trail:
    `window.MG_GUIDE_WEBMCP_API_BASE` to the approved public backend URL
 4. Record hashes for exact-copy files and record the host-specific config
    value separately in the landing proof
-5. Build and verify a candidate revision of `ai-rolodex-landing`
-6. Verify `/`, `/mg-guide/`, terms/privacy, static assets, and backend CORS
-7. Collect actual WebMCP browser discovery + agent invocation proof on the
-   live candidate URL
-8. Promote traffic to the accepted candidate
+5. Deploy a no-traffic candidate revision of `ai-rolodex-landing` and verify
+   `/`, `/mg-guide/`, terms/privacy, static assets, hashes, and config on the
+   candidate route
+6. Confirm the candidate-origin functional API path was constrained by the
+   intentionally production-only backend CORS allowlist (candidate origin is
+   not itself an accepted CORS origin by design)
+7. Prove production-origin backend compatibility (CORS, success API,
+   ambiguous API) against the already-accepted production origin
+8. Obtain a separate, explicit human traffic-promotion authorization
+9. Promote the accepted candidate revision to the stable production origin
+   at 100% traffic
+10. Run human SUCCESS and AMBIGUOUS_CONTACT acceptance on the stable
+    production origin
+11. Collect actual native WebMCP browser discovery + `executeTool` agent
+    invocation proof on the stable production origin (not the pre-promotion
+    candidate route)
 
 All steps above are complete. This public repository does not own or track
 the private host repository's Cloud Run, IAM, or traffic operations — those
