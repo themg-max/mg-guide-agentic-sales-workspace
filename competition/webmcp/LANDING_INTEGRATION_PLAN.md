@@ -13,7 +13,9 @@ BACKEND_SERVICE=mg-guide-webmcp
 - Private landing repo is **host integration only**
 - Do not copy MG domain logic, CRM code, credentials, R5, private governance
 - Public repo remains WebMCP canonical source
-- Record exact public SHA + file hashes of hosted static copy
+- Record exact public SHA + file hashes of hosted canonical static files
+- `config.js` is the one host-specific deployment configuration surface; it
+  may set only the public backend base URL and must contain no credentials
 
 ## Landing surface facts (current)
 
@@ -28,22 +30,29 @@ BACKEND_SERVICE=mg-guide-webmcp
 - SPA currently injects `process.env.GEMINI_API_KEY` at build time via
   vite.config — **do not** extend that pattern for WebMCP; API base is a
   public URL only
+- Public WebMCP `index.html` uses relative `./style.css`, `./config.js`, and
+  `./app.js`, so it is safe to host below `/mg-guide/`
 
 ## Integration steps (separate private-repo branch, after public PR merge)
 
 1. Branch from origin/main in A.I-Rolodex---Context (never main)
 2. Create `landing-page/public/mg-guide/` with exact copies of public
-   `webmcp/static/{index.html,style.css,app.js}` at known public SHA
-3. Add `landing-page/public/mg-guide/config.js` (or inline script in index.html)
-   setting `window.MG_GUIDE_WEBMCP_API_BASE` to the approved backend URL
-4. Optionally add one nav CTA on the React landing: "Try MG Guide with WebMCP"
+   `webmcp/static/{index.html,style.css,app.js}` at the merged public SHA
+3. Create host-specific `landing-page/public/mg-guide/config.js` from the
+   public `webmcp/static/config.js` template, changing only
+   `window.MG_GUIDE_WEBMCP_API_BASE` to the approved public backend URL
+4. Record hashes for exact-copy files and record the host-specific config
+   value separately in the landing proof
+5. Optionally add one nav CTA on the React landing: "Try MG Guide with WebMCP"
    linking to `/mg-guide/`
-5. Adjust nginx if needed so `/mg-guide/` is not swallowed incorrectly
-   (prefer explicit `location /mg-guide/` with `try_files`)
-6. Build candidate revision of `ai-rolodex-landing` with **no traffic**
-7. Verify `/`, `/mg-guide/`, terms/privacy, static assets
-8. Actual WebMCP browser proof on live candidate URL
-9. Promote traffic only after acceptance
+6. Adjust nginx only if required after candidate validation; prefer an explicit
+   `location /mg-guide/` only if current SPA fallback does not serve the real
+   static directory correctly
+7. Build candidate revision of `ai-rolodex-landing` with **no traffic**
+8. Verify `/`, `/mg-guide/`, terms/privacy, static assets, and backend CORS
+9. Collect actual WebMCP browser discovery + agent invocation proof on the
+   live candidate URL
+10. Promote traffic only after acceptance
 
 ## Backend deploy gate (separate)
 
