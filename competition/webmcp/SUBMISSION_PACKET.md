@@ -42,10 +42,8 @@ standard WebMCP tools instead of a separate agent-specific integration.
 Without WebMCP, giving an agent access to this workflow would mean either:
 
 - building and maintaining a separate, agent-specific API/interface, or
-- SUBMISSION_PACKET.md
-
-“…asking the agent to infer meaning from arbitrary page DOM/navigation,
-which is brittle and harder to bound, test, and audit reliably.”
+- asking the agent to infer meaning from arbitrary page DOM/navigation,
+  which is brittle and harder to bound, test, and audit reliably.
 
 WebMCP lets the same page expose a small number of structured, schema-bounded
 tools directly to the agent, via `document.modelContext.registerTool(...)`.
