@@ -37,8 +37,9 @@ IMAGE_URI=us-east4-docker.pkg.dev/ai-rolodex-to-crm/cloud-run-source-deploy/mg-g
 IMAGE_DIGEST=sha256:25d544d55b386d7bbcd1eb942a8c5769e248456d0bbd760501e3c49ce5f264aa
 DEPLOYED_IMAGE=us-east4-docker.pkg.dev/ai-rolodex-to-crm/cloud-run-source-deploy/mg-guide-webmcp@sha256:25d544d55b386d7bbcd1eb942a8c5769e248456d0bbd760501e3c49ce5f264aa
 DEPLOYED_REVISION=mg-guide-webmcp-00002-zoc
-DEPLOYMENT_STRATEGY=deploy_no_traffic_with_tag_then_validate_then_route_100_percent
-VALIDATION_TAG_URL=https://pr439-acceptance---mg-guide-webmcp-ydru2khnaa-uk.a.run.app
+DEPLOYMENT_STRATEGY=deploy_no_traffic_with_temporary_tag_then_validate_then_route_100_percent_then_remove_tag
+VALIDATION_TAG_URL_TRANSIENT=https://pr439-acceptance---mg-guide-webmcp-ydru2khnaa-uk.a.run.app
+VALIDATION_TAG_CURRENT_STATE=REMOVED
 
 ## Post-Deploy Readback
 
@@ -47,6 +48,7 @@ REGION=us-east4
 URL=https://mg-guide-webmcp-831270426395.us-east4.run.app
 LATEST_READY_REVISION=mg-guide-webmcp-00002-zoc
 TRAFFIC=mg-guide-webmcp-00002-zoc:100
+TRAFFIC_TAGS_CURRENT=[]
 RUNTIME_SERVICE_ACCOUNT_UNCHANGED=YES
 SECRET_BINDINGS_UNCHANGED=YES
 CORS_CONFIG_UNCHANGED=YES
@@ -170,4 +172,6 @@ STABLE_PRODUCT_VISIBLE_ACCEPTANCE=PASS
 NATIVE_WEBMCP_INVOCATION=BLOCKED
 FINAL_DISPOSITION=BLOCKED_ON_NATIVE_CHROME_CONNECTOR_VERIFICATION
 
-No landing deployment, AI Rolodex traffic change, IAM change, service account change, secret change, CORS change, CRM access, HighLevel access, CRM mutation, email send, WebMCP tool/schema change, new route, new auth, new storage, or private AI Rolodex repo mutation was performed.
+No landing deployment, AI Rolodex traffic change, IAM change, service account change, secret change, CORS change, CRM access, HighLevel access, CRM mutation, email send, WebMCP tool/schema change, new auth, new storage, or private AI Rolodex repo mutation was performed.
+
+A temporary 0-percent Cloud Run traffic tag (`pr439-acceptance`) was created to validate the no-traffic revision URL before shifting service traffic. It was removed after validation; current service readback shows no traffic tags and only the existing service URLs.
