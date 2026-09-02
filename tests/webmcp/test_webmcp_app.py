@@ -20,7 +20,7 @@ from unittest import mock
 
 import pytest
 
-from mg_guide.webmcp.app import WebMCPSurfaceApp
+from mg_guide.webmcp.app import MAX_DRAFT_PREVIEW_CHARS, WebMCPSurfaceApp, _preview
 from mg_guide.webmcp.scenarios import webmcp_scenario_names
 
 
@@ -110,6 +110,24 @@ def test_success_flow_returns_full_safe_payload(client: _TestClient) -> None:
     assert draft["requires_human_send"] is True
     assert "subject" in draft
     assert "body_preview" in draft
+    assert draft["body_preview"].endswith("Alex")
+    assert "(owner:" not in draft["body_preview"]
+    assert "Next step:" not in draft["body_preview"]
+    assert "recommendation review" in draft["body_preview"]
+    assert "feel free to let me know. Best, Alex" in draft["body_preview"]
+
+
+def test_draft_preview_uses_complete_sentences_when_bounded() -> None:
+    text = (
+        "First complete sentence. "
+        + ("Additional approved detail " * 12)
+        + "Second complete sentence. "
+        + ("Remaining detail " * 40)
+    )
+    preview = _preview(text)
+    assert preview is not None
+    assert len(preview) <= MAX_DRAFT_PREVIEW_CHARS
+    assert preview.endswith("Second complete sentence.")
 
 
 def test_ambiguous_contact_fails_closed(client: _TestClient) -> None:
