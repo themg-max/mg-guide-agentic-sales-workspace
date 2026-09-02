@@ -217,7 +217,43 @@ def test_ambiguous_activity_events_present() -> None:
 def test_activity_summary_distinguishes_complete_vs_stopped() -> None:
     src = _app_js()
     assert '"Agent work complete"' in src
+    assert '"Human-run workflow complete"' in src
     assert '"Stopped safely"' in src
+
+
+def test_human_success_summary_not_labeled_agent_work_complete() -> None:
+    """HUMAN-originated SUCCESS must not render 'Agent work complete'.
+
+    Regression for HUMAN_ACTION_NOT_MISLABELED_AS_AGENT at the summary level:
+    DRAFT_READY alone is insufficient — the summary must consult the recorded
+    WORKFLOW_PROCESS actor.
+    """
+    src = _app_js()
+    # Initiator is derived from the WORKFLOW_PROCESS event actor.
+    assert "workflowInitiator" in src
+    assert 'item.event === "WORKFLOW_PROCESS"' in src
+    assert 'workflowInitiator = item.actor' in src
+    # HUMAN SUCCESS path uses non-agent copy.
+    assert re.search(
+        r'workflowInitiator === "HUMAN"[\s\S]*?"Human-run workflow complete"',
+        src,
+    )
+    # AGENT SUCCESS path may still use agent copy.
+    assert re.search(
+        r'workflowInitiator === "AGENT"[\s\S]*?"Agent work complete"',
+        src,
+    )
+    # Guard: draftReady alone must not unconditionally set agent copy.
+    # The agent string must appear only inside the AGENT initiator branch.
+    agent_complete_sites = [
+        m.start() for m in re.finditer(r'"Agent work complete"', src)
+    ]
+    assert agent_complete_sites, "expected Agent work complete for AGENT path"
+    for pos in agent_complete_sites:
+        window = src[max(0, pos - 200) : pos]
+        assert 'workflowInitiator === "AGENT"' in window, (
+            "Agent work complete must be gated on AGENT workflow initiator"
+        )
 
 
 # ---------------------------------------------------------------------------

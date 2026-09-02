@@ -57,7 +57,7 @@ pre-existing assertions unchanged and passing) and
   list/summary/handoff elements and capability cards; no existing selectors
   removed or repurposed.
 - `tests/webmcp/test_agent_activity_presentation.py` — new focused test
-  file covering Slices A, B, D (24 tests).
+  file covering Slices A, B, D (21 tests).
 
 No backend (`src/mg_guide/webmcp/`) file was touched. No deployment
 manifest, IAM, secret, or environment configuration was touched.
@@ -116,11 +116,16 @@ manifest, IAM, secret, or environment configuration was touched.
   Verified by `test_human_action_not_mislabeled_as_agent_in_render`.
 - SUCCESS-path and AMBIGUOUS-path copy matches the plan's presentation
   concepts (relationship matched / draft ready / review and send vs.
-  review required / draft withheld / confirm relationship), and the
-  summary line distinguishes "Agent work complete" from "Stopped safely".
+  review required / draft withheld / confirm relationship). The SUCCESS
+  completion summary is actor-aware: it consults the recorded
+  `WORKFLOW_PROCESS` initiator and renders "Agent work complete" only for
+  AGENT-originated SUCCESS, "Human-run workflow complete" for
+  HUMAN-originated SUCCESS, and "Stopped safely" for AMBIGUOUS. DRAFT_READY
+  alone never implies agent attribution.
   Verified by `test_success_activity_events_present`,
   `test_ambiguous_activity_events_present`,
-  `test_activity_summary_distinguishes_complete_vs_stopped`.
+  `test_activity_summary_distinguishes_complete_vs_stopped`,
+  `test_human_success_summary_not_labeled_agent_work_complete`.
 
 ### Slice D — Capability Presentation
 
@@ -190,7 +195,7 @@ were emitted (unrelated to this change).
 | `UNPROVEN_TOOL_DISCOVERY_NOT_CLAIMED` | PASS | `test_tool_discovery_not_synthesized_from_registration_alone` (TOOL_DISCOVERY absent) |
 | `AGENT_TOOL_INVOCATION_RECORDED` | PASS | `test_agent_tool_invocations_recorded_with_tool_call_source` |
 | `HUMAN_BUTTON_INVOCATION_RECORDED_AS_HUMAN` | PASS | `test_human_button_invocation_recorded_as_human_not_agent` |
-| `HUMAN_ACTION_NOT_MISLABELED_AS_AGENT` | PASS | `test_human_action_not_mislabeled_as_agent_in_render` |
+| `HUMAN_ACTION_NOT_MISLABELED_AS_AGENT` | PASS | `test_human_action_not_mislabeled_as_agent_in_render`, `test_human_success_summary_not_labeled_agent_work_complete` |
 | `SUCCESS_RELATIONSHIP_MATCHED_VISIBLE` | PASS | `test_success_activity_events_present` |
 | `SUCCESS_DRAFT_READY_VISIBLE` | PASS | `test_success_activity_events_present` |
 | `SUCCESS_HUMAN_HANDOFF_VISIBLE` | PASS | `test_success_activity_events_present` |
