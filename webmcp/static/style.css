@@ -99,3 +99,82 @@ footer {
   border-radius: 6px;
   font-size: 0.9rem;
 }
+
+.activity-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.activity-empty {
+  color: #64748b;
+  font-style: italic;
+}
+
+.activity-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.activity-icon {
+  font-weight: 700;
+}
+
+.activity-actor-agent .activity-icon { color: var(--accent); }
+.activity-actor-human .activity-icon { color: var(--ink); }
+.activity-actor-system .activity-icon { color: var(--ok); }
+
+.activity-summary {
+  font-weight: 600;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.activity-summary.activity-complete { color: var(--ok); }
+.activity-summary.activity-stopped { color: var(--warn); }
+
+.activity-handoff {
+  margin: 0;
+  color: var(--ink);
+}
+
+.capability-list {
+  list-style: none;
+  margin: 0 0 0.75rem;
+  padding: 0;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.capability-card {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.capability-kind {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.capability-label {
+  font-weight: 600;
+}
+
+.capability-tool {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.capability-trust {
+  font-weight: 600;
+  color: var(--ink);
+}
