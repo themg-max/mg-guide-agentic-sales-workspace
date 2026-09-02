@@ -158,6 +158,67 @@
   };
 
   /**
+   * Derive summary and handoff presentation for only the latest workflow.
+   * The activity list deliberately remains cumulative browser-session history.
+   * A WORKFLOW_PROCESS event starts a fresh presentation segment so an older
+   * safe stop or handoff cannot describe a later workflow.
+   */
+  function deriveLatestWorkflowPresentation(activity) {
+    let handoffMessage = "";
+    let safeStopped = false;
+    let draftReady = false;
+    let workflowInitiator = null;
+
+    for (let i = 0; i < activity.length; i++) {
+      const item = activity[i];
+      if (item.event === "WORKFLOW_PROCESS") {
+        workflowInitiator = item.actor;
+        safeStopped = false;
+        draftReady = false;
+        handoffMessage = "";
+        continue;
+      }
+      if (workflowInitiator === null) {
+        continue;
+      }
+      if (item.event === "HUMAN_HANDOFF_REQUIRED") {
+        handoffMessage = item.message;
+      } else if (item.event === "SAFE_STOP") {
+        safeStopped = true;
+      } else if (item.event === "DRAFT_READY") {
+        draftReady = true;
+      }
+    }
+
+    if (safeStopped) {
+      return {
+        summary: "Stopped safely",
+        summaryClass: "activity-stopped",
+        handoffMessage: handoffMessage,
+      };
+    }
+    if (draftReady && workflowInitiator === "HUMAN") {
+      return {
+        summary: "Human-run workflow complete",
+        summaryClass: "activity-complete",
+        handoffMessage: handoffMessage,
+      };
+    }
+    if (draftReady && workflowInitiator === "AGENT") {
+      return {
+        summary: "Agent work complete",
+        summaryClass: "activity-complete",
+        handoffMessage: handoffMessage,
+      };
+    }
+    return {
+      summary: "",
+      summaryClass: "",
+      handoffMessage: handoffMessage,
+    };
+  }
+
+  /**
    * Render the Agent Activity panel strictly from currentWebMCPActivity.
    * Only events that actually occurred are shown — the panel never
    * pre-renders an expected sequence.
@@ -177,28 +238,11 @@
     }
 
     const lines = [];
-    let handoffMessage = "";
-    let safeStopped = false;
-    let draftReady = false;
-    // Truthful SUCCESS initiator is taken only from the WORKFLOW_PROCESS
-    // event that actually ran (HUMAN button or AGENT tool call). Never
-    // inferred from draft readiness alone.
-    let workflowInitiator = null;
 
     for (let i = 0; i < currentWebMCPActivity.length; i++) {
       const item = currentWebMCPActivity[i];
       if (item.event === "HUMAN_HANDOFF_REQUIRED") {
-        handoffMessage = item.message;
         continue;
-      }
-      if (item.event === "SAFE_STOP") {
-        safeStopped = true;
-      }
-      if (item.event === "DRAFT_READY") {
-        draftReady = true;
-      }
-      if (item.event === "WORKFLOW_PROCESS") {
-        workflowInitiator = item.actor;
       }
       const icon = ACTIVITY_ICON[item.event] || "\u2022";
       const actorLabel = ACTOR_LABEL[item.actor] || item.actor;
@@ -216,30 +260,18 @@
     }
 
     els.activityList.innerHTML = lines.join("");
-
-    if (safeStopped) {
-      setText(els.activitySummary, "Stopped safely", "activity-stopped");
-    } else if (draftReady) {
-      if (workflowInitiator === "HUMAN") {
-        setText(
-          els.activitySummary,
-          "Human-run workflow complete",
-          "activity-complete"
-        );
-      } else if (workflowInitiator === "AGENT") {
-        setText(els.activitySummary, "Agent work complete", "activity-complete");
-      } else {
-        // DRAFT_READY without a recorded WORKFLOW_PROCESS is unexpected;
-        // remain silent rather than invent agent attribution.
-        setText(els.activitySummary, "");
-      }
-    } else {
-      setText(els.activitySummary, "");
-    }
+    const presentation = deriveLatestWorkflowPresentation(currentWebMCPActivity);
+    setText(
+      els.activitySummary,
+      presentation.summary,
+      presentation.summaryClass
+    );
 
     setText(
       els.activityHandoff,
-      handoffMessage ? "Human action required: " + handoffMessage : ""
+      presentation.handoffMessage
+        ? "Human action required: " + presentation.handoffMessage
+        : ""
     );
   }
 
