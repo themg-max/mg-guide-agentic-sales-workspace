@@ -159,10 +159,11 @@ def test_t_draft_card_model_carries_safe_draft_projection():
     assert draft["status"] == "READY"
     assert draft["recipient_name"] == "Taylor Morgan"
     assert draft["recipient_email"] == "taylor.morgan@example-demo.test"
-    assert draft["subject"] == "Follow-up: Taylor Morgan - Discovery Meeting"
+    assert draft["subject"] == "Following up on our conversation"
     assert draft["source"] == "meeting_follow_up_v1"
     assert draft["requires_human_send"] is True
     assert "Hi Taylor," in draft["body_preview"]
+    assert "(owner:" not in draft["body_preview"]
     text = flatten_visible_text(card)
     assert "Follow-up draft" in text
     assert "Human review and send required" in text
