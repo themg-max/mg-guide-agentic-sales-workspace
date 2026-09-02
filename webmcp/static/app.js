@@ -29,6 +29,42 @@
   /** @type {object|null} Browser-held WebMCP state. Null = NOT_PROCESSED. */
   let currentWebMCPState = null;
 
+  // ---------------------------------------------------------------------
+  // Agent activity ledger (Competition Elevation Plan Slice A).
+  //
+  // Ephemeral, browser-local, in-memory only. Never persisted, never sent
+  // to a backend. Separate from currentWebMCPState (which holds workflow
+  // data, not activity history).
+  //
+  // Every recorded event must trace to something actually observed: a real
+  // tool execute() call, a real tool result, a real human button click, or
+  // a real derived workflow-state transition. This file must never
+  // synthesize an event describing agent reasoning that was not directly
+  // observed (e.g. "Agent decided..." or "Agent discovered tools..." are
+  // never recorded here).
+  // ---------------------------------------------------------------------
+  let currentWebMCPActivity = [];
+  let activitySequence = 0;
+
+  /**
+   * Record one activity event. actor must be one of AGENT | HUMAN | SYSTEM.
+   * source documents where the fact came from (tool_call, tool_result,
+   * human_action, derived_state) so every rendered line is traceable.
+   */
+  function recordActivity(actor, event, source, tool, status, message) {
+    activitySequence += 1;
+    currentWebMCPActivity.push({
+      sequence: activitySequence,
+      actor: actor,
+      event: event,
+      source: source,
+      tool: tool || null,
+      status: status || "OK",
+      message: message,
+    });
+    renderActivity();
+  }
+
   const els = {
     status: document.getElementById("webmcp-status"),
     processing: document.getElementById("processing-state"),
@@ -37,6 +73,9 @@
     nextStep: document.getElementById("next-step"),
     draftBody: document.getElementById("draft-body"),
     toolList: document.getElementById("tool-list"),
+    activityList: document.getElementById("activity-list"),
+    activitySummary: document.getElementById("activity-summary"),
+    activityHandoff: document.getElementById("activity-handoff"),
   };
 
   function setText(el, text, className) {
@@ -98,6 +137,93 @@
       "<p><em>requires_human_send: true — a human must review and send.</em></p>";
   }
 
+  // Icon per event: agent/system completed steps get a check, a review-
+  // required step gets "!", a withheld/stopped step gets a block glyph.
+  const ACTIVITY_ICON = {
+    STATE_READ: "\u2713",
+    WORKFLOW_PROCESS: "\u2713",
+    RELATIONSHIP_MATCHED: "\u2713",
+    DRAFT_READY: "\u2713",
+    DRAFT_READ: "\u2713",
+    RELATIONSHIP_REVIEW_REQUIRED: "!",
+    SAFE_STOP: "\u25A0",
+    HUMAN_HANDOFF_REQUIRED: null, // rendered separately, not as a list line
+    WEBMCP_AVAILABLE: "\u2713",
+  };
+
+  const ACTOR_LABEL = {
+    AGENT: "Agent",
+    HUMAN: "Human",
+    SYSTEM: "System",
+  };
+
+  /**
+   * Render the Agent Activity panel strictly from currentWebMCPActivity.
+   * Only events that actually occurred are shown — the panel never
+   * pre-renders an expected sequence.
+   */
+  function renderActivity() {
+    if (!els.activityList) {
+      return;
+    }
+    if (currentWebMCPActivity.length === 0) {
+      els.activityList.innerHTML =
+        '<li class="activity-empty">Waiting for activity. A person can ' +
+        "run the demo, or a browser agent can use MG Guide through " +
+        "WebMCP.</li>";
+      setText(els.activitySummary, "");
+      setText(els.activityHandoff, "");
+      return;
+    }
+
+    const lines = [];
+    let handoffMessage = "";
+    let safeStopped = false;
+    let draftReady = false;
+
+    for (let i = 0; i < currentWebMCPActivity.length; i++) {
+      const item = currentWebMCPActivity[i];
+      if (item.event === "HUMAN_HANDOFF_REQUIRED") {
+        handoffMessage = item.message;
+        continue;
+      }
+      if (item.event === "SAFE_STOP") {
+        safeStopped = true;
+      }
+      if (item.event === "DRAFT_READY") {
+        draftReady = true;
+      }
+      const icon = ACTIVITY_ICON[item.event] || "\u2022";
+      const actorLabel = ACTOR_LABEL[item.actor] || item.actor;
+      lines.push(
+        '<li class="activity-item activity-actor-' +
+          escapeHtml(item.actor.toLowerCase()) +
+          '"><span class="activity-icon">' +
+          icon +
+          "</span> " +
+          escapeHtml(actorLabel) +
+          ": " +
+          escapeHtml(item.message) +
+          "</li>"
+      );
+    }
+
+    els.activityList.innerHTML = lines.join("");
+
+    if (safeStopped) {
+      setText(els.activitySummary, "Stopped safely", "activity-stopped");
+    } else if (draftReady) {
+      setText(els.activitySummary, "Agent work complete", "activity-complete");
+    } else {
+      setText(els.activitySummary, "");
+    }
+
+    setText(
+      els.activityHandoff,
+      handoffMessage ? "Human action required: " + handoffMessage : ""
+    );
+  }
+
   function apiUrl(path) {
     return API_BASE + path;
   }
@@ -116,8 +242,33 @@
   /**
    * Process a meeting via the bounded backend, store the full safe payload in
    * currentWebMCPState, and update the visible page.
+   *
+   * actor documents who/what initiated this call (HUMAN for the demo
+   * buttons, AGENT for the WebMCP process_meeting_follow_up tool). This is
+   * recorded truthfully in the activity ledger — a human-triggered click is
+   * never rendered as agent activity.
    */
-  async function processMeeting(scenario) {
+  async function processMeeting(scenario, actor) {
+    const callActor = actor === "AGENT" ? "AGENT" : "HUMAN";
+    if (callActor === "AGENT") {
+      recordActivity(
+        "AGENT",
+        "WORKFLOW_PROCESS",
+        "tool_call",
+        "process_meeting_follow_up",
+        "OK",
+        "processed the meeting"
+      );
+    } else {
+      recordActivity(
+        "HUMAN",
+        "WORKFLOW_PROCESS",
+        "human_action",
+        null,
+        "OK",
+        "ran the " + scenario + " demo"
+      );
+    }
     const result = await callAPI("/webmcp/meeting-follow-up", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -125,6 +276,63 @@
     });
     currentWebMCPState = result;
     renderState(currentWebMCPState);
+
+    // Derived workflow outcomes are SYSTEM events: they describe what the
+    // backend actually returned, not agent reasoning.
+    if (result.ux_state === "COMPLETED") {
+      recordActivity(
+        "SYSTEM",
+        "RELATIONSHIP_MATCHED",
+        "derived_state",
+        null,
+        "OK",
+        "relationship matched"
+      );
+      if (result.follow_up_draft_status === "READY") {
+        recordActivity(
+          "SYSTEM",
+          "DRAFT_READY",
+          "derived_state",
+          null,
+          "OK",
+          "follow-up draft became ready"
+        );
+      }
+      recordActivity(
+        "SYSTEM",
+        "HUMAN_HANDOFF_REQUIRED",
+        "derived_state",
+        null,
+        "OK",
+        "Review and send"
+      );
+    } else {
+      recordActivity(
+        "SYSTEM",
+        "RELATIONSHIP_REVIEW_REQUIRED",
+        "derived_state",
+        null,
+        "NEEDS_REVIEW",
+        "relationship identity requires review"
+      );
+      recordActivity(
+        "SYSTEM",
+        "SAFE_STOP",
+        "derived_state",
+        null,
+        "STOPPED",
+        "follow-up draft withheld"
+      );
+      recordActivity(
+        "SYSTEM",
+        "HUMAN_HANDOFF_REQUIRED",
+        "derived_state",
+        null,
+        "OK",
+        "Confirm relationship"
+      );
+    }
+
     // Agent-facing process tool returns the narrow field set (no nested draft body).
     return {
       workflow_status: result.workflow_status,
@@ -181,12 +389,12 @@
 
   // Human-operable buttons — the product works without an agent.
   document.getElementById("btn-success").addEventListener("click", function () {
-    processMeeting("SUCCESS").catch(function (e) {
+    processMeeting("SUCCESS", "HUMAN").catch(function (e) {
       console.error(e);
     });
   });
   document.getElementById("btn-ambiguous").addEventListener("click", function () {
-    processMeeting("AMBIGUOUS_CONTACT").catch(function (e) {
+    processMeeting("AMBIGUOUS_CONTACT", "HUMAN").catch(function (e) {
       console.error(e);
     });
   });
@@ -233,7 +441,7 @@
           },
         },
         execute: async function (args) {
-          const result = await processMeeting(args.scenario);
+          const result = await processMeeting(args.scenario, "AGENT");
           return JSON.stringify(result);
         },
       },
@@ -254,6 +462,14 @@
         execute: async function () {
           const result = getCurrentStateFromBrowser();
           renderState(currentWebMCPState);
+          recordActivity(
+            "AGENT",
+            "STATE_READ",
+            "tool_call",
+            "get_current_follow_up_state",
+            "OK",
+            "inspected current follow-up state"
+          );
           return JSON.stringify(result);
         },
       },
@@ -278,6 +494,14 @@
           if (currentWebMCPState) {
             renderDraftFromState(currentWebMCPState);
           }
+          recordActivity(
+            "AGENT",
+            "DRAFT_READ",
+            "tool_call",
+            "get_follow_up_draft",
+            "OK",
+            "retrieved the draft"
+          );
           return JSON.stringify(result);
         },
       },
@@ -300,6 +524,18 @@
       els.status,
       "WebMCP supported — " + registeredNames.length + " tools registered."
     );
+    // SYSTEM-originated: this only reports that native WebMCP is available
+    // and tools were registered by this page. It does NOT claim that any
+    // agent has discovered or used them — that requires separate,
+    // explicit evidence from a native client (see tool_call events above).
+    recordActivity(
+      "SYSTEM",
+      "WEBMCP_AVAILABLE",
+      "system_check",
+      null,
+      "OK",
+      registeredNames.length + " WebMCP tools registered"
+    );
     els.toolList.innerHTML = registeredNames
       .map(function (n) {
         return "<li><code>" + n + "</code></li>";
@@ -316,6 +552,9 @@
     },
     getApiBase: function () {
       return API_BASE;
+    },
+    getActivity: function () {
+      return currentWebMCPActivity.slice();
     },
   };
 })();

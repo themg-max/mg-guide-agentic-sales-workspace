@@ -28,6 +28,18 @@
       </div>
     </section>
 
+    <section class="panel activity" id="section-activity">
+      <h2>Agent Activity</h2>
+      <ul id="activity-list" class="activity-list">
+        <li class="activity-empty">
+          Waiting for activity. A person can run the demo, or a browser agent
+          can use MG Guide through WebMCP.
+        </li>
+      </ul>
+      <p id="activity-summary" class="activity-summary"></p>
+      <p id="activity-handoff" class="activity-handoff"></p>
+    </section>
+
     <section class="panel" id="section-processing">
       <h2>2. MG Guide processing state</h2>
       <p id="processing-state">NOT_PROCESSED — no meeting has been run yet.</p>
@@ -65,8 +77,27 @@
       </ul>
     </section>
 
-    <section class="panel" id="section-tools">
-      <h2>WebMCP tools registered on this page</h2>
+    <section class="panel capabilities" id="section-capabilities">
+      <h2>Agent Capabilities</h2>
+      <ul id="capability-list" class="capability-list">
+        <li class="capability-card">
+          <span class="capability-kind">ACTION</span>
+          <span class="capability-label">Process meeting follow-up</span>
+          <code class="capability-tool">process_meeting_follow_up</code>
+        </li>
+        <li class="capability-card">
+          <span class="capability-kind">STATE</span>
+          <span class="capability-label">Inspect current follow-up state</span>
+          <code class="capability-tool">get_current_follow_up_state</code>
+        </li>
+        <li class="capability-card">
+          <span class="capability-kind">ARTIFACT</span>
+          <span class="capability-label">Retrieve prepared follow-up</span>
+          <code class="capability-tool">get_follow_up_draft</code>
+        </li>
+      </ul>
+      <p class="capability-trust">Agent can prepare. Only a person can send.</p>
+      <h3>WebMCP tools registered on this page</h3>
       <ul id="tool-list"><li>—</li></ul>
     </section>
   </main>
