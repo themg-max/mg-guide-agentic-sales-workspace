@@ -35,6 +35,28 @@ changed. No backend route was added, removed, or changed. The backend
 remains stateless; the activity ledger described below is entirely
 browser-local JavaScript state.
 
+### Multi-run presentation regression contract
+
+```
+ACTIVITY_LIST_SCOPE=SESSION_HISTORY
+ACTIVITY_SUMMARY_SCOPE=LATEST_WORKFLOW
+ACTIVITY_HANDOFF_SCOPE=LATEST_WORKFLOW
+
+MULTI_RUN_SUCCESS_THEN_AMBIGUOUS=PASS
+MULTI_RUN_AMBIGUOUS_THEN_SUCCESS=PASS
+CUMULATIVE_ACTIVITY_HISTORY_PRESERVED=PASS
+
+WEBMCP_TOOL_COUNT=3
+EXTERNAL_EFFECTS=0
+DEPLOYMENT_EXECUTED=NO
+```
+
+`currentWebMCPActivity` remains cumulative for the browser session. Every
+`WORKFLOW_PROCESS` event begins a new presentation segment: only events after
+the latest such event derive the visible summary and human handoff. Earlier
+`SAFE_STOP`, `DRAFT_READY`, and `HUMAN_HANDOFF_REQUIRED` events remain visible
+in history but cannot describe a later workflow.
+
 Verified by: `tests/webmcp/test_tool_registration_source.py` (all
 pre-existing assertions unchanged and passing) and
 `tests/webmcp/test_agent_activity_presentation.py::test_exactly_three_tools_still_registered`.
@@ -170,7 +192,7 @@ Command: `pytest tests/webmcp/ -q` (from a fresh virtualenv with
 `pip install -e ".[dev]"`)
 
 ```
-55 passed
+61 passed
 ```
 
 Command: `pytest -q` (full repository suite)
@@ -196,6 +218,8 @@ were emitted (unrelated to this change).
 | `AGENT_TOOL_INVOCATION_RECORDED` | PASS | `test_agent_tool_invocations_recorded_with_tool_call_source` |
 | `HUMAN_BUTTON_INVOCATION_RECORDED_AS_HUMAN` | PASS | `test_human_button_invocation_recorded_as_human_not_agent` |
 | `HUMAN_ACTION_NOT_MISLABELED_AS_AGENT` | PASS | `test_human_action_not_mislabeled_as_agent_in_render`, `test_human_success_summary_not_labeled_agent_work_complete` |
+| `LATEST_WORKFLOW_SUMMARY_AND_HANDOFF` | PASS | `test_latest_workflow_presentation_uses_current_run_only` (single SUCCESS, single AMBIGUOUS, SUCCESS→AMBIGUOUS, AMBIGUOUS→SUCCESS) |
+| `CUMULATIVE_ACTIVITY_HISTORY_PRESERVED` | PASS | `test_activity_list_stays_cumulative_while_presentation_is_latest_workflow` |
 | `SUCCESS_RELATIONSHIP_MATCHED_VISIBLE` | PASS | `test_success_activity_events_present` |
 | `SUCCESS_DRAFT_READY_VISIBLE` | PASS | `test_success_activity_events_present` |
 | `SUCCESS_HUMAN_HANDOFF_VISIBLE` | PASS | `test_success_activity_events_present` |

@@ -19,8 +19,13 @@ Full browser acceptance is recorded separately in ``proof/webmcp/`` and in
 
 from __future__ import annotations
 
+import json
 import re
+import shutil
+import subprocess
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 STATIC_ROOT = REPO_ROOT / "webmcp" / "static"
@@ -40,6 +45,57 @@ def _app_js() -> str:
 
 def _index_html() -> str:
     return INDEX_HTML.read_text(encoding="utf-8")
+
+
+def _derive_latest_workflow_presentation(activity: list[dict[str, str]]) -> dict[str, str | bool | int]:
+    """Execute the shipped pure helper without requiring a browser framework."""
+    node = shutil.which("node")
+    assert node is not None, "Node.js is required to execute the shipped frontend helper"
+
+    src = _app_js()
+    helper_start = src.index("function deriveLatestWorkflowPresentation(activity)")
+    helper_end = src.index("\n  /**\n   * Render the Agent Activity panel", helper_start)
+    helper = src[helper_start:helper_end]
+    program = (
+        '"use strict";\n'
+        + helper
+        + "\nconst activity = JSON.parse(process.argv[1]);\n"
+        + "const before = JSON.stringify(activity);\n"
+        + "const presentation = deriveLatestWorkflowPresentation(activity);\n"
+        + "process.stdout.write(JSON.stringify({ presentation, "
+        + "historyUnchanged: JSON.stringify(activity) === before, "
+        + "historyLength: activity.length }));\n"
+    )
+    completed = subprocess.run(
+        [node, "-e", program, json.dumps(activity)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(completed.stdout)
+
+
+def _event(actor: str, event: str, message: str) -> dict[str, str]:
+    return {"actor": actor, "event": event, "message": message}
+
+
+SUCCESS_ACTIVITY = [
+    _event("HUMAN", "WORKFLOW_PROCESS", "ran the SUCCESS demo"),
+    _event("SYSTEM", "RELATIONSHIP_MATCHED", "relationship matched"),
+    _event("SYSTEM", "DRAFT_READY", "follow-up draft became ready"),
+    _event("SYSTEM", "HUMAN_HANDOFF_REQUIRED", "Review and send"),
+]
+
+AMBIGUOUS_ACTIVITY = [
+    _event("HUMAN", "WORKFLOW_PROCESS", "ran the AMBIGUOUS_CONTACT demo"),
+    _event(
+        "SYSTEM",
+        "RELATIONSHIP_REVIEW_REQUIRED",
+        "relationship identity requires review",
+    ),
+    _event("SYSTEM", "SAFE_STOP", "follow-up draft withheld"),
+    _event("SYSTEM", "HUMAN_HANDOFF_REQUIRED", "Confirm relationship"),
+]
 
 
 # ---------------------------------------------------------------------------
@@ -254,6 +310,70 @@ def test_human_success_summary_not_labeled_agent_work_complete() -> None:
         assert 'workflowInitiator === "AGENT"' in window, (
             "Agent work complete must be gated on AGENT workflow initiator"
         )
+
+
+@pytest.mark.parametrize(
+    ("case", "activity", "summary", "handoff"),
+    [
+        (
+            "single SUCCESS",
+            SUCCESS_ACTIVITY,
+            "Human-run workflow complete",
+            "Review and send",
+        ),
+        (
+            "single AMBIGUOUS",
+            AMBIGUOUS_ACTIVITY,
+            "Stopped safely",
+            "Confirm relationship",
+        ),
+        (
+            "SUCCESS then AMBIGUOUS",
+            SUCCESS_ACTIVITY + AMBIGUOUS_ACTIVITY,
+            "Stopped safely",
+            "Confirm relationship",
+        ),
+        (
+            "AMBIGUOUS then SUCCESS",
+            AMBIGUOUS_ACTIVITY + SUCCESS_ACTIVITY,
+            "Human-run workflow complete",
+            "Review and send",
+        ),
+    ],
+)
+def test_latest_workflow_presentation_uses_current_run_only(
+    case: str,
+    activity: list[dict[str, str]],
+    summary: str,
+    handoff: str,
+) -> None:
+    """Summary/handoff follow the last WORKFLOW_PROCESS; history stays cumulative."""
+    result = _derive_latest_workflow_presentation(activity)
+    presentation = result["presentation"]
+    assert presentation["summary"] == summary, case
+    assert presentation["handoffMessage"] == handoff, case
+    assert result["historyUnchanged"] is True
+    assert result["historyLength"] == len(activity)
+
+
+def test_agent_success_summary_remains_actor_aware() -> None:
+    activity = [
+        _event("AGENT", "WORKFLOW_PROCESS", "processed the meeting"),
+        _event("SYSTEM", "DRAFT_READY", "follow-up draft became ready"),
+        _event("SYSTEM", "HUMAN_HANDOFF_REQUIRED", "Review and send"),
+    ]
+    result = _derive_latest_workflow_presentation(activity)
+    assert result["presentation"]["summary"] == "Agent work complete"
+    assert result["presentation"]["handoffMessage"] == "Review and send"
+
+
+def test_activity_list_stays_cumulative_while_presentation_is_latest_workflow() -> None:
+    src = _app_js()
+    render_start = src.index("function renderActivity()")
+    render_end = src.index("\n  function apiUrl", render_start)
+    render_body = src[render_start:render_end]
+    assert "for (let i = 0; i < currentWebMCPActivity.length; i++)" in render_body
+    assert "deriveLatestWorkflowPresentation(currentWebMCPActivity)" in render_body
 
 
 # ---------------------------------------------------------------------------
