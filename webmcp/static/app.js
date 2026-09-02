@@ -67,6 +67,14 @@
 
   const els = {
     status: document.getElementById("webmcp-status"),
+    workflowStateLabel: document.getElementById("workflow-state-label"),
+    stepMeetingStatus: document.getElementById("step-meeting-status"),
+    stepRelationshipStatus: document.getElementById("step-relationship-status"),
+    stepPlanStatus: document.getElementById("step-plan-status"),
+    stepDraftStatus: document.getElementById("step-draft-status"),
+    stepHumanStatus: document.getElementById("step-human-status"),
+    trustDetail: document.getElementById("trust-detail"),
+    humanReviewMessage: document.getElementById("human-review-message"),
     processing: document.getElementById("processing-state"),
     meetingSummary: document.getElementById("meeting-summary"),
     relationshipStatus: document.getElementById("relationship-status"),
@@ -89,13 +97,67 @@
     return div.innerHTML;
   }
 
+  /** Map canonical workflow state into presentation-only workspace labels. */
+  function renderWorkflowPresentation(state) {
+    const waiting = !state || state.status === "NOT_PROCESSED" || !state.ux_state;
+    const completed = !waiting && state.ux_state === "COMPLETED";
+
+    document.body.setAttribute(
+      "data-workflow-presentation",
+      waiting ? "waiting" : completed ? "success" : "ambiguous"
+    );
+
+    if (waiting) {
+      setText(els.workflowStateLabel, "WAITING", "workflow-state");
+      setText(els.stepMeetingStatus, "WAITING");
+      setText(els.stepRelationshipStatus, "WAITING");
+      setText(els.stepPlanStatus, "WAITING");
+      setText(els.stepDraftStatus, "NOT AVAILABLE");
+      setText(els.stepHumanStatus, "REQUIRED");
+      setText(
+        els.trustDetail,
+        "No meeting has been processed. The human review boundary is already active."
+      );
+      setText(
+        els.humanReviewMessage,
+        "Workflow has not run. Human authority remains required for every follow-up."
+      );
+      return;
+    }
+
+    setText(
+      els.workflowStateLabel,
+      completed ? "COMPLETED" : "SAFE STOP",
+      "workflow-state"
+    );
+    setText(els.stepMeetingStatus, "READY");
+    setText(els.stepRelationshipStatus, completed ? "MATCHED" : "NEEDS REVIEW");
+    setText(els.stepPlanStatus, completed ? "PREPARED" : "BLOCKED");
+    setText(els.stepDraftStatus, completed ? "READY" : "NOT AVAILABLE");
+    setText(els.stepHumanStatus, "REQUIRED");
+    setText(
+      els.trustDetail,
+      completed
+        ? "A fluent follow-up is prepared for human review. MG Guide does not send it."
+        : "Relationship identity requires review. Draft preparation stopped safely."
+    );
+    setText(
+      els.humanReviewMessage,
+      completed
+        ? "Review the prepared follow-up and decide whether to send it."
+        : "Confirm the relationship identity before follow-up preparation can continue."
+    );
+  }
+
   function renderState(state) {
+    renderWorkflowPresentation(state);
     if (!state || state.status === "NOT_PROCESSED" || !state.ux_state) {
       setText(els.processing, "NOT_PROCESSED — no meeting has been run yet.");
-      setText(els.meetingSummary, "—");
-      setText(els.relationshipStatus, "—");
-      setText(els.nextStep, "—");
-      els.draftBody.innerHTML = "<p>—</p>";
+      setText(els.meetingSummary, "Waiting for synthetic meeting context.");
+      setText(els.relationshipStatus, "Waiting for relationship resolution.");
+      setText(els.nextStep, "Waiting for a governed next step.");
+      els.draftBody.innerHTML =
+        '<p class="waiting-copy">No draft is available until a meeting is processed.</p>';
       return;
     }
     const completed = state.ux_state === "COMPLETED";
@@ -466,6 +528,7 @@
         els.status,
         "WebMCP not supported in this browser/agent context. Human controls remain fully usable."
       );
+      els.status.className = "connection-badge unavailable";
       return;
     }
 
@@ -573,8 +636,9 @@
 
     setText(
       els.status,
-      "WebMCP supported — " + registeredNames.length + " tools registered."
+      "WebMCP Connected · " + registeredNames.length + " Native Tools"
     );
+    els.status.className = "connection-badge connected";
     // SYSTEM-originated: this only reports that native WebMCP is available
     // and tools were registered by this page. It does NOT claim that any
     // agent has discovered or used them — that requires separate,
