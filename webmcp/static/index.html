@@ -3,110 +3,140 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="MG Guide turns meeting context into a governed, human-reviewed follow-up through three native WebMCP tools." />
 <title>MG Guide | Agentic Sales Workspace — WebMCP</title>
 <link rel="stylesheet" href="./style.css" />
 </head>
-<body>
-  <header class="hero">
-    <p class="eyebrow">Powered by A.I. Rolodex</p>
-    <h1>MG Guide | Agentic Sales Workspace</h1>
-    <p class="tagline">
-      Turn a meeting into relationship context and a governed follow-up plan —
-      and let your browser agent help you work with the result.
-    </p>
-    <p class="webmcp-status" id="webmcp-status">Checking WebMCP support…</p>
+<body data-workflow-presentation="waiting">
+  <header class="workspace-header">
+    <div class="header-inner">
+      <div class="brand-lockup">
+        <div class="brand-mark">
+          <img src="./mg-guide-logo.png" alt="MG Guide logo" width="178" height="228" />
+        </div>
+        <div>
+          <p class="brand-parent">The Miliare Group</p>
+          <div class="product-title-row">
+            <h1>MG Guide</h1>
+            <span class="title-divider" aria-hidden="true"></span>
+            <p class="product-category">Agentic Sales Workspace</p>
+          </div>
+          <p class="tagline">From meeting context to human-reviewed follow-up.</p>
+        </div>
+      </div>
+      <p class="connection-badge checking" id="webmcp-status" role="status" aria-live="polite">Checking native WebMCP availability…</p>
+    </div>
   </header>
 
-  <main>
-    <section class="panel" id="section-meeting">
-      <h2>1. Meeting</h2>
-      <p>Choose a synthetic scenario. A human can run these directly, or a
-      browser agent can invoke the same capability through WebMCP.</p>
-      <div class="controls">
-        <button id="btn-success" data-scenario="SUCCESS">Run SUCCESS demo</button>
-        <button id="btn-ambiguous" data-scenario="AMBIGUOUS_CONTACT">Run AMBIGUOUS_CONTACT demo</button>
+  <nav class="product-horizon" aria-label="MG Guide product modules">
+    <div class="horizon-inner">
+      <p class="horizon-label">Product Horizon</p>
+      <div class="module-list">
+        <div class="module-item module-active" aria-current="page"><span>Meeting Follow-Up</span><strong>ACTIVE</strong></div>
+        <div class="module-item" aria-disabled="true"><span>Relationship Intelligence</span><strong>PLANNED</strong></div>
+        <div class="module-item" aria-disabled="true"><span>Meeting Prep</span><strong>PLANNED</strong></div>
+        <div class="module-item" aria-disabled="true"><span>Opportunity Workspace</span><strong>PLANNED</strong></div>
+        <div class="module-item" aria-disabled="true"><span>Follow-Up Cadence</span><strong>PLANNED</strong></div>
+      </div>
+    </div>
+  </nav>
+
+  <main class="workspace-shell">
+    <section class="scenario-bar" id="section-meeting" aria-labelledby="scenario-heading">
+      <div>
+        <p class="section-kicker">Synthetic demonstration</p>
+        <h2 id="scenario-heading">Choose a bounded meeting outcome</h2>
+        <p>Run the same safe workflow available to a native browser agent.</p>
+      </div>
+      <div class="controls" aria-label="Synthetic scenarios">
+        <button id="btn-success" class="scenario-button scenario-success" data-scenario="SUCCESS"><span>SUCCESS</span><small>Matched relationship</small></button>
+        <button id="btn-ambiguous" class="scenario-button scenario-ambiguous" data-scenario="AMBIGUOUS_CONTACT"><span>AMBIGUOUS CONTACT</span><small>Fail-closed review</small></button>
       </div>
     </section>
 
-    <section class="panel activity" id="section-activity">
-      <h2>Agent Activity</h2>
-      <ul id="activity-list" class="activity-list">
-        <li class="activity-empty">
-          Waiting for activity. A person can run the demo, or a browser agent
-          can use MG Guide through WebMCP.
-        </li>
-      </ul>
-      <p id="activity-summary" class="activity-summary"></p>
-      <p id="activity-handoff" class="activity-handoff"></p>
-    </section>
-
-    <section class="panel" id="section-processing">
-      <h2>2. MG Guide processing state</h2>
-      <p id="processing-state">NOT_PROCESSED — no meeting has been run yet.</p>
-    </section>
-
-    <section class="panel" id="section-meeting-context">
-      <h2>3. Meeting Context</h2>
-      <p id="meeting-summary">—</p>
-    </section>
-
-    <section class="panel" id="section-relationship-context">
-      <h2>4. Relationship Context</h2>
-      <p id="relationship-status">—</p>
-    </section>
-
-    <section class="panel" id="section-follow-up-planning">
-      <h2>5. Follow-Up Planning</h2>
-      <p id="next-step">—</p>
-    </section>
-
-    <section class="panel" id="section-draft">
-      <h2>6. Follow-Up Draft</h2>
-      <div id="draft-body">
-        <p>—</p>
+    <section class="human-boundary" id="section-trust" aria-labelledby="trust-heading">
+      <div class="boundary-icon" aria-hidden="true">✓</div>
+      <div class="boundary-copy">
+        <p class="section-kicker">Human authority</p>
+        <h2 id="trust-heading">Agent can prepare. <span>Only a person can review and send.</span></h2>
+        <p id="trust-detail">No meeting has been processed. The human review boundary is already active.</p>
       </div>
+      <div class="invariant-list" aria-label="Safety invariants"><code>requires_human_send=true</code><code>external_effects=0</code></div>
     </section>
 
-    <section class="panel trust" id="section-trust">
-      <h2>7. Trust / action boundary</h2>
-      <ul>
-        <li>Synthetic fixture data only — no real customer data.</li>
-        <li>No live CRM writes. No live HighLevel calls. No emails sent.</li>
-        <li>Ambiguous relationship identity always fails closed — no draft, no action.</li>
-        <li>A human must review and send any follow-up. Agents can process and inspect only.</li>
-      </ul>
-    </section>
+    <div class="workspace-grid">
+      <div class="primary-column">
+        <section class="workflow-overview" aria-labelledby="workflow-heading">
+          <div class="section-heading-row">
+            <div><p class="section-kicker">Current workflow</p><h2 id="workflow-heading">Meeting Follow-Up</h2></div>
+            <span class="workflow-state" id="workflow-state-label">WAITING</span>
+          </div>
+          <ol class="workflow-steps">
+            <li class="workflow-step" id="step-meeting"><span class="step-number">01</span><span class="step-name">Meeting Context</span><strong id="step-meeting-status">WAITING</strong></li>
+            <li class="workflow-step" id="step-relationship"><span class="step-number">02</span><span class="step-name">Relationship Context</span><strong id="step-relationship-status">WAITING</strong></li>
+            <li class="workflow-step" id="step-plan"><span class="step-number">03</span><span class="step-name">Follow-Up Plan</span><strong id="step-plan-status">WAITING</strong></li>
+            <li class="workflow-step" id="step-draft"><span class="step-number">04</span><span class="step-name">Follow-Up Draft</span><strong id="step-draft-status">NOT AVAILABLE</strong></li>
+            <li class="workflow-step step-human" id="step-human"><span class="step-number">05</span><span class="step-name">Human Review</span><strong id="step-human-status">REQUIRED</strong></li>
+          </ol>
+        </section>
 
-    <section class="panel capabilities" id="section-capabilities">
-      <h2>Agent Capabilities</h2>
-      <ul id="capability-list" class="capability-list">
-        <li class="capability-card">
-          <span class="capability-kind">ACTION</span>
-          <span class="capability-label">Process meeting follow-up</span>
-          <code class="capability-tool">process_meeting_follow_up</code>
-        </li>
-        <li class="capability-card">
-          <span class="capability-kind">STATE</span>
-          <span class="capability-label">Inspect current follow-up state</span>
-          <code class="capability-tool">get_current_follow_up_state</code>
-        </li>
-        <li class="capability-card">
-          <span class="capability-kind">ARTIFACT</span>
-          <span class="capability-label">Retrieve prepared follow-up</span>
-          <code class="capability-tool">get_follow_up_draft</code>
-        </li>
-      </ul>
-      <p class="capability-trust">Agent can prepare. Only a person can send.</p>
-      <h3>WebMCP tools registered on this page</h3>
-      <ul id="tool-list"><li>—</li></ul>
-    </section>
+        <section class="workspace-card" id="section-meeting-context">
+          <div class="card-heading"><span class="card-index">01</span><div><p class="section-kicker">Captured context</p><h2>Meeting Context</h2></div></div>
+          <p class="card-content" id="meeting-summary">Waiting for synthetic meeting context.</p>
+        </section>
+        <section class="workspace-card" id="section-relationship-context">
+          <div class="card-heading"><span class="card-index">02</span><div><p class="section-kicker">Identity resolution</p><h2>Relationship Context</h2></div></div>
+          <p class="card-content" id="relationship-status">Waiting for relationship resolution.</p>
+        </section>
+        <section class="workspace-card" id="section-follow-up-planning">
+          <div class="card-heading"><span class="card-index">03</span><div><p class="section-kicker">Prepared next step</p><h2>Follow-Up Plan</h2></div></div>
+          <p class="card-content" id="next-step">Waiting for a governed next step.</p>
+        </section>
+        <section class="workspace-card draft-card" id="section-draft">
+          <div class="card-heading"><span class="card-index">04</span><div><p class="section-kicker">Human-review artifact</p><h2>Follow-Up Draft</h2></div></div>
+          <div id="draft-body" class="draft-body"><p class="waiting-copy">No draft is available until a meeting is processed.</p></div>
+        </section>
+        <section class="workspace-card review-card" id="section-human-review">
+          <div class="card-heading"><span class="card-index">05</span><div><p class="section-kicker">Execution boundary</p><h2>Human Review</h2></div><span class="review-required">REQUIRED</span></div>
+          <p class="card-content" id="human-review-message">Workflow has not run. Human authority remains required for every follow-up.</p>
+        </section>
+      </div>
+
+      <aside class="agent-column" aria-label="Native WebMCP and activity">
+        <section class="capabilities-panel" id="section-capabilities">
+          <div class="section-heading-row">
+            <div><p class="section-kicker">Browser-agent interface</p><h2><span class="sr-only">Agent Capabilities — </span>Native WebMCP Capabilities</h2></div>
+            <span class="tool-count">3 TOOLS</span>
+          </div>
+          <p class="capabilities-intro">Typed capabilities available directly to browser agents.</p>
+          <ul id="capability-list" class="capability-list">
+            <li class="capability-card"><span class="capability-kind">ACTION</span><span class="capability-label">Process meeting follow-up</span><code class="capability-tool">process_meeting_follow_up</code></li>
+            <li class="capability-card"><span class="capability-kind">STATE</span><span class="capability-label">Inspect current follow-up state</span><code class="capability-tool">get_current_follow_up_state</code></li>
+            <li class="capability-card"><span class="capability-kind">ARTIFACT</span><span class="capability-label">Retrieve prepared follow-up</span><code class="capability-tool">get_follow_up_draft</code></li>
+          </ul>
+          <p class="capability-trust">Agent can prepare. Only a person can review and send.<span class="sr-only"> Agent can prepare. Only a person can send.</span></p>
+          <div class="registered-tools" aria-label="Tools registered by this page"><span>Page registration</span><ul id="tool-list"><li>Waiting for native availability.</li></ul></div>
+        </section>
+
+        <section class="activity-panel" id="section-activity">
+          <div class="section-heading-row"><div><p class="section-kicker">Observed session history</p><h2>Agent Activity</h2></div><span class="activity-scope">SESSION</span></div>
+          <ul id="activity-list" class="activity-list"><li class="activity-empty">Waiting for activity. A person can run the demo, or a browser agent can use MG Guide through WebMCP.</li></ul>
+          <p id="activity-summary" class="activity-summary"></p>
+          <p id="activity-handoff" class="activity-handoff"></p>
+        </section>
+
+        <details class="technical-inspector">
+          <summary>Technical state inspector</summary>
+          <div class="technical-content">
+            <section id="section-processing"><h2>Processing state</h2><p id="processing-state">NOT_PROCESSED — no meeting has been run yet.</p></section>
+            <p>Synthetic fixture data only. No CRM writes, HighLevel calls, or emails are performed.</p>
+          </div>
+        </details>
+      </aside>
+    </div>
   </main>
 
-  <footer>
-    <p>MG Guide is a bounded agentic sales workspace. This page is a WebMCP Challenge
-    competition adapter and does not perform live CRM mutations.</p>
-  </footer>
-
+  <footer><p><strong>The Miliare Group</strong> · MG Guide Agentic Sales Workspace</p><p>Bounded WebMCP demonstration · human review required · zero external effects</p></footer>
   <script src="./config.js"></script>
   <script src="./app.js"></script>
 </body>
