@@ -298,16 +298,19 @@ def test_t_draft_01_success_projects_safe_follow_up_draft():
     assert draft["status"] == "READY"
     assert draft["recipient_name"] == "Taylor Morgan"
     assert draft["recipient_email"] == "taylor.morgan@example-demo.test"
-    assert draft["subject"] == "Follow-up: Taylor Morgan - Discovery Meeting"
+    assert draft["subject"] == "Following up on our conversation"
     assert draft["source"] == "meeting_follow_up_v1"
     assert draft["requires_human_send"] is True
     body = draft["body_text"]
     assert body.startswith("Hi Taylor,")
-    assert "Thank you for your time today." in body
-    assert ux["summary"] in body
-    assert "Next step:\n" in body
-    assert ux["salesperson_next_step"] in body
-    assert "Please let me know if I missed anything" in body
+    assert "Thank you again for your time today." in body
+    assert "retirement income planning" in body
+    assert "maintaining liquidity" in body
+    assert "sixty-day timeline" in body
+    assert "prepare for our recommendation review" in body
+    assert "(owner:" not in body
+    assert "Next step:" not in body
+    assert "Please let me know if I missed anything" not in body
     assert body.rstrip().endswith("Alex")
 
 
@@ -343,7 +346,7 @@ def test_t_draft_03_missing_recipient_means_not_available():
 
 
 def test_t_draft_04_ambiguous_contact_means_not_available():
-    ux, _, _ = _ux_for("transcript-ambiguous-contact.expected.json")
+    ux, result, _ = _ux_for("transcript-ambiguous-contact.expected.json")
     assert ux["ux_state"] == UX_NEEDS_REVIEW
     draft = ux["follow_up_draft"]
     assert draft["status"] == "NOT_AVAILABLE"
@@ -351,6 +354,9 @@ def test_t_draft_04_ambiguous_contact_means_not_available():
     assert draft["recipient_email"] is None
     assert draft["subject"] is None
     assert draft["body_text"] is None
+    assert draft["requires_human_send"] is True
+    assert ux["policy_decision"]["reason_codes"] == ["AMBIGUOUS_CONTACT"]
+    assert result.external_effects == 0
 
 
 def test_t_draft_15_no_raw_crm_ids_in_draft():
@@ -371,15 +377,19 @@ def test_t_draft_16_draft_body_is_deterministic_from_approved_fields():
     )
     assert ux1["follow_up_draft"] == ux2["follow_up_draft"]
     draft = ux1["follow_up_draft"]
-    # Body is composed only from approved fields: summary + next step + names.
+    # Body is deterministic and uses approved meeting facts without leaking
+    # internal ownership metadata into customer-facing correspondence.
     assert draft["body_text"] == (
         "Hi Taylor,\n\n"
-        "Thank you for your time today.\n\n"
-        f"{ux1['summary']}\n\n"
-        "Next step:\n"
-        f"{ux1['salesperson_next_step']}\n\n"
-        "Please let me know if I missed anything or if you would like to "
-        "adjust the next step.\n\n"
+        "Thank you again for your time today. I appreciated the opportunity to "
+        "talk through your retirement income planning, particularly the "
+        "importance of maintaining liquidity and working within your sixty-day "
+        "timeline.\n\n"
+        "My next step is to prepare for our recommendation review so we can "
+        "continue the conversation and make sure the approach reflects what "
+        "matters most to you.\n\n"
+        "If anything from our conversation comes to mind before then, feel "
+        "free to let me know.\n\n"
         "Best,\n"
         "Alex"
     )

@@ -214,6 +214,8 @@ _DENYLIST_FIELDS = {
     "transcript",
 }
 
+MAX_DRAFT_PREVIEW_CHARS = 560
+
 
 def _safe_draft_projection(draft: JSONType) -> JSONType:
     status = draft.get("status")
@@ -253,7 +255,18 @@ def _preview(text: Optional[str]) -> Optional[str]:
     if not text:
         return None
     flat = " ".join(str(text).split())
-    return flat[:280]
+    if len(flat) <= MAX_DRAFT_PREVIEW_CHARS:
+        return flat
+
+    candidate = flat[:MAX_DRAFT_PREVIEW_CHARS].rstrip()
+    sentence_end = max(candidate.rfind("."), candidate.rfind("!"), candidate.rfind("?"))
+    if sentence_end >= MAX_DRAFT_PREVIEW_CHARS // 2:
+        return candidate[: sentence_end + 1]
+
+    word_end = candidate.rfind(" ")
+    if word_end > 0:
+        candidate = candidate[:word_end]
+    return f"{candidate}..."
 
 
 def _read_json_body(environ: WSGIEnv) -> JSONType:

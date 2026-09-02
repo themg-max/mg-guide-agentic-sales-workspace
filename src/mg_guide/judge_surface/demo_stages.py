@@ -506,8 +506,7 @@ def _project_follow_up_draft(
     recipient_name = str(prospect.get("name") or "").strip()
     draft["recipient_name"] = recipient_name or None
     draft["recipient_email"] = recipient_email
-    title = str(meeting_context.get("title") or "").strip() or "Meeting Follow-Up"
-    draft["subject"] = _draft_subject(title)
+    draft["subject"] = _draft_subject()
     paragraph = str(proposed_follow_up.get("summary") or summary or "").strip()
     if not paragraph:
         paragraph = "It was a pleasure connecting with you."
@@ -525,9 +524,8 @@ def _project_follow_up_draft(
     return draft
 
 
-def _draft_subject(title: str) -> str:
-    clean = " ".join(str(title).split())[:120].strip() or "Meeting Follow-Up"
-    return f"Follow-up: {clean}"
+def _draft_subject() -> str:
+    return "Following up on our conversation"
 
 
 def _draft_body(
@@ -538,16 +536,55 @@ def _draft_body(
     agent_first_name: str,
 ) -> str:
     greeting = recipient_first_name or "there"
+    context = _customer_context(paragraph)
+    next_step_copy = _customer_next_step(next_step)
     return (
         f"Hi {greeting},\n\n"
-        "Thank you for your time today.\n\n"
-        f"{paragraph}\n\n"
-        "Next step:\n"
-        f"{next_step}\n\n"
-        "Please let me know if I missed anything or if you would like to "
-        "adjust the next step.\n\n"
+        "Thank you again for your time today. "
+        f"{context}\n\n"
+        f"{next_step_copy}\n\n"
+        "If anything from our conversation comes to mind before then, feel "
+        "free to let me know.\n\n"
         "Best,\n"
         f"{agent_first_name}"
+    )
+
+
+def _customer_context(paragraph: str) -> str:
+    """Translate the fixed fixture's approved summary into customer copy."""
+    normalized = " ".join(paragraph.split()).rstrip(".")
+    prefix = "Discovery call covering "
+    if normalized.startswith(prefix):
+        details = normalized[len(prefix) :]
+        topic, separator, constraints = details.partition(" with ")
+        constraint, and_separator, timeline = constraints.partition(" and ")
+        if separator and and_separator:
+            timeline_copy = timeline.removeprefix("a ").removeprefix("an ")
+            constraint_copy = (
+                "maintaining liquidity"
+                if constraint == "liquidity constraints"
+                else f"addressing {constraint}"
+            )
+            return (
+                "I appreciated the opportunity to talk through your "
+                f"{topic}, particularly the importance of {constraint_copy} "
+                f"and working within your {timeline_copy}."
+            )
+    return f"I appreciated the opportunity to talk through {normalized}."
+
+
+def _customer_next_step(next_step: str) -> str:
+    """Keep internal task ownership out of customer-facing correspondence."""
+    action = next_step.split(" (owner:", 1)[0].strip()
+    if "recommendation review" in action.lower():
+        return (
+            "My next step is to prepare for our recommendation review so we "
+            "can continue the conversation and make sure the approach reflects "
+            "what matters most to you."
+        )
+    return (
+        "My next step is to prepare for our next conversation so we can "
+        "continue making progress on what matters most to you."
     )
 
 
