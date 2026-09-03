@@ -98,6 +98,75 @@ That makes the experience better in four ways:
 
 ---
 
+## What we learned
+
+Building the challenge slice changed how we think about agent-native web
+applications.
+
+- **The page can be the shared contract.** The strongest pattern was not a
+  separate agent UI; it was letting the human-facing page expose a narrow,
+  discoverable tool surface.
+- **ACTION / STATE / ARTIFACT is a useful composition.** One tool performs the
+  bounded operation, while read-only tools let the agent inspect the exact
+  current state and prepared output without rerunning the workflow.
+- **Safe refusal is part of the UX.** `AMBIGUOUS_CONTACT` intentionally stops
+  with `NEEDS_REVIEW` instead of guessing at identity.
+- **Browser behavior is part of reliability.** Native client capability,
+  exact-origin CORS, HTTPS canonicalization, and cache behavior all mattered
+  to whether the tools worked correctly in a real agent-capable browser.
+- **More context is not automatically better.** For MG Guide, external
+  information only becomes useful when source provenance, user intent, and
+  governance travel with it.
+
+---
+
+## Where we would take it next
+
+The current challenge build proves MG Guide can expose its own governed
+workflow to browser agents. The next opportunity is the reverse direction:
+letting a person intentionally bring useful information from the open web into
+the governed MG environment without turning the browser into an unbounded data
+collection channel.
+
+We would introduce a **source-aware governed intake packet** carrying the
+source URL/title, capture time, user intent, selected content or structured
+tool result, provenance/integrity metadata, sensitivity classification, and
+the bounded MG workflow the information is allowed to inform. The intake layer
+would validate and stage that evidence before MG Guide could retrieve it;
+ingestion would not automatically authorize an external effect or permanent
+memory promotion.
+
+A **Google Chrome extension companion** is one practical way to provide that
+bridge for sites that do not yet expose WebMCP. The user would explicitly
+select relevant browser context and its intended MG Guide use, and the
+extension would package it for the same governed intake boundary. On a site
+that does expose WebMCP, we would prefer the site's declared structured tools
+over DOM inference or scraping.
+
+```text
+WebMCP-capable external site
+    → native structured tool result
+    → governed intake packet
+
+Non-WebMCP external site
+    → explicit user-selected context in Chrome extension
+    → governed intake packet
+
+Both
+    → validation / provenance / staging
+    → MG Guide governed retrieval
+    → human-reviewed downstream action
+```
+
+This is roadmap direction, not a claim about the current challenge runtime.
+The submitted build does **not** perform arbitrary external-web ingestion and
+there is no production Chrome extension in this submission.
+
+Detailed lessons and future architecture:
+[`LESSONS_AND_FUTURE_DIRECTION.md`](LESSONS_AND_FUTURE_DIRECTION.md).
+
+---
+
 ## What is new for this challenge
 
 MG Guide is an existing project. The WebMCP Challenge work was added during
@@ -151,6 +220,7 @@ When identity is ambiguous, the workflow fails closed instead of guessing.
 | Architecture | [`WEBMCP_ARCHITECTURE.md`](WEBMCP_ARCHITECTURE.md) |
 | Challenge-period evidence | [`CHALLENGE_PERIOD_EVIDENCE.md`](CHALLENGE_PERIOD_EVIDENCE.md) |
 | Competition delta | [`COMPETITION_DELTA.md`](COMPETITION_DELTA.md) |
+| Lessons + future direction | [`LESSONS_AND_FUTURE_DIRECTION.md`](LESSONS_AND_FUTURE_DIRECTION.md) |
 | Judge testing | [`JUDGE_TESTING.md`](JUDGE_TESTING.md) |
 | Demo script | [`DEMO_SCRIPT_UNDER_3_MIN.md`](DEMO_SCRIPT_UNDER_3_MIN.md) |
 | Submission draft | [`DEVPOST_SUBMISSION_DRAFT.md`](DEVPOST_SUBMISSION_DRAFT.md) |
@@ -163,8 +233,8 @@ When identity is ambiguous, the workflow fails closed instead of guessing.
 | --- | --- |
 | **WebMCP Leverage** | Real `document.modelContext.registerTool` registration; exactly three schema-bounded tools; native discovery and invocation; shared browser-held state |
 | **Execution** | One coherent live product page with SUCCESS, read-state/read-draft, and fail-closed AMBIGUOUS behavior |
-| **Potential Impact** | Reduces repetitive post-meeting preparation while preserving salesperson judgment and customer-facing control |
-| **Creativity & Ambition** | Turns a relationship-intelligence workspace into a standards-based human+agent surface instead of building an agent-only UI or brittle automation layer |
+| **Potential Impact** | Reduces repetitive post-meeting preparation while preserving salesperson judgment and customer-facing control; creates a path toward governed external evidence intake |
+| **Creativity & Ambition** | Turns a relationship-intelligence workspace into a standards-based human+agent surface today, with a WebMCP-first / Chrome-extension compatibility path for future governed browser context |
 
 ---
 
