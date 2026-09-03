@@ -10,8 +10,7 @@ PUBLIC_REPOSITORY=https://github.com/themg-max/mg-guide-agentic-sales-workspace
 ```
 
 This draft is organized around the current WebMCP Challenge submission form
-and the four equally weighted judging criteria. Do not submit claims marked as
-pending until final runtime acceptance/freeze confirms them.
+and the four equally weighted judging criteria.
 
 ---
 
@@ -31,8 +30,8 @@ understand what happened, connect the conversation to the right relationship,
 decide the next step, and prepare a useful draft.
 
 For The WebMCP Challenge, we extended the existing MG Guide product with a
-browser-native WebMCP interface. The live page now exposes exactly three
-structured tools directly to a browser agent:
+browser-native WebMCP interface. The live page exposes exactly three structured
+tools directly to a browser agent:
 
 1. `process_meeting_follow_up` — **ACTION** — runs one bounded synthetic
    follow-up scenario.
@@ -87,8 +86,8 @@ can process the meeting-follow-up scenario, inspect the resulting relationship
 and next-step state, and retrieve the draft for review. The human keeps final
 judgment and customer-facing action.
 
-The collaboration is also deliberately fail-closed. On
-`AMBIGUOUS_CONTACT`, MG Guide returns:
+The collaboration is deliberately fail-closed. On `AMBIGUOUS_CONTACT`, MG
+Guide returns:
 
 ```text
 NEEDS_REVIEW
@@ -118,6 +117,67 @@ when identity is uncertain.
 - **Tests and proof:** `tests/webmcp/`, `competition/webmcp/`, and
   `proof/webmcp/` contain the implementation checks, competition delta, judge
   path, and public acceptance evidence.
+
+### What we learned
+
+WebMCP changed our view of what an agent-native web app should look like.
+
+First, the best experience was not a second UI built for the agent. The
+human-facing page itself became the shared contract. Second, separating the
+surface into **ACTION / STATE / ARTIFACT** made the workflow easier to reason
+about and made read-after-write and stale-state behavior explicit. Third,
+fail-closed behavior is a user experience feature: when relationship identity
+is ambiguous, the right result is a visible handoff to the person, not a more
+confident guess.
+
+We also learned that browser and deployment behavior are part of agent
+reliability. Native-client support, exact-origin CORS, HTTPS canonicalization,
+and asset caching all mattered in real end-to-end WebMCP acceptance.
+
+The larger lesson for MG Guide is that giving an agent more context is not
+enough. Context needs provenance, user intent, sensitivity boundaries, and a
+clear rule for when information is temporary evidence versus durable governed
+context.
+
+### Where we would take it next
+
+The challenge proves an **outbound** pattern: MG Guide can safely expose its
+own capabilities to browser agents. The next step is an **inbound** pattern:
+allowing a person to intentionally bring useful external information into the
+MG governed environment while preserving provenance and human control.
+
+We would introduce a source-aware intake packet containing the source URL and
+title, capture timestamp, explicit user intent, selected content or structured
+tool result, provenance/integrity metadata, sensitivity classification, and
+the bounded MG workflow the evidence is allowed to inform. A governed intake
+layer would validate and stage that evidence before MG Guide could retrieve
+it. Ingestion would not automatically authorize permanent memory promotion or
+an external action.
+
+A **Google Chrome extension companion** is one practical bridge for sites that
+do not yet expose WebMCP. The user would explicitly select the relevant page
+context and destination/use case; the extension would package it for the same
+governed intake boundary. When an external site does expose WebMCP, we would
+prefer its declared structured tools over DOM scraping or inferred page state.
+
+```text
+WebMCP-capable external site
+→ native structured result
+→ governed intake packet
+
+Non-WebMCP external site
+→ explicit user-selected context via Chrome extension
+→ governed intake packet
+
+Both
+→ validation + provenance + staging
+→ MG Guide governed retrieval
+→ human-reviewed downstream action
+```
+
+This is future direction, not a claim about the current challenge runtime. The
+submitted build does not ingest arbitrary external websites and does not ship a
+production Chrome extension.
 
 ### Human-control and data boundary
 
@@ -163,8 +223,8 @@ The dated commit/PR history and exact boundary are documented in
 https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
 ```
 
-Before submission, run final clean-browser acceptance against this exact URL
-and freeze the accepted runtime.
+Final production acceptance passed in a native WebMCP client and the accepted
+runtime is frozen for judging.
 
 ---
 
@@ -222,8 +282,8 @@ Full testing guide:
 | Live URL | `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/` |
 | Testing instructions | Use the testing copy above |
 | Public code repo | `https://github.com/themg-max/mg-guide-agentic-sales-workspace` |
-| Agents/clients tested | Use only clients actually validated before submission; current public evidence supports native Google Chrome WebMCP testing. Add ChatGPT in-app browser only after final direct validation. |
-| AI tools leveraged | VS Code / GitHub Copilot were used in implementation and validation; add any other tools only if actually used for this project |
+| Agents/clients tested | ChatGPT in-app browser native Site Tools/WebMCP client; native Google Chrome WebMCP testing was also used during development/acceptance |
+| AI tools leveraged | VS Code with GitHub Copilot/Copilot-assisted development; ChatGPT for architecture review, competition analysis, governance-bound planning, testing review, and submission packaging |
 | Learning level | **HUMAN INPUT REQUIRED** — None / Moderate / Significant |
 | AI career value | **HUMAN INPUT REQUIRED** — Yes / No |
 
@@ -239,20 +299,20 @@ Full testing guide:
 > commit history distinguish this work from the pre-existing MG Guide
 > workflow and agents.
 
-### Agents/clients tested — conservative current answer
+### Agents/clients tested — final draft
 
-> Google Chrome 149+ with native WebMCP testing enabled was used to verify
-> native tool discovery and invocation on the live product. Exactly three
-> tools were discovered and the SUCCESS and AMBIGUOUS_CONTACT paths were
-> exercised. Add ChatGPT's in-app browser here only after it is directly
-> validated in the final acceptance pass.
+> ChatGPT's in-app browser native Site Tools/WebMCP client was used for final
+> production discovery and functional acceptance. Exactly three tools were
+> discovered and the SUCCESS, STATE, ARTIFACT, AMBIGUOUS_CONTACT, and recovery
+> paths were exercised. Native Google Chrome WebMCP testing was also used
+> during development and acceptance.
 
 ### AI tools used — current source-backed answer
 
 > VS Code with GitHub Copilot/Copilot-assisted development was used for
 > implementation, debugging, test iteration, and documentation. ChatGPT was
 > used for architecture review, competition analysis, governance-bound
-> planning, and submission packaging.
+> planning, testing review, and submission packaging.
 
 ---
 
@@ -262,8 +322,8 @@ Full testing guide:
 | --- | --- |
 | **WebMCP Leverage** | Real native registration, exactly three typed tools, ACTION/STATE/ARTIFACT pattern, native discovery/invocation, shared browser state |
 | **Execution** | Working live page, coherent SUCCESS path, read tools, fail-closed AMBIGUOUS path, human-visible state |
-| **Potential Impact** | Concrete post-meeting follow-up burden for relationship-driven sales work; agent removes preparation/navigation while person keeps judgment |
-| **Creativity & Ambition** | Standards-based human+agent relationship workspace on the same page instead of a separate agent UI or DOM automation layer |
+| **Potential Impact** | Concrete post-meeting follow-up burden for relationship-driven sales work; agent removes preparation/navigation while person keeps judgment; governed external-evidence intake is a credible next step |
+| **Creativity & Ambition** | Standards-based human+agent relationship workspace on the same page today, plus a WebMCP-first / Chrome-extension compatibility strategy for governed browser context tomorrow |
 
 ---
 
@@ -300,6 +360,6 @@ DEVPOST_REQUIRED_FIELDS=COMPLETE
 SUBMISSION_STATUS=SUBMITTED
 ```
 
-After the submission deadline, do not modify the submitted repo, live site,
-video, or submission during judging except as expressly permitted by the
+After the extended submission deadline, do not modify the submitted repo, live
+site, video, or submission during judging except as expressly permitted by the
 competition administrators.
