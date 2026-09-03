@@ -114,8 +114,10 @@ New challenge work includes:
 - live host integration on the existing MG Guide/A.I. Rolodex web surface;
 - native browser acceptance and competition-specific presentation work.
 
-See [`COMPETITION_DELTA.md`](COMPETITION_DELTA.md) for the dated implementation
-history and the explicit pre-existing/new-work boundary.
+For the concise dated history, see
+[`CHALLENGE_PERIOD_EVIDENCE.md`](CHALLENGE_PERIOD_EVIDENCE.md). For the full
+architectural boundary between pre-existing MG Guide and new WebMCP work, see
+[`COMPETITION_DELTA.md`](COMPETITION_DELTA.md).
 
 ---
 
@@ -147,6 +149,7 @@ When identity is ambiguous, the workflow fails closed instead of guessing.
 | Bounded WebMCP backend | [`src/mg_guide/webmcp/`](../../src/mg_guide/webmcp/) |
 | WebMCP tests | [`tests/webmcp/`](../../tests/webmcp/) |
 | Architecture | [`WEBMCP_ARCHITECTURE.md`](WEBMCP_ARCHITECTURE.md) |
+| Challenge-period evidence | [`CHALLENGE_PERIOD_EVIDENCE.md`](CHALLENGE_PERIOD_EVIDENCE.md) |
 | Competition delta | [`COMPETITION_DELTA.md`](COMPETITION_DELTA.md) |
 | Judge testing | [`JUDGE_TESTING.md`](JUDGE_TESTING.md) |
 | Demo script | [`DEMO_SCRIPT_UNDER_3_MIN.md`](DEMO_SCRIPT_UNDER_3_MIN.md) |
