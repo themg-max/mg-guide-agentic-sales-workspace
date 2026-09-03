@@ -4,354 +4,254 @@ MG Guide turns a meeting transcript into structured relationship context and a
 governed follow-up plan so salespeople can move from conversation to action
 without rebuilding context manually.
 
-**Competition:** Google All Things Agentic Hackathon
-**Track:** Fortified Enterprise Fleet
-**Vertical slice:** `meeting_follow_up_v1`
+This repository supports two competition submissions from one codebase. The
+competition-specific work is documented separately so judges can evaluate the
+right delta without confusing it with pre-existing MG Guide capabilities.
 
-This repository serves two competition submissions from one codebase:
+## Competition judge routes
 
-- **Google All Things Agentic judges:** start at [JUDGE_START_HERE.md](JUDGE_START_HERE.md).
-- **WebMCP Challenge judges:** start at [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md).
-
----
-
-## MG Guide + WebMCP
-
-MG Guide already helps turn meetings into relationship-aware follow-up. For
-**The WebMCP Challenge** we added a new browser-native agent interface so the
-same web experience can expose structured capabilities directly to a user's
-agent, without weakening the existing authenticated judge/add-on surface or
-introducing any new live CRM effect.
-
-**Tools registered via `document.modelContext.registerTool`:**
-
-| Tool | Purpose |
+| Competition | Start here |
 | --- | --- |
-| `process_meeting_follow_up` | Runs `meeting_follow_up_v1` against a bounded synthetic scenario (`SUCCESS` or `AMBIGUOUS_CONTACT`) |
-| `get_current_follow_up_state` | Reads the current visible state without rerunning the workflow |
-| `get_follow_up_draft` | Reads the deterministic follow-up draft already produced by the existing projection |
+| **The WebMCP Challenge — MG Guide \| Agent-Native Follow-Up** | [`competition/webmcp/README.md`](competition/webmcp/README.md) |
+| **Google All Things Agentic Hackathon — MG Guide \| Agentic Sales Workspace** | [`JUDGE_START_HERE.md`](JUDGE_START_HERE.md) |
 
-- The human remains in control — every tool call visibly updates the same
-  page a human sees, and any follow-up draft requires a human to send it.
-- The agent can process and inspect — but never mutate CRM, send email, or
-  call HighLevel.
-- Ambiguous relationship identity always fails closed: no draft, no action.
-- No live CRM effect is required for the WebMCP demo — it runs entirely on
-  synthetic fixture data.
+---
 
-| | |
+# WebMCP Challenge — MG Guide | Agent-Native Follow-Up
+
+**Live demo:** https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
+
+**Judge guide:** [`competition/webmcp/README.md`](competition/webmcp/README.md)
+
+**Testing steps:** [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md)
+
+**Competition delta:** [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md)
+
+**Core trust boundary:** **Agent can prepare. Only a person can review and send.**
+
+MG Guide existed before the WebMCP Challenge. During the challenge submission
+period, we added a browser-native WebMCP layer so the same page a person uses
+can expose structured capabilities directly to an AI agent.
+
+The competition surface registers exactly three tools through
+`document.modelContext.registerTool`:
+
+| WebMCP tool | Role | Purpose |
+| --- | --- | --- |
+| `process_meeting_follow_up` | **ACTION** | Runs the bounded synthetic `meeting_follow_up_v1` scenario (`SUCCESS` or `AMBIGUOUS_CONTACT`) |
+| `get_current_follow_up_state` | **STATE** | Reads the current browser-held follow-up state without rerunning the workflow |
+| `get_follow_up_draft` | **ARTIFACT** | Reads the deterministic draft already prepared on the page |
+
+There is no fourth tool, no autonomous send tool, and no CRM-write tool.
+
+## What judges should see
+
+A WebMCP-capable browser agent can discover the tools and run the complete
+human-agent workflow on the live page:
+
+```text
+SUCCESS
+→ meeting context
+→ matched relationship
+→ follow-up plan
+→ draft READY
+→ requires_human_send=true
+```
+
+Then the same surface demonstrates the safety boundary:
+
+```text
+AMBIGUOUS_CONTACT
+→ relationship ambiguous
+→ NEEDS_REVIEW
+→ draft NOT_AVAILABLE
+→ RELATIONSHIP_REVIEW_REQUIRED
+→ no external effect
+```
+
+The agent can prepare and inspect the work. The person keeps customer-facing
+authority.
+
+## Why WebMCP fits this use case
+
+Post-meeting follow-up is a natural human-agent collaboration problem. A
+salesperson still needs judgment and relationship awareness, but repetitive
+navigation, context reconstruction, and draft preparation can be delegated.
+
+Without WebMCP, an agent would need a separate integration or would have to
+infer meaning from DOM structure and UI navigation. WebMCP lets the website
+publish a narrow, typed, discoverable tool contract instead. The human and the
+agent act on the same visible page state rather than maintaining separate
+human and agent interfaces.
+
+That gives MG Guide a stronger interaction model:
+
+- **Discoverable:** the browser agent sees named tools instead of guessing.
+- **Bounded:** only approved synthetic scenarios are accepted.
+- **Shared:** the same page visibly reflects agent-invoked state.
+- **Fail-closed:** ambiguous identity produces review, not action.
+- **Human-controlled:** every usable draft requires human review/send.
+
+## WebMCP implementation
+
+The WebMCP layer is additive; it does not replace the core MG Guide architecture.
+
+```text
+Human + browser agent
+        ↓
+A.I. Rolodex / MG Guide web page
+        ↓
+document.modelContext.registerTool(...)
+        ↓
+3 WebMCP tools: ACTION / STATE / ARTIFACT
+        ↓
+bounded stateless mg-guide-webmcp adapter
+        ↓
+existing meeting_follow_up_v1 workflow
+        ↓
+Meeting Context → Relationship Context → Follow-Up Planning
+        ↓
+deterministic safe result shown on the same page
+```
+
+Key public surfaces:
+
+| Surface | Path |
 | --- | --- |
-| **Live product URL** | `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/` (production host integration complete) |
-| **Backend** | Separate bounded `mg-guide-webmcp` service (stateless synthetic API) |
-| **Browser testing steps** | [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md) |
-| **WebMCP enablement** | Test in a real WebMCP-capable browser (Chrome with WebMCP enabled per current docs, or ChatGPT in-app browser). Native discovery of exactly 3 tools verified. |
-| **Local setup** | `PYTHONPATH=src python -m mg_guide.webmcp.server`, then open `http://localhost:8080/` |
-| **Architecture** | [`competition/webmcp/WEBMCP_ARCHITECTURE.md`](competition/webmcp/WEBMCP_ARCHITECTURE.md) |
-| **Competition delta** | [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md) |
-| **Production proof** | [`proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](proof/webmcp/mg-guide-webmcp-production-acceptance-001.md) |
+| Tool registration + browser state | [`webmcp/static/app.js`](webmcp/static/app.js) |
+| Human-facing WebMCP page | [`webmcp/static/index.html`](webmcp/static/index.html) |
+| Bounded backend adapter | [`src/mg_guide/webmcp/`](src/mg_guide/webmcp/) |
+| WebMCP tests | [`tests/webmcp/`](tests/webmcp/) |
+| Architecture | [`competition/webmcp/WEBMCP_ARCHITECTURE.md`](competition/webmcp/WEBMCP_ARCHITECTURE.md) |
+| New-vs-existing work | [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md) |
+| Judge journey | [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md) |
+| Demo script | [`competition/webmcp/DEMO_SCRIPT_UNDER_3_MIN.md`](competition/webmcp/DEMO_SCRIPT_UNDER_3_MIN.md) |
+
+## WebMCP safety posture
+
+The WebMCP competition demo runs on synthetic fixture data only.
+
+```text
+HIGHLEVEL_CALLS=0
+CRM_MUTATIONS=0
+EMAILS_SENT=0
+REAL_CUSTOMER_DATA=0
+```
+
+The competition tool surface does not accept credentials, arbitrary customer
+identifiers, a live-mode selector, or an autonomous email/CRM authority field.
+Ambiguous relationship identity fails closed.
+
+## What was pre-existing vs. new
+
+**Pre-existing MG Guide:** the core meeting-follow-up workflow, specialized
+Meeting Context / Relationship Context / Follow-Up Planning agents,
+deterministic policy, Google Workspace integration, and broader Google
+Cloud-hosted MG Guide architecture.
+
+**New for The WebMCP Challenge:** the browser-native WebMCP frontend, bounded
+stateless adapter, exactly-three-tool registration, WebMCP-specific tests,
+challenge deployment packaging, native browser acceptance, presentation work,
+and challenge-specific judge/submission documentation.
+
+See [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md)
+for the dated implementation history and exact boundary.
 
 ---
 
-## Why we built it
+# Broader MG Guide product context
 
-Before COVID, much financial-services relationship work happened face to face.
-Today many conversations happen online.
+The meeting is digital, but much of the work after the meeting remains
+fragmented:
 
-The meeting is digital, but the work after the meeting is still fragmented:
+- reviewing what was said;
+- remembering personal and business context;
+- connecting the meeting to the correct relationship;
+- deciding the next step;
+- preparing future follow-up.
 
-- reviewing what was said
-- remembering personal and business context
-- finding the correct CRM relationship
-- documenting the conversation
-- determining the next step
-- preparing future follow-up
-
-MG Guide is designed to close that gap. This competition slice is bounded and
-honest: agents understand and propose, policy decides, and live CRM effects
-remain separately governed. It does not claim production automation or a
-same-run transcript-to-live-CRM write.
-
----
-
-## How it works
+The broader MG Guide architecture addresses that workflow with three
+specialized agents and deterministic policy:
 
 ```text
 Google Workspace meeting
-  -> transcript
-  -> MG Guide Orchestrator on Google Cloud Agent Runtime
-  -> Meeting Context Agent
-  -> Relationship Context Agent
-  -> Follow-Up Planning Agent
-  -> deterministic policy
-  -> MG Guide follow-up experience / audit state / bounded CRM boundary
+  → transcript
+  → MG Guide Orchestrator
+  → Meeting Context Agent
+  → Relationship Context Agent
+  → Follow-Up Planning Agent
+  → deterministic policy
+  → MG Guide follow-up experience / bounded external-effect boundary
 ```
-
-A salesperson finishes a meeting. MG Guide reads the transcript, reconstructs
-what happened, connects it to relationship context, and recommends the next
-step. Deterministic policy then either permits the follow-up path or fail-closes
-when identity or permission is not trustworthy.
-
----
-
-## Three specialized agents
 
 | Agent | Role |
 | --- | --- |
 | **Meeting Context Agent** | Understands what happened. |
 | **Relationship Context Agent** | Connects the meeting to the correct relationship context. |
-| **Follow-Up Planning Agent** | Turns that context into the recommended next steps. |
+| **Follow-Up Planning Agent** | Turns that context into recommended next steps. |
 
-These three agents run as an internal Google ADK `SequentialAgent` sequence
-inside one hosted orchestrator: `mg-guide-orchestrator`.
+For the Google All Things Agentic competition-specific judge path and proof,
+start at [`JUDGE_START_HERE.md`](JUDGE_START_HERE.md).
 
-Hosted sequence:
+---
 
-```text
-meeting_context_agent
-relationship_context_agent
-follow_up_planning_agent
+## Reproducible local setup
+
+The core deterministic suite and WebMCP competition adapter can be inspected
+without production credentials.
+
+```bash
+# Clone
+git clone https://github.com/themg-max/mg-guide-agentic-sales-workspace.git
+cd mg-guide-agentic-sales-workspace
+
+# Install Python dependencies
+python3 -m pip install -r requirements.txt
+
+# Run repository tests
+PYTHONPATH=src python3 -m pytest -q
+
+# Run the local WebMCP adapter
+PYTHONPATH=src python3 -m mg_guide.webmcp.server
+# Then open http://localhost:8080/
 ```
 
----
-
-## Google Cloud
-
-| Technology | Role |
-| --- | --- |
-| **Google Cloud Agent Runtime** | Hosts `mg-guide-orchestrator` |
-| **Google ADK** | `SequentialAgent` three-agent graph |
-| **Gemini 3.5 Flash** | Meeting-context extraction |
-| **Cloud Run** | Competition judge / Workspace adapter surface |
-| **Firestore** | Audit proof |
-
-Cloud Run is not the hosted three-agent runtime. Agent Runtime hosts the
-three-agent graph. Cloud Run serves the competition judge / Workspace adapter
-experience.
-
----
-
-## Try MG Guide
-
-Judge competition Workspace account:
-
-`mg_guide.judge@themiliare-group.com`
-
-The password / access secret is provided privately through the Devpost testing
-credentials / authorized judge instructions and is intentionally not committed
-to this public repository.
-
-### Shortest safe judge journey
-
-1. Sign into the provided Google Workspace account.
-2. Open Gmail or Calendar.
-3. Launch **MG Guide**.
-4. Run the Meeting Follow-Up demonstration.
-5. Review the completed and needs-review behaviors.
-
-| Demonstration | What to look for |
-| --- | --- |
-| SUCCESS | Completed follow-up plan |
-| AMBIGUOUS_CONTACT | Needs-review / fail-closed behavior |
-
-Access details: [docs/judges/JUDGE_ACCESS.md](docs/judges/JUDGE_ACCESS.md).
-
-The Workspace add-on is a thin presentation and routing adapter. It does not
-own policy, CRM mutation, agent reasoning, or workflow truth.
-
----
-
-## What is proven
-
-| Capability | State |
-| --- | --- |
-| Gemini meeting-context extraction | Proven |
-| Google ADK three-agent workflow | Proven |
-| Hosted Agent Runtime deployment | Proven |
-| Hosted three-agent sequential execution | Proven |
-| Success scenario | Proven |
-| Ambiguous-contact fail-closed scenario | Proven |
-| Firestore audit proof | Proven |
-| HighLevel REST v3 exact synthetic contact read | Proven |
-| WebMCP live host integration & native tool discovery | Proven |
-| WebMCP agent invocation & fail-closed flow | Proven |
-| Current REST note create/readback | Pending |
-| Same-run transcript-to-live-CRM write | Not claimed |
-
-Exact current CRM language:
-
-```text
-LIVE_REST_V3_EXACT_CONTACT_READ=PASS
-NETWORK_CALL_COUNT=1
-MUTATION_CALL_COUNT=0
-CURRENT_REST_V3_NOTE_CREATE=PENDING
-CURRENT_REST_V3_NOTE_READBACK=PENDING
-INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
-HOSTED_GHL_CALLS=0
-HOSTED_CRM_MUTATIONS=0
-```
-
-Historical Grant 008 live synthetic note+stage proof is supporting evidence
-only. It is not the current transport centerpiece.
+No production `.env`, CRM credential, or customer data is required for the
+WebMCP competition demo.
 
 ---
 
 ## Repository navigation
 
-**Judge path**
+```text
+README.md
+JUDGE_START_HERE.md                 Google competition judge route
+competition/webmcp/README.md        WebMCP Challenge judge route
+competition/webmcp/                 WebMCP brief, delta, testing, demo, submission docs
+webmcp/static/                       Browser-native WebMCP frontend
+src/mg_guide/webmcp/                Bounded synthetic WebMCP backend adapter
+tests/webmcp/                        WebMCP tests
+proof/webmcp/                        Public WebMCP evidence
+src/                                 Broader MG Guide runtime source
+tests/                               Repository tests
+governance/                          Public sanitized governance
+```
 
-- [JUDGE_START_HERE.md](JUDGE_START_HERE.md)
-- [docs/judges/README.md](docs/judges/README.md)
-- [docs/architecture/meeting-follow-up-v1-competition-architecture.md](docs/architecture/meeting-follow-up-v1-competition-architecture.md)
-- [docs/demo/meeting-follow-up-v1-4min-demo-script.md](docs/demo/meeting-follow-up-v1-4min-demo-script.md)
-- [docs/competition/DEVPOST_WRITEUP.md](docs/competition/DEVPOST_WRITEUP.md)
+## Governance and truth boundary
 
-**Best current proof**
-
-- [proof/mg-guide/agent-runtime/mg-guide-agent-runtime-runtime-acceptance-proof-006.md](proof/mg-guide/agent-runtime/mg-guide-agent-runtime-runtime-acceptance-proof-006.md)
-- [proof/nw008/nw-008-at8-ghl-rest-exact-synthetic-contact-live-read-execution-002.md](proof/nw008/nw-008-at8-ghl-rest-exact-synthetic-contact-live-read-execution-002.md)
-- [competition/NEW_WORK_LEDGER.md](competition/NEW_WORK_LEDGER.md)
-
-More evidence: [docs/judges/PROOF_INDEX.md](docs/judges/PROOF_INDEX.md) and
-[proof/README.md](proof/README.md).
-
----
-
-## Governance binding
-
-Public sanitized governance lives under [`governance/`](governance/).
-
-- Private AI Rolodex context repo = governance / source authority
-- This public repo = implementation / test / public proof
-- Agents propose; deterministic policy authorizes
-- External mutations are separately gated
-- Synthetic data only unless later granted
-- Proof required; merged PR ≠ production activation
+- Private AI Rolodex context repo = governance / source authority for private
+  host operations.
+- This public repo = MG Guide implementation, tests, public proof, and
+  competition documentation.
+- Competition requirements constrain the submission; they do not authorize
+  production mutation.
+- Agents can propose and prepare; deterministic policy and humans retain
+  downstream authority.
+- Synthetic data is used for the public WebMCP demo.
+- Merged code is not automatically treated as production activation.
 
 See [`governance/README.md`](governance/README.md) and
 [`governance/PUBLIC_PRIVATE_BOUNDARY.md`](governance/PUBLIC_PRIVATE_BOUNDARY.md).
-
----
-
-## Architecture (competition)
-
-| Layer | Role |
-| --- | --- |
-| **Google Cloud Agent Runtime** | Hosted `mg-guide-orchestrator` |
-| **Google ADK + Gemini 3.5 Flash** | Specialized reasoning agents (propose; never unilaterally decide) |
-| **Deterministic policy** | State machine and mutation policy gate |
-| **HighLevel REST v3 bounded adapter** | Current CRM boundary |
-| **Firestore** | Runtime / audit state |
-| **MG Guide** | Salesperson Meeting Follow-Up experience |
-| **Cloud Run** | Judge / Workspace adapter surface |
-| **Google Workspace add-on** | Thin presentation and routing adapter |
-
-Authority rule: agents propose facts and actions; deterministic policy decides
-whether an external effect is allowed.
-
-### CRM transport boundary
-
-```text
-Agent
-  ↓
-deterministic policy gate
-  ↓
-HighLevel REST v3 bounded adapter
-  ↓
-allowlisted synthetic CRM records only
-```
-
-Current REST posture:
-
-```text
-LIVE_REST_V3_EXACT_CONTACT_READ=PASS
-CURRENT_REST_V3_NOTE_CREATE=PENDING
-CURRENT_REST_V3_NOTE_READBACK=PENDING
-INGESTION_TO_LIVE_GHL_SINGLE_RUN_PROVEN=NO
-```
-
-Historical HighLevel MCP evidence is preserved as supporting history. Generic
-GHL MCP implementation is not the current transport.
-
----
-
-## Safety posture
-
-- Synthetic and fixture identities only (see [`fixtures/`](fixtures/))
-- No real-customer CRM mutation
-- No secrets committed (see [`.env.example`](.env.example) and [`docs/SECURITY.md`](docs/SECURITY.md))
-- Fail-closed on ambiguous contact resolution and policy denial
-- Judge/demo path does not perform live CRM mutation
-
----
-
-## Reproducible setup (currently valid steps only)
-
-These steps are valid **today**. Live GHL, GCP, Firestore, and deployment
-setup remain separately governed.
-
-```bash
-# 1. Clone
-git clone https://github.com/themg-max/mg-guide-agentic-sales-workspace.git
-cd mg-guide-agentic-sales-workspace
-
-# 2. Python Phase 1 deterministic suite (no network at runtime)
-python3 -m pip install -r requirements.txt
-PYTHONPATH=src python3 -m pytest -q
-
-# 3. Run one synthetic fixture package (intent-only; zero external effects)
-PYTHONPATH=src python3 -m orchestration fixtures/transcript-success.expected.json
-
-# 4. Phase 3 unit 1 — Meeting Context Agent fixture harness (offline by default)
-PYTHONPATH=src python3 -m agents.meeting_context --provider fixture
-PYTHONPATH=src python3 -m agents.meeting_context --provider gemini_adk_stub
-
-# 5. Phase 3 unit 2 — ADK runtime + Relationship Context Agent (offline synthetic CRM)
-PYTHONPATH=src python3 -m agents.relationship_context
-PYTHONPATH=src python3 -m agents.adk_runtime
-
-# 6. Phase 3 unit 3 — Follow-Up Planning Agent (proposal + policy gate + packet; intent-only)
-PYTHONPATH=src python3 -m agents.follow_up_planning
-
-# 7. NW-006 Meeting Follow-Up card (stdout-only; synthetic packet in → text/html out)
-PYTHONPATH=src python3 -m mg_guide.meeting_follow_up_card \
-  fixtures/nw006/packets/packet-success.completed.json
-
-# 8. Local judge surface (stub Gemini; no live CRM mutation)
-PYTHONPATH=src MEETING_CONTEXT_GEMINI_MODE=stub python -m mg_guide.judge_surface.server
-# POST /demo/meeting-follow-up with {"scenario":"SUCCESS"|"AMBIGUOUS_CONTACT"}
-```
-
-Copy [`.env.example`](.env.example) only as a **placeholder catalog**. Do not
-populate production values. Do not commit a real `.env`.
-
----
-
-## Repository layout
-
-```text
-README.md
-JUDGE_START_HERE.md
-docs/judges/          Judge navigation
-docs/architecture/    Architecture
-docs/demo/            Demo script and truth boundary
-docs/competition/     Devpost write-up
-competition/          Competition Delta and AI collaboration log
-proof/                Durable proof (do not relocate)
-workspace_addon/      Thin Workspace presentation adapter
-src/                  Runtime source
-tests/                Tests
-governance/           Public sanitized governance
-```
-
----
-
-## Governance for contributors
-
-- Do **not** implement features directly on `main`.
-- Create subsequent work on bounded topic branches.
-- Stage **exact paths only** — never `git add .`.
-- Keep competition-period claims honest: see [`docs/COMPETITION_BASELINE.md`](docs/COMPETITION_BASELINE.md)
-  and [`competition/NEW_WORK_LEDGER.md`](competition/NEW_WORK_LEDGER.md).
 
 ---
 

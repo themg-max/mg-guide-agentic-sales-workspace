@@ -1,189 +1,271 @@
-# MG Guide | Agent-Native Follow-Up — WebMCP Submission Packet
+# MG Guide | Agent-Native Follow-Up — WebMCP Submission Control Packet
 
 ```text
 PROJECT_NAME=MG Guide | Agent-Native Follow-Up
 COMPETITION=The WebMCP Challenge
 STATUS=EXISTING_PROJECT_WITH_NEW_WEBMCP_DELTA
+PACKAGING_BASE_SHA=8a9df7178e20fe8f3faf642ddf09858f6716e5da
+FINAL_PUBLIC_FREEZE_SHA=PENDING
+FINAL_RUNTIME_FREEZE=PENDING
 LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
 BACKEND_URL=https://mg-guide-webmcp-831270426395.us-east4.run.app
-PUBLIC_SOURCE_SHA=2847f5a26dbc61716736b60eedb66e399c102a33
 LICENSE=Apache-2.0
 ```
 
-This document is the primary control document for the WebMCP Challenge
-submission. It consolidates the problem, solution, live evidence, and
-remaining human-controlled submission steps in one place.
+This is the submission control document. It keeps the competition narrative,
+truth boundaries, final readiness gates, and human-controlled submission work
+in one place. Historical proof files keep the source SHAs that were true when
+they were recorded; this packet instead tracks the final packaging/freeze
+state.
 
-## A. Problem
+---
 
-Before COVID, much financial-services relationship work happened face to
-face. Today many of those conversations happen online, and the meeting
-itself is captured digitally. But the work *after* the meeting — matching
-the conversation to the right relationship context, deciding the right next
-step, and drafting a follow-up — is still fragmented across notes, memory,
-and separate tools. That gap costs salespeople time and costs customers a
-prompt, well-informed follow-up.
+## 1. Submission thesis
 
-## B. Solution
+**MG Guide turns post-meeting follow-up into a safe agent-human workflow:
+action, state, artifact, then human control.**
 
-MG Guide already turns a meeting transcript into structured relationship
-context and a governed follow-up plan (`meeting_follow_up_v1`): it matches
-the meeting to a relationship, produces a recommended next step, and
-prepares a follow-up draft — while keeping a human in control of anything
-customer-facing.
+MG Guide existed before the WebMCP Challenge. The challenge-period extension
+adds a standards-based browser-agent interface to the same human-facing
+relationship-follow-up experience.
 
-For The WebMCP Challenge, MG Guide adds a new, bounded, browser-native agent
-interface to that same experience. A browser agent can now discover and
-invoke the same workflow directly on the page a human already sees, using
-standard WebMCP tools instead of a separate agent-specific integration.
-
-## C. Why WebMCP
-
-Without WebMCP, giving an agent access to this workflow would mean either:
-
-- building and maintaining a separate, agent-specific API/interface, or
-- asking the agent to infer meaning from arbitrary page DOM/navigation,
-  which is brittle and harder to bound, test, and audit reliably.
-
-WebMCP lets the same page expose a small number of structured, schema-bounded
-tools directly to the agent, via `document.modelContext.registerTool(...)`.
-The agent gets a narrow, typed, discoverable contract — not free rein over
-the page — and the human sees the exact same state the agent is acting on,
-in real time, in the same browser tab. This keeps the human and the agent
-working from one shared source of truth instead of two divergent surfaces.
-
-## D. Live product
+Exactly three tools are exposed:
 
 ```text
-LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
+ACTION   process_meeting_follow_up
+STATE    get_current_follow_up_state
+ARTIFACT get_follow_up_draft
 ```
 
-Production host integration is complete. The page is served from the
-existing A.I. Rolodex Cloud Run site, with a separate bounded backend
-(`mg-guide-webmcp`) providing the stateless synthetic API.
+The agent can prepare and inspect. A person retains final customer-facing
+judgment and send authority.
 
-## E. Public source
+---
+
+## 2. Problem
+
+Meetings are increasingly digital, but the work after a conversation is still
+fragmented: reconstruct what happened, connect it to relationship context,
+decide the right next step, and prepare a useful follow-up.
+
+That work is repetitive enough for an agent to help with, but relationship
+identity and customer-facing action still require human judgment.
+
+---
+
+## 3. Why WebMCP
+
+Without WebMCP, browser-agent access would require either:
+
+- a separate agent-only API/interface; or
+- brittle inference from DOM structure, page labels, and navigation.
+
+WebMCP lets MG Guide publish a small, typed, discoverable tool contract on the
+same page the person already uses. This keeps the agent bounded and gives the
+human a visible shared state instead of creating a parallel automation surface.
+
+---
+
+## 4. Expected judge demo
+
+### SUCCESS
 
 ```text
-REPOSITORY=https://github.com/themg-max/mg-guide-agentic-sales-workspace
-LICENSE=Apache-2.0
-PUBLIC_SOURCE_SHA=2847f5a26dbc61716736b60eedb66e399c102a33
+process_meeting_follow_up(SUCCESS)
+→ COMPLETED
+→ relationship matched
+→ draft READY
+→ requires_human_send=true
 ```
 
-The public repository is the canonical source for all WebMCP code: the
-backend adapter (`src/mg_guide/webmcp/`), the browser frontend
-(`webmcp/static/`), and the automated test suite (`tests/webmcp/`).
-
-## F. Exactly three tools
-
-### 1. `process_meeting_follow_up`
-
-- **Purpose**: runs the `meeting_follow_up_v1` workflow against a bounded
-  synthetic scenario (`SUCCESS` or `AMBIGUOUS_CONTACT`).
-- **Human-visible effect**: the same page the human sees updates live —
-  Meeting Context, Relationship Context, and Follow-Up Planning sections
-  populate, and the Follow-Up Draft section either becomes `READY` or shows
-  `NOT_AVAILABLE — RELATIONSHIP_REVIEW_REQUIRED`.
-- **Safety boundary**: accepts only `{"scenario": "SUCCESS" |
-  "AMBIGUOUS_CONTACT"}`; any additional/authority field (`live`,
-  `crm_write`, `send_email`, `provider`, `contact_id`, `location_id`, `url`,
-  `credentials`, `instructions`, `transcript`) is rejected with HTTP 400.
-
-### 2. `get_current_follow_up_state`
-
-- **Purpose**: reads the current visible workflow state without rerunning
-  the workflow.
-- **Human-visible effect**: none — read-only inspection of state already
-  shown on the page.
-- **Safety boundary**: client-only reader; no server call; cannot mutate
-  anything.
-
-### 3. `get_follow_up_draft`
-
-- **Purpose**: reads the deterministic follow-up draft already produced by
-  the existing projection.
-- **Human-visible effect**: none — read-only inspection of the draft already
-  shown on the page.
-- **Safety boundary**: client-only reader; returns `NOT_AVAILABLE` when no
-  draft exists (e.g. after `AMBIGUOUS_CONTACT`); never sends anything.
-
-## G. SUCCESS
+Then:
 
 ```text
-meeting context
-  -> matched relationship
-  -> follow-up plan
-  -> draft READY
-  -> requires_human_send=true
+get_current_follow_up_state
+get_follow_up_draft
 ```
 
-Invoking `process_meeting_follow_up({"scenario": "SUCCESS"})` produces
-`ux_state=COMPLETED`, matches the meeting to a relationship, recommends a
-salesperson next step, and marks the follow-up draft `READY` with
-`requires_human_send: true`. The agent can prepare the work; a human must
-still review and send anything customer-facing.
+Both read the current browser-held state/artifact without rerunning the
+workflow.
 
-## H. AMBIGUOUS_CONTACT
+### AMBIGUOUS_CONTACT
 
 ```text
-ambiguous relationship
-  -> NEEDS_REVIEW
-  -> draft NOT_AVAILABLE
-  -> RELATIONSHIP_REVIEW_REQUIRED
-  -> no external effect
+process_meeting_follow_up(AMBIGUOUS_CONTACT)
+→ NEEDS_REVIEW
+→ relationship ambiguous
+→ draft NOT_AVAILABLE
+→ RELATIONSHIP_REVIEW_REQUIRED
 ```
 
-Invoking `process_meeting_follow_up({"scenario": "AMBIGUOUS_CONTACT"})`
-produces `ux_state=NEEDS_REVIEW`, `follow_up_draft_status=NOT_AVAILABLE`,
-`reason=RELATIONSHIP_REVIEW_REQUIRED`. No draft is produced, no CRM action is
-taken, and no email is sent. When relationship identity is uncertain, the
-system stops instead of guessing.
+When identity is uncertain, the system stops instead of guessing.
 
-## I. Human + agent collaboration
+---
 
-The human and the agent operate on the exact same browser-held state
-(`currentWebMCPState`) on the exact same page — there is no separate
-agent-only surface. The agent can invoke the workflow and read state/draft
-tools; it can never send a customer-facing email or write to a CRM. Every
-follow-up draft is tagged `requires_human_send: true`, and only a human can
-act on it.
+## 5. Safety boundary
 
-## J. Competition Delta
+The WebMCP competition path uses fixed synthetic data only.
 
 ```text
-PRE_EXISTING_MG_GUIDE:
-  meeting_follow_up_v1 workflow, agents, policy, judge_surface adapter,
-  Workspace add-on, existing A.I. Rolodex landing site, existing Cloud Run
-  judge/add-on infrastructure
-
-NEW_WEBMCP_CHALLENGE_WORK:
-  src/mg_guide/webmcp/ (bounded stateless backend adapter)
-  webmcp/static/ (browser-native WebMCP frontend, 3 registered tools)
-  tests/webmcp/ (new automated test suite)
-  deployment/webmcp/Dockerfile (new competition-only container image)
-  competition/webmcp/ (this delta, brief, architecture, judge testing,
-    submission checklist and packet, landing integration record)
-  proof/webmcp/ (end-to-end and production acceptance proof)
+HIGHLEVEL_CALLS=0
+CRM_MUTATIONS=0
+EMAILS_SENT=0
+REAL_CUSTOMER_DATA=0
 ```
 
-Full detail with commit SHAs:
-[`competition/webmcp/COMPETITION_DELTA.md`](COMPETITION_DELTA.md).
+The tool surface rejects authority-bearing/unbounded inputs such as live mode,
+CRM-write requests, send-email requests, credentials, arbitrary transcripts,
+and raw CRM identifiers.
 
-## K. Proof links
+**Agent can prepare. Only a person can review and send.**
 
-- Production acceptance:
-  [`proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](../../proof/webmcp/mg-guide-webmcp-production-acceptance-001.md)
-- End-to-end acceptance:
-  [`proof/webmcp/mg-guide-webmcp-end-to-end-acceptance-001.md`](../../proof/webmcp/mg-guide-webmcp-end-to-end-acceptance-001.md)
-- Judge testing:
-  [`competition/webmcp/JUDGE_TESTING.md`](JUDGE_TESTING.md)
+---
 
-## L. Remaining submission operations
+## 6. Existing project / challenge-period delta
 
-The following remain as human-controlled steps only; no technical/runtime
-work remains:
+### Pre-existing MG Guide
 
-1. Finalize the under-3-minute demo video (with audio).
-2. Upload the public YouTube video.
-3. Complete the Devpost submission form.
-4. Final submission remains a human-controlled action.
+- `meeting_follow_up_v1` workflow;
+- Meeting Context, Relationship Context, and Follow-Up Planning agents;
+- deterministic policy;
+- existing Google Workspace and broader cloud architecture;
+- existing A.I. Rolodex/MG Guide product surface.
+
+### New for The WebMCP Challenge
+
+- `src/mg_guide/webmcp/` bounded stateless adapter;
+- `webmcp/static/` browser-native WebMCP frontend;
+- exactly three `document.modelContext.registerTool(...)` registrations;
+- browser-held `currentWebMCPState` for read-only state/draft tools;
+- `tests/webmcp/` competition tests;
+- challenge deployment packaging;
+- production host integration and native browser acceptance;
+- follow-up draft-quality work for the demo;
+- ACTION / STATE / ARTIFACT capability presentation;
+- fail-closed multi-run/presentation regression fixes;
+- native functional acceptance proof;
+- final MG Guide frontend presentation elevation;
+- competition judge/submission documentation.
+
+The dated evidence is maintained in
+[`COMPETITION_DELTA.md`](COMPETITION_DELTA.md).
+
+---
+
+## 7. Judge-facing source map
+
+| Need | Artifact |
+| --- | --- |
+| Start here | [`README.md`](README.md) |
+| Detailed testing | [`JUDGE_TESTING.md`](JUDGE_TESTING.md) |
+| Architecture | [`WEBMCP_ARCHITECTURE.md`](WEBMCP_ARCHITECTURE.md) |
+| New vs. existing work | [`COMPETITION_DELTA.md`](COMPETITION_DELTA.md) |
+| Demo script | [`DEMO_SCRIPT_UNDER_3_MIN.md`](DEMO_SCRIPT_UNDER_3_MIN.md) |
+| Devpost copy | [`DEVPOST_SUBMISSION_DRAFT.md`](DEVPOST_SUBMISSION_DRAFT.md) |
+| Final checklist | [`SUBMISSION_CHECKLIST.md`](SUBMISSION_CHECKLIST.md) |
+| Historical native production evidence | [`../../proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`](../../proof/webmcp/mg-guide-webmcp-production-acceptance-001.md) |
+
+Public implementation:
+
+```text
+webmcp/static/app.js
+src/mg_guide/webmcp/
+tests/webmcp/
+```
+
+---
+
+## 8. Judging-criteria strategy
+
+### WebMCP Leverage
+
+Show real native tools, all three roles, typed/bounded inputs, native agent
+invocation, and shared browser state. Do not make the demo just a human button
+click.
+
+### Execution
+
+Show one coherent live product: successful processing, state/draft inspection,
+and a meaningful fail-closed path. Avoid internal engineering detail in the
+video.
+
+### Potential Impact
+
+Keep the problem concrete: post-meeting relationship follow-up for a
+relationship-driven salesperson. The value is reduced preparation/navigation,
+not autonomous customer communication.
+
+### Creativity & Ambition
+
+Emphasize the standards-based shared human-agent workspace: one page, one
+visible state, structured tools, explicit human authority — not a separate
+agent console or screen-scraping automation.
+
+---
+
+## 9. Final runtime gate — still required
+
+Historical production acceptance is preserved in public proof, but the final
+judge-facing frontend runtime is undergoing a bounded render-delivery repair in
+the private host-integration lane. Do not represent final submission runtime
+freeze as complete until that repaired candidate is accepted and promoted.
+
+Before recording/submitting require:
+
+```text
+FINAL_LIVE_RUNTIME_ACCEPTANCE=PASS
+FRESH_BROWSER_RENDER=PASS
+STALE_CACHE_BROWSER_RENDER=PASS
+NARROW_BROWSER_RENDER=PASS
+NATIVE_WEBMCP_TOOL_COUNT=3
+SUCCESS_FINAL_SMOKE=PASS
+AMBIGUOUS_FINAL_SMOKE=PASS
+REQUIRES_HUMAN_SEND=TRUE
+APPLICATION_EXTERNAL_EFFECTS=0
+FINAL_RUNTIME_FREEZE=BOUND
+```
+
+Once these pass, record the immutable frontend revision/image fingerprint in
+the private proof and freeze product/runtime changes.
+
+---
+
+## 10. Public-repo packaging gate
+
+Current packaging branch adds/reconciles judge-facing documentation only. It
+must pass the repo-local exact-head check and normal PR review before merge.
+
+Before final submission:
+
+```text
+PUBLIC_PACKAGING_PR=MERGED
+FINAL_PUBLIC_FREEZE_SHA=RECORDED
+PUBLIC_REPO_INCOGNITO_CHECK=PASS
+LICENSE_VISIBLE_IN_GITHUB_ABOUT=PASS
+REPO_ABOUT_DESCRIPTION_ALIGNED=YES
+REPO_HOMEPAGE_LIVE_URL=YES
+```
+
+Do not edit the public repo after the competition deadline.
+
+---
+
+## 11. Submission operations
+
+Human-controlled remaining work:
+
+1. complete final live runtime acceptance and freeze;
+2. merge the judge-facing public documentation package;
+3. update GitHub About metadata and verify the repo logged out;
+4. update the Devpost project description/tagline from the approved draft;
+5. collect the human-supplied submission fields;
+6. record the under-three-minute demo using the frozen runtime;
+7. upload it publicly to YouTube and verify the link logged out;
+8. complete all Devpost required fields;
+9. submit before 1:00 PM PT / 4:00 PM ET;
+10. confirm Devpost marks the project **Submitted**, not Draft;
+11. freeze the submitted repo/live site/video through judging.
+
+Final submission itself remains a deliberate human-controlled action unless
+the human explicitly instructs the connected Devpost tool to submit after all
+required answers are complete.

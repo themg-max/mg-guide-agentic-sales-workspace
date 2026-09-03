@@ -1,66 +1,179 @@
-# WebMCP Challenge — Submission Checklist
+# WebMCP Challenge — Final Submission Checklist
 
 ```text
-STATUS=TECHNICAL_ACCEPTANCE_COMPLETE_SUBMISSION_ASSETS_PENDING
-LAST_UPDATED=2026-09-01
+STATUS=SUBMISSION_PACKAGING_IN_PROGRESS
+LAST_UPDATED=2026-09-03
+DEADLINE_PT=2026-09-03T13:00:00-07:00
+DEADLINE_ET=2026-09-03T16:00:00-04:00
 LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
-BACKEND_URL=https://mg-guide-webmcp-831270426395.us-east4.run.app
+PUBLIC_REPO=https://github.com/themg-max/mg-guide-agentic-sales-workspace
 ```
 
-## Required assets
+This checklist separates already-proven WebMCP implementation from the final
+runtime-freeze and submission operations that must still be completed before
+the deadline.
 
-- [x] `WEB_APP_POWERED_BY_WEBMCP` — `webmcp/static/app.js` registers 3 tools
-- [x] `WORKING_LIVE_URL` — `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/`
-- [x] `PUBLIC_CODE_REPO` — `https://github.com/themg-max/mg-guide-agentic-sales-workspace`
-- [x] `OPEN_SOURCE_LICENSE` — Apache-2.0
-- [x] `WEBMCP_IMPLEMENTATION_VISIBLE_IN_REPO`
-- [ ] `DEMO_VIDEO_UNDER_3_MINUTES` — recording in progress
-- [ ] `DEMO_VIDEO_AUDIO` — recording in progress
-- [ ] `YOUTUBE_PUBLIC_VIDEO` — pending upload
-- [x] `TESTING_INSTRUCTIONS` — `competition/webmcp/JUDGE_TESTING.md`
-- [x] `PRODUCTION_PROOF` — `proof/webmcp/mg-guide-webmcp-production-acceptance-001.md`
+## 1. Competition implementation
 
-## Architecture gates
+- [x] `WEB_APP_POWERED_BY_WEBMCP`
+- [x] `DOCUMENT_MODELCONTEXT_REGISTERTOOL_PRESENT`
+- [x] `EXACTLY_THREE_TOOLS`
+  - [x] `process_meeting_follow_up`
+  - [x] `get_current_follow_up_state`
+  - [x] `get_follow_up_draft`
+- [x] `ACTION_STATE_ARTIFACT_PATTERN`
+- [x] `SUCCESS_FLOW_IMPLEMENTED`
+- [x] `AMBIGUOUS_CONTACT_FAIL_CLOSED_IMPLEMENTED`
+- [x] `REQUIRES_HUMAN_SEND_TRUE`
+- [x] `SYNTHETIC_ONLY_DEMO_BOUNDARY`
+- [x] `ZERO_LIVE_CRM_EMAIL_EFFECT_DESIGN`
+- [x] `WEBMCP_SPECIFIC_TESTS_PRESENT`
+- [x] `PUBLIC_IMPLEMENTATION_VISIBLE`
+
+## 2. Existing-project competition delta
+
+- [x] `APP_STATUS=Existing`
+- [x] Pre-existing MG Guide capabilities explicitly separated from new WebMCP work
+- [x] WebMCP work added after the Aug 25 submission-period start
+- [x] Dated public commit/PR history preserved
+- [x] `competition/webmcp/COMPETITION_DELTA.md` documents the boundary
+- [x] Judge-facing repo copy does not claim the broader MG Guide system was built during this challenge
+
+## 3. Public repository
+
+- [x] Repository is public
+- [x] Apache-2.0 license is detected by GitHub
+- [x] WebMCP source registration is easy to find
+- [x] Root README routes WebMCP judges to a dedicated competition start page **on the packaging branch**
+- [x] `competition/webmcp/README.md` judge-first start page created **on the packaging branch**
+- [x] Judge testing uses current official browser instructions **on the packaging branch**
+- [x] Demo script exercises ACTION + STATE + ARTIFACT **on the packaging branch**
+- [ ] Packaging PR merged to `main`
+- [ ] Public repo verified logged out/incognito after packaging merge
+- [ ] GitHub About description aligned with WebMCP submission
+- [ ] GitHub homepage set to the live MG Guide URL
+- [ ] License visibly detected in GitHub About panel after final repo check
+
+Recommended manual GitHub About values:
 
 ```text
-SEPARATE_WEB_SURFACE_REQUIRED=NO
-EXISTING_AI_ROLODEX_SURFACE_REUSED=YES
-SEPARATE_WEBMCP_BACKEND_BOUNDARY=YES
-SERVER_SESSION_STATE_REQUIRED=NO
-WEBMCP_BROWSER_STATE=YES
-PUBLIC_REPO_OWNS_SOURCE=YES
-PRIVATE_REPO_BUILD_DEPENDENCY=NO
-PRIVATE_REPO_RUNTIME_DEPENDENCY=NO
-SECRET_DEPENDENCY=NO
-CRM_CREDENTIAL_DEPENDENCY=NO
-LIVE_PRODUCT_HOST_INTEGRATED=YES
-ACTUAL_WEBMCP_NATIVE_DISCOVERY=PASS
-ACTUAL_WEBMCP_AGENT_INVOCATION=PASS
-SUCCESS_FLOW=PASS
-AMBIGUOUS_CONTACT_FAIL_CLOSED=PASS
-ZERO_LIVE_CRM_MUTATIONS=YES
-ZERO_EMAILS_SENT=YES
+Description:
+MG Guide — agent-native meeting follow-up with WebMCP ACTION / STATE / ARTIFACT tools and human send control.
+
+Website:
+https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
 ```
 
-## Validation completed
+## 4. Live runtime and final freeze
 
-- [x] Stateless backend (no `_last_state`)
-- [x] Browser `currentWebMCPState`
-- [x] Configurable `MG_GUIDE_WEBMCP_API_BASE`
-- [x] CORS allowlist (production origin only)
-- [x] Focused WebMCP tests
-- [x] Dedicated backend deployed and accepted
-- [x] Production host integration at `/mg-guide/` completed and serving
-- [x] Native WebMCP discovery (3 tools) verified on real Chrome
-- [x] Agent invocation and fail-closed flow verified on real Chrome
-- [x] Sanitized public proof recorded
+Historical production/native acceptance exists, but the final judge-facing
+runtime must be revalidated and frozen after the current judge-render repair
+before submission.
 
-## Remaining (submission operations only — final submission is human-controlled)
+- [x] Dedicated bounded WebMCP backend deployed historically
+- [x] Native WebMCP discovery/invocation proven historically
+- [x] SUCCESS and AMBIGUOUS paths proven historically
+- [x] Exactly three native tools proven historically
+- [ ] Current repaired frontend candidate acceptance `PASS`
+- [ ] Current repaired frontend promoted to normal production traffic
+- [ ] Final live URL opened in a fresh/incognito WebMCP-capable browser
+- [ ] Returning/stale-cache browser render check `PASS`
+- [ ] Narrow in-app/browser render check `PASS`
+- [ ] Native WebMCP tool count still exactly `3`
+- [ ] SUCCESS → STATE → ARTIFACT final smoke `PASS`
+- [ ] AMBIGUOUS_CONTACT fail-closed final smoke `PASS`
+- [ ] `requires_human_send=true` final readback `PASS`
+- [ ] Backend revision/digest unchanged unless separately authorized
+- [ ] `HIGHLEVEL_CALLS=0`
+- [ ] `CRM_MUTATIONS=0`
+- [ ] `EMAILS_SENT=0`
+- [ ] `REAL_CUSTOMER_DATA=0`
+- [ ] Final frontend revision/image digest recorded
+- [ ] `FINAL_RUNTIME_FREEZE=BOUND`
 
-1. Finalize demo video (<3 minutes, with audio) — not yet recorded
-2. Upload public YouTube video — pending video completion
-3. Complete Devpost submission form — pending final asset upload
+**Stop product mutation once this section passes.**
 
-All technical acceptance gates above are complete. No runtime, backend, or
-host-integration work remains. Final submission action remains a
-human-controlled step.
+## 5. Demo video
+
+Official requirement: public YouTube video, under 3 minutes, with audio showing
+the project functioning and how WebMCP is used.
+
+- [x] Demo script exists
+- [x] Script shows working product immediately
+- [x] Script shows exactly three tools
+- [x] Script exercises all three tools
+- [x] Script shows fail-closed ambiguous behavior
+- [x] Script explains why WebMCP is better than DOM guessing / separate agent UI
+- [ ] Final runtime freeze complete before recording
+- [ ] Video recorded
+- [ ] Runtime `< 3:00`
+- [ ] Audio clear
+- [ ] Project shown working in first 10–15 seconds
+- [ ] Native agent actually uses WebMCP tools
+- [ ] No credentials/private URLs/private governance in frame
+- [ ] No copyrighted music/material without permission
+- [ ] Uploaded to YouTube
+- [ ] YouTube visibility `Public`
+- [ ] Public video link tested logged out
+
+Use:
+[`DEMO_SCRIPT_UNDER_3_MIN.md`](DEMO_SCRIPT_UNDER_3_MIN.md)
+
+## 6. Devpost project copy
+
+- [x] Existing Devpost project created: `MG Guide | Agent-Native Follow-Up`
+- [x] Project name remains human-selected and unchanged
+- [x] Draft description exists
+- [x] Revised rubric-aligned draft prepared **on the packaging branch**
+- [ ] Devpost project tagline/description updated from final approved draft
+- [ ] Live URL field exact
+- [ ] Public repo URL exact
+- [ ] Existing-project update field explains WebMCP challenge delta
+- [ ] Testing instructions pasted
+- [ ] Agents/clients tested answer reflects only actual validation
+- [ ] AI tools used answer complete and accurate
+- [ ] Submitter type provided by human
+- [ ] Country/countries provided by human
+- [ ] Organization name provided if applicable
+- [ ] Learning level provided by human
+- [ ] AI career-value answer provided by human
+- [ ] Video URL attached
+
+See:
+[`DEVPOST_SUBMISSION_DRAFT.md`](DEVPOST_SUBMISSION_DRAFT.md)
+
+## 7. Final submission gate
+
+Before clicking Submit, require:
+
+```text
+FINAL_LIVE_RUNTIME_ACCEPTANCE=PASS
+FINAL_RUNTIME_FREEZE=BOUND
+PUBLIC_REPO_PACKAGING_MERGED=YES
+PUBLIC_REPO_LOGGED_OUT_CHECK=PASS
+OPEN_SOURCE_LICENSE_VISIBLE=PASS
+LIVE_URL_LOGGED_OUT_CHECK=PASS
+WEBMCP_NATIVE_TOOL_COUNT=3
+SUCCESS_FINAL_SMOKE=PASS
+AMBIGUOUS_FINAL_SMOKE=PASS
+VIDEO_PUBLIC_YOUTUBE=YES
+VIDEO_RUNTIME_LT_3_MIN=YES
+VIDEO_AUDIO=PASS
+DEVPOST_REQUIRED_FIELDS_COMPLETE=YES
+```
+
+Then verify the project is marked **Submitted**, not Draft.
+
+## 8. Post-deadline freeze
+
+Once the submission period closes at 1:00 PM PT / 4:00 PM ET:
+
+- do not edit the submitted Devpost submission;
+- do not modify the submitted public repository;
+- do not change the submitted live site;
+- do not replace or edit the submitted video;
+- keep the project free, accessible, and functioning for judges through the
+  judging period.
+
+If continued development is necessary after the deadline, do it on a separate
+copy/fork that does not alter the submitted repo/live project.
