@@ -1,5 +1,10 @@
 # Start Here — Judges
 
+> **Historical Google All Things Agentic judge guide.** This page documents
+> the Google All Things Agentic Hackathon submission. If you are judging
+> **The WebMCP Challenge**, start at
+> [`competition/webmcp/README.md`](competition/webmcp/README.md) instead.
+
 This page is the shortest path through the MG Guide competition repository.
 
 ```text
