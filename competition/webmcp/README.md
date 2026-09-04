@@ -8,6 +8,8 @@
 
 **Trust boundary:** **Agent can prepare. Only a person can review and send.**
 
+[← Back to judge front door](../../JUDGE_START_HERE.md)
+
 ---
 
 ## Judge path
