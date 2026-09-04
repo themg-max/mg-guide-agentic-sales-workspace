@@ -1,131 +1,76 @@
 # Start Here — Judges
 
-> **Historical Google All Things Agentic judge guide.** This page documents
-> the Google All Things Agentic Hackathon submission. If you are judging
-> **The WebMCP Challenge**, start at
-> [`competition/webmcp/README.md`](competition/webmcp/README.md) instead.
-
-This page is the shortest path through the MG Guide competition repository.
-
 ```text
 SURFACE=JUDGE_START_HERE
 REPOSITORY=themg-max/mg-guide-agentic-sales-workspace
-COMPETITION=Google All Things Agentic Hackathon
+COMPETITION=The WebMCP Challenge (CURRENT)
 ```
 
-## What MG Guide is
+## MG Guide | Agent-Native Follow-Up
 
-MG Guide turns a meeting transcript into structured relationship context and a
-governed follow-up plan so salespeople can move from conversation to action
-without rebuilding context manually.
+**Live demo:** https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
 
-It is a bounded agentic sales workspace: specialized agents understand the
-meeting and propose the next step, deterministic policy decides what is allowed,
-and external CRM effects remain separately governed.
+**Trust boundary:** **Agent can prepare. Only a person can review and send.**
 
-This competition slice uses synthetic / test data. It does not claim production
-CRM automation or same-run transcript-to-live-CRM writes.
+**The WebMCP Challenge is the current judge path.** This page is the front
+door for it.
 
-## The problem
+## What this is
 
-Before COVID, much financial-services relationship work happened face to face.
-Today many of those conversations happen online.
+MG Guide turns a meeting transcript into structured relationship context and
+a governed follow-up plan. For the WebMCP Challenge, the same human-facing
+page exposes a small, typed tool surface directly to a browser agent via
+`document.modelContext.registerTool`.
 
-The meeting is digital, but the work after the meeting is still fragmented:
-reviewing what was said, remembering personal and business context, finding the
-correct CRM relationship, documenting the conversation, determining the next
-step, and preparing future follow-up.
+Exactly **3 tools** are registered — no more, no fewer:
 
-MG Guide is designed to close that post-meeting gap.
-
-## What we built
+1. `process_meeting_follow_up` — **ACTION** — run one approved synthetic
+   meeting-follow-up scenario.
+2. `get_current_follow_up_state` — **STATE** — read the current browser-held
+   workflow state without rerunning the workflow.
+3. `get_follow_up_draft` — **ARTIFACT** — read the follow-up draft already
+   prepared on the page.
 
 ```text
-Meeting transcript
-  -> Meeting Context
-  -> Relationship Context
-  -> Follow-Up Planning
-  -> deterministic policy
-  -> salesperson follow-up state
+ACTION → STATE → ARTIFACT → HUMAN CONTROL
 ```
 
-In the success path, the salesperson sees a completed follow-up plan. When
-contact identity is ambiguous, the workflow fail-closes into needs-review and
-does not attempt unauthorized CRM effects.
+## Expected results
 
-## Where it runs
+**SUCCESS:**
 
-**Google Cloud Agent Runtime** hosts one orchestrator deployment:
+```text
+SUCCESS
+→ relationship matched
+→ workflow COMPLETED
+→ follow-up draft READY
+→ requires_human_send=true
+```
 
-- Display name: `mg-guide-orchestrator`
-- Framework: Google ADK
-- Root agent: `SequentialAgent`
+**AMBIGUOUS_CONTACT (safe-stop):**
 
-The three specialized agents run as an internal sequence of that one hosted
-orchestrator:
+```text
+AMBIGUOUS_CONTACT
+→ relationship ambiguous
+→ NEEDS_REVIEW
+→ draft NOT_AVAILABLE
+→ RELATIONSHIP_REVIEW_REQUIRED
+→ no external effect
+```
 
-1. `meeting_context_agent`
-2. `relationship_context_agent`
-3. `follow_up_planning_agent`
+`requires_human_send=true` on every usable draft. Zero external effects
+(no CRM mutation, no email send, no live-mode) in the challenge path.
 
-Supporting surfaces:
+## Judge path
 
-- Gemini 3.5 Flash
-- Cloud Run (competition judge / Workspace adapter)
-- Firestore (audit proof)
-- Google Workspace add-on (thin presentation and routing)
-- HighLevel REST v3 bounded adapter (current CRM boundary)
+1. [`competition/webmcp/README.md`](competition/webmcp/README.md) — full
+   judge start and judging-criteria map
+2. [`competition/webmcp/JUDGE_TESTING.md`](competition/webmcp/JUDGE_TESTING.md) — step-by-step testing
+3. [`competition/webmcp/WEBMCP_ARCHITECTURE.md`](competition/webmcp/WEBMCP_ARCHITECTURE.md) — architecture
+4. [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md) — pre-existing foundation vs. new WebMCP work
+5. [`competition/webmcp/CHALLENGE_PERIOD_EVIDENCE.md`](competition/webmcp/CHALLENGE_PERIOD_EVIDENCE.md) — dated challenge-period evidence
 
-Cloud Run is not the hosted three-agent runtime. Agent Runtime hosts the
-three-agent graph.
+## Historical
 
-## Judge account
-
-Email: `mg_guide.judge@themiliare-group.com`
-
-This is a controlled competition Google Workspace account. Credentials are
-provided privately through the competition testing instructions and are
-intentionally not stored in this public repository.
-
-See [docs/judges/JUDGE_ACCESS.md](docs/judges/JUDGE_ACCESS.md).
-
-## What to try
-
-Use only the provided competition Workspace account.
-
-1. Sign into `mg_guide.judge@themiliare-group.com`.
-2. Open Gmail or Calendar in Google Workspace.
-3. Launch **MG Guide**.
-4. Run **Meeting Follow-Up**.
-5. Try the two required demonstrations:
-
-| Demo | What you should see |
-| --- | --- |
-| **SUCCESS** | Completed follow-up state |
-| **AMBIGUOUS_CONTACT** | Needs-review / fail-closed state |
-
-The add-on is a thin presentation and routing adapter. It does not own policy,
-CRM mutation, agent reasoning, or workflow truth. Demonstration data is
-synthetic / test data.
-
-## What to look for
-
-- Transcript understanding from Meeting Context
-- Relationship context attached to the meeting
-- Recommended follow-up from Follow-Up Planning
-- Fail-closed behavior when identity is ambiguous
-- Google Cloud hosted proof for the three-agent orchestrator
-
-## Evidence
-
-Five starting links:
-
-1. [Judge documentation index](docs/judges/README.md)
-2. [Competition architecture](docs/architecture/meeting-follow-up-v1-competition-architecture.md)
-3. [Hosted Agent Runtime acceptance](proof/mg-guide/agent-runtime/mg-guide-agent-runtime-runtime-acceptance-proof-006.md)
-4. [HighLevel REST v3 exact synthetic contact read](proof/nw008/nw-008-at8-ghl-rest-exact-synthetic-contact-live-read-execution-002.md)
-5. [Proof index](docs/judges/PROOF_INDEX.md)
-
-Deeper engineering history lives under [`proof/`](proof/README.md) and
-[`competition/NEW_WORK_LEDGER.md`](competition/NEW_WORK_LEDGER.md). Judges do
-not need that tree first.
+**Google All Things Agentic Hackathon judge guide (historical):**
+[`competition/google-all-things-agentic/JUDGE_GUIDE.md`](competition/google-all-things-agentic/JUDGE_GUIDE.md)

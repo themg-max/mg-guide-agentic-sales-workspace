@@ -6,12 +6,16 @@ AUDIENCE=JUDGES_AND_REVIEWERS
 REQUIRED_FIRST_READING_FOR_JUDGES=NO
 ```
 
-**The WebMCP Challenge (current):** start at
+## CURRENT
+
+**The WebMCP Challenge:** start at
+[`../JUDGE_START_HERE.md`](../JUDGE_START_HERE.md) or directly at
 [`webmcp/README.md`](webmcp/README.md).
 
-**Google All Things Agentic Hackathon (historical):** start at
-[`../JUDGE_START_HERE.md`](../JUDGE_START_HERE.md) and
-[`../docs/judges/README.md`](../docs/judges/README.md).
+## HISTORICAL
+
+**Google All Things Agentic Hackathon:** start at
+[`google-all-things-agentic/JUDGE_GUIDE.md`](google-all-things-agentic/JUDGE_GUIDE.md).
 
 This directory preserves competition-period provenance. It is evidence and
 reference material, not the judge front door for either competition.
@@ -21,6 +25,7 @@ reference material, not the judge front door for either competition.
 | File | Role |
 | --- | --- |
 | [webmcp/](webmcp/) | WebMCP Challenge judge start, architecture, testing, and submission docs (current) |
+| [google-all-things-agentic/JUDGE_GUIDE.md](google-all-things-agentic/JUDGE_GUIDE.md) | Google All Things Agentic judge guide (historical) |
 | [NEW_WORK_LEDGER.md](NEW_WORK_LEDGER.md) | Competition-period provenance / Competition Delta (historical) |
 | [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md) | AI-assisted build history (historical) |
 
