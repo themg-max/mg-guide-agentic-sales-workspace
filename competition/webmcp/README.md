@@ -193,21 +193,92 @@ Detailed lessons and future architecture:
 
 ---
 
-## What is new for this challenge
+## Existing foundation vs. new WebMCP extension
 
-MG Guide is an existing project. The WebMCP Challenge work was added during
-the submission period and is documented separately from pre-existing work.
+MG Guide is an existing project. The WebMCP work is a meaningful additive
+extension built on top of a reused domain foundation.
 
-New challenge work includes:
+### Pre-existing MG Guide foundation
 
-- the browser-native WebMCP frontend in `webmcp/static/`;
-- the bounded stateless adapter in `src/mg_guide/webmcp/`;
-- exactly three registered WebMCP tools;
-- browser-held current state for read-only state/draft tools;
+```text
+meeting_follow_up_v1
+Meeting Context Agent
+Relationship Context Agent
+Follow-Up Planning Agent
+deterministic policy
+existing MG Guide / A.I. Rolodex product surface
+Google Workspace and broader cloud architecture
+```
+
+Those capabilities are not claimed as new WebMCP challenge work.
+
+### New WebMCP challenge work — five layers
+
+#### 1. Browser-agent contract
+
+- real `document.modelContext.registerTool(...)` integration;
+- exactly three native tools;
+- explicit **ACTION / STATE / ARTIFACT** roles;
+- narrow schemas and native WebMCP feature detection.
+
+#### 2. New Web product surface
+
+- new `webmcp/static/` browser interface;
+- one shared human-visible page for human + agent interaction;
+- browser-held current state for read-only STATE and ARTIFACT tools;
+- native discovery and invocation in a WebMCP-capable browser.
+
+#### 3. Bounded WebMCP adapter
+
+- new `src/mg_guide/webmcp/` package;
+- stateless synthetic-only backend;
+- only `SUCCESS` and `AMBIGUOUS_CONTACT` accepted;
+- live mode, CRM-write, email-send, credentials, raw CRM identifiers, and
+  arbitrary transcripts rejected.
+
+#### 4. Safety + experience model
+
+- deterministic follow-up draft;
+- `requires_human_send=true` on usable drafts;
+- fail-closed ambiguous-identity handoff;
+- latest-run state/presentation semantics so repeated agent calls do not expose
+  stale results;
+- zero CRM/email external effects in the challenge path.
+
+The existing judge-safe presentation projection was **narrowly extended**
+during the challenge to support the stronger follow-up draft and WebMCP-facing
+presentation semantics. That targeted integration is disclosed in the
+Competition Delta; it is not represented as a rewrite of the pre-existing core
+workflow, agent sequence, or deterministic policy.
+
+#### 5. Test / deploy / proof surface
+
 - WebMCP-specific tests under `tests/webmcp/`;
-- dedicated competition deployment packaging;
-- live host integration on the existing MG Guide/A.I. Rolodex web surface;
-- native browser acceptance and competition-specific presentation work.
+- competition deployment packaging under `deployment/webmcp/`;
+- production host integration on the existing MG Guide/A.I. Rolodex surface;
+- native functional and production acceptance evidence under `proof/webmcp/`;
+- challenge-specific architecture, delta, judge testing, demo, and submission
+  documentation under `competition/webmcp/`.
+
+```text
+PRE-EXISTING MG GUIDE
+        ↓ reused foundation
+
+1. BROWSER-AGENT CONTRACT
+        ↓
+2. NEW WEB PRODUCT SURFACE
+        ↓
+3. BOUNDED WEBMCP ADAPTER
+        ↓
+4. SAFETY + EXPERIENCE MODEL
+        ↓
+5. TEST / DEPLOY / PROOF SURFACE
+        ↓
+ACTION → STATE → ARTIFACT → HUMAN CONTROL
+```
+
+This changes **how an AI agent can safely interact with MG Guide on the web**;
+it is not a thin WebMCP label placed on the existing product.
 
 For the concise dated history, see
 [`CHALLENGE_PERIOD_EVIDENCE.md`](CHALLENGE_PERIOD_EVIDENCE.md). For the full
@@ -242,6 +313,7 @@ When identity is ambiguous, the workflow fails closed instead of guessing.
 | Tool registration and browser state | [`webmcp/static/app.js`](../../webmcp/static/app.js) |
 | Human-facing page | [`webmcp/static/index.html`](../../webmcp/static/index.html) |
 | Bounded WebMCP backend | [`src/mg_guide/webmcp/`](../../src/mg_guide/webmcp/) |
+| Targeted presentation integration | [`src/mg_guide/judge_surface/demo_stages.py`](../../src/mg_guide/judge_surface/demo_stages.py) |
 | WebMCP tests | [`tests/webmcp/`](../../tests/webmcp/) |
 | Architecture | [`WEBMCP_ARCHITECTURE.md`](WEBMCP_ARCHITECTURE.md) |
 | Challenge-period evidence | [`CHALLENGE_PERIOD_EVIDENCE.md`](CHALLENGE_PERIOD_EVIDENCE.md) |
