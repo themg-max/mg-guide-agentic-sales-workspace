@@ -6,21 +6,27 @@ AUDIENCE=JUDGES_AND_REVIEWERS
 REQUIRED_FIRST_READING_FOR_JUDGES=NO
 ```
 
-This directory preserves competition-period provenance. It is evidence and
-reference material, not the judge front door.
+**The WebMCP Challenge (current):** start at
+[`webmcp/README.md`](webmcp/README.md).
 
-Judges should start at [../JUDGE_START_HERE.md](../JUDGE_START_HERE.md) and
-[../docs/judges/README.md](../docs/judges/README.md).
+**Google All Things Agentic Hackathon (historical):** start at
+[`../JUDGE_START_HERE.md`](../JUDGE_START_HERE.md) and
+[`../docs/judges/README.md`](../docs/judges/README.md).
+
+This directory preserves competition-period provenance. It is evidence and
+reference material, not the judge front door for either competition.
 
 ## What lives here
 
 | File | Role |
 | --- | --- |
-| [NEW_WORK_LEDGER.md](NEW_WORK_LEDGER.md) | Competition-period provenance / Competition Delta |
-| [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md) | AI-assisted build history |
+| [webmcp/](webmcp/) | WebMCP Challenge judge start, architecture, testing, and submission docs (current) |
+| [NEW_WORK_LEDGER.md](NEW_WORK_LEDGER.md) | Competition-period provenance / Competition Delta (historical) |
+| [AI_COLLABORATION_LOG.md](AI_COLLABORATION_LOG.md) | AI-assisted build history (historical) |
 
-Both files are large because they are the durable record of what was built
-during the competition. They are not required first reading.
+The ledger and collaboration log are large because they are the durable
+record of what was built during the competition periods. They are not
+required first reading.
 
 ## How to use them
 

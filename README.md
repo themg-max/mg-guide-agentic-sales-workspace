@@ -8,16 +8,11 @@ This repository supports two competition submissions from one codebase. The
 competition-specific work is documented separately so judges can evaluate the
 right delta without confusing it with pre-existing MG Guide capabilities.
 
-## Competition judge routes
-
-| Competition | Start here |
-| --- | --- |
-| **The WebMCP Challenge — MG Guide \| Agent-Native Follow-Up** | [`competition/webmcp/README.md`](competition/webmcp/README.md) |
-| **Google All Things Agentic Hackathon — MG Guide \| Agentic Sales Workspace** | [`JUDGE_START_HERE.md`](JUDGE_START_HERE.md) |
-
 ---
 
 # WebMCP Challenge — MG Guide | Agent-Native Follow-Up
+
+**Current competition entry.**
 
 **Live demo:** https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/
 
@@ -28,6 +23,8 @@ right delta without confusing it with pre-existing MG Guide capabilities.
 **Competition delta:** [`competition/webmcp/COMPETITION_DELTA.md`](competition/webmcp/COMPETITION_DELTA.md)
 
 **Core trust boundary:** **Agent can prepare. Only a person can review and send.**
+
+**Journey:** **ACTION → STATE → ARTIFACT → HUMAN CONTROL**
 
 MG Guide existed before the WebMCP Challenge. During the challenge submission
 period, we added a browser-native WebMCP layer so the same page a person uses
@@ -159,7 +156,16 @@ for the dated implementation history and exact boundary.
 
 ---
 
-# Broader MG Guide product context
+# Broader MG Guide product context (historical)
+
+> **Historical.** This section and the Google All Things Agentic Hackathon
+> judge route below describe pre-existing MG Guide capabilities and a
+> separate, earlier competition submission. They are not part of the current
+> WebMCP Challenge entry above.
+
+| Competition | Status | Start here |
+| --- | --- | --- |
+| **Google All Things Agentic Hackathon — MG Guide \| Agentic Sales Workspace** | Historical | [`JUDGE_START_HERE.md`](JUDGE_START_HERE.md) |
 
 The meeting is digital, but much of the work after the meeting remains
 fragmented:
@@ -225,8 +231,8 @@ WebMCP competition demo.
 
 ```text
 README.md
-JUDGE_START_HERE.md                 Google competition judge route
-competition/webmcp/README.md        WebMCP Challenge judge route
+JUDGE_START_HERE.md                 Google competition judge route (historical)
+competition/webmcp/README.md        WebMCP Challenge judge route (current)
 competition/webmcp/                 WebMCP brief, delta, testing, demo, submission docs
 webmcp/static/                       Browser-native WebMCP frontend
 src/mg_guide/webmcp/                Bounded synthetic WebMCP backend adapter
