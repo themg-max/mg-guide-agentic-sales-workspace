@@ -2,99 +2,149 @@
 
 ```text
 COMPETITION=The WebMCP Challenge
-DEADLINE_PT=2026-09-03T13:00:00-07:00
-DEADLINE_ET=2026-09-03T16:00:00-04:00
+SUBMISSION_PERIOD_START=2026-08-25T12:00:00-07:00
+DEADLINE_PT=2026-09-04T01:00:00-07:00
+DEADLINE_ET=2026-09-04T04:00:00-04:00
+DEADLINE_UTC=2026-09-04T08:00:00Z
+DEADLINE_SOURCE=Devpost 12-hour extension announced 2026-09-03
+PROJECT_STATUS=EXISTING_PROJECT_WITH_NEW_WEBMCP_DELTA
 MG_GUIDE_BASE_SHA=bc9a723f84e72ec3605da495ad16fbf78f3a99a9
 MG_GUIDE_BASE_SHA_DATE=2026-08-31T19:16:51-04:00
 AI_ROLODEX_REFERENCE_REPO=themg-max/A.I-Rolodex---Context
 AI_ROLODEX_REFERENCE_SHA=3ed7ede9083d7c95d2dbf504c8f0de1e567be4a7
 AI_ROLODEX_REFERENCE_SHA_DATE=2026-08-31T14:55:12-04:00
-WEBMCP_BRANCH=impl/webmcp-mg-guide-agentic-workspace-001
+WEBMCP_INITIAL_BRANCH=impl/webmcp-mg-guide-agentic-workspace-001
 ```
+
+The official submission deadline was extended by Devpost/OpenAI from the
+original September 3 deadline to **September 4, 2026 at 1:00 AM PT / 4:00 AM
+ET**. The timestamps above use that final announced deadline.
 
 The A.I-Rolodex reference SHA is recorded read-only. That private repository
 is not a build, runtime, or deploy dependency for this competition slice.
 
+`MG_GUIDE_BASE_SHA` is the recorded **pre-WebMCP implementation baseline** used
+for this repository delta. It does not imply that the repository was frozen at
+the August 25 challenge start. Challenge-period evidence is tracked separately
+in [`CHALLENGE_PERIOD_EVIDENCE.md`](CHALLENGE_PERIOD_EVIDENCE.md).
+
 ---
 
-## PRE_EXISTING (as of `MG_GUIDE_BASE_SHA`, not new WebMCP work)
+## PRE_EXISTING — MG Guide foundation
 
-- MG Guide product direction and README narrative
+The following capabilities existed before the WebMCP extension and are not
+claimed as new challenge work:
+
+- MG Guide product direction and core meeting-follow-up domain;
 - `meeting_follow_up_v1` deterministic workflow (`src/orchestration/runner.py`,
-  `contracts/workflow_states.yaml`)
-- Meeting Context Agent, Relationship Context Agent, Follow-Up Planning Agent
-  (`src/agents/*`)
-- Deterministic policy (`src/orchestration/policy.py`)
-- `src/mg_guide/judge_surface/*` — authenticated judge-safe demo adapter,
-  scenario catalog (SUCCESS, STAGE_CHANGE_DENIED, AMBIGUOUS_CONTACT), and the
-  `project_demo_stages` / `project_ux_experience` / `project_demo_payload`
-  presenter projection used again (unmodified) by the new WebMCP adapter
-- Google Workspace add-on (`workspace_addon/`, `src/mg_guide/workspace_addon/`)
-- Existing Cloud Run judge/add-on infrastructure and Google Cloud Agent
-  Runtime hosted orchestrator (`mg-guide-orchestrator`)
-- Historical/current HighLevel CRM integration work (`src/integrations/ghl/*`)
-- R5 governance machinery and related proof/authorization artifacts
-- Existing A.I Rolodex landing site
-  (`https://ai-rolodex-landing-831270426395.us-east4.run.app/`)
+  `contracts/workflow_states.yaml`);
+- Meeting Context Agent, Relationship Context Agent, and Follow-Up Planning
+  Agent (`src/agents/*`);
+- deterministic policy (`src/orchestration/policy.py`);
+- authenticated judge-safe presentation/adaptor capabilities under
+  `src/mg_guide/judge_surface/*`, including the scenario model and projection
+  functions used by the broader MG Guide demo experience;
+- Google Workspace add-on (`workspace_addon/`, `src/mg_guide/workspace_addon/`);
+- existing Cloud Run judge/add-on infrastructure and Google Cloud Agent
+  Runtime hosted orchestrator (`mg-guide-orchestrator`);
+- historical/current HighLevel CRM integration work (`src/integrations/ghl/*`);
+- R5 governance machinery and related proof/authorization artifacts;
+- existing A.I. Rolodex landing site
+  (`https://ai-rolodex-landing-831270426395.us-east4.run.app/`).
 
-## NEW_WEBMCP_WORK (added after `MG_GUIDE_BASE_SHA`, this submission period)
+The WebMCP challenge does **not** claim these foundational capabilities as new.
 
-- `src/mg_guide/webmcp/` — new public, unauthenticated, synthetic-only WebMCP
-  competition adapter package (`app.py`, `scenarios.py`, `server.py`)
-    - `WebMCPSurfaceApp`: stateless WSGI app exposing `/health` and `POST
-      /webmcp/meeting-follow-up` only
-    - Reuses the existing `WorkflowRunner` and existing judge_surface
-      `map_packet_to_card` / `project_demo_payload` projections without
-      modification
-    - Two-value scenario allow-list only (`SUCCESS`, `AMBIGUOUS_CONTACT`);
-      rejects any additional/authority field (`live`, `crm_write`,
-      `send_email`, `provider`, `contact_id`, `location_id`, `url`,
-      `credentials`, `instructions`, `transcript`)
-    - Returns the complete safe projected result needed by the browser; no
-      server-side session/state endpoint is required
-- `webmcp/static/` — new browser-native WebMCP frontend
-    - `index.html`, `style.css`: human-operable page with seven required
-      sections (Meeting, processing state, Meeting Context, Relationship
-      Context, Follow-Up Planning, Follow-Up Draft, Trust boundary)
-    - `index.html` uses relative `./style.css`, `./config.js`, and `./app.js`
-      so the same frontend can be hosted below the A.I. Rolodex `/mg-guide/`
-      path without root-asset collisions
-    - `config.js`: runtime configuration shim with same-origin default; the
-      private host integration may set only the approved public backend URL
-    - `app.js`: real `document.modelContext.registerTool(...)` registration
-      of three tools (`process_meeting_follow_up`,
-      `get_current_follow_up_state`, `get_follow_up_draft`); feature-detects
-      WebMCP support and does not polyfill or emulate it
-    - Holds `currentWebMCPState` in browser memory; state/draft tools are
-      client-only readers
-    - Supports configurable `window.MG_GUIDE_WEBMCP_API_BASE`
-- `tests/webmcp/` — new test suite
-    - `test_webmcp_app.py`: HTTP-layer acceptance for health, stateless route
-      rejection, SUCCESS/AMBIGUOUS_CONTACT, authority-field rejection, CORS,
-      and no-secret-leak checks
-    - `test_tool_registration_source.py`: static-source checks for the
-      required registration API call, feature-detection guard, tool naming,
-      schema shape, bounded scenario enum, browser-held state, API-base
-      configuration, and subpath-safe host assets
-- `deployment/webmcp/Dockerfile` — new competition-only container image,
-  built entirely from this public repository, serving the bounded WebMCP
-  backend plus optional static frontend for local same-origin testing
-- `competition/webmcp/` — this delta, the brief, architecture note, judge
-  testing guide, submission checklist, and landing host-integration plan
-- `proof/webmcp/mg-guide-webmcp-end-to-end-acceptance-001.md` — acceptance
-  evidence with mocked WebMCP registration clearly distinguished from
-  actual WebMCP browser proof
-- `proof/webmcp/mg-guide-webmcp-live-backend-deployment-acceptance-001.md` —
-  acceptance evidence for the live deployed Cloud Run backend
-- `proof/webmcp/mg-guide-webmcp-production-acceptance-001.md` — full production
-  acceptance proof on the live product URL (`/mg-guide/`) with native WebMCP
-  discovery and agent invocation verified
+---
 
-No prior MG Guide work is claimed as new WebMCP work. The WebMCP adapter is
-strictly additive: it does not modify `src/mg_guide/judge_surface/*`,
-`src/orchestration/*`, `src/agents/*`, or any authentication contract.
+## NEW_WEBMCP_WORK — meaningful challenge-period extension
 
-## PRODUCTION_HOST_INTEGRATION_AND_ACCEPTANCE (verified this submission period)
+The WebMCP extension is additive around the existing MG Guide workflow and
+agents. It does not replace the core `meeting_follow_up_v1` orchestration,
+Meeting Context / Relationship Context / Follow-Up Planning agents, or
+deterministic policy.
+
+During the challenge period, the existing judge-safe presentation projection
+was also **narrowly extended** to support the stronger deterministic follow-up
+draft and shared WebMCP-facing presentation semantics used by the new browser
+surface. This is why the baseline-to-current diff includes changes in
+`src/mg_guide/judge_surface/demo_stages.py` and its tests. Those targeted
+presentation changes are part of the WebMCP integration; they are not a rewrite
+of the underlying workflow, agent graph, or policy engine.
+
+### Layer 1 — Browser-agent contract
+
+- Added real `document.modelContext.registerTool(...)` registration in
+  `webmcp/static/app.js`.
+- Exposed exactly three tools:
+  1. `process_meeting_follow_up` — **ACTION**
+  2. `get_current_follow_up_state` — **STATE**
+  3. `get_follow_up_draft` — **ARTIFACT**
+- Feature-detects native WebMCP support instead of polyfilling/emulating it.
+- Uses narrow input schemas and does not expose autonomous email-send or CRM
+  mutation tools.
+
+### Layer 2 — New Web product surface
+
+- Added `webmcp/static/` as a browser-native WebMCP frontend.
+- Added a human-operable MG Guide page where person and agent share the same
+  visible workflow state.
+- Added `currentWebMCPState` in browser memory so STATE and ARTIFACT tools can
+  inspect the current result without rerunning the workflow.
+- Added host-safe relative assets and runtime `config.js` for the existing
+  `/mg-guide/` product path.
+- Added browser-local Agent Activity presentation and explicit
+  **ACTION → STATE → ARTIFACT → HUMAN CONTROL** framing.
+
+### Layer 3 — Bounded WebMCP adapter
+
+- Added `src/mg_guide/webmcp/` with `app.py`, `scenarios.py`, and `server.py`.
+- Added `WebMCPSurfaceApp`, a stateless WSGI application exposing only
+  `/health` and `POST /webmcp/meeting-follow-up`.
+- Reuses the existing `WorkflowRunner` and judge-safe output projections rather
+  than duplicating the core workflow.
+- Accepts only `SUCCESS` and `AMBIGUOUS_CONTACT` scenarios.
+- Rejects authority-bearing/unbounded fields including `live`, `crm_write`,
+  `send_email`, `provider`, `contact_id`, `location_id`, `url`, `credentials`,
+  `instructions`, and arbitrary `transcript` input.
+- Returns the complete safe projected browser payload with no server-side
+  session/state dependency.
+
+### Layer 4 — Safety and experience model
+
+- Added deterministic follow-up draft projection for the WebMCP SUCCESS path.
+- Every usable draft preserves `requires_human_send=true`.
+- Added fail-closed `AMBIGUOUS_CONTACT` experience:
+  `NEEDS_REVIEW → draft NOT_AVAILABLE → RELATIONSHIP_REVIEW_REQUIRED`.
+- Improved latest-run/browser presentation semantics so a second invocation
+  does not expose stale state from the first run.
+- Preserved competition effect counters:
+
+```text
+HIGHLEVEL_CALLS=0
+CRM_MUTATIONS=0
+EMAILS_SENT=0
+REAL_CUSTOMER_DATA=0
+```
+
+### Layer 5 — Test / deploy / proof surface
+
+- Added `tests/webmcp/` for WebMCP-specific source, HTTP, presentation,
+  multi-run, CORS, authority-field rejection, and no-secret-leak validation.
+- Added `deployment/webmcp/Dockerfile` for the bounded competition backend.
+- Added `competition/webmcp/` judge, architecture, delta, testing, demo, and
+  submission materials.
+- Added `proof/webmcp/` production/native acceptance evidence.
+- Integrated the frontend on the existing A.I. Rolodex `/mg-guide/` host and a
+  separate bounded `mg-guide-webmcp` backend.
+- Verified native browser discovery and invocation of exactly three tools.
+
+This five-layer delta changes **how an AI agent can safely interact with the MG
+Guide web product**. It is not a documentation-only relabeling of pre-existing
+MG Guide functionality.
+
+---
+
+## PRODUCTION_HOST_INTEGRATION_AND_ACCEPTANCE
 
 ```text
 STATUS=PROVEN_IN_PRODUCTION
@@ -102,43 +152,54 @@ LIVE_PRODUCT_URL=https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-gui
 BACKEND_URL=https://mg-guide-webmcp-831270426395.us-east4.run.app
 ```
 
-- **Live Host Surface**: The static WebMCP assets are served directly at
-  `https://ai-rolodex-landing-831270426395.us-east4.run.app/mg-guide/` with
-  `window.MG_GUIDE_WEBMCP_API_BASE` pointing to the dedicated `mg-guide-webmcp`
-  backend.
-- **Native WebMCP Discovery**: Verified with a real WebMCP-capable browser
-  (Google Chrome with native WebMCP testing flag enabled; `document.modelContext`
-  native `ModelContext` instance). Exactly three tools discovered:
-  1. `process_meeting_follow_up`
-  2. `get_current_follow_up_state`
-  3. `get_follow_up_draft`
-- **Agent Invocation**: Verified via `document.modelContext.executeTool(...)`.
-- **SUCCESS flow**: Produces `ux_state=COMPLETED`, `follow_up_draft_status=READY`,
-  populates visible page state with meeting summary, matched relationship context,
-  and follow-up draft marked `requires_human_send: true`.
-- **AMBIGUOUS_CONTACT fail-closed flow**: Produces `ux_state=NEEDS_REVIEW`,
-  `follow_up_draft_status=NOT_AVAILABLE`, `reason=RELATIONSHIP_REVIEW_REQUIRED`,
-  blocking all CRM and draft actions.
-- **Effect Counters**: 0 HighLevel calls, 0 CRM mutations, 0 emails sent, 0 real customer data.
+- **Live Host Surface:** WebMCP assets are served at the existing MG Guide
+  `/mg-guide/` path with a bounded backend URL configured at runtime.
+- **Native WebMCP Discovery:** Verified with a real WebMCP-capable browser.
+  Exactly three tools were discovered.
+- **Agent Invocation:** Verified through native WebMCP execution.
+- **SUCCESS:** `ux_state=COMPLETED`, relationship matched, draft `READY`, and
+  `requires_human_send=true`.
+- **AMBIGUOUS_CONTACT:** `ux_state=NEEDS_REVIEW`, draft `NOT_AVAILABLE`, reason
+  `RELATIONSHIP_REVIEW_REQUIRED`, and zero external effects.
+- **Effect Counters:** 0 HighLevel calls, 0 CRM mutations, 0 emails sent, 0
+  real customer data.
 
-## ADDED_AFTER_INITIAL_PR_432_CORRECTION (same submission period)
+---
+
+## CORRECTIONS AND HARDENING AFTER THE INITIAL WEBMCP MERGE
 
 ```text
-CORRECTION_ID=STATELESS_BROWSER_STATE_CORRECTION
+CORRECTION_ID=STATELESS_BROWSER_STATE_AND_PRESENTATION_HARDENING
 HOST_TOPOLOGY=A.I. Rolodex /mg-guide/ + separate bounded backend
 ```
 
-- Backend made **stateless**: removed process-memory `_last_state`; removed
-  server `GET /webmcp/state` and `GET /webmcp/follow-up-draft`
-- `POST /webmcp/meeting-follow-up` now returns full safe payload including
-  bounded `follow_up_draft` projection
-- Frontend holds `currentWebMCPState` in page JS; state/draft tools are
-  client-only readers
-- Configurable `window.MG_GUIDE_WEBMCP_API_BASE` (same-origin default)
-- CORS tightened: explicit allowlist for
-  `https://ai-rolodex-landing-831270426395.us-east4.run.app`; no `*`;
-  localhost only when `WEBMCP_CORS_MODE=local`
-- Acceptance claims corrected: mocked modelContext ≠ actual WebMCP browser proof
-- Architecture artifacts updated for A.I. Rolodex host surface reuse
-- Subpath-hosting bug repaired: frontend assets now use relative paths and
-  load a bounded runtime `config.js` before `app.js`
+Challenge-period follow-up work after the initial WebMCP merge included:
+
+- backend made stateless by removing process-memory `_last_state` and server
+  state/draft GET endpoints;
+- `POST /webmcp/meeting-follow-up` returns the complete safe payload;
+- browser-held `currentWebMCPState` powers read-only STATE and ARTIFACT tools;
+- configurable `window.MG_GUIDE_WEBMCP_API_BASE` with same-origin default;
+- CORS restricted to the production host, with localhost allowed only in local
+  mode;
+- acceptance semantics corrected so mocked modelContext evidence is not
+  represented as native browser proof;
+- `/mg-guide/` subpath asset loading repaired with relative asset URLs;
+- deterministic follow-up draft quality improved;
+- browser-local Agent Activity and ACTION / STATE / ARTIFACT framing added;
+- multi-run presentation logic corrected to prevent stale state;
+- judge-facing frontend presentation elevated without changing the exact
+  three-tool contract.
+
+---
+
+## Boundary statement
+
+No pre-existing MG Guide workflow, agent, policy, Workspace, CRM, or broader
+cloud architecture is represented as newly created for The WebMCP Challenge.
+The new work is the WebMCP browser-agent contract, browser product surface,
+bounded adapter, safety/experience integration, and dedicated test/deploy/proof
+surface described above.
+
+For dated commit/PR evidence, see
+[`CHALLENGE_PERIOD_EVIDENCE.md`](CHALLENGE_PERIOD_EVIDENCE.md).
